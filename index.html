@@ -24,11 +24,11 @@
             --input-bg: #050608;
             --folder-bg: rgba(255,255,255,0.02);
             --folder-hover: rgba(255,255,255,0.05);
-            --glass-bg: rgba(30,36,50,0.38);
+            --glass-bg: rgba(255,255,255,0.06);
             --glass-border: rgba(255,255,255,0.18);
-            --glass-highlight: rgba(255,255,255,0.12);
-            --glass-shadow: rgba(0,0,0,0.6);
-            --overlay-bg: rgba(0,0,0,0.5);
+            --glass-highlight: rgba(255,255,255,0.45);
+            --glass-shadow: rgba(0,0,0,0.5);
+            --overlay-bg: rgba(0,0,0,0.25);
         }
 
         [data-theme="light"] {
@@ -41,11 +41,11 @@
             --input-bg: #ffffff;
             --folder-bg: #f8fafc;
             --folder-hover: #f1f5f9;
-            --glass-bg: rgba(255,255,255,0.22);
-            --glass-border: rgba(255,255,255,0.6);
-            --glass-highlight: rgba(255,255,255,0.7);
-            --glass-shadow: rgba(0,0,0,0.25);
-            --overlay-bg: rgba(0,0,0,0.35);
+            --glass-bg: rgba(255,255,255,0.14);
+            --glass-border: rgba(255,255,255,0.55);
+            --glass-highlight: rgba(255,255,255,0.85);
+            --glass-shadow: rgba(0,0,0,0.2);
+            --overlay-bg: rgba(0,0,0,0.18);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
@@ -183,7 +183,7 @@
         .combo-item-name-edit input { width: 100%; background: transparent; border: none; color: var(--text-main); font-size: 12px; font-family: var(--font-ui); font-weight: 700; outline: none; }
 
         /* 조합 우클릭 컨텍스트 메뉴 */
-        .combo-ctx-menu { position: fixed; z-index: 9999; background: var(--glass-bg); backdrop-filter: blur(48px) saturate(200%) brightness(1.15); -webkit-backdrop-filter: blur(48px) saturate(200%) brightness(1.15); border: 1px solid var(--glass-border); border-top: 1px solid var(--glass-highlight); border-radius: 14px; box-shadow: 0 16px 48px var(--glass-shadow), inset 0 1px 0 var(--glass-highlight); padding: 6px; min-width: 160px; font-family: var(--font-ui); font-size: 13px; }
+        .combo-ctx-menu { position: fixed; z-index: 9999; background: rgba(255,255,255,0.06); backdrop-filter: blur(60px) saturate(200%) brightness(1.08); -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.08); border: 1px solid rgba(255,255,255,0.12); border-top: 1px solid rgba(255,255,255,0.45); border-radius: 14px; box-shadow: 0 0 0 0.5px rgba(255,255,255,0.06), 0 16px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.35); padding: 6px; min-width: 160px; font-family: var(--font-ui); font-size: 13px; }
         .combo-ctx-item { padding: 8px 16px; cursor: pointer; color: var(--text-main); display: flex; align-items: center; gap: 8px; transition: background 0.12s; }
         .combo-ctx-item:hover { background: var(--bg-base); }
         .combo-ctx-item.danger { color: var(--accent-danger); }
@@ -191,8 +191,24 @@
         .combo-ctx-sep { height: 1px; background: var(--border-dim); margin: 4px 0; }
 
         /* 조합 추가 모달 */
-        .combo-create-modal-overlay { position:fixed; inset:0; background:var(--overlay-bg); z-index:10000; display:flex; align-items:center; justify-content:center; }
-        .combo-create-modal { background:var(--glass-bg); backdrop-filter:blur(48px) saturate(200%) brightness(1.15); -webkit-backdrop-filter:blur(48px) saturate(200%) brightness(1.15); border:1px solid var(--glass-border); border-top:1px solid var(--glass-highlight); border-radius:20px; width:min(620px,95vw); max-height:80vh; display:flex; flex-direction:column; box-shadow:0 32px 80px var(--glass-shadow), inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 rgba(0,0,0,0.15); }
+        .combo-create-modal-overlay { position:fixed; inset:0; background:var(--overlay-bg); z-index:10000; display:flex; align-items:center; justify-content:center; backdrop-filter: none; }
+        .combo-create-modal {
+            background: var(--glass-bg);
+            backdrop-filter: blur(60px) saturate(200%) brightness(1.08) contrast(1.02);
+            -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.08) contrast(1.02);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-top: 1px solid var(--glass-highlight);
+            border-left: 1px solid rgba(255,255,255,0.14);
+            border-radius: 22px; width:min(620px,95vw); max-height:80vh; display:flex; flex-direction:column;
+            box-shadow:
+                0 0 0 0.5px rgba(255,255,255,0.08),
+                0 32px 80px rgba(0,0,0,0.55),
+                0 8px 24px rgba(0,0,0,0.3),
+                inset 0 1px 0 var(--glass-highlight),
+                inset 0 -1px 0 rgba(0,0,0,0.2),
+                inset 1px 0 0 rgba(255,255,255,0.06),
+                inset -1px 0 0 rgba(255,255,255,0.04);
+        }
         .ccm-header { display:flex; align-items:center; gap:8px; padding:16px 20px; border-bottom:1px solid var(--border-dim); flex-shrink:0; }
         .ccm-title { font-size:15px; font-weight:800; font-family:var(--font-heading); flex:1; }
         .ccm-mode-btn { padding:5px 12px; border-radius:6px; border:1px solid var(--border-dim); background:transparent; color:var(--text-dim); cursor:pointer; font-size:12px; font-family:var(--font-ui); transition:0.15s; }
@@ -335,8 +351,8 @@
         .fixed-weight-toolbar button.reset-btn { color: var(--text-dim); font-size: 11px; }
 
         /* 우클릭 컨텍스트 메뉴 */
-        #ctx-menu { position: fixed; z-index: 99999; background: rgba(18,21,27,0.85); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid var(--border-dim); border-radius: 10px; padding: 6px; min-width: 200px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); display: none; }
-        [data-theme="light"] #ctx-menu { background: rgba(255,255,255,0.88); box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
+        #ctx-menu { position: fixed; z-index: 99999; background: rgba(255,255,255,0.06); backdrop-filter: blur(60px) saturate(200%) brightness(1.08); -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.08); border: 1px solid rgba(255,255,255,0.12); border-top: 1px solid rgba(255,255,255,0.45); border-radius: 14px; padding: 6px; min-width: 200px; box-shadow: 0 0 0 0.5px rgba(255,255,255,0.06), 0 16px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.35); display: none; }
+        [data-theme="light"] #ctx-menu { background: rgba(255,255,255,0.15); box-shadow: 0 16px 48px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9); border-top: 1px solid rgba(255,255,255,0.9); }
         .ctx-item { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; font-family: var(--font-ui); color: var(--text-main); cursor: pointer; transition: 0.15s; }
         .ctx-item:hover { background: var(--bg-surface); }
         .ctx-item.danger { color: var(--accent-danger); }
@@ -415,9 +431,26 @@
         .btn-copy:hover { filter: brightness(1.1); }
         .btn-copy.pos { background-color: var(--accent-blue); } .btn-copy.neg { background-color: var(--text-dim); }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--overlay-bg); display: none; justify-content: center; align-items: center; z-index: 2000; }
-        .modal-content { background: var(--glass-bg); backdrop-filter: blur(48px) saturate(200%) brightness(1.15); -webkit-backdrop-filter: blur(48px) saturate(200%) brightness(1.15); border: 1px solid var(--glass-border); border-top: 1px solid var(--glass-highlight); width: 850px; max-height: 90vh; border-radius: 20px; display: flex; flex-direction: column; box-shadow: 0 32px 80px var(--glass-shadow), inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 rgba(0,0,0,0.15); }
-        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-dim); display: flex; justify-content: space-between; align-items: center; font-family: var(--font-heading);}
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--overlay-bg); display: none; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: none; }
+        .modal-content {
+            background: var(--glass-bg);
+            backdrop-filter: blur(60px) saturate(200%) brightness(1.08) contrast(1.02);
+            -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.08) contrast(1.02);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-top: 1px solid var(--glass-highlight);
+            border-left: 1px solid rgba(255,255,255,0.14);
+            width: 850px; max-height: 90vh; border-radius: 22px;
+            display: flex; flex-direction: column;
+            box-shadow:
+                0 0 0 0.5px rgba(255,255,255,0.08),
+                0 32px 80px rgba(0,0,0,0.55),
+                0 8px 24px rgba(0,0,0,0.3),
+                inset 0 1px 0 var(--glass-highlight),
+                inset 0 -1px 0 rgba(0,0,0,0.2),
+                inset 1px 0 0 rgba(255,255,255,0.06),
+                inset -1px 0 0 rgba(255,255,255,0.04);
+        }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; font-family: var(--font-heading); background: rgba(255,255,255,0.03); border-radius: 22px 22px 0 0; }
         .modal-title { font-size: 18px; font-weight: 800; color: var(--text-main); }
 
         .preset-table-container { flex: 1; overflow-y: auto; padding: 24px; }
@@ -452,8 +485,8 @@
 
         /* 토스트 알림 */
         #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
-        .toast { background: rgba(30,36,50,0.32); backdrop-filter: blur(48px) saturate(220%) brightness(1.2); -webkit-backdrop-filter: blur(48px) saturate(220%) brightness(1.2); border: 1px solid rgba(255,255,255,0.22); border-top-color: rgba(255,255,255,0.38); color: var(--text-main); padding: 14px 20px; border-radius: 16px; font-size: 14px; font-weight: 600; font-family: var(--font-ui); box-shadow: 0 16px 48px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(0,0,0,0.12); display: flex; align-items: center; gap: 10px; min-width: 260px; max-width: 360px; pointer-events: all; opacity: 0; transform: translateX(30px); transition: opacity 0.35s, transform 0.35s; }
-        [data-theme="light"] .toast { background: rgba(255,255,255,0.2); backdrop-filter: blur(48px) saturate(220%) brightness(1.1); -webkit-backdrop-filter: blur(48px) saturate(220%) brightness(1.1); border: 1px solid rgba(255,255,255,0.75); border-top-color: rgba(255,255,255,0.95); box-shadow: 0 16px 48px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -1px 0 rgba(0,0,0,0.04); color: var(--text-main); }
+        .toast { background: rgba(255,255,255,0.07); backdrop-filter: blur(60px) saturate(200%) brightness(1.1); -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.1); border: 1px solid rgba(255,255,255,0.12); border-top: 1px solid rgba(255,255,255,0.5); border-left: 1px solid rgba(255,255,255,0.14); color: var(--text-main); padding: 14px 20px; border-radius: 16px; font-size: 14px; font-weight: 600; font-family: var(--font-ui); box-shadow: 0 0 0 0.5px rgba(255,255,255,0.06), 0 16px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.15); display: flex; align-items: center; gap: 10px; min-width: 260px; max-width: 360px; pointer-events: all; opacity: 0; transform: translateX(30px); transition: opacity 0.35s, transform 0.35s; }
+        [data-theme="light"] .toast { background: rgba(255,255,255,0.15); backdrop-filter: blur(60px) saturate(200%) brightness(1.05); -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.05); border: 1px solid rgba(255,255,255,0.5); border-top: 1px solid rgba(255,255,255,0.9); box-shadow: 0 16px 48px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04); color: var(--text-main); }
         .toast.show { opacity: 1; transform: translateX(0); }
         .toast.success { border-left: 4px solid var(--accent-green); }
         .toast.error { border-left: 4px solid var(--accent-danger); }
@@ -5052,7 +5085,7 @@
             const overlay = document.createElement('div');
             overlay.className = 'conflict-resolve-overlay combo-create-modal-overlay';
             const modal = document.createElement('div');
-            modal.style.cssText = 'background:var(--glass-bg);backdrop-filter:blur(48px) saturate(200%) brightness(1.15);-webkit-backdrop-filter:blur(48px) saturate(200%) brightness(1.15);border:1px solid var(--glass-border);border-top:1px solid var(--glass-highlight);border-radius:20px;width:min(600px,95vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 32px 80px var(--glass-shadow),inset 0 1px 0 var(--glass-highlight);overflow:hidden;';
+            modal.style.cssText = 'background:var(--glass-bg);backdrop-filter:blur(60px) saturate(200%) brightness(1.08) contrast(1.02);-webkit-backdrop-filter:blur(60px) saturate(200%) brightness(1.08) contrast(1.02);border:1px solid rgba(255,255,255,0.12);border-top:1px solid var(--glass-highlight);border-left:1px solid rgba(255,255,255,0.14);border-radius:22px;width:min(600px,95vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 0 0 0.5px rgba(255,255,255,0.08),0 32px 80px rgba(0,0,0,0.55),0 8px 24px rgba(0,0,0,0.3),inset 0 1px 0 var(--glass-highlight),inset 0 -1px 0 rgba(0,0,0,0.2);overflow:hidden;';
             const hdr = document.createElement('div');
             hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--glass-border);flex-shrink:0;';
             hdr.innerHTML = `<span style="font-size:15px;font-weight:800;font-family:var(--font-heading);">⚠️ 충돌 항목 (${conflicts.length}개) — ${addedCount}개 추가됨</span>`;
@@ -5273,10 +5306,10 @@
 
             const overlay = document.createElement('div');
             overlay.className = 'trans-session-overlay combo-create-modal-overlay';
-            overlay.style.cssText = 'position:fixed;inset:0;background:var(--overlay-bg);z-index:3000;display:flex;align-items:center;justify-content:center;';
+            overlay.style.cssText = 'position:fixed;inset:0;background:var(--overlay-bg);z-index:3000;display:flex;align-items:center;justify-content:center;backdrop-filter:none;';
 
             const modal = document.createElement('div');
-            modal.style.cssText = 'background:var(--glass-bg);backdrop-filter:blur(48px) saturate(200%) brightness(1.15);-webkit-backdrop-filter:blur(48px) saturate(200%) brightness(1.15);border:1px solid var(--glass-border);border-top:1px solid var(--glass-highlight);border-radius:20px;padding:24px;width:min(700px,95vw);max-height:90vh;display:flex;flex-direction:column;gap:16px;overflow:hidden;box-shadow:0 32px 80px var(--glass-shadow),inset 0 1px 0 var(--glass-highlight);';
+            modal.style.cssText = 'background:var(--glass-bg);backdrop-filter:blur(60px) saturate(200%) brightness(1.08) contrast(1.02);-webkit-backdrop-filter:blur(60px) saturate(200%) brightness(1.08) contrast(1.02);border:1px solid rgba(255,255,255,0.12);border-top:1px solid var(--glass-highlight);border-left:1px solid rgba(255,255,255,0.14);border-radius:22px;padding:24px;width:min(700px,95vw);max-height:90vh;display:flex;flex-direction:column;gap:16px;overflow:hidden;box-shadow:0 0 0 0.5px rgba(255,255,255,0.08),0 32px 80px rgba(0,0,0,0.55),0 8px 24px rgba(0,0,0,0.3),inset 0 1px 0 var(--glass-highlight),inset 0 -1px 0 rgba(0,0,0,0.2);';
 
             const titleRow = document.createElement('div');
             titleRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;';
@@ -5382,7 +5415,7 @@
             document.addEventListener('keydown', _pcEscHandler);
             overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); document.removeEventListener('keydown', _pcEscHandler); } };
             const modal = document.createElement('div');
-            modal.style.cssText = 'background:var(--glass-bg);backdrop-filter:blur(48px) saturate(200%) brightness(1.15);-webkit-backdrop-filter:blur(48px) saturate(200%) brightness(1.15);border:1px solid var(--glass-border);border-top:1px solid var(--glass-highlight);border-radius:20px;width:min(680px,96vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 32px 80px var(--glass-shadow),inset 0 1px 0 var(--glass-highlight);overflow:hidden;';
+            modal.style.cssText = 'background:var(--glass-bg);backdrop-filter:blur(60px) saturate(200%) brightness(1.08) contrast(1.02);-webkit-backdrop-filter:blur(60px) saturate(200%) brightness(1.08) contrast(1.02);border:1px solid rgba(255,255,255,0.12);border-top:1px solid var(--glass-highlight);border-left:1px solid rgba(255,255,255,0.14);border-radius:22px;width:min(680px,96vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 0 0 0.5px rgba(255,255,255,0.08),0 32px 80px rgba(0,0,0,0.55),0 8px 24px rgba(0,0,0,0.3),inset 0 1px 0 var(--glass-highlight),inset 0 -1px 0 rgba(0,0,0,0.2);overflow:hidden;';
 
             // Header
             const hdr = document.createElement('div');
@@ -5653,7 +5686,7 @@
             document.addEventListener('keydown', _dbgEscHandler);
             overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); document.removeEventListener('keydown', _dbgEscHandler); } };
             const modal = document.createElement('div');
-            modal.style.cssText = 'background:var(--glass-bg);backdrop-filter:blur(48px) saturate(200%) brightness(1.15);-webkit-backdrop-filter:blur(48px) saturate(200%) brightness(1.15);border:1px solid var(--glass-border);border-top:1px solid var(--glass-highlight);border-radius:20px;width:min(700px,95vw);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 32px 80px var(--glass-shadow),inset 0 1px 0 var(--glass-highlight);overflow:hidden;';
+            modal.style.cssText = 'background:var(--glass-bg);backdrop-filter:blur(60px) saturate(200%) brightness(1.08) contrast(1.02);-webkit-backdrop-filter:blur(60px) saturate(200%) brightness(1.08) contrast(1.02);border:1px solid rgba(255,255,255,0.12);border-top:1px solid var(--glass-highlight);border-left:1px solid rgba(255,255,255,0.14);border-radius:22px;width:min(700px,95vw);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 0 0 0.5px rgba(255,255,255,0.08),0 32px 80px rgba(0,0,0,0.55),0 8px 24px rgba(0,0,0,0.3),inset 0 1px 0 var(--glass-highlight),inset 0 -1px 0 rgba(0,0,0,0.2);overflow:hidden;';
             const hdr = document.createElement('div');
             hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-dim);flex-shrink:0;';
             hdr.innerHTML = '<span style="font-size:15px;font-weight:800;font-family:var(--font-heading);">ⓘ DB 입력 형식 가이드</span>';
