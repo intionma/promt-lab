@@ -676,7 +676,7 @@
     </div>
 
     <div class="app-container" id="app-container">
-        <aside class="panel" id="panel-left">
+        <aside class="panel mobile-active" id="panel-left">
             <div class="panel-header">
                 <span class="app-title-wrap"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v8.0 &nbsp;·&nbsp; 2026-06-25 15:07</span></span>
                 <div class="header-actions">
@@ -1699,6 +1699,14 @@
             const sidebarDetail = document.getElementById('sidebar-content-detail');
             const editor = document.getElementById('editor-content');
 
+            // 폴더 열림 상태 저장 (재렌더 후 복원)
+            const _openLayerGroups = new Set();
+            const _openSubFolders = new Set(); // "layerId::folderKey"
+            document.querySelectorAll('.layer-group:not(.collapsed)').forEach(el => _openLayerGroups.add(el.id));
+            document.querySelectorAll('.sub-folder:not(.collapsed)').forEach(el => {
+                _openSubFolders.add(el.dataset.layerId + '::' + el.dataset.folderKey);
+            });
+
             sidebarDetail.innerHTML = ''; editor.innerHTML = ''; activeTagsMap = {};
 
             sidebarDetail.innerHTML = `
@@ -1905,6 +1913,17 @@
             loadContextState();
             switchViewMode('visual');
             setTimeout(refreshAllTagBtnDisplays, 0);
+
+            // 폴더 열림 상태 복원
+            _openLayerGroups.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove('collapsed');
+            });
+            _openSubFolders.forEach(key => {
+                const [layerId, folderKey] = key.split('::');
+                const el = document.querySelector(`.sub-folder[data-layer-id="${layerId}"][data-folder-key="${CSS.escape(folderKey)}"]`);
+                if (el) el.classList.remove('collapsed');
+            });
         }
 
         function getComboPreview(tags) {
@@ -2423,7 +2442,8 @@
 
         function openComboCreateModal(targetFolderId = null, preselectedTag = null, editComboId = null) {
             document.querySelectorAll('.combo-create-modal-overlay').forEach(e => e.remove());
-            _ccmState = { mode: 'basic', selectedLayer: 'all', selectedTags: new Set(), targetFolderId, editComboId };
+            const savedMode = localStorage.getItem('ccm_mode') || 'basic';
+            _ccmState = { mode: savedMode, selectedLayer: 'all', selectedTags: new Set(), targetFolderId, editComboId };
             if (preselectedTag) _ccmState.selectedTags.add(preselectedTag);
             if (editComboId) {
                 // Pre-load existing combo tags into selectedTags for basic mode
@@ -2455,8 +2475,8 @@
             const btnClose = document.createElement('button');
             btnClose.className = 'ccm-mode-btn'; btnClose.textContent = '✕';
             btnClose.onclick = () => { overlay.remove(); document.removeEventListener('keydown', _ccmEscHandler); };
-            btnBasic.onclick = () => { _ccmState.mode = 'basic'; btnBasic.classList.add('active'); btnAdv.classList.remove('active'); renderCCMBody(); };
-            btnAdv.onclick = () => { _ccmState.mode = 'adv'; btnAdv.classList.add('active'); btnBasic.classList.remove('active'); renderCCMBody(); };
+            btnBasic.onclick = () => { _ccmState.mode = 'basic'; localStorage.setItem('ccm_mode', 'basic'); btnBasic.classList.add('active'); btnAdv.classList.remove('active'); renderCCMBody(); };
+            btnAdv.onclick = () => { _ccmState.mode = 'adv'; localStorage.setItem('ccm_mode', 'adv'); btnAdv.classList.add('active'); btnBasic.classList.remove('active'); renderCCMBody(); };
             header.appendChild(btnBasic); header.appendChild(btnAdv); header.appendChild(btnClose);
 
             // Body
