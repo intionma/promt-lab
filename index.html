@@ -5389,7 +5389,7 @@
             titleRow.querySelector('#trans-close-btn').onclick = close;
             overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
 
-            titleRow.querySelector('#trans-copy-src-btn').onclick = () => {
+            stepOneLabel.querySelector('#trans-copy-src-btn').onclick = () => {
                 navigator.clipboard.writeText(srcText.value).then(() => showToast('원문 목록이 복사되었습니다.', 'success'));
             };
 
