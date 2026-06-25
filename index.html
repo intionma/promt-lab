@@ -54,12 +54,11 @@
         .app-container {
             display: flex;
             height: 100vh;
-            min-width: 1070px;
             overflow: hidden;
         }
         .app-container > .panel {
-            min-width: 240px;
-            flex-shrink: 0;
+            min-width: 200px;
+            overflow: hidden;
         }
         .panel-resize-handle {
             width: 5px;
@@ -153,28 +152,30 @@
         .folder-badge { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; font-size: 11px; font-weight: bold; color: #fff; opacity: 0; transform: scale(0.8); transition: 0.2s; margin-left: 6px; font-family: var(--font-code);}
         .folder-badge.active { opacity: 1; transform: scale(1); }
 
-        .sub-folder-content { padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 8px; background: var(--bg-base); }
+        .sub-folder-content { padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 6px; background: var(--bg-base); }
         .sub-folder.collapsed .sub-folder-content { display: none; }
         .sub-folder.collapsed .fa-chevron-down { transform: rotate(-90deg); }
 
         .tag-btn {
             background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-main);
-            padding: 10px 14px; border-radius: 8px; font-family: var(--font-ui); cursor: pointer; transition: all 0.2s;
-            display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; width: 100%; position: relative; overflow: hidden;
+            padding: 6px 28px 6px 10px; border-radius: 8px; font-family: var(--font-ui); cursor: pointer; transition: all 0.2s;
+            display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px;
+            text-align: left; width: auto; position: relative; overflow: hidden;
+            max-width: 100%;
         }
         .tag-btn:hover { border-color: var(--text-dim); }
-        .tag-kr { font-size: 14px; font-weight: 700; color: inherit; line-height: 1.3; z-index: 2; position: relative; padding-right: 20px;}
-        .tag-en { font-size: 12px; font-family: var(--font-code); color: var(--text-dim); word-break: break-all; z-index: 2; position: relative; padding-right: 20px;}
+        .tag-kr { font-size: 13px; font-weight: 700; color: inherit; line-height: 1.3; z-index: 2; position: relative; white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+        .tag-en { font-size: 11px; font-family: var(--font-code); color: var(--text-dim); z-index: 2; position: relative; white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
         .tag-btn.active { background: var(--folder-hover); }
         .tag-btn.active .tag-en { opacity: 0.9; }
 
-        .tag-fav-icon { position: absolute; right: 10px; top: 10px; color: var(--border-dim); transition: 0.2s; font-size: 14px; z-index: 3; padding: 4px; }
-        .tag-fav-icon:hover { color: #eab308; transform: scale(1.2); }
+        .tag-fav-icon { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); color: var(--border-dim); transition: 0.2s; font-size: 12px; z-index: 3; padding: 4px; }
+        .tag-fav-icon:hover { color: #eab308; transform: translateY(-50%) scale(1.2); }
         .tag-fav-icon.active { color: #eab308; }
 
-        .tag-btn.mini { width: auto; padding: 8px 12px; flex-direction: row; align-items: center; gap: 8px; min-height: unset; }
-        .tag-btn.mini .tag-kr { font-size: 13px; padding-right: 0; white-space: nowrap; }
-        .tag-btn.mini .tag-fav-icon { position: static; padding: 0; font-size: 13px;}
+        .tag-btn.mini { padding: 7px 10px; flex-direction: row; align-items: center; gap: 6px; }
+        .tag-btn.mini .tag-kr { font-size: 13px; max-width: none; white-space: nowrap; }
+        .tag-btn.mini .tag-fav-icon { position: static; padding: 0; font-size: 13px; transform: none; }
 
         .context-tabs-wrapper { display: flex; background: var(--bg-surface); border-bottom: 1px solid var(--border-dim); align-items: flex-end; }
         .context-tabs { display: flex; padding: 10px 12px 0 24px; gap: 8px; align-items: flex-end; overflow-x: auto; flex: 1; scrollbar-width: thin; scrollbar-color: var(--border-dim) transparent; cursor: grab; user-select: none; }
@@ -1574,9 +1575,19 @@
                     const finishEdit = () => {
                         const newVal = editInput.value.trim();
                         if(newVal !== tag) saveStateToUndoStack();
+                        const wasDeleted = !newVal;
+                        const prevIdx = idx - 1;
                         if(newVal) tags[idx] = newVal; else tags.splice(idx, 1);
                         textarea.value = tags.join(', ');
                         syncFromManualInput(layerIndex);
+                        if (wasDeleted && prevIdx >= 0) {
+                            setTimeout(() => {
+                                const newContainer = document.getElementById('chip-container-' + layerIndex);
+                                const chips = newContainer ? newContainer.querySelectorAll('.prompt-chip') : [];
+                                const target = chips[prevIdx];
+                                if (target) target.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+                            }, 0);
+                        }
                     };
                     editInput.onblur = finishEdit;
                     editInput.onkeydown = (e2) => {
@@ -2413,38 +2424,49 @@
             const handle1 = document.getElementById('resize-handle-1');
             const handle2 = document.getElementById('resize-handle-2');
 
-            function applyWidths(w1, w3) {
-                panelLeft.style.width = w1 + 'px';
-                panelLeft.style.flex = 'none';
-                panelRight.style.width = w3 + 'px';
-                panelRight.style.flex = 'none';
-                panelMid.style.flex = '1';
-                panelMid.style.width = '';
+            const MIN_PANEL = 200;
+            // stored as ratios (0~1) relative to container width
+            let ratioL = null, ratioR = null;
+
+            function getTotal() { return container.getBoundingClientRect().width || window.innerWidth; }
+
+            function applyRatios() {
+                const total = getTotal();
+                if (ratioL === null) ratioL = 0.24;
+                if (ratioR === null) ratioR = 0.28;
+                const wL = Math.max(MIN_PANEL, Math.round(total * ratioL));
+                const wR = Math.max(MIN_PANEL, Math.round(total * ratioR));
+                // clamp so mid panel is always at least MIN_PANEL
+                const available = total - wL - wR - 10; // 10 for handles
+                if (available < MIN_PANEL) {
+                    panelLeft.style.flex = '1 1 0'; panelLeft.style.width = '';
+                    panelMid.style.flex = '2 1 0'; panelMid.style.width = '';
+                    panelRight.style.flex = '1.5 1 0'; panelRight.style.width = '';
+                    return;
+                }
+                panelLeft.style.width = wL + 'px'; panelLeft.style.flex = 'none';
+                panelRight.style.width = wR + 'px'; panelRight.style.flex = 'none';
+                panelMid.style.flex = '1'; panelMid.style.width = '';
             }
 
             function loadWidths() {
                 try {
                     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-                    if (saved && saved.w1 && saved.w3) {
-                        applyWidths(saved.w1, saved.w3);
-                        return;
-                    }
+                    if (saved && saved.rL && saved.rR) { ratioL = saved.rL; ratioR = saved.rR; }
                 } catch(e) {}
-                // defaults
-                const total = container.getBoundingClientRect().width || window.innerWidth;
-                applyWidths(Math.round(total * 0.24), Math.round(total * 0.28));
+                applyRatios();
             }
 
             function saveWidths() {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify({
-                    w1: panelLeft.getBoundingClientRect().width,
-                    w3: panelRight.getBoundingClientRect().width
-                }));
+                const total = getTotal();
+                ratioL = panelLeft.getBoundingClientRect().width / total;
+                ratioR = panelRight.getBoundingClientRect().width / total;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({ rL: ratioL, rR: ratioR }));
             }
 
+            window.addEventListener('resize', applyRatios);
+
             function makeResizable(handle, getFixed, isLeft) {
-                // isLeft=true: handle is to the right of getFixed(); dragging right grows getFixed
-                // isLeft=false: handle is to the left of getFixed(); dragging right shrinks getFixed
                 handle.addEventListener('mousedown', function(e) {
                     e.preventDefault();
                     handle.classList.add('dragging');
@@ -2453,7 +2475,7 @@
 
                     function onMove(e) {
                         const dx = e.clientX - startX;
-                        const newW = Math.max(220, isLeft ? startW + dx : startW - dx);
+                        const newW = Math.max(MIN_PANEL, isLeft ? startW + dx : startW - dx);
                         getFixed().style.width = newW + 'px';
                         getFixed().style.flex = 'none';
                     }
