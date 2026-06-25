@@ -4766,11 +4766,34 @@
             }
 
             let syntaxErrors = [];
-            let openP = (finalOutput.match(/\(/g) || []).length;
-            let closeP = (finalOutput.match(/\)/g) || []).length;
-            if (openP !== closeP) {
-                syntaxErrors.push("괄호 짝 불일치");
-            }
+            // 괄호 짝 검사: 위치까지 특정
+            (() => {
+                const s = finalOutput;
+                let depth = 0;
+                let firstExtraClose = -1; // 닫힘이 먼저 나온 위치
+                const openStack = []; // 아직 닫히지 않은 ( 위치들
+                for (let i = 0; i < s.length; i++) {
+                    if (s[i] === '(') { openStack.push(i); depth++; }
+                    else if (s[i] === ')') {
+                        if (openStack.length === 0) { firstExtraClose = i; break; }
+                        openStack.pop(); depth--;
+                    }
+                }
+                if (firstExtraClose !== -1 || openStack.length > 0) {
+                    const openP = (s.match(/\(/g) || []).length;
+                    const closeP = (s.match(/\)/g) || []).length;
+                    let detail = `열림 ${openP}개 / 닫힘 ${closeP}개`;
+                    // 문제 위치 스니펫
+                    const problemIdx = firstExtraClose !== -1 ? firstExtraClose : openStack[0];
+                    const snippetStart = Math.max(0, problemIdx - 15);
+                    const snippetEnd = Math.min(s.length, problemIdx + 16);
+                    const snippet = s.slice(snippetStart, snippetEnd).replace(/\n/g, ' ');
+                    const markerPos = problemIdx - snippetStart;
+                    const marked = snippet.slice(0, markerPos) + '【' + snippet[markerPos] + '】' + snippet.slice(markerPos + 1);
+                    detail += ` — "…${marked}…"`;
+                    syntaxErrors.push(`괄호 짝 불일치 (${detail})`);
+                }
+            })();
             if (/\([^)]+:[^0-9.]+\)/.test(finalOutput)) {
                 syntaxErrors.push("가중치 숫자 오류");
             }
@@ -4779,7 +4802,7 @@
             if (syntaxWarnEl && syntaxWarnText) {
                 if (syntaxErrors.length > 0) {
                     syntaxWarnEl.style.display = 'block';
-                    syntaxWarnText.innerText = syntaxErrors.join(", ");
+                    syntaxWarnText.innerText = syntaxErrors.join(" / ");
                 } else {
                     syntaxWarnEl.style.display = 'none';
                 }
