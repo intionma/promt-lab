@@ -1581,6 +1581,7 @@
                 const menuItems = [
                     { icon: 'fa-play', label: '적용', action: () => applyCombo(combo) },
                     { icon: 'fa-pen', label: '이름 변경', action: () => startInlineRename(el, combo) },
+                    { icon: 'fa-sliders', label: '수정', action: () => openComboCreateModal(parentFolderId, null, combo.id) },
                     { icon: 'fa-copy', label: '복사 (현재 에디터에 복사)', action: () => {
                         const tagStr = Object.values(combo.tags || {}).join(', ');
                         navigator.clipboard.writeText(tagStr).then(() => showToast('클립보드에 복사됨', 'success'));
@@ -1850,10 +1851,11 @@
         // ─── 조합 추가 모달 ───
         let _ccmState = { mode: 'basic', selectedLayer: 'all', selectedTags: new Set(), targetFolderId: null };
 
-        function openComboCreateModal(targetFolderId = null, preselectedTag = null) {
+        function openComboCreateModal(targetFolderId = null, preselectedTag = null, editComboId = null) {
             document.querySelectorAll('.combo-create-modal-overlay').forEach(e => e.remove());
-            _ccmState = { mode: 'basic', selectedLayer: 'all', selectedTags: new Set(), targetFolderId };
+            _ccmState = { mode: 'basic', selectedLayer: 'all', selectedTags: new Set(), targetFolderId, editComboId };
             if (preselectedTag) _ccmState.selectedTags.add(preselectedTag);
+            if (editComboId) { _ccmState.mode = 'adv'; }
 
             const overlay = document.createElement('div');
             overlay.className = 'combo-create-modal-overlay';
@@ -1865,7 +1867,7 @@
             // Header
             const header = document.createElement('div');
             header.className = 'ccm-header';
-            header.innerHTML = `<span class="ccm-title">조합 추가</span>`;
+            header.innerHTML = `<span class="ccm-title">${editComboId ? '조합 수정' : '조합 추가'}</span>`;
             const btnBasic = document.createElement('button');
             btnBasic.className = 'ccm-mode-btn active'; btnBasic.textContent = '기본';
             const btnAdv = document.createElement('button');
@@ -1901,10 +1903,31 @@
             };
 
             const btnSave = document.createElement('button');
-            btnSave.className = 'action-btn'; btnSave.style.cssText = 'padding:7px 16px;font-size:13px;background:var(--accent-green);color:#fff;border:none;'; btnSave.textContent = '저장';
+            btnSave.className = 'action-btn'; btnSave.style.cssText = 'padding:7px 16px;font-size:13px;background:var(--accent-green);color:#fff;border:none;'; btnSave.textContent = editComboId ? '수정 완료' : '저장';
             btnSave.onclick = () => {
                 const nameInput = document.getElementById('ccm-name-input');
                 const name = (nameInput?.value || '').trim();
+                if (_ccmState.editComboId) {
+                    // Edit mode: update existing combo
+                    const combo = comboFS.items[_ccmState.editComboId];
+                    if (!combo) { showToast('조합을 찾을 수 없습니다', 'error'); return; }
+                    if (name) combo.title = name;
+                    const textarea = document.getElementById('ccm-adv-textarea');
+                    const text = textarea?.value || '';
+                    // Parse text into tags by layer
+                    const newTags = {};
+                    text.split(/[\n,]/).map(s => s.trim()).filter(Boolean).forEach(p => {
+                        const clean = p.replace(/^\(+|\)+$/g, '').replace(/:\d*\.?\d+$/, '').trim();
+                        const found = _findInDB(clean);
+                        const lid = found?.lid || 1;
+                        if (!newTags[lid]) newTags[lid] = p;
+                        else newTags[lid] += ', ' + p;
+                    });
+                    combo.tags = newTags;
+                    saveComboFS(); renderCombos(); overlay.remove();
+                    showToast(`[${combo.title}] 수정 완료`, 'success');
+                    return;
+                }
                 if (_ccmState.mode === 'basic') {
                     if (_ccmState.selectedTags.size === 0) { showToast('태그를 선택하세요', 'warning'); return; }
                     saveComboFromModal(name, _ccmState.selectedTags, _ccmState.targetFolderId, null);
@@ -1945,6 +1968,20 @@
                 renderCCMAdvanced(body);
                 const applyBtn = document.getElementById('ccm-btn-apply-editor');
                 if (applyBtn) applyBtn.style.display = '';
+                // Pre-fill when editing
+                if (_ccmState.editComboId) {
+                    const combo = comboFS.items[_ccmState.editComboId];
+                    if (combo) {
+                        const nameInput = document.getElementById('ccm-name-input');
+                        if (nameInput) nameInput.value = combo.title;
+                        const textarea = document.getElementById('ccm-adv-textarea');
+                        if (textarea) {
+                            const allTags = Object.values(combo.tags || {}).join(', ');
+                            textarea.value = allTags;
+                            renderCCMRecognition(allTags);
+                        }
+                    }
+                }
             }
         }
 
@@ -2042,6 +2079,46 @@
             const recogList = document.createElement('div');
             recogList.className = 'ccm-recognition-list'; recogList.id = 'ccm-recog-list';
             body.appendChild(recogLabel); body.appendChild(recogList);
+        }
+
+        function _fuzzyFindLayer(cleanPrompt) {
+            const p = cleanPrompt.toLowerCase();
+            let best = null;
+            for (let lid = 1; lid <= 7; lid++) {
+                if (!promptDB[lid]) continue;
+                for (const [fk, tags] of Object.entries(promptDB[lid])) {
+                    // Check folder key words
+                    const fkWords = fk.toLowerCase().split(/[\s|_,]+/).filter(Boolean);
+                    let fkScore = 0;
+                    if (fk.toLowerCase().includes(p) || p.includes(fk.toLowerCase().split('|')[0])) fkScore = 0.2;
+                    for (const w of fkWords) { if (p.includes(w) && w.length > 2) fkScore = Math.max(fkScore, 0.2); }
+
+                    for (const t of tags) {
+                        const tagPrompts = (t.t || '').split(',').map(s => s.trim().toLowerCase());
+                        const kr = (t.k || '').toLowerCase();
+                        let score = 0;
+                        for (const tp of tagPrompts) {
+                            if (!tp) continue;
+                            // substring match
+                            if (tp.includes(p) || p.includes(tp)) { score = Math.max(score, 0.5); }
+                            // char-level similarity
+                            const longer = tp.length > p.length ? tp : p;
+                            const shorter = tp.length <= p.length ? tp : p;
+                            let matchChars = 0;
+                            for (const ch of shorter) { if (longer.includes(ch)) matchChars++; }
+                            const charScore = matchChars / longer.length;
+                            score = Math.max(score, charScore);
+                        }
+                        // check kr match
+                        if (kr && (kr.includes(p) || p.includes(kr))) score = Math.max(score, 0.3);
+                        score = Math.max(score, fkScore);
+                        if (score > 0.15 && (!best || score > best.score)) {
+                            best = { lid, fk, score };
+                        }
+                    }
+                }
+            }
+            return best;
         }
 
         function _findInDB(p) {
