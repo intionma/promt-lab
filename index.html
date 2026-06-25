@@ -175,15 +175,18 @@
 
         .sub-folder { border-bottom: 1px solid var(--border-dim); transition: opacity 0.15s; }
         .sidebar-drag-handle { opacity: 0; cursor: grab; color: var(--text-dim); font-size: 11px; padding: 0 4px; transition: opacity 0.15s; flex-shrink: 0; }
-        .sub-folder-header:hover .sidebar-drag-handle,
-        .tag-btn:hover .sidebar-drag-handle { opacity: 0.6; }
-        .sidebar-drag-handle:hover { opacity: 1 !important; color: var(--text-main); }
-        .sidebar-drag-handle:active { cursor: grabbing; }
-        .dnd-dragging { opacity: 0.35; }
-        .dnd-folder-over-before { border-top: 2px solid var(--accent-blue) !important; }
-        .dnd-folder-over-after { border-bottom: 2px solid var(--accent-blue) !important; }
-        .dnd-tag-over-before { outline: 2px solid var(--accent-blue); outline-offset: -1px; }
-        .dnd-tag-over-after { outline: 2px solid var(--accent-blue); outline-offset: -1px; }
+        .sub-folder-header:hover .sidebar-drag-handle { opacity: 0.5; }
+        .sidebar-drag-handle:hover { opacity: 1 !important; }
+        .dnd-dragging { opacity: 0.25; }
+        /* 폴더 드래그 고스트 */
+        .folder-drag-ghost { position: fixed; pointer-events: none; z-index: 10000; opacity: 0.9; box-shadow: 0 12px 36px rgba(0,0,0,0.45); border-radius: 8px; transform: scale(1.03); transition: box-shadow 0.1s; }
+        /* 폴더 드래그 플레이스홀더 */
+        .folder-drag-placeholder { background: rgba(99,102,241,0.1); border: 2px dashed var(--accent-blue); border-radius: 8px; margin: 2px 0; transition: height 0.15s ease; }
+        /* 태그 드래그 */
+        .tag-btn { cursor: grab; }
+        .tag-btn:active { cursor: grabbing; }
+        .tag-btn.dnd-dragging { opacity: 0.25; }
+        .tag-btn.dnd-tag-over { box-shadow: -3px 0 0 0 var(--accent-blue); }
         .sub-folder:last-child { border-bottom: none; }
         .sub-folder-header { padding: 12px 16px 12px 10px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 4px; transition: 0.2s; background: var(--folder-bg); border-left: 4px solid transparent; }
         .sub-folder-header:hover { background: var(--folder-hover); }
@@ -198,7 +201,7 @@
 
         .tag-btn {
             background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-main);
-            padding: 6px 28px 6px 22px; border-radius: 8px; font-family: var(--font-ui); cursor: pointer; transition: all 0.2s;
+            padding: 6px 28px 6px 10px; border-radius: 8px; font-family: var(--font-ui); cursor: grab; transition: all 0.2s;
             display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px;
             text-align: left; width: auto; position: relative; overflow: hidden;
             max-width: 100%;
@@ -209,7 +212,6 @@
         .tag-btn.active { background: var(--folder-hover); }
         .tag-btn.active .tag-en { opacity: 0.9; }
 
-        .tag-drag-handle { position: absolute; left: 5px; top: 50%; transform: translateY(-50%); }
         .tag-fav-icon { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); color: var(--border-dim); transition: 0.2s; font-size: 12px; z-index: 3; padding: 4px; }
         .tag-fav-icon:hover { color: #eab308; transform: translateY(-50%) scale(1.2); }
         .tag-fav-icon.active { color: #eab308; }
@@ -1242,10 +1244,6 @@
                             btn.dataset.tag = data.t;
                             btn.dataset.folderKey = subLayerRaw;
                             btn.innerHTML = `<span class="tag-kr">${data.k || data.t}</span><span class="tag-en">${data.t}</span>`;
-
-                            const handle = document.createElement('i');
-                            handle.className = 'fa-solid fa-grip-vertical sidebar-drag-handle tag-drag-handle';
-                            btn.appendChild(handle);
 
                             const star = document.createElement('i');
                             star.className = `fa-star tag-fav-icon ${favorites.includes(data.t) ? 'fa-solid active' : 'fa-regular'}`;
@@ -2782,129 +2780,147 @@
         });
 
         // ─── 사이드바 드래그앤드롭 ───
-        let _dndDragging = null; // { type: 'folder'|'tag', el, layerId, folderKey }
+        let _dndDragging = null;
 
+        // ─── 폴더 드래그: 포인터 이벤트 + 고스트 + 플레이스홀더 애니메이션 ───
         function setupFolderDrag(folderEl, layerId) {
             const handle = folderEl.querySelector('.folder-drag-handle');
             if (!handle) return;
 
-            handle.addEventListener('mousedown', () => { folderEl.draggable = true; });
-            folderEl.addEventListener('dragend', () => {
-                folderEl.draggable = false;
-                folderEl.classList.remove('dnd-dragging');
-                document.querySelectorAll('.dnd-folder-over-before,.dnd-folder-over-after').forEach(e => {
-                    e.classList.remove('dnd-folder-over-before','dnd-folder-over-after');
-                });
-                _dndDragging = null;
-            });
+            let ghost = null, placeholder = null, dragging = false;
+            let startX, startY, offsetX, offsetY;
 
-            folderEl.addEventListener('dragstart', (e) => {
-                if (!folderEl.draggable) { e.preventDefault(); return; }
-                _dndDragging = { type: 'folder', el: folderEl, layerId };
-                folderEl.classList.add('dnd-dragging');
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', 'folder');
-            });
-
-            folderEl.addEventListener('dragover', (e) => {
-                if (!_dndDragging || _dndDragging.type !== 'folder' || _dndDragging.el === folderEl) return;
-                if (parseInt(_dndDragging.layerId) !== layerId) return;
-                e.preventDefault(); e.dataTransfer.dropEffect = 'move';
-                const rect = folderEl.getBoundingClientRect();
-                const isTop = e.clientY < rect.top + rect.height / 2;
-                folderEl.classList.toggle('dnd-folder-over-before', isTop);
-                folderEl.classList.toggle('dnd-folder-over-after', !isTop);
-            });
-
-            folderEl.addEventListener('dragleave', () => {
-                folderEl.classList.remove('dnd-folder-over-before','dnd-folder-over-after');
-            });
-
-            folderEl.addEventListener('drop', (e) => {
+            handle.addEventListener('pointerdown', (e) => {
+                if (e.button !== 0) return;
                 e.preventDefault();
-                folderEl.classList.remove('dnd-folder-over-before','dnd-folder-over-after');
-                if (!_dndDragging || _dndDragging.type !== 'folder' || _dndDragging.el === folderEl) return;
-                if (parseInt(_dndDragging.layerId) !== layerId) return;
-
+                startX = e.clientX; startY = e.clientY;
                 const rect = folderEl.getBoundingClientRect();
-                const insertBefore = e.clientY < rect.top + rect.height / 2;
+                offsetX = e.clientX - rect.left;
+                offsetY = e.clientY - rect.top;
+                handle.setPointerCapture(e.pointerId);
+                handle.addEventListener('pointermove', onMove);
+                handle.addEventListener('pointerup', onUp);
+                handle.addEventListener('pointercancel', onUp);
+            });
+
+            function onMove(e) {
+                if (!dragging) {
+                    if (Math.hypot(e.clientX - startX, e.clientY - startY) < 5) return;
+                    dragging = true;
+                    const rect = folderEl.getBoundingClientRect();
+                    // 고스트 생성
+                    ghost = folderEl.cloneNode(true);
+                    ghost.className = (ghost.className || '') + ' folder-drag-ghost';
+                    ghost.style.cssText += `; position:fixed; left:${rect.left}px; top:${rect.top}px; width:${rect.width}px; z-index:10000; pointer-events:none;`;
+                    document.body.appendChild(ghost);
+                    // 플레이스홀더 생성
+                    placeholder = document.createElement('div');
+                    placeholder.className = 'folder-drag-placeholder';
+                    placeholder.style.height = rect.height + 'px';
+                    folderEl.parentElement.insertBefore(placeholder, folderEl);
+                    folderEl.classList.add('dnd-dragging');
+                    folderEl.style.visibility = 'hidden';
+                }
+                if (!ghost) return;
+                ghost.style.left = (e.clientX - offsetX) + 'px';
+                ghost.style.top = (e.clientY - offsetY) + 'px';
+                movePlaceholder(e.clientY);
+            }
+
+            function movePlaceholder(clientY) {
                 const parent = folderEl.parentElement;
-                if (insertBefore) parent.insertBefore(_dndDragging.el, folderEl);
-                else folderEl.after(_dndDragging.el);
+                const siblings = [...parent.querySelectorAll('.sub-folder')].filter(el => el !== folderEl);
+                let insertBefore = null;
+                for (const sib of siblings) {
+                    const r = sib.getBoundingClientRect();
+                    if (clientY < r.top + r.height / 2) { insertBefore = sib; break; }
+                }
+                if (insertBefore) parent.insertBefore(placeholder, insertBefore);
+                else parent.appendChild(placeholder);
+            }
+
+            function onUp() {
+                handle.removeEventListener('pointermove', onMove);
+                handle.removeEventListener('pointerup', onUp);
+                handle.removeEventListener('pointercancel', onUp);
+                if (!dragging) return;
+                dragging = false;
+
+                if (ghost) { ghost.remove(); ghost = null; }
+                folderEl.classList.remove('dnd-dragging');
+                folderEl.style.visibility = '';
+
+                if (placeholder) {
+                    // 애니메이션: 고스트 → 플레이스홀더 위치로 날아가기
+                    const phRect = placeholder.getBoundingClientRect();
+                    if (ghost === null && placeholder.parentElement) {
+                        placeholder.parentElement.insertBefore(folderEl, placeholder);
+                    }
+                    placeholder.remove(); placeholder = null;
+                }
 
                 // DB 순서 갱신
+                const parent = folderEl.parentElement;
                 const newOrder = [...parent.querySelectorAll('.sub-folder')].map(f => f.dataset.folderKey);
                 const oldDB = promptDB[layerId];
-                const newDB = {};
-                newOrder.forEach(k => { if (oldDB[k]) newDB[k] = oldDB[k]; });
-                Object.keys(oldDB).forEach(k => { if (!newDB[k]) newDB[k] = oldDB[k]; });
-                promptDB[layerId] = newDB;
-                safeSetStorage('pro_prompt_db_v7_0', promptDB);
-
-                // 에디터 내용 재정렬
+                if (oldDB) {
+                    const newDB = {};
+                    newOrder.forEach(k => { if (oldDB[k]) newDB[k] = oldDB[k]; });
+                    Object.keys(oldDB).forEach(k => { if (!newDB[k]) newDB[k] = oldDB[k]; });
+                    promptDB[layerId] = newDB;
+                    safeSetStorage('pro_prompt_db_v7_0', promptDB);
+                }
                 sortLayerByDB(layerId);
                 syncFromManualInput(layerId);
-            });
+            }
         }
 
+        // ─── 태그 드래그: HTML5 DnD, 핸들 없이 전체 버튼으로 ───
         function setupTagDrag(btnEl, layerId, folderKey) {
-            const handle = btnEl.querySelector('.tag-drag-handle');
-            if (!handle) return;
-
-            handle.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-                btnEl.draggable = true;
-            });
-            btnEl.addEventListener('dragend', () => {
-                btnEl.draggable = false;
-                btnEl.classList.remove('dnd-dragging');
-                document.querySelectorAll('.dnd-tag-over-before,.dnd-tag-over-after').forEach(e => {
-                    e.classList.remove('dnd-tag-over-before','dnd-tag-over-after');
-                });
-                _dndDragging = null;
-            });
+            btnEl.draggable = true;
 
             btnEl.addEventListener('dragstart', (e) => {
-                if (!btnEl.draggable) { e.preventDefault(); return; }
                 _dndDragging = { type: 'tag', el: btnEl, layerId, folderKey };
                 btnEl.classList.add('dnd-dragging');
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', 'tag');
+                // 짧은 딜레이 후 opacity 적용 (브라우저가 dragImage 캡처 후)
+                setTimeout(() => btnEl.style.opacity = '0.25', 0);
+            });
+
+            btnEl.addEventListener('dragend', () => {
+                btnEl.style.opacity = '';
+                btnEl.classList.remove('dnd-dragging');
+                document.querySelectorAll('.tag-btn.dnd-tag-over').forEach(b => b.classList.remove('dnd-tag-over'));
+                _dndDragging = null;
             });
 
             btnEl.addEventListener('dragover', (e) => {
                 if (!_dndDragging || _dndDragging.type !== 'tag' || _dndDragging.el === btnEl) return;
                 e.preventDefault(); e.dataTransfer.dropEffect = 'move';
-                const rect = btnEl.getBoundingClientRect();
-                const isLeft = e.clientX < rect.left + rect.width / 2;
-                btnEl.classList.toggle('dnd-tag-over-before', isLeft);
-                btnEl.classList.toggle('dnd-tag-over-after', !isLeft);
+                document.querySelectorAll('.tag-btn.dnd-tag-over').forEach(b => b.classList.remove('dnd-tag-over'));
+                btnEl.classList.add('dnd-tag-over');
             });
 
-            btnEl.addEventListener('dragleave', () => {
-                btnEl.classList.remove('dnd-tag-over-before','dnd-tag-over-after');
-            });
+            btnEl.addEventListener('dragleave', () => btnEl.classList.remove('dnd-tag-over'));
 
             btnEl.addEventListener('drop', (e) => {
                 e.preventDefault();
-                btnEl.classList.remove('dnd-tag-over-before','dnd-tag-over-after');
+                btnEl.classList.remove('dnd-tag-over');
                 if (!_dndDragging || _dndDragging.type !== 'tag' || _dndDragging.el === btnEl) return;
 
                 const rect = btnEl.getBoundingClientRect();
                 const insertBefore = e.clientX < rect.left + rect.width / 2;
                 const parent = btnEl.parentElement;
-                // input(chip-add-input)은 건드리지 않도록
                 if (insertBefore) parent.insertBefore(_dndDragging.el, btnEl);
                 else btnEl.after(_dndDragging.el);
 
-                // 드롭된 대상 폴더와 원본 폴더 (폴더 간 이동도 지원)
                 const targetFolderEl = btnEl.closest('.sub-folder');
                 const srcLayerId = parseInt(_dndDragging.layerId);
                 const srcFolderKey = _dndDragging.el.dataset.folderKey;
                 const tgtFolderKey = targetFolderEl?.dataset.folderKey || srcFolderKey;
                 const tgtLayerId = parseInt(targetFolderEl?.dataset.layerId ?? srcLayerId);
 
-                // 원본 DB에서 제거
                 const srcArr = promptDB[srcLayerId]?.[srcFolderKey];
                 const tagText = _dndDragging.el.dataset.tag;
                 let tagData = null;
@@ -2913,19 +2929,13 @@
                     if (idx !== -1) { tagData = srcArr.splice(idx, 1)[0]; }
                 }
 
-                // 대상 폴더 DOM 순서 기준으로 재구성
                 if (!promptDB[tgtLayerId]) promptDB[tgtLayerId] = {};
                 if (!promptDB[tgtLayerId][tgtFolderKey]) promptDB[tgtLayerId][tgtFolderKey] = [];
 
-                // 대상 폴더 내 새 순서: DOM 순서 기준
                 const newTagOrder = [...parent.querySelectorAll('.tag-btn')].map(b => b.dataset.tag);
                 const tgtArr = promptDB[tgtLayerId][tgtFolderKey];
-                // tagData 삽입 위치 찾기
                 const insertPos = newTagOrder.indexOf(tagText);
-                if (tagData) {
-                    tagData && tgtArr.splice(insertPos >= 0 ? insertPos : tgtArr.length, 0, tagData);
-                }
-                // folder-key 업데이트 (폴더 간 이동 시)
+                if (tagData) tgtArr.splice(insertPos >= 0 ? insertPos : tgtArr.length, 0, tagData);
                 _dndDragging.el.dataset.folderKey = tgtFolderKey;
 
                 safeSetStorage('pro_prompt_db_v7_0', promptDB);
