@@ -4976,10 +4976,15 @@
                 if (ta) ta.value = text;
             }
 
-            updateFinalOutput();
-            if (typeof currentViewMode !== 'undefined' && currentViewMode === 'visual') {
-                for (let i = 1; i <= 7; i++) renderChips(i);
+            // 텍스트에어리어 값과 칩 모두 갱신
+            for (let i = 1; i <= 7; i++) {
+                const ta = document.getElementById(`layer-${i}`);
+                if (ta) {
+                    ta.value = state[i - 1] || '';
+                    renderChips(i);
+                }
             }
+            updateMasterOutput();
 
             const msgs = [];
             if (totalFixed > 0) msgs.push(`괄호 ${totalFixed}개 수정`);
@@ -5669,7 +5674,7 @@
                 if (total > 0) {
                     if (appliedDB > 0) { safeSetStorage('pro_prompt_db_v7_0', promptDB); initApp(); renderDBTable(); }
                     if (appliedCustom > 0) saveCustomKorMap();
-                    updateFinalOutput();
+                    updateMasterOutput();
                     const msgs = [];
                     if (appliedDB > 0) msgs.push(`DB 태그 ${appliedDB}개`);
                     if (appliedCustom > 0) msgs.push(`커스텀 ${appliedCustom}개`);
