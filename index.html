@@ -464,73 +464,78 @@
 
         /* ── 모바일 반응형 ── */
         @media (max-width: 768px) {
-            /* 3패널 → 단일 패널 전환 */
+            /* html/body를 고정 높이 컨테이너로 */
+            html, body {
+                height: 100%;
+                max-height: 100%;
+                overflow: hidden;
+                padding-bottom: 0 !important;
+            }
+            body {
+                display: flex;
+                flex-direction: column;
+            }
+            /* 앱 컨테이너: 남은 공간 채우기 */
             .app-container {
                 flex-direction: column;
-                height: auto;
-                overflow: visible;
-            }
-            .panel {
-                height: 0 !important;
-                min-height: 0 !important;
-                overflow: hidden !important;
-                border-right: none !important;
-                border-bottom: none;
-                width: 100% !important;
-                display: none !important;
-                flex: none !important;
-            }
-            .panel.mobile-active {
-                display: flex !important;
-                flex-direction: column !important;
-                height: calc(100dvh - 56px) !important; /* 하단 탭바 56px 제외 */
-                overflow: hidden !important;
-            }
-            .panel.mobile-active .panel-content {
-                flex: 1;
-                overflow-y: auto !important;
-                -webkit-overflow-scrolling: touch;
-                min-height: 0;
-            }
-            /* 콤보 패널 내부 스크롤 */
-            .panel.mobile-active #sidebar-content-combo {
                 flex: 1;
                 min-height: 0;
                 overflow: hidden;
+                height: auto !important;
+            }
+            /* 모든 패널 숨김 */
+            .panel {
+                display: none !important;
+                border-right: none !important;
+                flex: none !important;
+                width: 100% !important;
+            }
+            /* 활성 패널만 표시 — 높이는 JS에서 px 단위로 직접 지정 */
+            .panel.mobile-active {
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: hidden !important;
+                width: 100% !important;
+            }
+            /* 스크롤 영역 */
+            .panel.mobile-active .panel-content {
+                flex: 1 !important;
+                min-height: 0 !important;
+                overflow-y: scroll !important;
+                -webkit-overflow-scrolling: touch !important;
+                overscroll-behavior: contain;
+            }
+            /* textarea는 내용만큼 늘어나고 자체 스크롤 없앰 (부모가 스크롤) */
+            .panel.mobile-active textarea {
+                overflow: hidden !important;
+                resize: none !important;
+                min-height: 80px;
+                height: auto !important;
+            }
+            /* 콤보 그리드 스크롤 */
+            .panel.mobile-active #sidebar-content-combo {
+                flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column;
             }
             .panel.mobile-active .combo-grid {
-                overflow-y: auto !important;
-                -webkit-overflow-scrolling: touch;
+                flex: 1; overflow-y: scroll !important; -webkit-overflow-scrolling: touch !important;
             }
             /* 패널 리사이즈 핸들 숨김 */
             .panel-resize-handle { display: none !important; }
             /* 헤더 버튼 축소 */
-            .panel-header { padding: 10px 14px; font-size: 13px; flex-wrap: wrap; gap: 6px; }
+            .panel-header { padding: 10px 12px; font-size: 13px; flex-wrap: wrap; gap: 6px; }
             .header-actions { flex-wrap: wrap; gap: 5px; }
-            .action-btn { padding: 5px 9px !important; font-size: 11px !important; }
-            /* 에디터 패널 텍스트박스 */
-            .layer-textarea { font-size: 12px !important; }
-            /* 결과 박스 */
-            .result-box { font-size: 11px; }
-            /* 태그 버튼 */
-            .tag-btn { min-width: 0; }
-            /* 조합 그리드 */
+            .action-btn { padding: 5px 8px !important; font-size: 11px !important; }
+            /* 조합 그리드 컬럼 */
             .combo-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important; }
-            /* 모달 전체 너비 */
-            .combo-create-modal, .db-format-guide-overlay > div, .prompt-classify-overlay > div {
-                width: 98vw !important; max-height: 92dvh !important; border-radius: 10px !important;
-            }
-            /* 모달 오버레이 align top */
-            .combo-create-modal-overlay { align-items: flex-end !important; padding-bottom: 0; }
-            .combo-create-modal { border-radius: 14px 14px 0 0 !important; max-height: 88dvh !important; }
-            /* 분류 추가 모달 */
+            /* 모달 */
+            .combo-create-modal-overlay { align-items: flex-end !important; }
+            .combo-create-modal { width: 100vw !important; border-radius: 14px 14px 0 0 !important; max-height: 88vh !important; }
             .prompt-classify-overlay { align-items: flex-end !important; }
+            .prompt-classify-overlay > div { width: 100vw !important; border-radius: 14px 14px 0 0 !important; max-height: 88vh !important; }
             /* context tabs */
             .context-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-            /* 결과 패널 선택 영역 */
             #output-format-toggle { font-size: 11px; }
-            /* DB 관리 텍스트 편집기 */
-            #db-text-editor-box { width: 98vw !important; min-width: unset !important; height: 75dvh !important; }
+            #db-text-editor-box { width: 98vw !important; min-width: unset !important; height: 70vh !important; }
         }
 
         /* 하단 모바일 탭바 */
@@ -5219,18 +5224,40 @@
 
             let currentPanel = 'panel-left';
 
+            function setPanelHeight() {
+                if (window.innerWidth > 768) return;
+                const tbH = tabbar.offsetHeight || 56;
+                const h = window.innerHeight - tbH;
+                PANELS.forEach(p => {
+                    const el = document.getElementById(p.id);
+                    if (el && el.classList.contains('mobile-active')) {
+                        el.style.height = h + 'px';
+                    }
+                });
+            }
+
             function switchMobilePanel(id) {
                 currentPanel = id;
                 PANELS.forEach(p => {
                     const el = document.getElementById(p.id);
                     if (!el) return;
-                    if (p.id === id) el.classList.add('mobile-active');
-                    else el.classList.remove('mobile-active');
+                    if (p.id === id) {
+                        el.classList.add('mobile-active');
+                    } else {
+                        el.classList.remove('mobile-active');
+                        el.style.height = '';
+                    }
                 });
                 tabbar.querySelectorAll('button').forEach((btn, i) => {
                     btn.classList.toggle('active', PANELS[i].id === id);
                 });
-                window.scrollTo(0, 0);
+                setPanelHeight();
+                // 스크롤 맨 위로
+                const activePanel = document.getElementById(id);
+                if (activePanel) {
+                    const pc = activePanel.querySelector('.panel-content');
+                    if (pc) pc.scrollTop = 0;
+                }
             }
 
             PANELS.forEach(p => {
@@ -5255,7 +5282,11 @@
             }
 
             applyMobileLayout();
-            window.addEventListener('resize', applyMobileLayout);
+            window.addEventListener('resize', () => { applyMobileLayout(); setPanelHeight(); });
+            // visualViewport 대응 (키보드 올라올 때 높이 재계산)
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', setPanelHeight);
+            }
         })();
         // ────────────────────────────────────────────────────────────────────
     </script>
