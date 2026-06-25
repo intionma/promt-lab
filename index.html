@@ -5320,88 +5320,111 @@
         function openTranslationSessionModal() {
             document.querySelectorAll('.trans-session-overlay').forEach(e => e.remove());
 
-            // 1) 미번역 태그 수집: k가 없거나 k===t 인 것
-            const LAYER_NAMES = { 1:'화질/렌더링', 2:'구도/피사체', 3:'외형/얼굴', 4:'의상/악세', 5:'액션/포즈', 6:'배경/환경', 7:'조명/이펙트' };
-            const untranslated = []; // { lid, fk, idx, t, k }
+            // 미번역 태그 수집: k가 없거나 k===t 인 것
+            const untranslated = [];
             for (let lid = 1; lid <= 7; lid++) {
                 const layerDB = promptDB[lid];
                 if (!layerDB) continue;
                 for (const fk of Object.keys(layerDB)) {
                     (layerDB[fk] || []).forEach((tag, idx) => {
                         if (!tag.k || tag.k === tag.t) {
-                            untranslated.push({ lid, fk, idx, t: tag.t, k: tag.k || '' });
+                            untranslated.push({ lid, fk, idx, t: tag.t });
                         }
                     });
                 }
             }
 
             const overlay = document.createElement('div');
-            overlay.className = 'trans-session-overlay combo-create-modal-overlay';
-            overlay.style.cssText = 'position:fixed;inset:0;background:var(--overlay-bg);z-index:3000;display:flex;align-items:center;justify-content:center;backdrop-filter:none;';
+            overlay.className = 'trans-session-overlay';
+            overlay.style.cssText = 'position:fixed;inset:0;background:var(--overlay-bg);z-index:10001;display:flex;align-items:center;justify-content:center;backdrop-filter:none;';
 
             const modal = document.createElement('div');
-            modal.style.cssText = 'background:var(--glass-bg);backdrop-filter:blur(60px) saturate(200%) brightness(1.08) contrast(1.02);-webkit-backdrop-filter:blur(60px) saturate(200%) brightness(1.08) contrast(1.02);border:1px solid rgba(255,255,255,0.12);border-top:1px solid var(--glass-highlight);border-left:1px solid rgba(255,255,255,0.14);border-radius:22px;padding:24px;width:min(700px,95vw);max-height:90vh;display:flex;flex-direction:column;gap:16px;overflow:hidden;box-shadow:0 0 0 0.5px rgba(255,255,255,0.08),0 32px 80px rgba(0,0,0,0.55),0 8px 24px rgba(0,0,0,0.3),inset 0 1px 0 var(--glass-highlight),inset 0 -1px 0 rgba(0,0,0,0.2);';
+            modal.style.cssText = 'background:var(--glass-bg);backdrop-filter:blur(60px) saturate(200%) brightness(1.08) contrast(1.02);-webkit-backdrop-filter:blur(60px) saturate(200%) brightness(1.08) contrast(1.02);border:1px solid rgba(255,255,255,0.12);border-top:1px solid var(--glass-highlight);border-radius:22px;padding:24px;width:min(700px,95vw);max-height:90vh;display:flex;flex-direction:column;gap:16px;overflow:hidden;box-shadow:0 0 0 0.5px rgba(255,255,255,0.08),0 32px 80px rgba(0,0,0,0.55),inset 0 1px 0 var(--glass-highlight);';
 
+            // ── 제목 행
             const titleRow = document.createElement('div');
-            titleRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;';
-            titleRow.innerHTML = `<h3 style="margin:0;font-size:16px;color:var(--text-bright)"><i class="fa-solid fa-language" style="color:#f97316;margin-right:8px"></i>한국어 번역 세션</h3><button id="trans-close-btn" style="background:none;border:none;color:var(--text-dim);font-size:18px;cursor:pointer;">✕</button>`;
+            titleRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;flex-shrink:0;';
+            const titleH3 = document.createElement('h3');
+            titleH3.style.cssText = 'margin:0;font-size:16px;color:var(--text-bright);';
+            titleH3.innerHTML = '<i class="fa-solid fa-language" style="color:#f97316;margin-right:8px"></i>한국어 번역 세션';
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = '✕';
+            closeBtn.style.cssText = 'background:none;border:none;color:var(--text-dim);font-size:18px;cursor:pointer;line-height:1;';
+            titleRow.append(titleH3, closeBtn);
 
+            // ── 안내 문구
             const infoEl = document.createElement('div');
-            infoEl.style.cssText = 'font-size:12px;color:var(--text-dim);line-height:1.6;background:var(--bg-main);border-radius:8px;padding:10px 14px;';
+            infoEl.style.cssText = 'font-size:12px;color:var(--text-dim);line-height:1.6;background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 14px;flex-shrink:0;';
             infoEl.innerHTML = `미번역 태그 <b style="color:#f97316">${untranslated.length}개</b>를 찾았습니다.<br>① 아래 목록을 복사해 번역기에 붙여넣기 → ② 번역 결과를 아래 입력창에 붙여넣기 → ③ [번역 적용] 클릭`;
 
+            // ── ① 원문 목록
             const stepOneBox = document.createElement('div');
-            stepOneBox.style.cssText = 'display:flex;flex-direction:column;gap:6px;flex:1;min-height:0;';
-
-            const stepOneLabel = document.createElement('div');
-            stepOneLabel.style.cssText = 'font-size:12px;color:var(--text-dim);display:flex;align-items:center;justify-content:space-between;';
-            stepOneLabel.innerHTML = `<span>① 원문 목록 (복사 후 번역기 사용)</span><button id="trans-copy-src-btn" style="font-size:11px;padding:2px 10px;background:var(--accent-blue);color:#fff;border:none;border-radius:5px;cursor:pointer;">복사</button>`;
-
+            stepOneBox.style.cssText = 'display:flex;flex-direction:column;gap:6px;min-height:0;';
+            const stepOneHeader = document.createElement('div');
+            stepOneHeader.style.cssText = 'font-size:12px;color:var(--text-dim);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;';
+            const stepOneSpan = document.createElement('span');
+            stepOneSpan.textContent = '① 원문 목록 (복사 후 번역기 사용)';
+            const copyBtn = document.createElement('button');
+            copyBtn.textContent = '복사';
+            copyBtn.style.cssText = 'font-size:11px;padding:3px 12px;background:var(--accent-blue);color:#fff;border:none;border-radius:5px;cursor:pointer;';
+            stepOneHeader.append(stepOneSpan, copyBtn);
             const srcText = document.createElement('textarea');
             srcText.readOnly = true;
-            srcText.style.cssText = 'resize:none;flex:1;min-height:140px;max-height:200px;background:var(--bg-main);border:1px solid var(--border-color);border-radius:6px;padding:10px;font-size:12px;color:var(--text-main);font-family:monospace;line-height:1.6;';
+            srcText.style.cssText = 'resize:none;min-height:130px;max-height:180px;background:rgba(255,255,255,0.04);border:1px solid var(--border-dim);border-radius:6px;padding:10px;font-size:12px;color:var(--text-main);font-family:monospace;line-height:1.6;outline:none;';
             srcText.value = untranslated.map((tag, i) => `${i + 1}. ${tag.t}`).join('\n');
+            stepOneBox.append(stepOneHeader, srcText);
 
-            stepOneBox.append(stepOneLabel, srcText);
-
+            // ── ② 번역 결과 입력
             const stepTwoBox = document.createElement('div');
-            stepTwoBox.style.cssText = 'display:flex;flex-direction:column;gap:6px;flex:1;min-height:0;';
-
+            stepTwoBox.style.cssText = 'display:flex;flex-direction:column;gap:6px;min-height:0;';
             const stepTwoLabel = document.createElement('div');
-            stepTwoLabel.style.cssText = 'font-size:12px;color:var(--text-dim);';
+            stepTwoLabel.style.cssText = 'font-size:12px;color:var(--text-dim);flex-shrink:0;';
             stepTwoLabel.textContent = '② 번역 결과 붙여넣기 (번호 순서 유지)';
-
             const dstText = document.createElement('textarea');
             dstText.placeholder = '번역 결과를 여기에 붙여넣으세요.\n예:\n1. 소녀\n2. 하늘색 눈\n...';
-            dstText.style.cssText = 'resize:none;flex:1;min-height:140px;max-height:200px;background:var(--bg-main);border:1px solid var(--border-color);border-radius:6px;padding:10px;font-size:12px;color:var(--text-main);font-family:monospace;line-height:1.6;';
-
+            dstText.style.cssText = 'resize:none;min-height:130px;max-height:180px;background:rgba(255,255,255,0.04);border:1px solid var(--border-dim);border-radius:6px;padding:10px;font-size:12px;color:var(--text-main);font-family:monospace;line-height:1.6;outline:none;';
             stepTwoBox.append(stepTwoLabel, dstText);
 
+            // ── 번역 적용 버튼
             const applyBtn = document.createElement('button');
             applyBtn.textContent = '번역 적용';
-            applyBtn.style.cssText = 'background:#f97316;color:#fff;border:none;border-radius:8px;padding:10px 0;font-size:14px;font-weight:600;cursor:pointer;width:100%;';
+            applyBtn.style.cssText = 'background:#f97316;color:#fff;border:none;border-radius:8px;padding:10px 0;font-size:14px;font-weight:600;cursor:pointer;width:100%;flex-shrink:0;';
 
             modal.append(titleRow, infoEl, stepOneBox, stepTwoBox, applyBtn);
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
 
+            // ── 이벤트
             const close = () => overlay.remove();
-            titleRow.querySelector('#trans-close-btn').onclick = close;
+            closeBtn.onclick = close;
             overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
 
-            stepOneLabel.querySelector('#trans-copy-src-btn').onclick = () => {
-                navigator.clipboard.writeText(srcText.value).then(() => showToast('원문 목록이 복사되었습니다.', 'success'));
+            copyBtn.onclick = () => {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(srcText.value)
+                        .then(() => showToast('원문 목록이 복사되었습니다.', 'success'))
+                        .catch(() => {
+                            srcText.select();
+                            document.execCommand('copy');
+                            showToast('원문 목록이 복사되었습니다.', 'success');
+                        });
+                } else {
+                    srcText.select();
+                    document.execCommand('copy');
+                    showToast('원문 목록이 복사되었습니다.', 'success');
+                }
             };
 
             applyBtn.onclick = () => {
-                const lines = dstText.value.split('\n').map(l => l.trim()).filter(Boolean);
-                // 번호 파싱: "1. 번역" or "1) 번역" or 번호없이 순서대로
+                const raw = dstText.value.trim();
+                if (!raw) { showToast('번역 결과를 입력해주세요.', 'warning'); return; }
+                const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
                 const parsed = [];
-                let useNumbered = lines.some(l => /^\d+[\.\)]\s+/.test(l));
+                const useNumbered = lines.some(l => /^\d+[\.\)]\s*\S/.test(l));
                 if (useNumbered) {
                     const map = {};
                     lines.forEach(l => {
-                        const m = l.match(/^(\d+)[\.\)]\s+(.*)/);
+                        const m = l.match(/^(\d+)[\.\)]\s*(.*)/);
                         if (m) map[parseInt(m[1]) - 1] = m[2].trim();
                     });
                     untranslated.forEach((_, i) => parsed.push(map[i] || ''));
@@ -5413,14 +5436,14 @@
                 parsed.forEach((kor, i) => {
                     if (!kor) return;
                     const { lid, fk, idx } = untranslated[i];
-                    if (promptDB[lid]?.[fk]?.[idx]) {
+                    if (promptDB[lid] && promptDB[lid][fk] && promptDB[lid][fk][idx]) {
                         promptDB[lid][fk][idx].k = kor;
                         applied++;
                     }
                 });
 
                 if (applied > 0) {
-                    localStorage.setItem('pro_prompt_db_v7_0', JSON.stringify(promptDB));
+                    safeSetStorage('pro_prompt_db_v7_0', promptDB);
                     initApp();
                     renderDBTable();
                     showToast(`${applied}개 태그에 번역이 적용되었습니다.`, 'success');
@@ -5434,6 +5457,7 @@
                 srcText.value = '미번역 태그가 없습니다. 🎉';
                 applyBtn.disabled = true;
                 applyBtn.style.opacity = '0.5';
+                applyBtn.style.cursor = 'default';
             }
         }
 
