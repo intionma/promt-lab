@@ -1715,13 +1715,29 @@
 
         function getRegexForTag(tag) { return new RegExp(`\\(?\\b${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b(:\\s*\\d*\\.?\\d*)?\\)?`, 'i'); }
 
+        // 다중 프롬포트 태그의 활성 여부: 구성 프롬포트 중 하나라도 텍스트에 있으면 활성
+        function isTagActive(tagText, content) {
+            const prompts = tagText.split(',').map(s => s.trim()).filter(Boolean);
+            return prompts.some(p => getRegexForTag(p).test(content));
+        }
+
+        // 다중 프롬포트 태그 전체 제거: 각 구성 프롬포트를 개별 제거
+        function removeTagFromContent(tagText, content) {
+            const prompts = tagText.split(',').map(s => s.trim()).filter(Boolean);
+            let result = content;
+            prompts.forEach(p => {
+                result = result.replace(getRegexForTag(p), '');
+            });
+            return result.replace(/,\s*,+/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').trim();
+        }
+
         function handleTagToggle(btn, tagText, negText, layerIndex) {
             saveStateToUndoStack();
 
             const textarea = document.getElementById(`layer-${layerIndex}`);
             let content = textarea.value;
-            if (getRegexForTag(tagText).test(content)) {
-                content = content.replace(getRegexForTag(tagText), '').replace(/,\s*,+/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').trim();
+            if (isTagActive(tagText, content)) {
+                content = removeTagFromContent(tagText, content);
             } else {
                 // build insert text respecting per-prompt default weights
                 const prompts = tagText.split(',').map(s => s.trim()).filter(Boolean);
@@ -1753,7 +1769,7 @@
 
             Object.keys(activeTagsMap).forEach(tagText => {
                 if(activeTagsMap[tagText].layer === layerIndex) {
-                    const isActive = getRegexForTag(tagText).test(textarea.value);
+                    const isActive = isTagActive(tagText, textarea.value);
                     const tagData = activeTagsMap[tagText];
 
                     document.querySelectorAll(`.tag-btn[data-tag="${tagText.replace(/"/g, '\\"')}"]`).forEach(btn => {
