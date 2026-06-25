@@ -281,6 +281,7 @@
                 <span><i class="fa-solid fa-tags"></i> 프롬프트 랩</span>
                 <div class="header-actions">
                     <button class="action-btn" onclick="openDBManager()" style="color:var(--accent-blue); border-color:var(--accent-blue);"><i class="fa-solid fa-database"></i> DB 관리</button>
+                    <button class="action-btn" onclick="openDBTextEditor()" title="텍스트로 DB 편집" style="color:var(--accent-green); border-color:var(--accent-green);"><i class="fa-solid fa-code"></i></button>
                     <button class="action-btn" onclick="openIOModal('export')" title="내보내기"><i class="fa-solid fa-copy"></i></button>
                     <button class="action-btn" onclick="openIOModal('import')" title="불러오기"><i class="fa-solid fa-paste"></i></button>
                 </div>
@@ -481,6 +482,28 @@
                 <div style="display: flex; gap: 15px; margin-top: 24px;">
                     <button class="btn-add-db" style="flex: 1; border:none;" id="io-action-btn" onclick="executeIO()"></button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="db-text-editor-modal">
+        <div class="modal-content" style="width: 860px; max-height: 90vh;">
+            <div class="modal-header">
+                <span class="modal-title"><i class="fa-solid fa-code"></i> DB 텍스트 편집기</span>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <span id="db-text-status" style="font-size:13px; color:var(--text-dim);"></span>
+                    <button class="action-btn" onclick="formatDBText()" style="color:var(--accent-blue); border-color:var(--accent-blue);"><i class="fa-solid fa-indent"></i> 정렬</button>
+                    <button class="action-btn" onclick="saveDBText()" style="background:var(--accent-green); color:#fff; border:none;"><i class="fa-solid fa-floppy-disk"></i> 저장 적용</button>
+                    <button class="action-btn" onclick="document.getElementById('db-text-editor-modal').style.display='none'"><i class="fa-solid fa-xmark"></i> 닫기</button>
+                </div>
+            </div>
+            <div style="padding: 16px 24px; background:var(--bg-surface); border-bottom:1px solid var(--border-dim); font-size:13px; color:var(--text-dim); line-height:1.6;">
+                💡 JSON 형식으로 DB를 직접 편집할 수 있습니다. <strong style="color:var(--accent-blue);">저장 적용</strong> 버튼을 누르면 즉시 반영됩니다. 잘못된 형식은 저장되지 않습니다.
+            </div>
+            <div style="flex:1; overflow:hidden; display:flex; flex-direction:column; padding: 16px 24px;">
+                <textarea id="db-text-area" spellcheck="false"
+                    oninput="validateDBText()"
+                    style="flex:1; width:100%; height:520px; background:var(--input-bg); border:1px solid var(--border-dim); color:var(--text-main); font-family:var(--font-code); font-size:13px; line-height:1.7; padding:16px; border-radius:8px; resize:none; outline:none; transition:border-color 0.2s;"></textarea>
             </div>
         </div>
     </div>
@@ -1678,6 +1701,60 @@
                 renderDBTable(); initApp();
                 showToast("태그가 삭제되었습니다.", "info");
             });
+        }
+
+        function openDBTextEditor() {
+            const textarea = document.getElementById('db-text-area');
+            textarea.value = JSON.stringify(promptDB, null, 2);
+            textarea.style.borderColor = 'var(--border-dim)';
+            document.getElementById('db-text-status').innerText = '';
+            document.getElementById('db-text-editor-modal').style.display = 'flex';
+        }
+
+        function validateDBText() {
+            const textarea = document.getElementById('db-text-area');
+            const status = document.getElementById('db-text-status');
+            try {
+                const parsed = JSON.parse(textarea.value);
+                if(parsed && typeof parsed === 'object' && parsed[1] !== undefined) {
+                    textarea.style.borderColor = 'var(--accent-green)';
+                    status.style.color = 'var(--accent-green)';
+                    status.innerText = '✅ 형식 정상';
+                } else {
+                    throw new Error('구조 오류');
+                }
+            } catch(e) {
+                textarea.style.borderColor = 'var(--accent-danger)';
+                status.style.color = 'var(--accent-danger)';
+                status.innerText = '❌ JSON 형식 오류';
+            }
+        }
+
+        function formatDBText() {
+            const textarea = document.getElementById('db-text-area');
+            try {
+                const parsed = JSON.parse(textarea.value);
+                textarea.value = JSON.stringify(parsed, null, 2);
+                validateDBText();
+                showToast("정렬되었습니다.", "info");
+            } catch(e) {
+                showToast("JSON 형식 오류로 정렬할 수 없습니다.", "error");
+            }
+        }
+
+        function saveDBText() {
+            const textarea = document.getElementById('db-text-area');
+            try {
+                const parsed = JSON.parse(textarea.value);
+                if(!parsed || typeof parsed !== 'object' || parsed[1] === undefined) throw new Error('구조 오류');
+                promptDB = parsed;
+                safeSetStorage('pro_prompt_db_v7_0', promptDB);
+                initApp();
+                document.getElementById('db-text-editor-modal').style.display = 'none';
+                showToast("DB가 저장 및 적용되었습니다!", "success");
+            } catch(e) {
+                showToast("저장 실패: JSON 형식을 확인해주세요.", "error");
+            }
         }
 
         initApp();
