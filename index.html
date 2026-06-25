@@ -205,6 +205,27 @@
         /* folder drag-hover glow */
         .combo-folder-header-row.drag-hover { box-shadow: inset 0 0 0 2px var(--accent-blue); border-radius:8px; background: rgba(99,102,241,0.08) !important; }
 
+        /* 붙여넣기 분류 모달 */
+        .pcm-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:10000; display:flex; align-items:center; justify-content:center; }
+        .pcm-modal { background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:14px; width:min(700px,96vw); max-height:88vh; display:flex; flex-direction:column; box-shadow:0 24px 70px rgba(0,0,0,0.55); }
+        .pcm-header { display:flex; align-items:center; gap:10px; padding:16px 20px; border-bottom:1px solid var(--border-dim); flex-shrink:0; }
+        .pcm-title { font-size:15px; font-weight:800; font-family:var(--font-heading); flex:1; }
+        .pcm-body { flex:1; overflow-y:auto; padding:18px 20px; display:flex; flex-direction:column; gap:14px; }
+        .pcm-footer { display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid var(--border-dim); flex-shrink:0; flex-wrap:wrap; }
+        .pcm-textarea { width:100%; min-height:90px; background:var(--bg-base); border:1px solid var(--border-dim); border-radius:8px; padding:10px; color:var(--text-main); font-size:12px; font-family:var(--font-code); outline:none; resize:vertical; box-sizing:border-box; }
+        .pcm-textarea:focus { border-color:var(--accent-blue); }
+        .pcm-layer-block { background:var(--bg-base); border-radius:10px; border:1px solid var(--border-dim); overflow:hidden; }
+        .pcm-layer-header { display:flex; align-items:center; gap:8px; padding:8px 12px; font-size:12px; font-weight:700; font-family:var(--font-heading); border-bottom:1px solid var(--border-dim); }
+        .pcm-layer-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+        .pcm-layer-items { display:flex; flex-direction:column; gap:4px; padding:10px 12px; }
+        .pcm-item { display:flex; align-items:center; gap:6px; font-size:12px; font-family:var(--font-ui); flex-wrap:wrap; }
+        .pcm-item-tag { font-family:var(--font-code); font-size:11px; background:var(--bg-surface); padding:3px 8px; border-radius:4px; border:1px solid var(--border-dim); }
+        .pcm-item-folder { font-size:11px; color:var(--text-dim); }
+        .pcm-item-unknown { color:var(--accent-danger); }
+        .pcm-item-found { color:var(--accent-green); }
+        .pcm-assign-sel { background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:6px; padding:3px 7px; color:var(--text-main); font-size:11px; font-family:var(--font-ui); cursor:pointer; }
+        .pcm-stats { font-size:12px; color:var(--text-dim); font-family:var(--font-ui); }
+
         .fav-recent-box { transition: 0.2s; }
         .fav-recent-box.collapsed .box-content { display: none !important; }
         .fav-recent-box.collapsed .toggle-icon { transform: rotate(-90deg); }
@@ -528,6 +549,7 @@
                     <div class="combo-toolbar">
                         <span style="flex:1;font-size:12px;font-weight:700;color:var(--text-dim);font-family:var(--font-ui);">🏠 간편 조합</span>
                         <button class="action-btn" onclick="collapseAllComboFolders()" style="color:var(--text-dim);border-color:var(--border-dim);padding:5px 10px;font-size:12px;white-space:nowrap;" title="폴더 모두 닫기"><i class="fa-solid fa-folder-minus"></i> 모두 닫기</button>
+                        <button class="action-btn" onclick="openPasteClassifyModal()" style="color:var(--accent-blue);border-color:var(--accent-blue);padding:5px 10px;font-size:12px;white-space:nowrap;" title="프롬프트 붙여넣기 → 계층 자동 분류 후 에디터에 적용"><i class="fa-solid fa-wand-magic-sparkles"></i> 분류 적용</button>
                         <button class="action-btn" onclick="openComboCreateModal()" style="background:var(--accent-green);color:#fff;border:none;padding:6px 12px;font-size:12px;white-space:nowrap;" title="새 조합 추가"><i class="fa-solid fa-plus"></i> 조합 추가</button>
                         <button class="action-btn" onclick="createComboFolder()" style="color:var(--accent-blue);border-color:var(--accent-blue);padding:6px 12px;font-size:12px;white-space:nowrap;" title="새 폴더 만들기"><i class="fa-solid fa-folder-plus"></i></button>
                     </div>
@@ -2182,6 +2204,217 @@
                 renderCombos();
                 showToast("삭제됨", "info");
             });
+        }
+
+        // ─── 붙여넣기 자동 분류 모달 ───
+        function openPasteClassifyModal() {
+            const overlay = document.createElement('div');
+            overlay.className = 'pcm-overlay';
+            overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+            document.body.appendChild(overlay);
+
+            const modal = document.createElement('div');
+            modal.className = 'pcm-modal';
+            overlay.appendChild(modal);
+
+            // Header
+            const header = document.createElement('div');
+            header.className = 'pcm-header';
+            header.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles" style="color:var(--accent-blue)"></i><span class="pcm-title">프롬프트 자동 분류 → 에디터 적용</span>`;
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+            closeBtn.style.cssText = 'background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:16px;padding:4px;';
+            closeBtn.onclick = () => overlay.remove();
+            header.appendChild(closeBtn);
+            modal.appendChild(header);
+
+            // Body
+            const body = document.createElement('div');
+            body.className = 'pcm-body';
+            modal.appendChild(body);
+
+            // Textarea
+            const taLabel = document.createElement('div');
+            taLabel.style.cssText = 'font-size:12px;font-weight:700;color:var(--text-dim);font-family:var(--font-ui);';
+            taLabel.textContent = '프롬프트 붙여넣기 (쉼표 또는 줄바꿈으로 구분):';
+            const textarea = document.createElement('textarea');
+            textarea.className = 'pcm-textarea';
+            textarea.placeholder = 'score_9, score_8_up, 1girl, long hair, white dress, ...';
+            body.appendChild(taLabel);
+            body.appendChild(textarea);
+
+            // Stats row
+            const statsEl = document.createElement('div');
+            statsEl.className = 'pcm-stats';
+            statsEl.id = 'pcm-stats';
+            body.appendChild(statsEl);
+
+            // Result container
+            const resultContainer = document.createElement('div');
+            resultContainer.id = 'pcm-result';
+            resultContainer.style.cssText = 'display:flex;flex-direction:column;gap:10px;';
+            body.appendChild(resultContainer);
+
+            // Footer
+            const footer = document.createElement('div');
+            footer.className = 'pcm-footer';
+            modal.appendChild(footer);
+
+            // Options: append / replace
+            const modeLabel = document.createElement('div');
+            modeLabel.style.cssText = 'font-size:12px;color:var(--text-dim);font-family:var(--font-ui);margin-right:auto;display:flex;align-items:center;gap:8px;';
+            modeLabel.innerHTML = `<label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="pcm-replace-mode" style="cursor:pointer;"> 기존 내용 교체 (체크 해제시 추가)</label>`;
+            footer.appendChild(modeLabel);
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'action-btn';
+            cancelBtn.style.cssText = 'color:var(--text-dim);border-color:var(--border-dim);';
+            cancelBtn.textContent = '취소';
+            cancelBtn.onclick = () => overlay.remove();
+
+            const applyBtn = document.createElement('button');
+            applyBtn.className = 'action-btn';
+            applyBtn.style.cssText = 'background:var(--accent-blue);color:#fff;border:none;';
+            applyBtn.innerHTML = '<i class="fa-solid fa-check"></i> 에디터에 적용';
+            applyBtn.onclick = () => _pcmApply(overlay);
+
+            footer.appendChild(cancelBtn);
+            footer.appendChild(applyBtn);
+
+            // Live render on input
+            textarea.oninput = () => _pcmRender(textarea.value);
+            textarea.focus();
+        }
+
+        // _pcmClassify: parse text → { [layerId]: [{raw, clean, folder}], unknown: [{raw, clean}] }
+        function _pcmClassify(text) {
+            const result = {};
+            const unknown = [];
+            const rawTokens = text.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
+            rawTokens.forEach(raw => {
+                const clean = raw.replace(/^\(+|\)+$/g, '').replace(/:\d*\.?\d+$/, '').trim();
+                if (!clean) return;
+                const found = _findInDB(clean);
+                if (found) {
+                    const { lid, fk } = found;
+                    if (!result[lid]) result[lid] = [];
+                    result[lid].push({ raw, clean, folder: fk.split('|')[0] });
+                } else {
+                    unknown.push({ raw, clean });
+                }
+            });
+            return { byLayer: result, unknown };
+        }
+
+        function _pcmRender(text) {
+            const resultEl = document.getElementById('pcm-result');
+            const statsEl = document.getElementById('pcm-stats');
+            if (!resultEl) return;
+            resultEl.innerHTML = '';
+            if (!text.trim()) { statsEl.textContent = ''; return; }
+
+            const { byLayer, unknown } = _pcmClassify(text);
+            const total = Object.values(byLayer).reduce((s, arr) => s + arr.length, 0) + unknown.length;
+            const matched = total - unknown.length;
+            statsEl.textContent = `총 ${total}개 • 인식됨 ${matched}개 • 미인식 ${unknown.length}개`;
+
+            // Matched layers
+            layerMeta.forEach(lm => {
+                const items = byLayer[lm.id];
+                if (!items || items.length === 0) return;
+                const block = document.createElement('div');
+                block.className = 'pcm-layer-block';
+                const lhdr = document.createElement('div');
+                lhdr.className = 'pcm-layer-header';
+                lhdr.style.cssText = `background:hsla(${lm.hue},80%,55%,0.08);`;
+                lhdr.innerHTML = `<span class="pcm-layer-dot" style="background:${lm.color};box-shadow:0 0 6px ${lm.color};"></span><span style="color:${lm.color};">${lm.id}계층: ${lm.title}</span><span style="margin-left:auto;font-size:11px;color:var(--text-dim);">${items.length}개</span>`;
+                block.appendChild(lhdr);
+                const itemsEl = document.createElement('div');
+                itemsEl.className = 'pcm-layer-items';
+                items.forEach(it => {
+                    const row = document.createElement('div');
+                    row.className = 'pcm-item';
+                    row.innerHTML = `<span class="pcm-item-found">✅</span><span class="pcm-item-tag">${it.clean}</span><span class="pcm-item-folder">› ${it.folder}</span>`;
+                    itemsEl.appendChild(row);
+                });
+                block.appendChild(itemsEl);
+                resultEl.appendChild(block);
+            });
+
+            // Unknown
+            if (unknown.length > 0) {
+                const block = document.createElement('div');
+                block.className = 'pcm-layer-block';
+                block.style.borderColor = 'rgba(239,68,68,0.3)';
+                const lhdr = document.createElement('div');
+                lhdr.className = 'pcm-layer-header';
+                lhdr.style.cssText = 'background:rgba(239,68,68,0.06);';
+                lhdr.innerHTML = `<span style="color:var(--accent-danger);">❓ DB 미인식 프롬프트 (계층 수동 지정)</span><span style="margin-left:auto;font-size:11px;color:var(--text-dim);">${unknown.length}개</span>`;
+                block.appendChild(lhdr);
+                const itemsEl = document.createElement('div');
+                itemsEl.className = 'pcm-layer-items';
+                unknown.forEach((it, idx) => {
+                    const row = document.createElement('div');
+                    row.className = 'pcm-item';
+                    row.dataset.unknownIdx = idx;
+                    row.dataset.cleanPrompt = it.clean;
+                    const layerSel = document.createElement('select');
+                    layerSel.className = 'pcm-assign-sel';
+                    layerSel.dataset.unknownIdx = idx;
+                    layerSel.innerHTML = '<option value="">계층 선택</option>' + layerMeta.map(l => `<option value="${l.id}">${l.id}계층: ${l.title}</option>`).join('');
+                    row.innerHTML = `<span class="pcm-item-unknown">❓</span><span class="pcm-item-tag">${it.clean}</span>`;
+                    row.appendChild(layerSel);
+                    itemsEl.appendChild(row);
+                });
+                block.appendChild(itemsEl);
+                resultEl.appendChild(block);
+            }
+        }
+
+        function _pcmApply(overlay) {
+            const textarea = overlay.querySelector('.pcm-textarea');
+            const replaceMode = document.getElementById('pcm-replace-mode')?.checked;
+            if (!textarea || !textarea.value.trim()) { showToast('프롬프트를 입력해주세요', 'error'); return; }
+
+            const { byLayer, unknown } = _pcmClassify(textarea.value);
+
+            // collect unknown with manually-assigned layers
+            const resultEl = document.getElementById('pcm-result');
+            if (resultEl) {
+                resultEl.querySelectorAll('.pcm-assign-sel').forEach(sel => {
+                    const lid = parseInt(sel.value);
+                    if (!lid) return;
+                    const row = sel.closest('[data-clean-prompt]');
+                    if (!row) return;
+                    const clean = row.dataset.cleanPrompt;
+                    if (!byLayer[lid]) byLayer[lid] = [];
+                    byLayer[lid].push({ raw: clean, clean, folder: '미분류' });
+                    // remove from unknown tracking (already handled above)
+                });
+            }
+
+            // Build per-layer strings and apply to textareas
+            let appliedCount = 0;
+            layerMeta.forEach(lm => {
+                const items = byLayer[lm.id];
+                if (!items || items.length === 0) return;
+
+                const ta = document.getElementById(`layer-${lm.id}`);
+                if (!ta) return;
+
+                const toAdd = items.map(it => it.raw).join(', ');
+                if (replaceMode) {
+                    ta.value = toAdd;
+                } else {
+                    ta.value = ta.value ? ta.value.trimEnd().replace(/,\s*$/, '') + ', ' + toAdd : toAdd;
+                }
+                syncFromManualInput(lm.id);
+                appliedCount += items.length;
+            });
+
+            _refreshAllTagBtnStates();
+            overlay.remove();
+            showToast(`${appliedCount}개 프롬프트 적용됨`, 'success');
         }
 
         function toggleFavorite(tagText) {
