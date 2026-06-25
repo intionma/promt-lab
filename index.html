@@ -115,7 +115,14 @@
         .fav-recent-box:not(.collapsed) .box-header { border-radius: 8px 8px 0 0 !important; border-bottom: 1px solid var(--border-dim); }
 
         .layer-group { background: var(--bg-surface); border-radius: 10px; border: 1px solid var(--border-dim); overflow: hidden; flex-shrink: 0; transition: 0.3s;}
-        .layer-title-bar { padding: 16px 18px; font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 8px; background: var(--folder-bg); border-bottom: 1px solid var(--border-dim); font-family: var(--font-heading); }
+        .layer-group.collapsed .layer-group-content { display: none; }
+        .layer-group.collapsed .layer-title-chevron { transform: rotate(-90deg); }
+        .layer-title-bar { padding: 16px 18px; font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 8px; background: var(--folder-bg); border-bottom: 1px solid var(--border-dim); font-family: var(--font-heading); cursor: pointer; user-select: none; }
+        .layer-title-bar:hover { background: var(--folder-hover); }
+        .layer-title-chevron { margin-left: auto; color: var(--text-dim); font-size: 12px; transition: transform 0.2s; flex-shrink: 0; }
+        .sidebar-sticky-bar { background: var(--bg-panel); border-bottom: 1px solid var(--border-dim); display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+        .sidebar-sticky-bar button { background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-dim); padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: var(--font-ui); transition: 0.15s; white-space: nowrap; }
+        .sidebar-sticky-bar button:hover { color: var(--text-main); border-color: var(--text-dim); }
         .layer-indicator { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 6px currentColor; flex-shrink: 0; }
         .layer-badge { display: inline-flex; align-items: center; justify-content: center; height: 20px; min-width: 20px; padding: 0 6px; border-radius: 10px; font-size: 11px; font-weight: bold; color: #fff; margin-left: auto; font-family: var(--font-code); background: var(--text-dim);}
 
@@ -334,8 +341,8 @@
                 </div>
             </div>
 
-            <div class="panel-content">
-                <div class="sidebar-tools">
+            <div style="flex-shrink:0; padding: 16px 20px 0; display:flex; flex-direction:column; gap:10px;">
+                <div class="sidebar-tools" style="margin-bottom:0;">
                     <div class="mode-toggle-group">
                         <button class="mode-toggle-btn active" id="btn-mode-detail" onclick="switchSidebarMode('detail')"><i class="fa-solid fa-list-ul"></i> 상세 태그</button>
                         <button class="mode-toggle-btn" id="btn-mode-combo" onclick="switchSidebarMode('combo')" style="color:var(--accent-green)"><i class="fa-solid fa-puzzle-piece"></i> 간편 조합</button>
@@ -346,7 +353,12 @@
                         <input type="text" id="tag-search" placeholder="태그 영문/한글 검색..." oninput="filterTags()">
                     </div>
                 </div>
-
+                <div class="sidebar-sticky-bar" id="sidebar-sticky-bar" style="display:none; margin: 0 -20px; padding: 8px 20px;">
+                    <button onclick="collapseAllLayers(true)"><i class="fa-solid fa-angles-up"></i> 모두 닫기</button>
+                    <button onclick="collapseAllLayers(false)"><i class="fa-solid fa-angles-down"></i> 모두 열기</button>
+                </div>
+            </div>
+            <div class="panel-content" style="padding-top: 12px;">
                 <div id="sidebar-content-detail" style="display:flex; flex-direction:column; gap:16px;"></div>
 
                 <div id="sidebar-content-combo" style="display:none; flex-direction:column; gap:16px;">
@@ -527,8 +539,8 @@
     </div>
 
     <div class="modal-overlay" id="db-text-editor-modal">
-        <div class="modal-content" style="width: 860px; max-height: 90vh;">
-            <div class="modal-header">
+        <div class="modal-content" id="db-text-editor-box" style="width: min(95vw, 1200px); height: min(90vh, 900px); resize: both; overflow: hidden; display: flex; flex-direction: column; min-width: 500px; min-height: 300px;">
+            <div class="modal-header" id="db-text-editor-drag-handle" style="cursor: move; user-select: none;">
                 <span class="modal-title"><i class="fa-solid fa-code"></i> DB 텍스트 편집기</span>
                 <div style="display:flex; gap:8px; align-items:center;">
                     <span id="db-text-status" style="font-size:13px; color:var(--text-dim);"></span>
@@ -537,13 +549,13 @@
                     <button class="action-btn" onclick="document.getElementById('db-text-editor-modal').style.display='none'"><i class="fa-solid fa-xmark"></i> 닫기</button>
                 </div>
             </div>
-            <div style="padding: 16px 24px; background:var(--bg-surface); border-bottom:1px solid var(--border-dim); font-size:13px; color:var(--text-dim); line-height:1.6;">
+            <div style="padding: 12px 24px; background:var(--bg-surface); border-bottom:1px solid var(--border-dim); font-size:13px; color:var(--text-dim); line-height:1.6; flex-shrink:0;">
                 💡 JSON 형식으로 DB를 직접 편집할 수 있습니다. <strong style="color:var(--accent-blue);">저장 적용</strong> 버튼을 누르면 즉시 반영됩니다. 잘못된 형식은 저장되지 않습니다.
             </div>
             <div style="flex:1; overflow:hidden; display:flex; flex-direction:column; padding: 16px 24px;">
                 <textarea id="db-text-area" spellcheck="false"
                     oninput="validateDBText()"
-                    style="flex:1; width:100%; height:520px; background:var(--input-bg); border:1px solid var(--border-dim); color:var(--text-main); font-family:var(--font-code); font-size:13px; line-height:1.7; padding:16px; border-radius:8px; resize:none; outline:none; transition:border-color 0.2s;"></textarea>
+                    style="flex:1; width:100%; height:100%; background:var(--input-bg); border:1px solid var(--border-dim); color:var(--text-main); font-family:var(--font-code); font-size:13px; line-height:1.7; padding:16px; border-radius:8px; resize:none; outline:none; transition:border-color 0.2s;"></textarea>
             </div>
         </div>
     </div>
@@ -761,7 +773,7 @@
             const chip = e.target.closest('.prompt-chip');
             const editorBody = e.target.closest('.editor-body');
             const resultTA = e.target.closest('.result-textarea');
-            const dbTag = e.target.closest('.tag-btn');
+            const dbTagBtn = e.target.closest('.tag-btn');
 
             if (chip) {
                 e.preventDefault();
@@ -831,6 +843,33 @@
                     { label: '기본 가중치 -0.1', icon: 'fa-solid fa-arrow-down', action: () => adjustGlobalWeight(-0.1) },
                     { label: '기본 가중치 초기화 (1.0)', icon: 'fa-solid fa-rotate-left', action: () => { globalWeightCurrent = 1.0; } },
                 ]);
+            } else if (dbTagBtn) {
+                e.preventDefault();
+                const tagText = dbTagBtn.dataset.tag;
+                const layerId = parseInt(dbTagBtn.dataset.layer);
+                // DB에서 해당 태그의 폴더와 인덱스 찾기
+                let foundFolder = null, foundIndex = -1;
+                if (promptDB[layerId]) {
+                    for (const folderName of Object.keys(promptDB[layerId])) {
+                        const idx = promptDB[layerId][folderName].findIndex(d => d.t === tagText);
+                        if (idx !== -1) { foundFolder = folderName; foundIndex = idx; break; }
+                    }
+                }
+                const menuItems = [
+                    { label: `"${activeTagsMap[tagText]?.kor || tagText}"`, isHeader: true },
+                    { label: '즐겨찾기 토글', icon: 'fa-solid fa-star', action: () => toggleFavorite(tagText) },
+                ];
+                if (foundFolder !== null) {
+                    menuItems.push('sep');
+                    menuItems.push({ label: 'DB에서 태그 수정', icon: 'fa-solid fa-pencil', action: () => {
+                        openDBManager();
+                        setTimeout(() => editTagSetup(layerId, foundFolder, foundIndex), 100);
+                    }});
+                    menuItems.push({ label: 'DB에서 태그 삭제', icon: 'fa-solid fa-xmark', danger: true, action: () => {
+                        deleteTag(layerId, foundFolder, foundIndex);
+                    }});
+                }
+                showCtxMenu(e.clientX, e.clientY, menuItems);
             } else if (resultTA) {
                 e.preventDefault();
                 showCtxMenu(e.clientX, e.clientY, [
@@ -903,11 +942,14 @@
                 group.className = 'layer-group';
 
                 group.innerHTML = `
-                    <div class="layer-title-bar">
+                    <div class="layer-title-bar" onclick="this.closest('.layer-group').classList.toggle('collapsed')">
                         <div class="layer-indicator" style="background-color: ${layer.color};"></div>
                         <span style="color: ${layer.color}">${layer.title}</span>
                         <span class="layer-badge" id="layer-badge-${i}" style="display:none; background-color: ${layer.color};">0</span>
+                        <i class="fa-solid fa-chevron-down layer-title-chevron"></i>
                     </div>`;
+                const groupContent = document.createElement('div');
+                groupContent.className = 'layer-group-content';
 
                 const dbLayer = promptDB[i];
                 if(dbLayer) {
@@ -946,9 +988,10 @@
                         });
 
                         subFolder.appendChild(subContent);
-                        group.appendChild(subFolder);
+                        groupContent.appendChild(subFolder);
                     });
                 }
+                group.appendChild(groupContent);
                 sidebarDetail.appendChild(group);
 
                 const section = document.createElement('div');
@@ -985,6 +1028,9 @@
                 `;
                 editor.appendChild(section);
             });
+
+            // sticky bar는 상세 태그 모드에서만 표시
+            document.getElementById('sidebar-sticky-bar').style.display = 'flex';
 
             renderFavorites();
             renderRecents();
@@ -1989,15 +2035,12 @@
         function validateDBText() {
             const textarea = document.getElementById('db-text-area');
             const status = document.getElementById('db-text-status');
+            const raw = textarea.value.trim();
             try {
-                const parsed = JSON.parse(textarea.value);
-                if(parsed && typeof parsed === 'object' && parsed[1] !== undefined) {
-                    textarea.style.borderColor = 'var(--accent-green)';
-                    status.style.color = 'var(--accent-green)';
-                    status.innerText = '✅ 형식 정상';
-                } else {
-                    throw new Error('구조 오류');
-                }
+                if (raw !== '') JSON.parse(raw); // 빈 문자열은 유효 (초기화 상태)
+                textarea.style.borderColor = 'var(--accent-green)';
+                status.style.color = 'var(--accent-green)';
+                status.innerText = raw === '' ? '✅ 비어있음 (초기화)' : '✅ 형식 정상';
             } catch(e) {
                 textarea.style.borderColor = 'var(--accent-danger)';
                 status.style.color = 'var(--accent-danger)';
@@ -2019,9 +2062,10 @@
 
         function saveDBText() {
             const textarea = document.getElementById('db-text-area');
+            const raw = textarea.value.trim();
             try {
-                const parsed = JSON.parse(textarea.value);
-                if(!parsed || typeof parsed !== 'object' || parsed[1] === undefined) throw new Error('구조 오류');
+                const parsed = raw === '' ? {} : JSON.parse(raw);
+                if(!parsed || typeof parsed !== 'object') throw new Error('구조 오류');
                 promptDB = parsed;
                 safeSetStorage('pro_prompt_db_v7_0', promptDB);
                 initApp();
@@ -2032,7 +2076,40 @@
             }
         }
 
+        function collapseAllLayers(collapse) {
+            document.querySelectorAll('.layer-group').forEach(g => {
+                if (collapse) g.classList.add('collapsed');
+                else g.classList.remove('collapsed');
+            });
+        }
+
         initApp();
+
+        // DB 텍스트 편집기 드래그 이동
+        (function() {
+            const handle = document.getElementById('db-text-editor-drag-handle');
+            const box = document.getElementById('db-text-editor-box');
+            if (!handle || !box) return;
+            let isDragging = false, startX, startY, startLeft, startTop;
+            handle.addEventListener('mousedown', (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+                isDragging = true;
+                const rect = box.getBoundingClientRect();
+                startX = e.clientX; startY = e.clientY;
+                startLeft = rect.left; startTop = rect.top;
+                box.style.position = 'fixed';
+                box.style.margin = '0';
+                box.style.left = startLeft + 'px';
+                box.style.top = startTop + 'px';
+                document.body.style.userSelect = 'none';
+            });
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                box.style.left = Math.max(0, startLeft + e.clientX - startX) + 'px';
+                box.style.top = Math.max(0, startTop + e.clientY - startY) + 'px';
+            });
+            document.addEventListener('mouseup', () => { isDragging = false; document.body.style.userSelect = ''; });
+        })();
 
         // 탭 드래그 스크롤
         (function() {
