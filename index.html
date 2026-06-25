@@ -121,6 +121,7 @@
 
         .combo-card { background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 10px; padding: 16px; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; gap: 8px; position: relative; }
         .combo-card:hover { border-color: var(--accent-blue); transform: translateY(-2px); box-shadow: 0 5px 15px var(--shadow-color); }
+        .combo-card.active { border-color: var(--accent-green); background: rgba(34,197,94,0.06); }
         .combo-header { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; color: var(--text-main); font-family: var(--font-heading); padding-right: 30px; }
         .combo-desc { font-size: 13px; color: var(--text-dim); line-height: 1.4; }
         .btn-combo-del { position: absolute; right: 12px; top: 12px; background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 14px; padding: 4px; transition: 0.2s; }
@@ -1231,6 +1232,7 @@
                 const preview = getComboPreview(combo.tags || {});
                 const card = document.createElement('div');
                 card.className = 'combo-card';
+                card.dataset.comboId = comboId;
                 card.innerHTML = `
                     <div class="combo-header"><span>💾</span> <span>${combo.title}</span></div>
                     <div class="combo-desc" style="color:var(--text-dim); font-family:var(--font-code); font-size:12px;">${preview}</div>
@@ -1417,21 +1419,46 @@
         function applyCombo(combo) {
             saveStateToUndoStack();
 
-            Object.keys(combo.tags).forEach(layerId => {
-                let textarea = document.getElementById(`layer-${layerId}`);
-                let currentTags = textarea.value.split(',').map(s=>s.trim()).filter(s=>s.length>0);
-                let newTags = combo.tags[layerId].split(',').map(s=>s.trim());
-
-                newTags.forEach(nt => {
-                    let coreNew = nt.match(/^\((.+):(\d+\.?\d*)\)$/) ? nt.match(/^\((.+):(\d+\.?\d*)\)$/)[1] : nt;
-                    let exists = currentTags.some(ct => getRegexForTag(coreNew).test(ct));
-                    if(!exists) currentTags.push(nt);
+            // 이미 적용된 조합인지 확인 (모든 레이어의 모든 태그가 이미 존재하면 해제)
+            let allActive = Object.keys(combo.tags).every(layerId => {
+                const textarea = document.getElementById(`layer-${layerId}`);
+                if (!textarea) return false;
+                const comboPrompts = combo.tags[layerId].split(',').map(s => s.trim()).filter(Boolean);
+                return comboPrompts.every(p => {
+                    const core = p.match(/^\((.+):(\d+\.?\d*)\)$/) ? p.match(/^\((.+):(\d+\.?\d*)\)$/)[1] : p;
+                    return getRegexForTag(core).test(textarea.value);
                 });
-
-                textarea.value = currentTags.join(', ');
-                syncFromManualInput(layerId);
             });
-            showToast(`[${combo.title}] 조합이 적용되었습니다!`, "success");
+
+            if (allActive) {
+                // 해제: 조합의 태그 제거
+                Object.keys(combo.tags).forEach(layerId => {
+                    const textarea = document.getElementById(`layer-${layerId}`);
+                    if (!textarea) return;
+                    let content = textarea.value;
+                    combo.tags[layerId].split(',').map(s => s.trim()).filter(Boolean).forEach(p => {
+                        const core = p.match(/^\((.+):(\d+\.?\d*)\)$/) ? p.match(/^\((.+):(\d+\.?\d*)\)$/)[1] : p;
+                        content = content.replace(getRegexForTag(core), '');
+                    });
+                    textarea.value = content.replace(/,\s*,+/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').trim();
+                    syncFromManualInput(layerId);
+                });
+                showToast(`[${combo.title}] 조합이 해제되었습니다.`, "info");
+            } else {
+                // 적용: 없는 태그만 추가
+                Object.keys(combo.tags).forEach(layerId => {
+                    const textarea = document.getElementById(`layer-${layerId}`);
+                    if (!textarea) return;
+                    let currentTags = textarea.value.split(',').map(s=>s.trim()).filter(s=>s.length>0);
+                    combo.tags[layerId].split(',').map(s=>s.trim()).filter(Boolean).forEach(nt => {
+                        const core = nt.match(/^\((.+):(\d+\.?\d*)\)$/) ? nt.match(/^\((.+):(\d+\.?\d*)\)$/)[1] : nt;
+                        if (!currentTags.some(ct => getRegexForTag(core).test(ct))) currentTags.push(nt);
+                    });
+                    textarea.value = currentTags.join(', ');
+                    syncFromManualInput(layerId);
+                });
+                showToast(`[${combo.title}] 조합이 적용되었습니다!`, "success");
+            }
         }
 
         function switchContext(contextName, btnElement) {
@@ -1767,7 +1794,44 @@
             syncFromManualInput(layerIndex);
         }
 
+        // DB 폴더/태그 순서대로 레이어 내용 정렬. DB에 없는 태그는 뒤에 유지.
+        function sortLayerByDB(layerIndex) {
+            const textarea = document.getElementById(`layer-${layerIndex}`);
+            if (!textarea) return;
+            const raw = textarea.value.split(',').map(s => s.trim()).filter(Boolean);
+            if (raw.length < 2) return;
+
+            // 각 토큰의 core(가중치 제거) → DB 순서 인덱스 맵 구성
+            const orderMap = new Map(); // core → global order index
+            let globalIdx = 0;
+            const dbLayer = promptDB[layerIndex];
+            if (dbLayer) {
+                Object.keys(dbLayer).forEach(folder => {
+                    dbLayer[folder].forEach(data => {
+                        // data.t에 여러 프롬포트가 있을 수 있음
+                        data.t.split(',').map(s => s.trim()).filter(Boolean).forEach(p => {
+                            if (!orderMap.has(p)) orderMap.set(p, globalIdx++);
+                        });
+                    });
+                });
+            }
+
+            const getOrder = (token) => {
+                const m = token.match(/^\((.+):[\d.]+\)$/);
+                const core = m ? m[1] : token;
+                return orderMap.has(core) ? orderMap.get(core) : Infinity;
+            };
+
+            const sorted = [...raw].sort((a, b) => getOrder(a) - getOrder(b));
+            const joined = sorted.join(', ');
+            if (joined !== textarea.value) {
+                textarea.value = joined;
+                contextStates[currentContext][layerIndex - 1] = joined;
+            }
+        }
+
         function syncFromManualInput(layerIndex) {
+            sortLayerByDB(layerIndex);
             const textarea = document.getElementById(`layer-${layerIndex}`);
             contextStates[currentContext][layerIndex-1] = textarea.value;
 
@@ -1791,6 +1855,26 @@
             checkConflicts(layerIndex);
             if(currentViewMode === 'visual') renderChips(layerIndex);
             updateMasterOutput();
+            updateComboCardStates();
+        }
+
+        function updateComboCardStates() {
+            const container = document.getElementById('combo-list-container');
+            if (!container) return;
+            container.querySelectorAll('.combo-card').forEach(card => {
+                const comboId = card.dataset.comboId;
+                if (!comboId || !userCombos[comboId]) return;
+                const combo = userCombos[comboId];
+                const allActive = Object.keys(combo.tags).every(layerId => {
+                    const textarea = document.getElementById(`layer-${layerId}`);
+                    if (!textarea) return false;
+                    return combo.tags[layerId].split(',').map(s => s.trim()).filter(Boolean).every(p => {
+                        const core = p.match(/^\((.+):[\d.]+\)$/) ? p.match(/^\((.+):[\d.]+\)$/)[1] : p;
+                        return getRegexForTag(core).test(textarea.value);
+                    });
+                });
+                card.classList.toggle('active', allActive);
+            });
         }
 
         function clearLayer(layerIndex) {
