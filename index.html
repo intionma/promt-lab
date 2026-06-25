@@ -2009,29 +2009,42 @@
             body.appendChild(recogLabel); body.appendChild(recogList);
         }
 
+        function _findInDB(p) {
+            // p: 단일 프롬프트 문자열 (가중치 제거 후)
+            const clean = p.replace(/^\(+|\)+$/g, '').replace(/:\d*\.?\d+$/, '').trim().toLowerCase();
+            for (let lid = 1; lid <= 7; lid++) {
+                if (!promptDB[lid]) continue;
+                for (const [fk, tags] of Object.entries(promptDB[lid])) {
+                    for (const t of tags) {
+                        // 태그의 t 필드가 멀티("a, b")일 수 있으므로 각 프롬프트를 분리해서 비교
+                        const tagPrompts = (t.t || '').split(',').map(s => s.trim().toLowerCase());
+                        if (tagPrompts.includes(clean)) return { lid, fk };
+                    }
+                }
+            }
+            return null;
+        }
+
         function renderCCMRecognition(text) {
             const list = document.getElementById('ccm-recog-list');
             if (!list) return;
             list.innerHTML = '';
-            const prompts = text.split(',').map(s => s.trim()).filter(Boolean);
+            // 줄바꿈도 구분자로 처리
+            const prompts = text.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
             if (prompts.length === 0) return;
 
             prompts.forEach(p => {
-                let foundLayer = null, foundFolder = null;
-                for (let lid = 1; lid <= 7; lid++) {
-                    if (!promptDB[lid]) continue;
-                    for (const [fk, tags] of Object.entries(promptDB[lid])) {
-                        if (tags.find(t => t.t === p)) { foundLayer = lid; foundFolder = fk; break; }
-                    }
-                    if (foundLayer) break;
-                }
+                // 가중치 표기 제거: (word:1.2) → word
+                const cleanP = p.replace(/^\(+|\)+$/g, '').replace(/:\d*\.?\d+$/, '').trim();
+                const found = _findInDB(cleanP);
+                const foundLayer = found?.lid ?? null;
+                const foundFolder = found?.fk ?? null;
                 const item = document.createElement('div');
                 item.className = 'ccm-recog-item';
                 if (foundLayer) {
-                    const lm = layerMeta.find(l => l.id === foundLayer);
-                    item.innerHTML = `<span class="ccm-recog-found">✅</span><span><b>${p}</b> — ${foundLayer}계층 › ${foundFolder.split('|')[0]} (DB 있음)</span>`;
+                    item.innerHTML = `<span class="ccm-recog-found">✅</span><span><b>${cleanP}</b> — ${foundLayer}계층 › ${foundFolder.split('|')[0]}</span>`;
                 } else {
-                    item.innerHTML = `<span class="ccm-recog-missing">❓</span><span><b>${p}</b> — DB에 없음</span>`;
+                    item.innerHTML = `<span class="ccm-recog-missing">❓</span><span><b>${cleanP}</b> — DB에 없음 (계층/폴더 지정 후 저장 시 추가됨)</span>`;
                     // Layer select
                     const selects = document.createElement('div');
                     selects.className = 'ccm-recog-selects';
@@ -2051,9 +2064,9 @@
                                 folderSel.appendChild(opt);
                             });
                         }
-                        layerSel.dataset.tagText = p;
+                        layerSel.dataset.tagText = cleanP;
                     };
-                    folderSel.dataset.tagText = p;
+                    folderSel.dataset.tagText = cleanP;
                     selects.appendChild(layerSel); selects.appendChild(folderSel);
                     item.appendChild(selects);
                 }
@@ -2083,16 +2096,10 @@
             } else if (advOptions) {
                 // Advanced mode: parse text, handle unknown tags
                 const list = document.querySelectorAll('#ccm-recog-list .ccm-recog-item');
-                const prompts = (advOptions.text || '').split(',').map(s => s.trim()).filter(Boolean);
+                const prompts = (advOptions.text || '').split(/[\n,]/).map(s => s.replace(/^\(+|\)+$/g, '').replace(/:\d*\.?\d+$/, '').trim()).filter(Boolean);
                 prompts.forEach((p, idx) => {
-                    let foundLayer = null;
-                    for (let lid = 1; lid <= 7; lid++) {
-                        if (!promptDB[lid]) continue;
-                        for (const tags of Object.values(promptDB[lid])) {
-                            if (tags.find(t => t.t === p)) { foundLayer = lid; break; }
-                        }
-                        if (foundLayer) break;
-                    }
+                    const found = _findInDB(p);
+                    let foundLayer = found?.lid ?? null;
                     if (!foundLayer) {
                         // Check if user assigned a layer/folder via selects
                         const itemEl = list[idx];
