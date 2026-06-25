@@ -105,7 +105,7 @@
         .action-btn { background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-main); padding: 6px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 700; transition: 0.2s; font-family: var(--font-ui); white-space: nowrap;}
         .action-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
 
-        .panel-content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .panel-content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
         .right-panel-wrapper { display: flex; flex-direction: column; gap: 14px; }
         .pos-section, .neg-section { display: flex; flex-direction: column; gap: 12px; }
 
@@ -1828,6 +1828,7 @@
         function renderCombos() {
             const container = document.getElementById('combo-list-container');
             if (!container) return;
+            const savedScroll = container.scrollTop;
             container.innerHTML = '';
 
             // root 레벨의 아이템 렌더 (폴더는 인라인 확장, 조합은 카드)
@@ -1846,6 +1847,8 @@
 
             setupGridDropZone(container);
             updateComboCardStates();
+            // 스크롤 위치 복원 (requestAnimationFrame으로 레이아웃 완료 후)
+            requestAnimationFrame(() => { container.scrollTop = savedScroll; });
         }
 
         function createFolderBlockEl(folder) {
@@ -2021,45 +2024,57 @@
         }
 
         function setupFolderContentsDropZone(contents, folderId) {
-            let _indicator = null;
+            let _folderDropAfterEl = null;
+            let _folderRafPending = false;
+
             const getIndicator = () => {
-                if (!_indicator) {
-                    _indicator = contents.querySelector('.combo-drop-indicator');
-                    if (!_indicator) {
-                        _indicator = document.createElement('div');
-                        _indicator.className = 'combo-drop-indicator';
-                        contents.prepend(_indicator);
-                    }
+                let ind = contents.querySelector(':scope > .combo-drop-indicator');
+                if (!ind) {
+                    ind = document.createElement('div');
+                    ind.className = 'combo-drop-indicator';
+                    // append (not prepend) so it doesn't interfere with initial layout
+                    contents.appendChild(ind);
                 }
-                return _indicator;
+                return ind;
             };
             contents.addEventListener('dragover', (e) => {
                 if (!_fsDragging || _fsDragging.id === folderId) return;
                 if (_isAncestor(_fsDragging.id, folderId)) return;
                 e.preventDefault(); e.stopPropagation();
                 e.dataTransfer.dropEffect = 'move';
-                const afterEl = getDragAfterElement(contents, e.clientX, e.clientY);
-                const ind = getIndicator();
-                if (afterEl) contents.insertBefore(ind, afterEl);
-                else contents.appendChild(ind);
-                ind.classList.add('visible');
+
+                if (_folderRafPending) return;
+                _folderRafPending = true;
+                const cx = e.clientX, cy = e.clientY;
+                requestAnimationFrame(() => {
+                    _folderRafPending = false;
+                    if (!_fsDragging) return;
+                    const afterEl = getDragAfterElement(contents, cx, cy);
+                    _folderDropAfterEl = afterEl;
+                    const ind = getIndicator();
+                    if (afterEl) contents.insertBefore(ind, afterEl);
+                    else contents.appendChild(ind);
+                    ind.classList.add('visible');
+                });
             });
             contents.addEventListener('dragleave', (e) => {
                 if (!contents.contains(e.relatedTarget)) {
-                    getIndicator().classList.remove('visible');
+                    const ind = contents.querySelector(':scope > .combo-drop-indicator');
+                    if (ind) ind.classList.remove('visible');
+                    _folderDropAfterEl = null;
                 }
             });
             contents.addEventListener('drop', (e) => {
                 e.preventDefault(); e.stopPropagation();
-                getIndicator().classList.remove('visible');
+                const ind = contents.querySelector(':scope > .combo-drop-indicator');
+                if (ind) ind.classList.remove('visible');
                 if (!_fsDragging || _fsDragging.id === folderId) return;
                 if (_isAncestor(_fsDragging.id, folderId)) return;
                 const dragId = _fsDragging.id;
                 const folder = comboFS.items[folderId];
                 if (!folder) return;
-                // Determine insert position from current DOM order
-                const afterEl = getDragAfterElement(contents, e.clientX, e.clientY);
-                const siblings = [...contents.querySelectorAll(':scope > [data-id]:not(.dnd-dragging-fs)')];
+                const afterEl = _folderDropAfterEl;
+                _folderDropAfterEl = null;
                 const afterId = afterEl ? afterEl.dataset.id : null;
                 removeFsItemFromParent(dragId);
                 if (!folder.children) folder.children = [];
@@ -2112,11 +2127,22 @@
 
         // ─── FS 드래그앤드롭 ───
         let _fsDragging = null; // { id }
+        let _dragoverRafPending = false; // RAF 스로틀링용
+
+        function _cleanupDragVisuals() {
+            document.querySelectorAll('.combo-item.dnd-over').forEach(e => e.classList.remove('dnd-over'));
+            document.querySelectorAll('.dnd-folder-over').forEach(e => e.classList.remove('dnd-folder-over'));
+            document.querySelectorAll('.drag-hover').forEach(e => e.classList.remove('drag-hover'));
+            document.querySelectorAll('.combo-drop-indicator.visible').forEach(e => e.classList.remove('visible'));
+            document.querySelectorAll('#combo-list-container').forEach(c => { c.style.outline = ''; });
+            const gridInd = document.getElementById('_combo-grid-indicator');
+            if (gridInd) gridInd.style.display = 'none';
+        }
 
         function setupFsItemDrag(el, id) {
             el.draggable = true;
             el.addEventListener('dragstart', (e) => {
-                e.stopPropagation(); // Bug 3 fix: prevent parent folder from also starting drag
+                e.stopPropagation();
                 _fsDragging = { id };
                 el.classList.add('dnd-dragging-fs');
                 e.dataTransfer.effectAllowed = 'move';
@@ -2124,8 +2150,9 @@
             });
             el.addEventListener('dragend', () => {
                 el.classList.remove('dnd-dragging-fs');
-                document.querySelectorAll('.combo-item.dnd-over').forEach(e => e.classList.remove('dnd-over'));
+                _cleanupDragVisuals();
                 _fsDragging = null;
+                _dragoverRafPending = false;
             });
         }
 
@@ -2185,38 +2212,67 @@
             }
         }
 
+        function _getOrCreateGridIndicator(container) {
+            let ind = container.querySelector('.combo-grid-drop-indicator');
+            if (!ind) {
+                ind = document.createElement('div');
+                ind.className = 'combo-grid-drop-indicator';
+                ind.style.cssText = 'grid-column:1/-1;height:3px;background:var(--accent-blue);border-radius:2px;margin:0 4px;display:none;pointer-events:none;';
+                container.prepend(ind);
+            }
+            return ind;
+        }
+
         function setupGridDropZone(container) {
+            let _gridDropAfterEl = null; // tracks where to drop
+
             container.addEventListener('dragover', (e) => {
                 if (!_fsDragging) return;
-                // 폴더 contents 위에 있으면 무시 (setupFolderContentsDropZone가 처리)
                 if (e.target.closest('.combo-folder-contents')) return;
+                if (e.target.closest('.combo-folder-header-row')) return;
                 e.preventDefault(); e.dataTransfer.dropEffect = 'move';
-                // Bug 1 & 2 fix: even if item is from a folder, allow drop on container
-                const afterEl = getDragAfterElement(container, e.clientX, e.clientY);
-                const draggingEl = container.querySelector(':scope > .dnd-dragging-fs');
-                if (!draggingEl) {
-                    // Item being dragged from inside a folder — show indicator
-                    container.style.outline = '2px dashed var(--accent-blue)';
-                    return;
-                }
-                container.style.outline = '';
-                if (afterEl == null) container.appendChild(draggingEl);
-                else container.insertBefore(draggingEl, afterEl);
+
+                if (_dragoverRafPending) return;
+                _dragoverRafPending = true;
+                const cx = e.clientX, cy = e.clientY;
+                requestAnimationFrame(() => {
+                    _dragoverRafPending = false;
+                    if (!_fsDragging) return;
+                    const afterEl = getDragAfterElement(container, cx, cy);
+                    _gridDropAfterEl = afterEl;
+                    const ind = _getOrCreateGridIndicator(container);
+                    if (afterEl) container.insertBefore(ind, afterEl);
+                    else container.appendChild(ind);
+                    ind.style.display = 'block';
+                });
             });
             container.addEventListener('dragleave', (e) => {
-                if (!container.contains(e.relatedTarget)) container.style.outline = '';
+                if (!container.contains(e.relatedTarget)) {
+                    const ind = container.querySelector('.combo-grid-drop-indicator');
+                    if (ind) ind.style.display = 'none';
+                    _gridDropAfterEl = null;
+                }
             });
             container.addEventListener('drop', (e) => {
                 e.preventDefault();
-                container.style.outline = '';
+                const ind = container.querySelector('.combo-grid-drop-indicator');
+                if (ind) ind.style.display = 'none';
                 if (!_fsDragging) return;
                 const dragId = _fsDragging.id;
-                // Bug 1 & 2: remove from any parent (folder or root), then add to root
                 removeFsItemFromParent(dragId);
-                // 새 순서를 DOM 기준으로 설정
-                const newOrder = [...container.querySelectorAll(':scope > .combo-item, :scope > .combo-folder-block')].map(el => el.dataset.id).filter(Boolean);
-                // If dragged item not in DOM (came from inside a folder), add to end
-                if (!newOrder.includes(dragId)) newOrder.push(dragId);
+
+                // 삽입 위치: indicator 앞 요소를 기준으로
+                const afterEl = _gridDropAfterEl;
+                _gridDropAfterEl = null;
+                const rootEls = [...container.querySelectorAll(':scope > .combo-item[data-id], :scope > .combo-folder-block[data-id]')];
+                const newOrder = rootEls.map(el => el.dataset.id).filter(id => id && id !== dragId);
+                if (afterEl && afterEl.dataset.id) {
+                    const pos = newOrder.indexOf(afterEl.dataset.id);
+                    if (pos >= 0) newOrder.splice(pos, 0, dragId);
+                    else newOrder.push(dragId);
+                } else {
+                    newOrder.push(dragId);
+                }
                 comboFS.root = newOrder;
                 saveComboFS();
                 renderCombos();
@@ -2225,19 +2281,21 @@
 
         function getDragAfterElement(container, x, y) {
             const els = [...container.querySelectorAll(':scope > .combo-item:not(.dnd-dragging-fs), :scope > .combo-folder-block:not(.dnd-dragging-fs)')];
-            return els.reduce((closest, el) => {
-                const box = el.getBoundingClientRect();
+            // Batch getBoundingClientRect to minimize reflow
+            const rects = els.map(el => ({ el, box: el.getBoundingClientRect() }));
+            let closest = { el: null, dist: Infinity };
+            for (const { el, box } of rects) {
                 const elCenterY = box.top + box.height / 2;
                 const elCenterX = box.left + box.width / 2;
                 const dy = y - elCenterY, dx = x - elCenterX;
                 const dist = dx * dx + dy * dy;
-                const onLeft = x < elCenterX;
                 const aboveRow = y < box.top;
-                if (aboveRow || (Math.abs(dy) < box.height / 2 && onLeft)) {
-                    return dist < closest.dist ? { el, dist } : closest;
+                const onLeft = x < elCenterX && Math.abs(dy) < box.height / 2;
+                if (aboveRow || onLeft) {
+                    if (dist < closest.dist) closest = { el, dist };
                 }
-                return closest;
-            }, { el: null, dist: Infinity }).el;
+            }
+            return closest.el;
         }
 
         function removeFsItemFromParent(id) {
@@ -3297,14 +3355,14 @@
                 document.getElementById('sidebar-content-combo').style.display = 'none';
                 document.getElementById('sidebar-search-box').style.display = 'block';
                 document.getElementById('sidebar-sticky-bar').style.display = 'flex';
-                if (panelContent) { panelContent.style.overflowY = 'auto'; panelContent.style.display = ''; panelContent.style.flexDirection = ''; }
+                if (panelContent) { panelContent.style.overflowY = 'auto'; panelContent.style.display = ''; panelContent.style.flexDirection = ''; panelContent.style.minHeight = ''; }
             } else {
                 document.getElementById('sidebar-content-detail').style.display = 'none';
                 document.getElementById('sidebar-content-combo').style.display = 'flex';
                 document.getElementById('sidebar-search-box').style.display = 'none';
                 document.getElementById('sidebar-sticky-bar').style.display = 'none';
                 // combo 모드: panel-content가 flex 컨테이너가 되어 combo-fs가 나머지 공간 채움
-                if (panelContent) { panelContent.style.overflowY = 'hidden'; panelContent.style.display = 'flex'; panelContent.style.flexDirection = 'column'; panelContent.style.padding = '0'; }
+                if (panelContent) { panelContent.style.overflowY = 'hidden'; panelContent.style.display = 'flex'; panelContent.style.flexDirection = 'column'; panelContent.style.padding = '0'; panelContent.style.minHeight = '0'; }
                 renderCombos();
             }
         }
