@@ -265,11 +265,37 @@
         .toast.info { border-left: 4px solid var(--accent-blue); }
         .toast.warning { border-left: 4px solid #eab308; }
 
-        /* 캡슐 한글 표시 */
+        /* 캡슐 한글 표시 + 툴팁 */
+        .prompt-chip { position: relative; }
         .prompt-chip .chip-kr { font-size: 13px; font-weight: 600; font-family: var(--font-ui); }
-        .prompt-chip .chip-en { display: none; font-size: 11px; font-family: var(--font-code); opacity: 0.75; margin-left: 4px; }
-        .prompt-chip:hover .chip-en { display: inline; }
-        .prompt-chip:hover .chip-kr { display: none; }
+        .prompt-chip .chip-tooltip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1e27;
+            border: 1px solid var(--border-dim);
+            color: #94a3b8;
+            font-size: 11px;
+            font-family: var(--font-code);
+            padding: 4px 8px;
+            border-radius: 6px;
+            white-space: nowrap;
+            z-index: 100;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .prompt-chip .chip-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: var(--border-dim);
+        }
+        .prompt-chip:hover .chip-tooltip { display: block; }
     </style>
 </head>
 <body data-theme="dark">
@@ -673,11 +699,34 @@
         }
 
         document.addEventListener('keydown', (e) => {
+            const activeElement = document.activeElement;
+            const inInput = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
+
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-                const activeElement = document.activeElement;
-                if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) { return; }
+                if (inInput) return;
                 e.preventDefault();
                 performUndo();
+                return;
+            }
+
+            // 선택된 캡슐을 백스페이스/Delete로 삭제
+            if ((e.key === 'Backspace' || e.key === 'Delete') && !inInput) {
+                const selected = document.querySelector('.prompt-chip.selected');
+                if (!selected) return;
+                e.preventDefault();
+                const layerSection = selected.closest('.editor-body');
+                if (!layerSection) return;
+                const layerIndex = layerSection.id.replace('editor-body-', '');
+                const textarea = document.getElementById('layer-' + layerIndex);
+                const chipKr = selected.querySelector('.chip-kr');
+                const chipTooltip = selected.querySelector('.chip-tooltip');
+                const chipText = chipTooltip ? chipTooltip.textContent : (chipKr ? chipKr.textContent : '');
+                if (!chipText) return;
+                saveStateToUndoStack();
+                const tags = textarea.value.split(',').map(s => s.trim()).filter(s => s.length > 0);
+                const newTags = tags.filter(t => t !== chipText);
+                textarea.value = newTags.join(', ');
+                syncFromManualInput(parseInt(layerIndex));
             }
         });
 
@@ -1119,8 +1168,9 @@
                 }
 
                 const korLabel = activeTagsMap[coreTag] ? activeTagsMap[coreTag].kor : null;
-                chip.innerHTML = korLabel
-                    ? `<span class="chip-kr">${korLabel}</span><span class="chip-en">${tag}</span>`
+                const displayLabel = korLabel || tag;
+                chip.innerHTML = korLabel && korLabel !== tag
+                    ? `<span class="chip-kr">${displayLabel}</span><span class="chip-tooltip">${tag}</span>`
                     : `<span class="chip-kr">${tag}</span>`;
 
                 chip.addEventListener('dragstart', (e) => {
