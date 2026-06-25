@@ -3975,6 +3975,8 @@
         }
 
         function _buildKoreanScene(state) {
+            // state[0]=L1품질, state[1]=L2구도/피사체, state[2]=L3외형/얼굴
+            // state[3]=L4의상/악세, state[4]=L5액션/포즈, state[5]=L6배경, state[6]=L7조명/이펙트
             function getKors(layerIdx) {
                 const str = (state[layerIdx] || '').trim();
                 if (!str) return [];
@@ -3989,71 +3991,145 @@
                 }).filter(Boolean);
             }
 
-            const L = [getKors(0), getKors(1), getKors(2), getKors(3), getKors(4), getKors(5), getKors(6)];
-            // L[0]=품질, L[1]=인물, L[2]=의상, L[3]=포즈/행동, L[4]=배경, L[5]=조명, L[6]=스타일
-            const [lQ, lC, lCl, lP, lBg, lLt, lSt] = L;
+            const lQ  = getKors(0);  // 품질
+            const lFr = getKors(1);  // 구도/피사체: 인원, 앵글, 국적
+            const lFa = getKors(2);  // 외형/얼굴: 체형, 헤어, 피부, 표정
+            const lAp = getKors(3);  // 의상/악세서리
+            const lAc = getKors(4);  // 액션/포즈
+            const lBg = getKors(5);  // 배경
+            const lLt = getKors(6);  // 조명/이펙트
 
-            const sentences = [];
+            if ([lQ,lFr,lFa,lAp,lAc,lBg,lLt].every(a=>a.length===0))
+                return `<span style="color:var(--text-dim);">태그 정보를 불러올 수 없습니다.</span>`;
 
-            // 1. 스타일 도입
-            if (lSt.length > 0) {
-                const styleStr = lSt.join(', ');
-                sentences.push(`<span style="color:var(--accent-blue);">${styleStr}</span> 화풍으로 표현된 이미지입니다.`);
+            // 자연스러운 나열: "A", "A와 B", "A, B, C", "A, B, C 외 N가지"
+            function nl(arr, max) {
+                if (!arr.length) return '';
+                const s = arr.slice(0, max);
+                const tail = arr.length > max ? ` 외 ${arr.length - max}가지` : '';
+                if (s.length === 1) return s[0] + tail;
+                if (s.length === 2) return s[0] + _ptcl(s[0],'과','와') + ' ' + s[1] + tail;
+                return s.slice(0,-1).join(', ') + ', ' + s[s.length-1] + tail;
             }
 
-            // 2. 배경 + 조명 묘사
-            if (lBg.length > 0 && lLt.length > 0) {
-                const bgStr = lBg.join('·');
-                const ltStr = lLt.join('·');
-                sentences.push(`배경은 <strong>${bgStr}</strong>이며, <strong>${ltStr}</strong> 분위기가 공간 전체를 감싸고 있습니다.`);
-            } else if (lBg.length > 0) {
-                const bgStr = lBg.join('·');
-                sentences.push(`배경은 <strong>${bgStr}</strong>${_ptcl(lBg[lBg.length-1],'으로','로')} 설정되어 있습니다.`);
-            } else if (lLt.length > 0) {
-                const ltStr = lLt.join('·');
-                sentences.push(`<strong>${ltStr}</strong> 분위기 속에서 장면이 펼쳐집니다.`);
+            // 마지막 단어 추출 (조사 계산용)
+            function last(arr) { return arr[arr.length-1] || ''; }
+
+            const paras = [];
+
+            // ── 1. 도입: 조명 + 배경 ──
+            const hasLt = lLt.length > 0;
+            const hasBg = lBg.length > 0;
+
+            if (hasLt && hasBg) {
+                const ltStr = nl(lLt, 2);
+                const bgStr = nl(lBg, 3);
+                const bgExtra = lBg.length > 3 ? '' : '';
+                paras.push(
+                    `<strong>${ltStr}</strong>${_ptcl(last(lLt.slice(0,2)),'이','가')} 인상적인 ` +
+                    `<strong>${bgStr}</strong> 배경의 장면입니다.`
+                );
+            } else if (hasLt) {
+                const ltStr = nl(lLt, 3);
+                paras.push(`<strong>${ltStr}</strong>${_ptcl(last(lLt.slice(0,3)),'이','가')} 인상적인 이미지입니다.`);
+            } else if (hasBg) {
+                const bgStr = nl(lBg, 4);
+                paras.push(`<strong>${bgStr}</strong>을/를 배경으로 한 이미지입니다.`.replace(
+                    '을/를', _ptcl(last(lBg.slice(0,4)),'을','를')
+                ));
             }
 
-            // 3. 인물 묘사 + 의상 + 포즈
-            if (lC.length > 0 || lCl.length > 0 || lP.length > 0) {
-                let charParts = [];
+            // ── 2. 인물 묘사: 구도(lFr) + 외형(lFa) ──
+            // lFr에서 카메라 앵글 키워드와 인물 키워드를 분리
+            const angleKeywords = ['샷','업','뷰','앵글','클로즈','전신','바디','뒷모습','앞모습'];
+            const lFrPerson = lFr.filter(k => !angleKeywords.some(a => k.includes(a)));
+            const lFrAngle  = lFr.filter(k =>  angleKeywords.some(a => k.includes(a)));
 
-                if (lC.length > 0) {
-                    // 인물 특징 나열 - 앞 2개는 주요 묘사, 나머지는 세부
-                    const mainChar = lC.slice(0, 3).join(', ');
-                    const extraChar = lC.slice(3);
-                    let charDesc = `<strong>${mainChar}</strong>`;
-                    if (extraChar.length > 0) charDesc += ` (${extraChar.join(', ')})`;
-                    charParts.push(`${charDesc}${_ptcl(lC[lC.length > 3 ? 2 : lC.length - 1], '이', '가')} 등장합니다.`);
+            const hasPerson = lFrPerson.length > 0 || lFa.length > 0;
+            const hasClothes = lAp.length > 0;
+            const hasAction = lAc.length > 0;
+
+            if (hasPerson || hasClothes || hasAction) {
+                // 외형 묘사 문장 구성
+                // lFa를 헤어/피부/체형류 vs 표정/시선류로 나눠 자연스럽게 이어줌
+                const expressionHints = ['표정','응시','미소','울','웃','벌린','감은','찡그'];
+                const lFaDesc = lFa.filter(k => !expressionHints.some(h => k.includes(h)));  // 외형 묘사
+                const lFaExp  = lFa.filter(k =>  expressionHints.some(h => k.includes(h)));  // 표정/시선
+
+                // 피사체 주어
+                const subjBase = lFrPerson.length > 0 ? nl(lFrPerson, 3) : '인물';
+                const subjLast = last(lFrPerson.slice(0,3)) || subjBase;
+
+                // 외형 수식어: "흑발에 긴 머리, 작은 얼굴에 큰 눈을 가진"
+                let appearPart = '';
+                if (lFaDesc.length > 0) {
+                    const descStr = nl(lFaDesc, 5);
+                    const descLast = last(lFaDesc.slice(0,5));
+                    appearPart = `${descStr}${_ptcl(descLast,'이','가')} 특징인 `;
                 }
 
-                if (lCl.length > 0 && lP.length > 0) {
-                    const clStr = lCl.join('·');
-                    const pStr = lP.join('·');
-                    charParts.push(`<strong>${clStr}</strong>${_ptcl(lCl[lCl.length-1],'을','를')} 착용한 채 <strong>${pStr}</strong> 자세를 취하고 있습니다.`);
-                } else if (lCl.length > 0) {
-                    const clStr = lCl.join('·');
-                    charParts.push(`<strong>${clStr}</strong>${_ptcl(lCl[lCl.length-1],'을','를')} 착용하고 있습니다.`);
-                } else if (lP.length > 0) {
-                    const pStr = lP.join('·');
-                    charParts.push(`<strong>${pStr}</strong> 자세를 취하고 있습니다.`);
+                // 표정/시선 수식어
+                let expPart = '';
+                if (lFaExp.length > 0) {
+                    expPart = nl(lFaExp, 2);
                 }
 
-                sentences.push(charParts.join(' '));
+                // 인물 등장 문장
+                let charSentence = '';
+                if (appearPart || lFrPerson.length > 0) {
+                    charSentence = `${appearPart}<strong>${subjBase}</strong>${_ptcl(subjLast,'이','가')} 등장합니다.`;
+                    if (expPart) {
+                        charSentence = charSentence.replace('등장합니다.', `${expPart}${_ptcl(last(lFaExp.slice(0,2)),'으로','로')} 등장합니다.`);
+                    }
+                } else if (lFa.length > 0) {
+                    const allFaStr = nl(lFa, 5);
+                    charSentence = `${allFaStr}${_ptcl(last(lFa.slice(0,5)),'이','가')} 특징인 인물이 등장합니다.`;
+                }
+
+                // 앵글 보조
+                if (lFrAngle.length > 0) {
+                    const angStr = nl(lFrAngle, 2);
+                    if (charSentence) {
+                        charSentence = charSentence.replace('등장합니다.', `${angStr}으로 담겼습니다.`.replace('으로', _ptcl(last(lFrAngle.slice(0,2)),'으로','로')));
+                    } else {
+                        charSentence = `${angStr}${_ptcl(last(lFrAngle.slice(0,2)),'으로','로')} 담긴 이미지입니다.`;
+                    }
+                }
+
+                if (charSentence) paras.push(charSentence);
+
+                // 의상 + 포즈를 이어서 한 문장으로
+                if (hasClothes || hasAction) {
+                    let actionSentence = '';
+                    if (hasClothes && hasAction) {
+                        const apStr = nl(lAp, 4);
+                        const apLast = last(lAp.slice(0,4));
+                        const acStr = nl(lAc, 3);
+                        const acLast = last(lAc.slice(0,3));
+                        actionSentence = `<strong>${apStr}</strong>${_ptcl(apLast,'을','를')} 착용하고, <strong>${acStr}</strong> 자세를 취하고 있습니다.`;
+                    } else if (hasClothes) {
+                        const apStr = nl(lAp, 5);
+                        const apLast = last(lAp.slice(0,5));
+                        actionSentence = `<strong>${apStr}</strong>${_ptcl(apLast,'을','를')} 착용하고 있습니다.`;
+                    } else {
+                        const acStr = nl(lAc, 4);
+                        const acLast = last(lAc.slice(0,4));
+                        actionSentence = `<strong>${acStr}</strong> 자세를 취하고 있습니다.`;
+                    }
+                    paras.push(actionSentence);
+                }
             }
 
-            // 4. 품질 노트 (마지막에 짧게)
+            // ── 3. 품질 노트 ──
             if (lQ.length > 0) {
                 const shown = lQ.slice(0, 4);
-                const extra = lQ.length > 4 ? ` 등 총 ${lQ.length}개` : '';
-                sentences.push(`<span style="color:var(--text-dim); font-size:12px;">✦ 품질 설정: ${shown.join(', ')}${extra}</span>`);
+                const extra = lQ.length > 4 ? ` 외 ${lQ.length - 4}개` : '';
+                paras.push(`<span style="color:var(--text-dim);font-size:12px;">✦ 품질: ${shown.join(', ')}${extra}</span>`);
             }
 
-            if (sentences.length === 0) {
-                return `<span style="color:var(--text-dim);">태그 정보를 불러올 수 없습니다.</span>`;
-            }
-
-            return sentences.map(s => `<p style="margin:0 0 8px 0; line-height:1.7;">${s}</p>`).join('');
+            return paras.length
+                ? paras.map(s => `<p style="margin:0 0 9px 0; line-height:1.8;">${s}</p>`).join('')
+                : `<span style="color:var(--text-dim);">태그 정보를 불러올 수 없습니다.</span>`;
         }
 
         function updateMasterOutput() {
