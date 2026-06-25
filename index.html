@@ -532,12 +532,28 @@
             toast.style.alignItems = 'flex-start';
             toast.style.gap = '10px';
             toast.style.pointerEvents = 'all';
-            toast.innerHTML = `
-                <span>⚠️ ${msg}</span>
-                <div style="display:flex; gap:8px;">
-                    <button onclick="this.closest('.toast').remove(); (${onConfirm.toString()})();" style="background:var(--accent-danger); color:#fff; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-weight:700; font-family:var(--font-ui); font-size:13px;">삭제</button>
-                    <button onclick="this.closest('.toast').remove();" style="background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-dim); padding:6px 14px; border-radius:6px; cursor:pointer; font-weight:700; font-family:var(--font-ui); font-size:13px;">취소</button>
-                </div>`;
+
+            const msgSpan = document.createElement('span');
+            msgSpan.textContent = '⚠️ ' + msg;
+
+            const btnRow = document.createElement('div');
+            btnRow.style.cssText = 'display:flex; gap:8px;';
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = '삭제';
+            confirmBtn.style.cssText = 'background:var(--accent-danger); color:#fff; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-weight:700; font-family:var(--font-ui); font-size:13px;';
+            confirmBtn.addEventListener('click', () => { toast.remove(); onConfirm(); });
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = '취소';
+            cancelBtn.style.cssText = 'background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-dim); padding:6px 14px; border-radius:6px; cursor:pointer; font-weight:700; font-family:var(--font-ui); font-size:13px;';
+            cancelBtn.addEventListener('click', () => toast.remove());
+
+            btnRow.appendChild(confirmBtn);
+            btnRow.appendChild(cancelBtn);
+            toast.appendChild(msgSpan);
+            toast.appendChild(btnRow);
+
             container.appendChild(toast);
             requestAnimationFrame(() => { requestAnimationFrame(() => toast.classList.add('show')); });
         }
