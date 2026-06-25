@@ -144,9 +144,19 @@
         .layer-indicator { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 6px currentColor; flex-shrink: 0; }
         .layer-badge { display: inline-flex; align-items: center; justify-content: center; height: 20px; min-width: 20px; padding: 0 6px; border-radius: 10px; font-size: 11px; font-weight: bold; color: #fff; margin-left: auto; font-family: var(--font-code); background: var(--text-dim);}
 
-        .sub-folder { border-bottom: 1px solid var(--border-dim); }
+        .sub-folder { border-bottom: 1px solid var(--border-dim); transition: opacity 0.15s; }
+        .sidebar-drag-handle { opacity: 0; cursor: grab; color: var(--text-dim); font-size: 11px; padding: 0 4px; transition: opacity 0.15s; flex-shrink: 0; }
+        .sub-folder-header:hover .sidebar-drag-handle,
+        .tag-btn:hover .sidebar-drag-handle { opacity: 0.6; }
+        .sidebar-drag-handle:hover { opacity: 1 !important; color: var(--text-main); }
+        .sidebar-drag-handle:active { cursor: grabbing; }
+        .dnd-dragging { opacity: 0.35; }
+        .dnd-folder-over-before { border-top: 2px solid var(--accent-blue) !important; }
+        .dnd-folder-over-after { border-bottom: 2px solid var(--accent-blue) !important; }
+        .dnd-tag-over-before { outline: 2px solid var(--accent-blue); outline-offset: -1px; }
+        .dnd-tag-over-after { outline: 2px solid var(--accent-blue); outline-offset: -1px; }
         .sub-folder:last-child { border-bottom: none; }
-        .sub-folder-header { padding: 12px 16px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; background: var(--folder-bg); border-left: 4px solid transparent; }
+        .sub-folder-header { padding: 12px 16px 12px 10px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 4px; transition: 0.2s; background: var(--folder-bg); border-left: 4px solid transparent; }
         .sub-folder-header:hover { background: var(--folder-hover); }
         .folder-meta { display: flex; align-items: center; gap: 10px; }
         .folder-recommend { font-size: 11px; background: var(--border-dim); padding: 2px 6px; border-radius: 4px; opacity: 0.8; font-weight: 500; color: var(--text-main);}
@@ -159,7 +169,7 @@
 
         .tag-btn {
             background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-main);
-            padding: 6px 28px 6px 10px; border-radius: 8px; font-family: var(--font-ui); cursor: pointer; transition: all 0.2s;
+            padding: 6px 28px 6px 22px; border-radius: 8px; font-family: var(--font-ui); cursor: pointer; transition: all 0.2s;
             display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px;
             text-align: left; width: auto; position: relative; overflow: hidden;
             max-width: 100%;
@@ -170,6 +180,7 @@
         .tag-btn.active { background: var(--folder-hover); }
         .tag-btn.active .tag-en { opacity: 0.9; }
 
+        .tag-drag-handle { position: absolute; left: 5px; top: 50%; transform: translateY(-50%); }
         .tag-fav-icon { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); color: var(--border-dim); transition: 0.2s; font-size: 12px; z-index: 3; padding: 4px; }
         .tag-fav-icon:hover { color: #eab308; transform: translateY(-50%) scale(1.2); }
         .tag-fav-icon.active { color: #eab308; }
@@ -1146,7 +1157,10 @@
 
                         const subFolder = document.createElement('div');
                         subFolder.className = 'sub-folder collapsed';
-                        subFolder.innerHTML = `<div class="sub-folder-header" style="border-left-color: ${subColor};" onclick="this.parentElement.classList.toggle('collapsed')"><div class="folder-meta"><span style="color:${subColor}">${subLayerName}</span><span class="folder-badge" id="${folderId}" style="background-color: ${subColor};">0</span>${recommendHtml}</div><i class="fa-solid fa-chevron-down"></i></div>`;
+                        subFolder.dataset.folderKey = subLayerRaw;
+                        subFolder.dataset.layerId = i;
+                        subFolder.innerHTML = `<div class="sub-folder-header" style="border-left-color: ${subColor};" onclick="this.parentElement.classList.toggle('collapsed')"><i class="fa-solid fa-grip-vertical sidebar-drag-handle folder-drag-handle"></i><div class="folder-meta"><span style="color:${subColor}">${subLayerName}</span><span class="folder-badge" id="${folderId}" style="background-color: ${subColor};">0</span>${recommendHtml}</div><i class="fa-solid fa-chevron-down"></i></div>`;
+                        setupFolderDrag(subFolder, i);
 
                         const subContent = document.createElement('div');
                         subContent.className = 'sub-folder-content';
@@ -1155,7 +1169,12 @@
                             const btn = document.createElement('button');
                             btn.className = 'tag-btn'; btn.dataset.layer = i;
                             btn.dataset.tag = data.t;
+                            btn.dataset.folderKey = subLayerRaw;
                             btn.innerHTML = `<span class="tag-kr">${data.k || data.t}</span><span class="tag-en">${data.t}</span>`;
+
+                            const handle = document.createElement('i');
+                            handle.className = 'fa-solid fa-grip-vertical sidebar-drag-handle tag-drag-handle';
+                            btn.appendChild(handle);
 
                             const star = document.createElement('i');
                             star.className = `fa-star tag-fav-icon ${favorites.includes(data.t) ? 'fa-solid active' : 'fa-regular'}`;
@@ -1163,6 +1182,7 @@
                             btn.appendChild(star);
 
                             btn.onclick = () => handleTagToggle(btn, data.t, data.n, i);
+                            setupTagDrag(btn, i, subLayerRaw);
                             subContent.appendChild(btn);
 
                             activeTagsMap[data.t] = { neg: data.n, layer: i, kor: data.k || data.t, c: data.c || "", folderId: folderId, color: subColor };
@@ -2498,6 +2518,160 @@
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveTagInlinePopup(); }
             if (e.key === 'Escape') closeTagInlinePopup();
         });
+
+        // ─── 사이드바 드래그앤드롭 ───
+        let _dndDragging = null; // { type: 'folder'|'tag', el, layerId, folderKey }
+
+        function setupFolderDrag(folderEl, layerId) {
+            const handle = folderEl.querySelector('.folder-drag-handle');
+            if (!handle) return;
+
+            handle.addEventListener('mousedown', () => { folderEl.draggable = true; });
+            folderEl.addEventListener('dragend', () => {
+                folderEl.draggable = false;
+                folderEl.classList.remove('dnd-dragging');
+                document.querySelectorAll('.dnd-folder-over-before,.dnd-folder-over-after').forEach(e => {
+                    e.classList.remove('dnd-folder-over-before','dnd-folder-over-after');
+                });
+                _dndDragging = null;
+            });
+
+            folderEl.addEventListener('dragstart', (e) => {
+                if (!folderEl.draggable) { e.preventDefault(); return; }
+                _dndDragging = { type: 'folder', el: folderEl, layerId };
+                folderEl.classList.add('dnd-dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', 'folder');
+            });
+
+            folderEl.addEventListener('dragover', (e) => {
+                if (!_dndDragging || _dndDragging.type !== 'folder' || _dndDragging.el === folderEl) return;
+                if (parseInt(_dndDragging.layerId) !== layerId) return;
+                e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+                const rect = folderEl.getBoundingClientRect();
+                const isTop = e.clientY < rect.top + rect.height / 2;
+                folderEl.classList.toggle('dnd-folder-over-before', isTop);
+                folderEl.classList.toggle('dnd-folder-over-after', !isTop);
+            });
+
+            folderEl.addEventListener('dragleave', () => {
+                folderEl.classList.remove('dnd-folder-over-before','dnd-folder-over-after');
+            });
+
+            folderEl.addEventListener('drop', (e) => {
+                e.preventDefault();
+                folderEl.classList.remove('dnd-folder-over-before','dnd-folder-over-after');
+                if (!_dndDragging || _dndDragging.type !== 'folder' || _dndDragging.el === folderEl) return;
+                if (parseInt(_dndDragging.layerId) !== layerId) return;
+
+                const rect = folderEl.getBoundingClientRect();
+                const insertBefore = e.clientY < rect.top + rect.height / 2;
+                const parent = folderEl.parentElement;
+                if (insertBefore) parent.insertBefore(_dndDragging.el, folderEl);
+                else folderEl.after(_dndDragging.el);
+
+                // DB 순서 갱신
+                const newOrder = [...parent.querySelectorAll('.sub-folder')].map(f => f.dataset.folderKey);
+                const oldDB = promptDB[layerId];
+                const newDB = {};
+                newOrder.forEach(k => { if (oldDB[k]) newDB[k] = oldDB[k]; });
+                Object.keys(oldDB).forEach(k => { if (!newDB[k]) newDB[k] = oldDB[k]; });
+                promptDB[layerId] = newDB;
+                safeSetStorage('pro_prompt_db_v7_0', promptDB);
+
+                // 에디터 내용 재정렬
+                sortLayerByDB(layerId);
+                syncFromManualInput(layerId);
+            });
+        }
+
+        function setupTagDrag(btnEl, layerId, folderKey) {
+            const handle = btnEl.querySelector('.tag-drag-handle');
+            if (!handle) return;
+
+            handle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                btnEl.draggable = true;
+            });
+            btnEl.addEventListener('dragend', () => {
+                btnEl.draggable = false;
+                btnEl.classList.remove('dnd-dragging');
+                document.querySelectorAll('.dnd-tag-over-before,.dnd-tag-over-after').forEach(e => {
+                    e.classList.remove('dnd-tag-over-before','dnd-tag-over-after');
+                });
+                _dndDragging = null;
+            });
+
+            btnEl.addEventListener('dragstart', (e) => {
+                if (!btnEl.draggable) { e.preventDefault(); return; }
+                _dndDragging = { type: 'tag', el: btnEl, layerId, folderKey };
+                btnEl.classList.add('dnd-dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', 'tag');
+            });
+
+            btnEl.addEventListener('dragover', (e) => {
+                if (!_dndDragging || _dndDragging.type !== 'tag' || _dndDragging.el === btnEl) return;
+                e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+                const rect = btnEl.getBoundingClientRect();
+                const isLeft = e.clientX < rect.left + rect.width / 2;
+                btnEl.classList.toggle('dnd-tag-over-before', isLeft);
+                btnEl.classList.toggle('dnd-tag-over-after', !isLeft);
+            });
+
+            btnEl.addEventListener('dragleave', () => {
+                btnEl.classList.remove('dnd-tag-over-before','dnd-tag-over-after');
+            });
+
+            btnEl.addEventListener('drop', (e) => {
+                e.preventDefault();
+                btnEl.classList.remove('dnd-tag-over-before','dnd-tag-over-after');
+                if (!_dndDragging || _dndDragging.type !== 'tag' || _dndDragging.el === btnEl) return;
+
+                const rect = btnEl.getBoundingClientRect();
+                const insertBefore = e.clientX < rect.left + rect.width / 2;
+                const parent = btnEl.parentElement;
+                // input(chip-add-input)은 건드리지 않도록
+                if (insertBefore) parent.insertBefore(_dndDragging.el, btnEl);
+                else btnEl.after(_dndDragging.el);
+
+                // 드롭된 대상 폴더와 원본 폴더 (폴더 간 이동도 지원)
+                const targetFolderEl = btnEl.closest('.sub-folder');
+                const srcLayerId = parseInt(_dndDragging.layerId);
+                const srcFolderKey = _dndDragging.el.dataset.folderKey;
+                const tgtFolderKey = targetFolderEl?.dataset.folderKey || srcFolderKey;
+                const tgtLayerId = parseInt(targetFolderEl?.dataset.layerId ?? srcLayerId);
+
+                // 원본 DB에서 제거
+                const srcArr = promptDB[srcLayerId]?.[srcFolderKey];
+                const tagText = _dndDragging.el.dataset.tag;
+                let tagData = null;
+                if (srcArr) {
+                    const idx = srcArr.findIndex(d => d.t === tagText);
+                    if (idx !== -1) { tagData = srcArr.splice(idx, 1)[0]; }
+                }
+
+                // 대상 폴더 DOM 순서 기준으로 재구성
+                if (!promptDB[tgtLayerId]) promptDB[tgtLayerId] = {};
+                if (!promptDB[tgtLayerId][tgtFolderKey]) promptDB[tgtLayerId][tgtFolderKey] = [];
+
+                // 대상 폴더 내 새 순서: DOM 순서 기준
+                const newTagOrder = [...parent.querySelectorAll('.tag-btn')].map(b => b.dataset.tag);
+                const tgtArr = promptDB[tgtLayerId][tgtFolderKey];
+                // tagData 삽입 위치 찾기
+                const insertPos = newTagOrder.indexOf(tagText);
+                if (tagData) {
+                    tagData && tgtArr.splice(insertPos >= 0 ? insertPos : tgtArr.length, 0, tagData);
+                }
+                // folder-key 업데이트 (폴더 간 이동 시)
+                _dndDragging.el.dataset.folderKey = tgtFolderKey;
+
+                safeSetStorage('pro_prompt_db_v7_0', promptDB);
+                sortLayerByDB(srcLayerId);
+                syncFromManualInput(srcLayerId);
+                if (tgtLayerId !== srcLayerId) { sortLayerByDB(tgtLayerId); syncFromManualInput(tgtLayerId); }
+            });
+        }
 
         function collapseAllLayers(collapse) {
             document.querySelectorAll('.layer-group').forEach(g => {
