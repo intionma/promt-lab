@@ -274,8 +274,12 @@
         .context-tabs.dragging { cursor: grabbing; }
         .context-tabs::-webkit-scrollbar { height: 3px; }
         .context-tabs::-webkit-scrollbar-thumb { background: var(--border-dim); border-radius: 2px; }
-        .context-tab-delete-btn { flex-shrink: 0; margin: 6px 12px 6px 4px; padding: 6px 12px; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--accent-danger); border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: var(--font-ui); white-space: nowrap; transition: 0.2s; align-self: center; }
-        .context-tab-delete-btn:hover { background: rgba(239,68,68,0.1); border-color: var(--accent-danger); }
+        .context-tab-add-btn { flex-shrink: 0; align-self: center; margin-bottom: 2px; width: 28px; height: 28px; border-radius: 6px; border: 1px dashed var(--border-dim); background: transparent; color: var(--text-dim); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.15s; }
+        .context-tab-add-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+        .context-tab .tab-close { margin-left: 4px; opacity: 0; font-size: 11px; color: var(--text-dim); cursor: pointer; border-radius: 3px; padding: 1px 3px; transition: 0.15s; line-height: 1; flex-shrink: 0; }
+        .context-tab:hover .tab-close { opacity: 0.6; }
+        .context-tab .tab-close:hover { opacity: 1; color: var(--accent-danger); background: rgba(239,68,68,0.12); }
+        .context-tab .tab-name-input { background: transparent; border: none; outline: none; font-size: 14px; font-weight: 800; font-family: var(--font-heading); color: var(--text-main); width: 80px; cursor: text; }
         .context-tab { padding: 12px 18px; font-size: 14px; font-weight: 800; font-family: var(--font-heading); color: var(--text-dim); cursor: pointer; border-radius: 8px 8px 0 0; border: 1px solid transparent; border-bottom: none; transition: 0.2s; background: var(--folder-bg); display: flex; align-items: center; gap: 8px; white-space: nowrap;}
         .context-tab:hover { color: var(--text-main); }
         .context-tab.active { color: var(--text-main); background: var(--bg-base); border-color: var(--border-dim); border-top-color: var(--accent-blue); }
@@ -536,24 +540,12 @@
 
         <main class="panel" id="panel-mid" style="background-color: var(--bg-base); flex: 1; min-width: 300px;">
             <div class="context-tabs-wrapper">
-                <div class="context-tabs">
-                    <div class="context-tab active" onclick="switchContext('common', this)">
-                        <i class="fa-solid fa-globe"></i> 공통 / 환경 <span class="tab-badge" id="tab-badge-common" style="display:none;">0</span>
-                    </div>
-                    <div class="context-tab" onclick="switchContext('char1', this)">
-                        <i class="fa-solid fa-user"></i> 캐릭터 1 <span class="tab-badge" id="tab-badge-char1" style="display:none;">0</span>
-                    </div>
-                    <div class="context-tab" onclick="switchContext('char2', this)">
-                        <i class="fa-solid fa-user-group"></i> 캐릭터 2 <span class="tab-badge" id="tab-badge-char2" style="display:none;">0</span>
-                    </div>
-                </div>
-                <button class="context-tab-delete-btn" onclick="clearCurrentContext()" title="현재 탭 비우기">
-                    <i class="fa-solid fa-trash"></i> 탭 비우기
-                </button>
+                <div class="context-tabs" id="context-tabs-row"></div>
+                <button class="context-tab-add-btn" onclick="addContextTab()" title="탭 추가">+</button>
             </div>
 
             <div class="panel-header" style="background-color: var(--bg-base); border-bottom-color: var(--border-dim);">
-                <span><i class="fa-solid fa-layer-group"></i> <span id="current-context-title">공통 / 환경</span> 에디터</span>
+                <span style="display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-layer-group"></i> <span id="current-context-title">에디터</span> <button onclick="clearCurrentContext()" style="background:transparent;border:1px solid var(--border-dim);color:var(--text-dim);border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;font-family:var(--font-ui);" title="현재 탭 비우기"><i class="fa-solid fa-trash"></i> 비우기</button></span>
                 <div class="view-toggle">
                     <button class="view-btn active" id="btn-view-visual" onclick="switchViewMode('visual')">🎨 캡슐 뷰</button>
                     <button class="view-btn" id="btn-view-text" onclick="switchViewMode('text')">📝 텍스트 뷰</button>
@@ -849,8 +841,68 @@
         const defaultNestedDB = { 1: {}, 2: {}, 3: {}, 4: {}, 5: {}, 6: {}, 7: {} };
 
         let promptDB; try { promptDB = JSON.parse(localStorage.getItem('pro_prompt_db_v7_0')) || defaultNestedDB; } catch(e) { promptDB = defaultNestedDB; }
-        let contextStates = { 'common': ["", "", "", "", "", "", ""], 'char1': ["", "", "", "", "", "", ""], 'char2': ["", "", "", "", "", "", ""], 'user_combos': {} };
-        let currentContext = 'char1';
+
+        // ─── 동적 탭 시스템 ───
+        // tabs: [{ id, name }]
+        // contextStates: { [tabId]: ["","","","","","",""] }
+        const TABS_KEY = 'context_tabs_v1';
+        const STATES_KEY = 'context_states_v1';
+
+        function _defaultTabs() {
+            return [{ id: 'tab_default', name: '에디터' }];
+        }
+        function _defaultStates(tabs) {
+            const s = {};
+            tabs.forEach(t => { s[t.id] = ["","","","","","",""]; });
+            return s;
+        }
+
+        let contextTabs, contextStates;
+        try {
+            const savedTabs = JSON.parse(localStorage.getItem(TABS_KEY));
+            const savedStates = JSON.parse(localStorage.getItem(STATES_KEY));
+            if (savedTabs && savedTabs.length > 0) {
+                contextTabs = savedTabs;
+                contextStates = savedStates || _defaultStates(savedTabs);
+                // 마이그레이션: 구 형식 (common/char1/char2) → 새 탭 시스템
+            } else {
+                // 기존 저장 데이터 마이그레이션 시도
+                const oldStates = { 'common': ["","","","","","",""], 'char1': ["","","","","","",""], 'char2': ["","","","","","",""] };
+                let hasMigratable = false;
+                try {
+                    const old = JSON.parse(localStorage.getItem('context_states_v0') || '{}');
+                    ['common','char1','char2'].forEach(k => { if (old[k]) { oldStates[k] = old[k]; hasMigratable = true; } });
+                } catch(e) {}
+                if (hasMigratable) {
+                    contextTabs = [
+                        { id: 'tab_common', name: '공통 / 환경' },
+                        { id: 'tab_char1', name: '캐릭터 1' },
+                        { id: 'tab_char2', name: '캐릭터 2' },
+                    ];
+                    contextStates = {
+                        'tab_common': oldStates['common'],
+                        'tab_char1': oldStates['char1'],
+                        'tab_char2': oldStates['char2'],
+                    };
+                } else {
+                    contextTabs = _defaultTabs();
+                    contextStates = _defaultStates(contextTabs);
+                }
+            }
+        } catch(e) {
+            contextTabs = _defaultTabs();
+            contextStates = _defaultStates(contextTabs);
+        }
+
+        // 혹시 contextStates에 탭 id 누락된 것 보정
+        contextTabs.forEach(t => { if (!contextStates[t.id]) contextStates[t.id] = ["","","","","","",""]; });
+
+        let currentContext = contextTabs[0].id;
+
+        function saveTabsAndStates() {
+            safeSetStorage(TABS_KEY, contextTabs);
+            safeSetStorage(STATES_KEY, contextStates);
+        }
         let currentViewMode = 'visual';
         let activeTagsMap = {};
         let globalWeightCurrent = 1.0;
@@ -1361,6 +1413,10 @@
             renderFavorites();
             renderRecents();
             renderCombos();
+            renderContextTabs();
+
+            const firstTab = contextTabs.find(t => t.id === currentContext);
+            document.getElementById('current-context-title').innerText = firstTab ? firstTab.name : '에디터';
 
             loadContextState();
             switchViewMode('visual');
@@ -2288,25 +2344,114 @@
             }
         }
 
-        function switchContext(contextName, btnElement) {
+        function renderContextTabs() {
+            const row = document.getElementById('context-tabs-row');
+            if (!row) return;
+            row.innerHTML = '';
+            contextTabs.forEach(tab => {
+                const el = document.createElement('div');
+                el.className = 'context-tab' + (tab.id === currentContext ? ' active' : '');
+                el.dataset.tabId = tab.id;
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'tab-label';
+                nameSpan.textContent = tab.name;
+                nameSpan.style.cssText = 'pointer-events:none;';
+
+                const badge = document.createElement('span');
+                badge.className = 'tab-badge';
+                badge.id = 'tab-badge-' + tab.id;
+                badge.style.display = 'none';
+                badge.textContent = '0';
+
+                const closeBtn = document.createElement('span');
+                closeBtn.className = 'tab-close';
+                closeBtn.innerHTML = '✕';
+                closeBtn.title = '탭 삭제';
+                closeBtn.addEventListener('click', (e) => { e.stopPropagation(); removeContextTab(tab.id); });
+                // 탭이 1개뿐이면 닫기 숨김
+                closeBtn.style.display = contextTabs.length <= 1 ? 'none' : '';
+
+                el.appendChild(nameSpan);
+                el.appendChild(badge);
+                el.appendChild(closeBtn);
+
+                el.addEventListener('click', () => switchContext(tab.id));
+                // 더블클릭 → 이름 편집
+                el.addEventListener('dblclick', (e) => { e.stopPropagation(); startTabRename(el, tab); });
+
+                row.appendChild(el);
+            });
+        }
+
+        function startTabRename(el, tab) {
+            const nameSpan = el.querySelector('.tab-label');
+            const input = document.createElement('input');
+            input.className = 'tab-name-input';
+            input.value = tab.name;
+            input.style.width = Math.max(60, tab.name.length * 10) + 'px';
+            nameSpan.replaceWith(input);
+            input.focus(); input.select();
+            const finish = () => {
+                const v = input.value.trim() || tab.name;
+                tab.name = v;
+                saveTabsAndStates();
+                renderContextTabs();
+                document.getElementById('current-context-title').innerText = v;
+            };
+            input.onblur = finish;
+            input.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); finish(); } if (e.key === 'Escape') renderContextTabs(); };
+        }
+
+        function switchContext(tabId) {
             for(let i=1; i<=7; i++) { contextStates[currentContext][i-1] = document.getElementById(`layer-${i}`).value; }
-            document.querySelectorAll('.context-tab').forEach(b => b.classList.remove('active'));
-            btnElement.classList.add('active');
-            const titleMap = { 'common': '공통 / 환경', 'char1': '캐릭터 1', 'char2': '캐릭터 2' };
-            document.getElementById('current-context-title').innerText = titleMap[contextName];
-            currentContext = contextName;
+            saveTabsAndStates();
+            currentContext = tabId;
+            const tab = contextTabs.find(t => t.id === tabId);
+            document.getElementById('current-context-title').innerText = tab ? tab.name : '에디터';
+            renderContextTabs();
             loadContextState();
         }
 
+        function addContextTab() {
+            const id = 'tab_' + Date.now();
+            const name = '에디터';
+            contextTabs.push({ id, name });
+            contextStates[id] = ["","","","","","",""];
+            saveTabsAndStates();
+            switchContext(id);
+        }
+
+        function removeContextTab(tabId) {
+            if (contextTabs.length <= 1) { showToast("탭이 1개 이상 있어야 합니다.", "warning"); return; }
+            showConfirm(`이 탭을 삭제할까요? (내용이 모두 지워집니다)`, () => {
+                const idx = contextTabs.findIndex(t => t.id === tabId);
+                contextTabs.splice(idx, 1);
+                delete contextStates[tabId];
+                // 현재 탭이 삭제된 경우 인접 탭으로 이동
+                if (currentContext === tabId) {
+                    const newIdx = Math.min(idx, contextTabs.length - 1);
+                    currentContext = contextTabs[newIdx].id;
+                }
+                saveTabsAndStates();
+                const tab = contextTabs.find(t => t.id === currentContext);
+                document.getElementById('current-context-title').innerText = tab ? tab.name : '에디터';
+                renderContextTabs();
+                loadContextState();
+            });
+        }
+
         function loadContextState() {
+            if (!contextStates[currentContext]) contextStates[currentContext] = ["","","","","","",""];
             for(let i=1; i<=7; i++) {
-                document.getElementById(`layer-${i}`).value = contextStates[currentContext][i-1];
+                document.getElementById(`layer-${i}`).value = contextStates[currentContext][i-1] || '';
                 syncFromManualInput(i);
             }
         }
 
         function clearCurrentContext() {
-            showConfirm(`[${document.getElementById('current-context-title').innerText}] 탭을 모두 비울까요?`, () => {
+            const tab = contextTabs.find(t => t.id === currentContext);
+            showConfirm(`[${tab ? tab.name : '에디터'}] 탭을 모두 비울까요?`, () => {
                 saveStateToUndoStack();
                 for(let i=1; i<=7; i++) {
                     document.getElementById(`layer-${i}`).value = "";
@@ -2658,7 +2803,9 @@
         function syncFromManualInput(layerIndex) {
             sortLayerByDB(layerIndex);
             const textarea = document.getElementById(`layer-${layerIndex}`);
+            if (!contextStates[currentContext]) contextStates[currentContext] = ["","","","","","",""];
             contextStates[currentContext][layerIndex-1] = textarea.value;
+            saveTabsAndStates();
 
             Object.keys(activeTagsMap).forEach(tagText => {
                 if(activeTagsMap[tagText].layer === layerIndex) {
@@ -2927,15 +3074,16 @@
                 }
             }
 
-            ['common', 'char1', 'char2'].forEach(ctx => {
+            contextTabs.forEach(tab => {
+                const state = contextStates[tab.id] || [];
                 let tagCount = 0;
-                contextStates[ctx].forEach(layerStr => { let t = layerStr.split(',').map(s=>s.trim()).filter(s=>s.length>0); tagCount += t.length; });
-                const badge = document.getElementById('tab-badge-' + ctx);
+                state.forEach(layerStr => { let t = (layerStr||'').split(',').map(s=>s.trim()).filter(s=>s.length>0); tagCount += t.length; });
+                const badge = document.getElementById('tab-badge-' + tab.id);
                 if (badge) { if(tagCount > 0) { badge.style.display = 'inline-flex'; badge.innerText = tagCount; } else { badge.style.display = 'none'; } }
             });
 
             let totalTagCount = 0;
-            ['common', 'char1', 'char2'].forEach(ctx => { let str = contextStates[ctx].filter(s=>s.trim()!=="").join(","); if(str.trim()) totalTagCount += str.split(',').length; });
+            contextTabs.forEach(tab => { const state = contextStates[tab.id] || []; let str = state.filter(s=>(s||'').trim()!=="").join(","); if(str.trim()) totalTagCount += str.split(',').length; });
 
             const posCount = document.getElementById('pos-count');
             if (posCount) {
