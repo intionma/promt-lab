@@ -1912,7 +1912,15 @@
             document.querySelectorAll('.combo-create-modal-overlay').forEach(e => e.remove());
             _ccmState = { mode: 'basic', selectedLayer: 'all', selectedTags: new Set(), targetFolderId, editComboId };
             if (preselectedTag) _ccmState.selectedTags.add(preselectedTag);
-            if (editComboId) { _ccmState.mode = 'adv'; }
+            if (editComboId) {
+                // Pre-load existing combo tags into selectedTags for basic mode
+                const existingCombo = comboFS.items[editComboId];
+                if (existingCombo && existingCombo.tags) {
+                    Object.values(existingCombo.tags).forEach(tagStr => {
+                        tagStr.split(',').map(s => s.trim()).filter(Boolean).forEach(t => _ccmState.selectedTags.add(t));
+                    });
+                }
+            }
 
             const overlay = document.createElement('div');
             overlay.className = 'combo-create-modal-overlay';
@@ -1926,9 +1934,9 @@
             header.className = 'ccm-header';
             header.innerHTML = `<span class="ccm-title">${editComboId ? '조합 수정' : '조합 추가'}</span>`;
             const btnBasic = document.createElement('button');
-            btnBasic.className = 'ccm-mode-btn active'; btnBasic.textContent = '기본';
+            btnBasic.className = 'ccm-mode-btn' + (_ccmState.mode === 'basic' ? ' active' : ''); btnBasic.textContent = '기본';
             const btnAdv = document.createElement('button');
-            btnAdv.className = 'ccm-mode-btn'; btnAdv.textContent = '고급';
+            btnAdv.className = 'ccm-mode-btn' + (_ccmState.mode === 'adv' ? ' active' : ''); btnAdv.textContent = '고급';
             const btnClose = document.createElement('button');
             btnClose.className = 'ccm-mode-btn'; btnClose.textContent = '✕';
             btnClose.onclick = () => overlay.remove();
@@ -1969,17 +1977,26 @@
                     const combo = comboFS.items[_ccmState.editComboId];
                     if (!combo) { showToast('조합을 찾을 수 없습니다', 'error'); return; }
                     if (name) combo.title = name;
-                    const textarea = document.getElementById('ccm-adv-textarea');
-                    const text = textarea?.value || '';
-                    // Parse text into tags by layer
                     const newTags = {};
-                    text.split(/[\n,]/).map(s => s.trim()).filter(Boolean).forEach(p => {
-                        const clean = p.replace(/^\(+|\)+$/g, '').replace(/:\d*\.?\d+$/, '').trim();
-                        const found = _findInDB(clean);
-                        const lid = found?.lid || 1;
-                        if (!newTags[lid]) newTags[lid] = p;
-                        else newTags[lid] += ', ' + p;
-                    });
+                    if (_ccmState.mode === 'basic') {
+                        // Use selectedTags from tag picker
+                        _ccmState.selectedTags.forEach(tagText => {
+                            const found = _findInDB(tagText);
+                            const lid = found?.lid || 1;
+                            if (!newTags[lid]) newTags[lid] = tagText;
+                            else newTags[lid] += ', ' + tagText;
+                        });
+                    } else {
+                        const textarea = document.getElementById('ccm-adv-textarea');
+                        const text = textarea?.value || '';
+                        text.split(/[\n,]/).map(s => s.trim()).filter(Boolean).forEach(p => {
+                            const clean = p.replace(/^\(+|\)+$/g, '').replace(/:\d*\.?\d+$/, '').trim();
+                            const found = _findInDB(clean);
+                            const lid = found?.lid || 1;
+                            if (!newTags[lid]) newTags[lid] = p;
+                            else newTags[lid] += ', ' + p;
+                        });
+                    }
                     combo.tags = newTags;
                     saveComboFS(); renderCombos(); overlay.remove();
                     showToast(`[${combo.title}] 수정 완료`, 'success');
@@ -2015,6 +2032,10 @@
             const nameInput = document.createElement('input');
             nameInput.className = 'ccm-name-input'; nameInput.id = 'ccm-name-input';
             nameInput.placeholder = '이름을 입력하세요 (선택)';
+            if (_ccmState.editComboId) {
+                const ec = comboFS.items[_ccmState.editComboId];
+                if (ec) nameInput.value = ec.title;
+            }
             body.appendChild(nameLabel); body.appendChild(nameInput);
 
             if (_ccmState.mode === 'basic') {
