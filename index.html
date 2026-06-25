@@ -2348,12 +2348,31 @@
             // Also collect items with manually assigned layers (fuzzy or unknown)
             document.querySelectorAll('#ccm-recog-list .ccm-recog-item[data-clean-prompt]').forEach(itemEl => {
                 const clean = itemEl.dataset.cleanPrompt;
-                const layerSel = itemEl.querySelector('select');
+                const selects = itemEl.querySelectorAll('select');
+                const layerSel = selects[0];
+                const folderSel = selects[1];
                 const lid = parseInt(layerSel?.value);
                 if (lid && clean) {
                     const rawMatch = prompts.find(r => r.replace(/^\(+|\)+$/g, '').replace(/:\d*\.?\d+$/, '').trim() === clean) || clean;
                     if (!byLayer[lid]) byLayer[lid] = [];
                     byLayer[lid].push(rawMatch);
+                    // Add to DB so it appears as a tag button
+                    if (!_findInDB(clean)) {
+                        if (!promptDB[lid]) promptDB[lid] = {};
+                        const fkVal = folderSel?.value;
+                        let targetFk;
+                        if (fkVal && fkVal !== '' && fkVal !== '__new__' && promptDB[lid][fkVal]) {
+                            targetFk = fkVal;
+                        } else {
+                            // Use/create 미분류 folder for this layer
+                            targetFk = `미분류|자유`;
+                            if (!promptDB[lid][targetFk]) promptDB[lid][targetFk] = [];
+                        }
+                        if (!promptDB[lid][targetFk].find(t => t.t === clean)) {
+                            promptDB[lid][targetFk].push({ t: clean, k: clean, n: '', c: '' });
+                        }
+                        safeSetStorage('pro_prompt_db_v7_0', promptDB);
+                    }
                 }
             });
 
