@@ -562,18 +562,22 @@
 
     <script>
         // 토스트 알림
+        function dismissToast(toast) {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 350);
+        }
+
         function showToast(msg, type = 'info', duration = 2500) {
             const container = document.getElementById('toast-container');
             const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
+            toast.style.cursor = 'pointer';
             toast.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+            toast.addEventListener('click', () => dismissToast(toast));
             container.appendChild(toast);
             requestAnimationFrame(() => { requestAnimationFrame(() => toast.classList.add('show')); });
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 350);
-            }, duration);
+            setTimeout(() => dismissToast(toast), duration);
         }
 
         function showConfirm(msg, onConfirm) {
@@ -1008,7 +1012,6 @@
                         <div class="editor-tools">
                             <div class="fixed-weight-toolbar" id="toolbar-${i}">
                                 <button onclick="applyFixedToolbar(${i}, 'down')">-0.1</button>
-                                <span class="fw-val" id="fw-val-${i}">1.0</span>
                                 <button class="reset-btn" onclick="applyFixedToolbar(${i}, 'reset')" title="초기화">0</button>
                                 <button onclick="applyFixedToolbar(${i}, 'up')">+0.1</button>
                             </div>
@@ -1339,10 +1342,12 @@
                 }
 
                 const korLabel = activeTagsMap[coreTag] ? activeTagsMap[coreTag].kor : null;
-                const displayLabel = korLabel || tag;
-                chip.innerHTML = korLabel && korLabel !== tag
+                const baseLabel = korLabel || coreTag;
+                const weightSuffix = weightMatch ? `(${parseFloat(weightMatch[2]).toFixed(1)})` : '';
+                const displayLabel = weightSuffix ? `${baseLabel}${weightSuffix}` : baseLabel;
+                chip.innerHTML = korLabel && korLabel !== coreTag
                     ? `<span class="chip-kr">${displayLabel}</span><span class="chip-tooltip">${tag}</span>`
-                    : `<span class="chip-kr">${tag}</span>`;
+                    : `<span class="chip-kr">${displayLabel}</span>`;
 
                 chip.addEventListener('dragstart', (e) => {
                     e.dataTransfer.effectAllowed = 'move';
@@ -1421,8 +1426,6 @@
                         // 현재 가중치 표시
                         const wm = tag.match(/^\((.+):(\d+\.?\d*)\)$/);
                         const w = wm ? parseFloat(wm[2]) : 1.0;
-                        const fwVal = document.getElementById('fw-val-' + layerIndex);
-                        if (fwVal) fwVal.textContent = w.toFixed(1);
                     }
                 };
 
@@ -1584,10 +1587,6 @@
                     tags[idx] = Math.abs(w - 1.0) < 0.01 ? coreTag : `(${coreTag}:${w.toFixed(1)})`;
                 }
                 textarea.value = tags.join(', '); syncFromManualInput(layerIndex);
-                // 가중치 표시 업데이트
-                const newWm = tags[idx] ? tags[idx].match(/^\((.+):(\d+\.?\d*)\)$/) : null;
-                const fwVal = document.getElementById('fw-val-' + layerIndex);
-                if (fwVal) fwVal.textContent = newWm ? parseFloat(newWm[2]).toFixed(1) : '1.0';
             }
             else {
                 const start = textarea.selectionStart; const end = textarea.selectionEnd;
@@ -1704,10 +1703,12 @@
                         return `<strong style="color:#eab308; font-weight:700;">와일드카드: ${inner}</strong>`;
                     }
 
-                    let core = cleanTag.replace(/^[()\[\]]+/g, '').replace(/[:0-9.()\[\]]+$/g, '').trim();
+                    const wm = cleanTag.match(/^\((.+):(\d+\.?\d*)\)$/);
+                    let core = wm ? wm[1] : cleanTag.replace(/^[()\[\]]+/g, '').replace(/[:0-9.()\[\]]+$/g, '').trim();
+                    let weight = wm ? `(${parseFloat(wm[2]).toFixed(1)})` : '';
                     let kor = (activeTagsMap[core] && activeTagsMap[core].kor) ? activeTagsMap[core].kor : (negKorMap[core.toLowerCase()] || core);
 
-                    return `<strong style="color:var(--text-main); font-weight:700;">${kor}</strong> <span style="color:var(--accent-blue); font-family:var(--font-code); font-size:11px; opacity:0.8;">${cleanTag}</span>`;
+                    return `<strong style="color:var(--text-main); font-weight:700;">${kor}${weight}</strong>`;
                 }).join(' <span style="color:var(--text-dim);">/</span> ');
             }
 
@@ -1744,10 +1745,12 @@
                 } else {
                     negPreviewBox.innerHTML = finalNegOutput.split(',').map(tag => {
                         let cleanTag = tag.trim();
-                        let core = cleanTag.replace(/^[()\[\]]+/g, '').replace(/[:0-9.()\[\]]+$/g, '').trim();
-                        let kor = (activeTagsMap[core] && activeTagsMap[core].k) ? activeTagsMap[core].k : (negKorMap[core.toLowerCase()] || core);
+                        const wm = cleanTag.match(/^\((.+):(\d+\.?\d*)\)$/);
+                        let core = wm ? wm[1] : cleanTag.replace(/^[()\[\]]+/g, '').replace(/[:0-9.()\[\]]+$/g, '').trim();
+                        let weight = wm ? `(${parseFloat(wm[2]).toFixed(1)})` : '';
+                        let kor = (activeTagsMap[core] && activeTagsMap[core].kor) ? activeTagsMap[core].kor : (negKorMap[core.toLowerCase()] || core);
 
-                        return `<strong style="color:var(--text-main); font-weight:700;">${kor}</strong> <span style="color:var(--accent-blue); font-family:var(--font-code); font-size:11px; opacity:0.8;">${cleanTag}</span>`;
+                        return `<strong style="color:var(--text-main); font-weight:700;">${kor}${weight}</strong>`;
                     }).join(' <span style="color:var(--text-dim);">/</span> ');
                 }
             }
