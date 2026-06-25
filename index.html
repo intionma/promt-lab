@@ -2372,6 +2372,7 @@
                             promptDB[lid][targetFk].push({ t: clean, k: clean, n: '', c: '' });
                         }
                         safeSetStorage('pro_prompt_db_v7_0', promptDB);
+                        initApp(); // re-render tag buttons
                     }
                 }
             });
