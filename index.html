@@ -3974,162 +3974,435 @@
             return c;
         }
 
+        /* ─────────────────────────────────────────────────────────────────
+           자연어 씬 묘사 엔진 v3
+           ─────────────────────────────────────────────────────────────── */
         function _buildKoreanScene(state) {
-            // state[0]=L1품질, state[1]=L2구도/피사체, state[2]=L3외형/얼굴
-            // state[3]=L4의상/악세, state[4]=L5액션/포즈, state[5]=L6배경, state[6]=L7조명/이펙트
-            function getKors(layerIdx) {
-                const str = (state[layerIdx] || '').trim();
+            // ── 1. 태그 추출 (state[0]=L1품질 … state[6]=L7조명) ──
+            function extractLayer(li) {
+                const str = (state[li] || '').trim();
                 if (!str) return [];
-                return str.split(',').map(t => {
+                const out = [];
+                str.split(',').forEach(t => {
                     let clean = t.trim();
-                    if (clean.startsWith('{') || clean.startsWith('__')) return null;
+                    if (!clean || clean.startsWith('{') || clean.startsWith('__')) return;
                     const wm = clean.match(/^\((.+):[\d.]+\)$/);
                     if (wm) clean = wm[1];
                     clean = clean.replace(/^[()\[\]]+|[()\[\]]+$/g, '').trim();
-                    const data = activeTagsMap[clean];
-                    return data ? data.kor : clean;
-                }).filter(Boolean);
+                    if (!clean) return;
+                    const d = activeTagsMap[clean];
+                    out.push({ raw: clean, kor: d?.kor || clean, c: d?.c || '', li });
+                });
+                return out;
             }
+            const allTags = [0,1,2,3,4,5,6].flatMap(i => extractLayer(i));
+            if (!allTags.length)
+                return '<span style="color:var(--text-dim);">등록된 태그가 없습니다.</span>';
 
-            const lQ  = getKors(0);  // 품질
-            const lFr = getKors(1);  // 구도/피사체: 인원, 앵글, 국적
-            const lFa = getKors(2);  // 외형/얼굴: 체형, 헤어, 피부, 표정
-            const lAp = getKors(3);  // 의상/악세서리
-            const lAc = getKors(4);  // 액션/포즈
-            const lBg = getKors(5);  // 배경
-            const lLt = getKors(6);  // 조명/이펙트
+            // ── 2. 의미 범주별 분류 (c 필드 우선, fallback 키워드) ──
+            const G = {
+                quality:[], rating:[], style:[], colorTone:[],
+                gender:[], nationality:[], angle:[],
+                hairColor:[], hairLen:[], hairStyle:[],
+                skin:[], bodySize:[], chest:[],
+                eyeColor:[], gaze:[], exp:[], faceDetail:[],
+                makeup:[], bodyDetail:[],
+                clothes:[], bottoms:[], legwear:[], footwear:[],
+                accessory:[], jewelry:[],
+                pose:[], gesture:[],
+                bgType:[], furniture:[], inOut:[], bgPlace:[],
+                time:[], weather:[],
+                lighting:[], camera:[], particles:[]
+            };
+            const cMap = {
+                rating:'rating', style:'style', color_tone:'colorTone',
+                gender:'gender', angle:'angle',
+                body_size:'bodySize', body_type:'bodySize', chest:'chest',
+                skin_color:'skin', hair_color:'hairColor',
+                hair_len:'hairLen', hair_style:'hairStyle',
+                eye_color:'eyeColor', exp:'exp', face_type:'faceDetail',
+                clothes:'clothes', bottoms:'bottoms',
+                legwear:'legwear', footwear:'footwear', pose:'pose',
+                bg_type:'bgType', furniture:'furniture',
+                in_out:'inOut', bg_place:'bgPlace',
+                daytime:'time', weather:'weather', particles:'particles'
+            };
+            allTags.forEach(({ kor, c, li }) => {
+                const grp = cMap[c];
+                if (grp) { G[grp].push(kor); return; }
+                // fallback
+                if (li === 0) { G.quality.push(kor); return; }
+                if (li === 6) {
+                    (/포커|플레어|초점|필터|심도/.test(kor) ? G.camera : G.lighting).push(kor); return;
+                }
+                if (li === 1) {
+                    (/샷|뷰|업|앵글|뒷모습|전신|클로즈/.test(kor) ? G.angle : G.nationality).push(kor); return;
+                }
+                if (li === 2) {
+                    if (/표정|미소|울|벌린|찡그/.test(kor)) G.exp.push(kor);
+                    else if (/응시|바라보|시선/.test(kor)) G.gaze.push(kor);
+                    else if (/립|섀도|홍조|블러셔/.test(kor)) G.makeup.push(kor);
+                    else G.bodyDetail.push(kor);
+                    return;
+                }
+                if (li === 3) {
+                    (/귀걸|반지|목걸/.test(kor) ? G.jewelry : G.accessory).push(kor); return;
+                }
+                if (li === 4) { G.gesture.push(kor); return; }
+                if (li === 5) {
+                    if (/날씨|비|맑|흐/.test(kor)) G.weather.push(kor);
+                    else if (/낮|밤|새벽|저녁|아침/.test(kor)) G.time.push(kor);
+                    else if (/실내|야외|실외/.test(kor)) G.inOut.push(kor);
+                    else G.furniture.push(kor);
+                }
+            });
 
-            if ([lQ,lFr,lFa,lAp,lAc,lBg,lLt].every(a=>a.length===0))
-                return `<span style="color:var(--text-dim);">태그 정보를 불러올 수 없습니다.</span>`;
+            // ── 3. 헬퍼 ──
+            const ip = w => _ptcl(w,'이','가');
+            const ep = w => _ptcl(w,'은','는');
+            const op = w => _ptcl(w,'을','를');
+            const rp = w => _ptcl(w,'으로','로');
+            const gp = w => _ptcl(w,'과','와');
+            const L  = w => w[w.length - 1] || '';
 
-            // 자연스러운 나열: "A", "A와 B", "A, B, C", "A, B, C 외 N가지"
-            function nl(arr, max) {
+            // 자연스러운 나열 (생략 없음)
+            function andJoin(arr) {
                 if (!arr.length) return '';
-                const s = arr.slice(0, max);
-                const tail = arr.length > max ? ` 외 ${arr.length - max}가지` : '';
-                if (s.length === 1) return s[0] + tail;
-                if (s.length === 2) return s[0] + _ptcl(s[0],'과','와') + ' ' + s[1] + tail;
-                return s.slice(0,-1).join(', ') + ', ' + s[s.length-1] + tail;
+                if (arr.length === 1) return arr[0];
+                if (arr.length === 2) return arr[0] + gp(L(arr[0])) + ' ' + arr[1];
+                return arr.slice(0,-1).join(', ') + ', ' + arr[arr.length-1];
             }
+            // "A, B" → ", " 연결 (묘사 나열용)
+            function descJoin(arr) { return arr.filter(Boolean).join(', '); }
 
-            // 마지막 단어 추출 (조사 계산용)
-            function last(arr) { return arr[arr.length-1] || ''; }
+            // 태그 기반 시드 → 같은 태그 조합 = 같은 문장, 달라지면 다른 표현
+            let _seed = allTags.reduce((s,t)=>{ for(let i=0;i<t.raw.length;i++) s=(s*31+t.raw.charCodeAt(i))|0; return s; }, 0) >>> 0;
+            const rng = () => { _seed = (_seed * 1664525 + 1013904223) >>> 0; return _seed / 0xFFFFFFFF; };
+            const pick = (...opts) => opts[Math.floor(rng() * opts.length)];
 
-            const paras = [];
+            const parts = [];  // 완성된 <p> 블록들
+            const mkP = s => s?.trim() ? `<p style="margin:0 0 10px 0;line-height:1.9;">${s}</p>` : '';
 
-            // ── 1. 도입: 조명 + 배경 ──
-            const hasLt = lLt.length > 0;
-            const hasBg = lBg.length > 0;
-
-            if (hasLt && hasBg) {
-                const ltStr = nl(lLt, 2);
-                const bgStr = nl(lBg, 3);
-                const bgExtra = lBg.length > 3 ? '' : '';
-                paras.push(
-                    `<strong>${ltStr}</strong>${_ptcl(last(lLt.slice(0,2)),'이','가')} 인상적인 ` +
-                    `<strong>${bgStr}</strong> 배경의 장면입니다.`
-                );
-            } else if (hasLt) {
-                const ltStr = nl(lLt, 3);
-                paras.push(`<strong>${ltStr}</strong>${_ptcl(last(lLt.slice(0,3)),'이','가')} 인상적인 이미지입니다.`);
-            } else if (hasBg) {
-                const bgStr = nl(lBg, 4);
-                paras.push(`<strong>${bgStr}</strong>을/를 배경으로 한 이미지입니다.`.replace(
-                    '을/를', _ptcl(last(lBg.slice(0,4)),'을','를')
-                ));
-            }
-
-            // ── 2. 인물 묘사: 구도(lFr) + 외형(lFa) ──
-            // lFr에서 카메라 앵글 키워드와 인물 키워드를 분리
-            const angleKeywords = ['샷','업','뷰','앵글','클로즈','전신','바디','뒷모습','앞모습'];
-            const lFrPerson = lFr.filter(k => !angleKeywords.some(a => k.includes(a)));
-            const lFrAngle  = lFr.filter(k =>  angleKeywords.some(a => k.includes(a)));
-
-            const hasPerson = lFrPerson.length > 0 || lFa.length > 0;
-            const hasClothes = lAp.length > 0;
-            const hasAction = lAc.length > 0;
-
-            if (hasPerson || hasClothes || hasAction) {
-                // 외형 묘사 문장 구성
-                // lFa를 헤어/피부/체형류 vs 표정/시선류로 나눠 자연스럽게 이어줌
-                const expressionHints = ['표정','응시','미소','울','웃','벌린','감은','찡그'];
-                const lFaDesc = lFa.filter(k => !expressionHints.some(h => k.includes(h)));  // 외형 묘사
-                const lFaExp  = lFa.filter(k =>  expressionHints.some(h => k.includes(h)));  // 표정/시선
-
-                // 피사체 주어
-                const subjBase = lFrPerson.length > 0 ? nl(lFrPerson, 3) : '인물';
-                const subjLast = last(lFrPerson.slice(0,3)) || subjBase;
-
-                // 외형 수식어: "흑발에 긴 머리, 작은 얼굴에 큰 눈을 가진"
-                let appearPart = '';
-                if (lFaDesc.length > 0) {
-                    const descStr = nl(lFaDesc, 5);
-                    const descLast = last(lFaDesc.slice(0,5));
-                    appearPart = `${descStr}${_ptcl(descLast,'이','가')} 특징인 `;
-                }
-
-                // 표정/시선 수식어
-                let expPart = '';
-                if (lFaExp.length > 0) {
-                    expPart = nl(lFaExp, 2);
-                }
-
-                // 인물 등장 문장
-                let charSentence = '';
-                if (appearPart || lFrPerson.length > 0) {
-                    charSentence = `${appearPart}<strong>${subjBase}</strong>${_ptcl(subjLast,'이','가')} 등장합니다.`;
-                    if (expPart) {
-                        charSentence = charSentence.replace('등장합니다.', `${expPart}${_ptcl(last(lFaExp.slice(0,2)),'으로','로')} 등장합니다.`);
-                    }
-                } else if (lFa.length > 0) {
-                    const allFaStr = nl(lFa, 5);
-                    charSentence = `${allFaStr}${_ptcl(last(lFa.slice(0,5)),'이','가')} 특징인 인물이 등장합니다.`;
-                }
-
-                // 앵글 보조
-                if (lFrAngle.length > 0) {
-                    const angStr = nl(lFrAngle, 2);
-                    if (charSentence) {
-                        charSentence = charSentence.replace('등장합니다.', `${angStr}으로 담겼습니다.`.replace('으로', _ptcl(last(lFrAngle.slice(0,2)),'으로','로')));
+            // ══════════════════════════════════════════
+            // BLOCK A  조명 · 이펙트
+            // ══════════════════════════════════════════
+            {
+                const lt = G.lighting, cam = G.camera, ptcl = G.particles;
+                if (lt.length || cam.length) {
+                    const ltStr  = andJoin(lt);
+                    const camStr = andJoin(cam);
+                    let s = '';
+                    if (ltStr && camStr) {
+                        s = pick(
+                            `${ltStr}${gp(L(lt[lt.length-1]))} ${camStr}${ip(L(camStr))} 어우러진 연출입니다.`,
+                            `${camStr}${ip(L(camStr))} 적용된 ${ltStr} 아래 펼쳐지는 장면입니다.`,
+                            `${ltStr} 속에서 ${camStr}${ip(L(camStr))} 화면에 깊이를 더합니다.`
+                        );
+                    } else if (ltStr) {
+                        s = pick(
+                            `${ltStr} 아래 펼쳐지는 장면입니다.`,
+                            `${ltStr}${ip(L(ltStr))} 화면 전체를 감싸고 있습니다.`,
+                            `${ltStr}${op(L(ltStr))} 활용해 분위기를 살린 이미지입니다.`
+                        );
                     } else {
-                        charSentence = `${angStr}${_ptcl(last(lFrAngle.slice(0,2)),'으로','로')} 담긴 이미지입니다.`;
+                        s = pick(
+                            `${camStr}${ip(L(camStr))} 걸린 장면입니다.`,
+                            `${camStr}${rp(L(camStr))} 배경을 표현한 이미지입니다.`
+                        );
                     }
+                    parts.push(mkP(s));
                 }
+                if (ptcl.length) {
+                    const ps = andJoin(ptcl);
+                    parts.push(mkP(pick(
+                        `${ps}${ip(L(ps))} 장면에 생동감을 불어넣습니다.`,
+                        `${ps}이 화면을 가득 채우며 분위기를 완성합니다.`.replace('이 ', ip(L(ps))+' ')
+                    )));
+                }
+            }
 
-                if (charSentence) paras.push(charSentence);
+            // ══════════════════════════════════════════
+            // BLOCK B  배경 · 공간 · 시간 · 날씨
+            // ══════════════════════════════════════════
+            {
+                const bgCore = [...G.inOut, ...G.bgType, ...G.bgPlace];
+                const furn   = G.furniture;
+                const time   = G.time, wx = G.weather;
 
-                // 의상 + 포즈를 이어서 한 문장으로
-                if (hasClothes || hasAction) {
-                    let actionSentence = '';
-                    if (hasClothes && hasAction) {
-                        const apStr = nl(lAp, 4);
-                        const apLast = last(lAp.slice(0,4));
-                        const acStr = nl(lAc, 3);
-                        const acLast = last(lAc.slice(0,3));
-                        actionSentence = `<strong>${apStr}</strong>${_ptcl(apLast,'을','를')} 착용하고, <strong>${acStr}</strong> 자세를 취하고 있습니다.`;
-                    } else if (hasClothes) {
-                        const apStr = nl(lAp, 5);
-                        const apLast = last(lAp.slice(0,5));
-                        actionSentence = `<strong>${apStr}</strong>${_ptcl(apLast,'을','를')} 착용하고 있습니다.`;
+                const hasBg   = bgCore.length > 0 || furn.length > 0;
+                const hasTime = time.length > 0 || wx.length > 0;
+
+                if (hasBg || hasTime) {
+                    const bgAll  = andJoin([...bgCore, ...furn]);
+                    const settAll = andJoin([...time, ...wx]);
+
+                    let s = '';
+                    if (bgAll && settAll) {
+                        s = pick(
+                            `${settAll}의 ${bgAll}을/를 배경으로 한 이미지입니다.`.replace('을/를', op(L(bgAll))),
+                            `배경은 ${bgAll}이며, ${settAll}의 분위기가 공간 전체를 감싸고 있습니다.`.replace('이며', ip(L(bgAll)) === '이' ? '이며' : '며'),
+                            `${bgAll} 배경에서 ${settAll}의 기운이 물씬 느껴집니다.`
+                        );
+                    } else if (bgAll) {
+                        s = pick(
+                            `배경은 ${bgAll}${rp(L(bgAll))} 설정되어 있습니다.`,
+                            `${bgAll}${op(L(bgAll))} 배경으로 한 이미지입니다.`,
+                            `${bgAll} 공간 속 한 장면입니다.`
+                        );
                     } else {
-                        const acStr = nl(lAc, 4);
-                        const acLast = last(lAc.slice(0,4));
-                        actionSentence = `<strong>${acStr}</strong> 자세를 취하고 있습니다.`;
+                        s = pick(
+                            `${settAll}의 분위기가 감도는 장면입니다.`,
+                            `${settAll}${op(L(settAll))} 배경으로 한 이미지입니다.`
+                        );
                     }
-                    paras.push(actionSentence);
+                    parts.push(mkP(s));
                 }
             }
 
-            // ── 3. 품질 노트 ──
-            if (lQ.length > 0) {
-                const shown = lQ.slice(0, 4);
-                const extra = lQ.length > 4 ? ` 외 ${lQ.length - 4}개` : '';
-                paras.push(`<span style="color:var(--text-dim);font-size:12px;">✦ 품질: ${shown.join(', ')}${extra}</span>`);
+            // ══════════════════════════════════════════
+            // BLOCK C  피사체 소개 (인원·성별·국적·앵글)
+            // ══════════════════════════════════════════
+            {
+                const gen   = G.gender, nat = G.nationality, ang = G.angle;
+                const hasSubj = gen.length || nat.length || ang.length;
+
+                if (hasSubj) {
+                    const personStr = andJoin([...gen, ...nat]);
+                    const angStr    = andJoin(ang);
+                    let s = '';
+
+                    if (personStr && angStr) {
+                        s = pick(
+                            `${personStr}${ip(L(personStr))} ${angStr}${rp(L(angStr))} 담겼습니다.`,
+                            `${angStr}${rp(L(angStr))} 포착된 ${personStr}의 모습입니다.`,
+                            `${personStr}${op(L(personStr))} ${angStr}으로 담아냈습니다.`.replace('으로', rp(L(angStr)))
+                        );
+                    } else if (personStr) {
+                        s = pick(
+                            `${personStr}${ip(L(personStr))} 화면의 주인공입니다.`,
+                            `주인공은 ${personStr}입니다.`,
+                            `${personStr}${ip(L(personStr))} 등장하는 이미지입니다.`
+                        );
+                    } else {
+                        s = pick(
+                            `${angStr}${rp(L(angStr))} 촬영된 이미지입니다.`,
+                            `${angStr} 구도로 담아낸 장면입니다.`
+                        );
+                    }
+                    parts.push(mkP(s));
+                }
             }
 
-            return paras.length
-                ? paras.map(s => `<p style="margin:0 0 9px 0; line-height:1.8;">${s}</p>`).join('')
-                : `<span style="color:var(--text-dim);">태그 정보를 불러올 수 없습니다.</span>`;
+            // ══════════════════════════════════════════
+            // BLOCK D  외형 묘사 (헤어 · 체형 · 피부 · 얼굴 · 표정)
+            // ══════════════════════════════════════════
+            {
+                const hc = G.hairColor, hl = G.hairLen, hs = G.hairStyle;
+                const body = G.bodySize, chest = G.chest;
+                const skin = G.skin, bdet = G.bodyDetail;
+                const face = G.faceDetail, eye = G.eyeColor;
+                const exp  = G.exp, gaze = G.gaze, mkup = G.makeup;
+
+                // 헤어
+                if (hc.length || hl.length || hs.length) {
+                    const hcStr = andJoin(hc), hlStr = andJoin(hl), hsStr = andJoin(hs);
+                    let hairS = '';
+                    const all3 = [hcStr, hlStr, hsStr].filter(Boolean);
+                    if (all3.length >= 3) {
+                        hairS = pick(
+                            `${hcStr}에 ${hlStr} ${hsStr}이 인상적입니다.`.replace('이 인상', ip(L(hsStr))+' 인상'),
+                            `${hcStr}의 ${hlStr}를 ${hsStr}으로 연출했습니다.`.replace('를', op(L(hlStr))).replace('으로', rp(L(hsStr))),
+                            `${hlStr} ${hsStr}의 ${hcStr}이 개성을 드러냅니다.`.replace('이 개성', ip(L(hcStr))+' 개성')
+                        );
+                    } else if (hcStr && hlStr) {
+                        hairS = pick(
+                            `${hcStr}에 ${hlStr}가 매력적입니다.`.replace('가', ip(L(hlStr))),
+                            `${hcStr}의 ${hlStr}이 눈길을 끕니다.`.replace('이', ip(L(hlStr)))
+                        );
+                    } else if (hcStr && hsStr) {
+                        hairS = `${hcStr}의 ${hsStr}이 특징입니다.`.replace('이', ip(L(hsStr)));
+                    } else if (hlStr && hsStr) {
+                        hairS = `${hlStr}를 ${hsStr}으로 연출했습니다.`.replace('를', op(L(hlStr))).replace('으로', rp(L(hsStr)));
+                    } else {
+                        hairS = `${all3[0]}이 인상적입니다.`.replace('이', ip(L(all3[0])));
+                    }
+                    parts.push(mkP(hairS));
+                }
+
+                // 체형 + 가슴
+                if (body.length || chest.length) {
+                    const bodyStr  = andJoin(body);
+                    const chestStr = andJoin(chest);
+                    let bodyS = '';
+                    if (bodyStr && chestStr) {
+                        bodyS = pick(
+                            `${bodyStr}에 ${chestStr}의 인물입니다.`,
+                            `${chestStr}의 ${bodyStr}이 특징적입니다.`.replace('이 특', ip(L(bodyStr))+' 특')
+                        );
+                    } else {
+                        const s = bodyStr || chestStr;
+                        bodyS = pick(
+                            `${s}의 인물입니다.`,
+                            `${s}이 눈에 띕니다.`.replace('이 눈', ip(L(s))+' 눈')
+                        );
+                    }
+                    parts.push(mkP(bodyS));
+                }
+
+                // 피부 + 신체 디테일
+                if (skin.length || bdet.length) {
+                    const all = [...skin, ...bdet];
+                    const s = andJoin(all);
+                    parts.push(mkP(pick(
+                        `${s}이 특징적입니다.`.replace('이 특', ip(L(s))+' 특'),
+                        `${s}의 인물입니다.`,
+                        `피부와 신체 디테일로 ${s}이 눈에 들어옵니다.`.replace('이 눈', ip(L(s))+' 눈')
+                    )));
+                }
+
+                // 얼굴형 + 눈동자
+                if (face.length || eye.length) {
+                    const faceStr = andJoin(face), eyeStr = andJoin(eye);
+                    let faceS = '';
+                    if (faceStr && eyeStr) {
+                        faceS = pick(
+                            `${faceStr}에 ${eyeStr}이 어울립니다.`.replace('이 어', ip(L(eyeStr))+' 어'),
+                            `${eyeStr}의 ${faceStr}이 인상적입니다.`.replace('이 인', ip(L(faceStr))+' 인'),
+                            `${faceStr}, ${eyeStr}의 조합이 독특합니다.`
+                        );
+                    } else {
+                        const s = faceStr || eyeStr;
+                        faceS = `${s}이 인상적입니다.`.replace('이 인', ip(L(s))+' 인');
+                    }
+                    parts.push(mkP(faceS));
+                }
+
+                // 표정 + 시선
+                if (exp.length || gaze.length) {
+                    const expStr  = andJoin(exp), gazeStr = andJoin(gaze);
+                    let expS = '';
+                    if (expStr && gazeStr) {
+                        expS = pick(
+                            `${expStr}${rp(L(expStr))} ${gazeStr}의 시선이 인상 깊습니다.`,
+                            `${gazeStr}하며 ${expStr}의 표정을 짓고 있습니다.`,
+                            `${expStr} 채 ${gazeStr}는 모습이 자연스럽습니다.`
+                        );
+                    } else if (expStr) {
+                        expS = pick(
+                            `${expStr}의 표정이 매력적입니다.`,
+                            `${expStr}${rp(L(expStr))} 자신을 표현하고 있습니다.`
+                        );
+                    } else {
+                        expS = pick(
+                            `${gazeStr}하는 시선이 인상적입니다.`,
+                            `${gazeStr}의 눈빛이 화면을 사로잡습니다.`
+                        );
+                    }
+                    parts.push(mkP(expS));
+                }
+
+                // 메이크업
+                if (mkup.length) {
+                    const ms = andJoin(mkup);
+                    parts.push(mkP(pick(
+                        `${ms}${rp(L(ms))} 포인트를 줬습니다.`,
+                        `${ms}이 스타일을 완성합니다.`.replace('이 스', ip(L(ms))+' 스'),
+                        `메이크업으로 ${ms}을 선택했습니다.`.replace('을 선', op(L(ms))+' 선')
+                    )));
+                }
+            }
+
+            // ══════════════════════════════════════════
+            // BLOCK E  의상 · 악세서리
+            // ══════════════════════════════════════════
+            {
+                const cl = G.clothes, bt = G.bottoms, lw = G.legwear, fw = G.footwear;
+                const ac = G.accessory, jw = G.jewelry;
+
+                const topBot  = [...cl, ...bt];
+                const legShoe = [...lw, ...fw];
+                const accAll  = [...ac, ...jw];
+
+                if (topBot.length || legShoe.length) {
+                    const tbStr = andJoin(topBot);
+                    const lsStr = andJoin(legShoe);
+                    let s = '';
+                    if (tbStr && lsStr) {
+                        s = pick(
+                            `${tbStr}에 ${lsStr}을 더한 스타일링입니다.`.replace('을 더', op(L(lsStr))+' 더'),
+                            `${tbStr}${op(L(tbStr))} 착용하고 ${lsStr}${rp(L(lsStr))} 마무리했습니다.`,
+                            `${tbStr}${gp(L(tbStr))} ${lsStr}의 조합으로 연출했습니다.`
+                        );
+                    } else if (tbStr) {
+                        s = pick(
+                            `${tbStr}${op(L(tbStr))} 착용하고 있습니다.`,
+                            `${tbStr} 차림입니다.`,
+                            `${tbStr}${rp(L(tbStr))} 스타일링했습니다.`
+                        );
+                    } else {
+                        s = `${lsStr}${op(L(lsStr))} 착용하고 있습니다.`;
+                    }
+                    parts.push(mkP(s));
+                }
+
+                if (accAll.length) {
+                    const as = andJoin(accAll);
+                    parts.push(mkP(pick(
+                        `${as}${rp(L(as))} 포인트를 더했습니다.`,
+                        `${as}이 스타일을 마무리합니다.`.replace('이 스', ip(L(as))+' 스'),
+                        `악세서리로 ${as}을 선택해 개성을 살렸습니다.`.replace('을 선', op(L(as))+' 선')
+                    )));
+                }
+            }
+
+            // ══════════════════════════════════════════
+            // BLOCK F  포즈 · 제스처
+            // ══════════════════════════════════════════
+            {
+                const pose = G.pose, gest = G.gesture;
+                if (pose.length || gest.length) {
+                    const all = andJoin([...pose, ...gest]);
+                    parts.push(mkP(pick(
+                        `${all}${op(L(all))}취하고 있습니다.`,
+                        `${all}의 포즈로 자신감을 드러내고 있습니다.`,
+                        `${all}으로 당당한 모습을 연출하고 있습니다.`.replace('으로', rp(L(all)))
+                    )));
+                }
+            }
+
+            // ══════════════════════════════════════════
+            // BLOCK G  화풍 · 색감 · 수위
+            // ══════════════════════════════════════════
+            {
+                const st = G.style, ct = G.colorTone;
+                if (st.length || ct.length) {
+                    const stStr = andJoin(st), ctStr = andJoin(ct);
+                    let s = '';
+                    if (stStr && ctStr) {
+                        s = pick(
+                            `${stStr} 화풍에 ${ctStr}의 색감이 어우러진 이미지입니다.`,
+                            `${ctStr} 톤의 ${stStr} 스타일로 표현되었습니다.`
+                        );
+                    } else if (stStr) {
+                        s = pick(`${stStr} 화풍의 이미지입니다.`, `${stStr} 스타일로 표현되었습니다.`);
+                    } else {
+                        s = `${ctStr}의 색감이 특징적입니다.`;
+                    }
+                    parts.push(mkP(s));
+                }
+                if (G.rating.length) {
+                    parts.push(mkP(`<span style="color:var(--text-dim);font-size:12px;">✦ 수위: ${andJoin(G.rating)}</span>`));
+                }
+            }
+
+            // ══════════════════════════════════════════
+            // BLOCK H  품질 노트
+            // ══════════════════════════════════════════
+            if (G.quality.length) {
+                parts.push(mkP(`<span style="color:var(--text-dim);font-size:12px;">✦ 품질: ${G.quality.join(', ')}</span>`));
+            }
+
+            return parts.filter(Boolean).join('') || '<span style="color:var(--text-dim);">태그 정보를 불러올 수 없습니다.</span>';
         }
 
         function updateMasterOutput() {
