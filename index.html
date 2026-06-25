@@ -217,6 +217,12 @@
         .ctx-item.danger .ctx-icon { color: var(--accent-danger); }
         .ctx-separator { height: 1px; background: var(--border-dim); margin: 4px 0; }
         .ctx-label { padding: 6px 14px 4px; font-size: 11px; font-weight: 700; color: var(--text-dim); font-family: var(--font-ui); text-transform: uppercase; letter-spacing: 0.5px; }
+        .ctx-weight-row { display: flex; align-items: center; gap: 6px; padding: 6px 10px; }
+        .ctx-weight-row .ctx-weight-label { flex: 1; font-size: 12px; color: var(--text-main); font-family: var(--font-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+        .ctx-weight-row .ctx-weight-val { font-size: 13px; font-weight: 700; font-family: var(--font-heading); color: var(--accent-blue); min-width: 32px; text-align: center; }
+        .ctx-weight-btn { background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-main); border-radius: 5px; width: 26px; height: 26px; cursor: pointer; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: 0.15s; }
+        .ctx-weight-btn:hover { background: var(--folder-hover); border-color: var(--accent-blue); color: var(--accent-blue); }
+        .ctx-weight-btn.reset { color: var(--text-dim); font-size: 11px; }
 
         .editor-body { position: relative; width: 100%; min-height: 80px; padding: 16px; }
         textarea.layer-input { width: 100%; height: 70px; background-color: transparent; border: none; color: var(--text-main); font-family: var(--font-code); font-size: 14px; resize: vertical; line-height: 1.6; display: none; }
@@ -752,6 +758,15 @@
         let currentViewMode = 'visual';
         let activeTagsMap = {};
         let globalWeightCurrent = 1.0;
+        let tagDefaultWeights = JSON.parse(localStorage.getItem('tag_default_weights_v1') || '{}');
+        function saveTagDefaultWeights() { localStorage.setItem('tag_default_weights_v1', JSON.stringify(tagDefaultWeights)); }
+        function getTagWeight(promptText) { return tagDefaultWeights[promptText] ?? 1.0; }
+        function setTagWeight(promptText, w) {
+            w = Math.round(Math.max(0.1, Math.min(3.0, w)) * 10) / 10;
+            if (Math.abs(w - 1.0) < 0.01) delete tagDefaultWeights[promptText];
+            else tagDefaultWeights[promptText] = w;
+            saveTagDefaultWeights();
+        }
 
         let userPresets = {};
         try { userPresets = JSON.parse(localStorage.getItem('pro_prompt_presets_v7_0')) || {}; } catch(e) { userPresets = {}; }
@@ -821,6 +836,39 @@
                     const sep = document.createElement('div'); sep.className = 'ctx-separator'; ctxMenu.appendChild(sep);
                 } else if (item.label && item.isHeader) {
                     const lbl = document.createElement('div'); lbl.className = 'ctx-label'; lbl.textContent = item.label; ctxMenu.appendChild(lbl);
+                } else if (item.isWeightRow) {
+                    // stays open, no auto-close
+                    const row = document.createElement('div');
+                    row.className = 'ctx-weight-row';
+                    row.dataset.prompt = item.promptText;
+                    const label = document.createElement('span');
+                    label.className = 'ctx-weight-label';
+                    label.textContent = item.label;
+                    label.title = item.promptText;
+                    const valEl = document.createElement('span');
+                    valEl.className = 'ctx-weight-val';
+                    valEl.textContent = getTagWeight(item.promptText).toFixed(1);
+                    const mkBtn = (txt, cls, delta) => {
+                        const b = document.createElement('button');
+                        b.className = 'ctx-weight-btn' + (cls ? ' ' + cls : '');
+                        b.textContent = txt;
+                        b.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            let cur = getTagWeight(item.promptText);
+                            if (delta === 0) cur = 1.0;
+                            else cur += delta;
+                            setTagWeight(item.promptText, cur);
+                            valEl.textContent = getTagWeight(item.promptText).toFixed(1);
+                            updateTagBtnDisplay(item.promptText);
+                        });
+                        return b;
+                    };
+                    row.appendChild(label);
+                    row.appendChild(mkBtn('-0.1', '', -0.1));
+                    row.appendChild(valEl);
+                    row.appendChild(mkBtn('+0.1', '', 0.1));
+                    row.appendChild(mkBtn('0', 'reset', 0));
+                    ctxMenu.appendChild(row);
                 } else {
                     const el = document.createElement('div');
                     el.className = 'ctx-item' + (item.danger ? ' danger' : '');
@@ -971,10 +1019,18 @@
                         if (idx !== -1) { foundFolder = folderName; foundIndex = idx; break; }
                     }
                 }
+                const prompts = tagText.split(',').map(s => s.trim()).filter(Boolean);
+                const korLabel = activeTagsMap[tagText]?.kor || tagText;
                 const menuItems = [
-                    { label: `"${activeTagsMap[tagText]?.kor || tagText}"`, isHeader: true },
+                    { label: `"${korLabel}"`, isHeader: true },
                     { label: '즐겨찾기 토글', icon: 'fa-solid fa-star', action: () => toggleFavorite(tagText) },
+                    'sep',
+                    { label: '기본 가중치 설정', isHeader: true },
                 ];
+                prompts.forEach(p => {
+                    const dispLabel = prompts.length === 1 ? (activeTagsMap[tagText]?.kor || p) : p;
+                    menuItems.push({ isWeightRow: true, promptText: p, label: dispLabel });
+                });
                 if (foundFolder !== null) {
                     menuItems.push('sep');
                     menuItems.push({ label: 'DB에서 태그 수정', icon: 'fa-solid fa-pencil', action: () => {
@@ -1158,6 +1214,7 @@
 
             loadContextState();
             switchViewMode('visual');
+            setTimeout(refreshAllTagBtnDisplays, 0);
         }
 
         function renderCombos() {
@@ -1597,6 +1654,53 @@
             container.appendChild(input);
         }
 
+        function updateTagBtnDisplay(promptText) {
+            // update all tag-btn buttons that include this prompt in their data-tag
+            document.querySelectorAll('.tag-btn').forEach(btn => {
+                const tagText = btn.dataset.tag || '';
+                const prompts = tagText.split(',').map(s => s.trim()).filter(Boolean);
+                if (!prompts.includes(promptText)) return;
+                // rebuild tag-kr display: if single prompt use its own weight; if multi only show if all have same weight
+                const krEl = btn.querySelector('.tag-kr');
+                if (!krEl) return;
+                const data = activeTagsMap[tagText];
+                const baseLabel = data ? data.kor : tagText;
+                const w = getTagWeight(promptText);
+                // for multi-prompt, show weight on individual if only that one has non-1.0 weight
+                if (prompts.length === 1) {
+                    krEl.textContent = Math.abs(w - 1.0) < 0.01 ? baseLabel : `${baseLabel}(${w.toFixed(1)})`;
+                } else {
+                    // show weights for each that differs from 1.0
+                    const parts = prompts.map(p => {
+                        const pw = getTagWeight(p);
+                        return Math.abs(pw - 1.0) < 0.01 ? null : `${p}(${pw.toFixed(1)})`;
+                    }).filter(Boolean);
+                    krEl.textContent = parts.length > 0 ? `${baseLabel} [${parts.join(', ')}]` : baseLabel;
+                }
+            });
+        }
+
+        function refreshAllTagBtnDisplays() {
+            document.querySelectorAll('.tag-btn').forEach(btn => {
+                const tagText = btn.dataset.tag || '';
+                const prompts = tagText.split(',').map(s => s.trim()).filter(Boolean);
+                const krEl = btn.querySelector('.tag-kr');
+                if (!krEl) return;
+                const data = activeTagsMap[tagText];
+                const baseLabel = data ? data.kor : tagText;
+                if (prompts.length === 1) {
+                    const w = getTagWeight(prompts[0]);
+                    krEl.textContent = Math.abs(w - 1.0) < 0.01 ? baseLabel : `${baseLabel}(${w.toFixed(1)})`;
+                } else {
+                    const parts = prompts.map(p => {
+                        const pw = getTagWeight(p);
+                        return Math.abs(pw - 1.0) < 0.01 ? null : `${p}(${pw.toFixed(1)})`;
+                    }).filter(Boolean);
+                    krEl.textContent = parts.length > 0 ? `${baseLabel} [${parts.join(', ')}]` : baseLabel;
+                }
+            });
+        }
+
         function adjustGlobalWeight(delta) {
             globalWeightCurrent += delta;
             if (globalWeightCurrent < 0.1) globalWeightCurrent = 0.1;
@@ -1614,7 +1718,22 @@
             if (getRegexForTag(tagText).test(content)) {
                 content = content.replace(getRegexForTag(tagText), '').replace(/,\s*,+/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').trim();
             } else {
-                let insertText = Math.abs(globalWeightCurrent - 1.0) > 0.01 ? `(${tagText}:${globalWeightCurrent.toFixed(1)})` : tagText;
+                // build insert text respecting per-prompt default weights
+                const prompts = tagText.split(',').map(s => s.trim()).filter(Boolean);
+                let insertText;
+                if (prompts.length === 1) {
+                    const pw = getTagWeight(prompts[0]);
+                    const w = Math.abs(globalWeightCurrent - 1.0) > 0.01 ? globalWeightCurrent : pw;
+                    insertText = Math.abs(w - 1.0) > 0.01 ? `(${tagText}:${w.toFixed(1)})` : tagText;
+                } else {
+                    // multi-prompt: each prompt gets its own default weight if set
+                    const parts = prompts.map(p => {
+                        const pw = getTagWeight(p);
+                        const w = Math.abs(globalWeightCurrent - 1.0) > 0.01 ? globalWeightCurrent : pw;
+                        return Math.abs(w - 1.0) > 0.01 ? `(${p}:${w.toFixed(1)})` : p;
+                    });
+                    insertText = parts.join(', ');
+                }
                 content = content ? `${content}, ${insertText}` : insertText;
                 addRecent(tagText);
             }
