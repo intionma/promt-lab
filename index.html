@@ -140,6 +140,11 @@
         .combo-folder-block:hover > .combo-folder-header-row { background: var(--folder-hover); }
         .combo-folder-block.open { border-color: var(--accent-blue); }
         .combo-folder-header-row { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--folder-bg); cursor: pointer; transition: background 0.15s; user-select: none; }
+        .combo-drag-handle { font-size: 14px; color: var(--text-dim); cursor: grab; padding: 0 2px; flex-shrink: 0; opacity: 0.4; transition: opacity 0.15s; }
+        .combo-drag-handle:hover { opacity: 1; }
+        .combo-folder-header-row:hover .combo-drag-handle { opacity: 0.7; }
+        .combo-drop-indicator { height: 3px; background: var(--accent-blue); border-radius: 2px; margin: 1px 4px; display: none; }
+        .combo-drop-indicator.visible { display: block; }
         .combo-folder-header-row .combo-folder-icon { font-size: 18px; line-height: 1; flex-shrink: 0; }
         .combo-folder-header-row .combo-folder-name { font-size: 13px; font-weight: 700; font-family: var(--font-ui); color: var(--text-main); flex: 1; }
         .combo-folder-header-row .combo-folder-count { font-size: 11px; color: var(--text-dim); flex-shrink: 0; }
@@ -212,6 +217,8 @@
         .fav-recent-box:not(.collapsed) .box-header { border-radius: 8px 8px 0 0 !important; border-bottom: 1px solid var(--border-dim); }
 
         .layer-group { background: var(--bg-surface); border-radius: 10px; border: 1px solid var(--border-dim); overflow: hidden; flex-shrink: 0; transition: 0.3s;}
+        @keyframes layerFlash { 0%{box-shadow:0 0 0 0 transparent} 20%{box-shadow:0 0 0 4px var(--flash-color,#60a5fa88)} 100%{box-shadow:0 0 0 0 transparent} }
+        .layer-group.tag-added-flash { animation: layerFlash 0.7s ease-out; }
         .layer-group.collapsed .layer-group-content { display: none; }
         .layer-group.collapsed .layer-title-chevron { transform: rotate(-90deg); }
         .layer-title-bar { padding: 10px 14px; font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 8px; background: var(--folder-bg); border-bottom: 1px solid var(--border-dim); font-family: var(--font-heading); cursor: pointer; user-select: none; }
@@ -622,6 +629,7 @@
                 <span><i class="fa-solid fa-tags"></i> 프롬프트 랩</span>
                 <div class="header-actions">
                     <button class="action-btn" onclick="openPromptClassifyModal()" title="프롬프트 붙여넣기 → 자동 분류 → DB 추가" style="color:var(--accent-purple,#a78bfa); border-color:var(--accent-purple,#a78bfa);"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                    <button class="action-btn" onclick="openTranslationSessionModal()" title="한국어 번역 세션 — 미번역 태그 일괄 번역" style="color:#f97316; border-color:#f97316;"><i class="fa-solid fa-language"></i></button>
                     <button class="action-btn" onclick="openDBManager()" title="DB 관리" style="color:var(--accent-blue); border-color:var(--accent-blue);"><i class="fa-solid fa-database"></i></button>
                     <button class="action-btn" onclick="openDBTextEditor()" title="텍스트로 DB 편집" style="color:var(--accent-green); border-color:var(--accent-green);"><i class="fa-solid fa-code"></i></button>
                     <button class="action-btn" onclick="openIOModal('export')" title="내보내기"><i class="fa-solid fa-copy"></i></button>
@@ -1649,6 +1657,7 @@
                 const i = layer.id;
                 const group = document.createElement('div');
                 group.className = 'layer-group';
+                group.id = `layer-group-${i}`;
 
                 group.innerHTML = `
                     <div class="layer-title-bar" onmousedown="if(event.button===2)event.stopPropagation()" onclick="this.closest('.layer-group').classList.toggle('collapsed')">
@@ -1808,6 +1817,8 @@
 
         // 열린 폴더 상태 추적 (Set of folder ids)
         let _openFolders = new Set();
+        // 현재 에디터에 적용된 간편 조합 추적 (Set of combo ids)
+        let _activeComboIds = new Set();
 
         function collapseAllComboFolders() {
             _openFolders.clear();
@@ -1848,7 +1859,7 @@
             const header = document.createElement('div');
             header.className = 'combo-folder-header-row';
             const children = folder.children || [];
-            header.innerHTML = `<span class="combo-folder-icon">${isOpen ? '📂' : '📁'}</span><span class="combo-folder-name">${folder.title}</span><span class="combo-folder-count">${children.length}개</span><i class="fa-solid fa-chevron-right combo-folder-chevron"></i>`;
+            header.innerHTML = `<span class="combo-drag-handle" title="드래그해서 순서 변경">⠿</span><span class="combo-folder-icon">${isOpen ? '📂' : '📁'}</span><span class="combo-folder-name">${folder.title}</span><span class="combo-folder-count">${children.length}개</span><i class="fa-solid fa-chevron-right combo-folder-chevron"></i>`;
             header.onclick = (e) => {
                 if (e.target.closest('.combo-item-name-edit')) return;
                 if (_openFolders.has(folder.id)) { _openFolders.delete(folder.id); } else { _openFolders.add(folder.id); }
@@ -2010,28 +2021,55 @@
         }
 
         function setupFolderContentsDropZone(contents, folderId) {
+            let _indicator = null;
+            const getIndicator = () => {
+                if (!_indicator) {
+                    _indicator = contents.querySelector('.combo-drop-indicator');
+                    if (!_indicator) {
+                        _indicator = document.createElement('div');
+                        _indicator.className = 'combo-drop-indicator';
+                        contents.prepend(_indicator);
+                    }
+                }
+                return _indicator;
+            };
             contents.addEventListener('dragover', (e) => {
                 if (!_fsDragging || _fsDragging.id === folderId) return;
-                // prevent dropping a folder into itself (ancestor check)
                 if (_isAncestor(_fsDragging.id, folderId)) return;
                 e.preventDefault(); e.stopPropagation();
                 e.dataTransfer.dropEffect = 'move';
-                contents.classList.add('dnd-folder-over');
+                const afterEl = getDragAfterElement(contents, e.clientX, e.clientY);
+                const ind = getIndicator();
+                if (afterEl) contents.insertBefore(ind, afterEl);
+                else contents.appendChild(ind);
+                ind.classList.add('visible');
             });
             contents.addEventListener('dragleave', (e) => {
-                if (!contents.contains(e.relatedTarget)) contents.classList.remove('dnd-folder-over');
+                if (!contents.contains(e.relatedTarget)) {
+                    getIndicator().classList.remove('visible');
+                }
             });
             contents.addEventListener('drop', (e) => {
                 e.preventDefault(); e.stopPropagation();
-                contents.classList.remove('dnd-folder-over');
+                getIndicator().classList.remove('visible');
                 if (!_fsDragging || _fsDragging.id === folderId) return;
                 if (_isAncestor(_fsDragging.id, folderId)) return;
                 const dragId = _fsDragging.id;
-                removeFsItemFromParent(dragId);
                 const folder = comboFS.items[folderId];
                 if (!folder) return;
+                // Determine insert position from current DOM order
+                const afterEl = getDragAfterElement(contents, e.clientX, e.clientY);
+                const siblings = [...contents.querySelectorAll(':scope > [data-id]:not(.dnd-dragging-fs)')];
+                const afterId = afterEl ? afterEl.dataset.id : null;
+                removeFsItemFromParent(dragId);
                 if (!folder.children) folder.children = [];
-                if (!folder.children.includes(dragId)) folder.children.push(dragId);
+                if (afterId) {
+                    const pos = folder.children.indexOf(afterId);
+                    if (pos >= 0) folder.children.splice(pos, 0, dragId);
+                    else folder.children.push(dragId);
+                } else {
+                    folder.children.push(dragId);
+                }
                 _openFolders.add(folderId);
                 saveComboFS(); renderCombos();
             });
@@ -3304,18 +3342,10 @@
         function applyCombo(combo) {
             saveStateToUndoStack();
 
-            // 이미 적용된 조합인지 확인 (모든 레이어의 모든 태그가 이미 존재하면 해제)
-            let allActive = Object.keys(combo.tags).every(layerId => {
-                const textarea = document.getElementById(`layer-${layerId}`);
-                if (!textarea) return false;
-                const comboPrompts = combo.tags[layerId].split(',').map(s => s.trim()).filter(Boolean);
-                return comboPrompts.every(p => {
-                    const core = p.match(/^\((.+):(\d+\.?\d*)\)$/) ? p.match(/^\((.+):(\d+\.?\d*)\)$/)[1] : p;
-                    return getRegexForTag(core).test(textarea.value);
-                });
-            });
+            // Set 기반으로 활성 여부 판단 (regex 감지 오류 방지)
+            const isOn = _activeComboIds.has(combo.id);
 
-            if (allActive) {
+            if (isOn) {
                 // 해제: 조합의 태그 제거
                 Object.keys(combo.tags).forEach(layerId => {
                     const textarea = document.getElementById(`layer-${layerId}`);
@@ -3328,20 +3358,29 @@
                     textarea.value = content.replace(/,\s*,+/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').trim();
                     syncFromManualInput(layerId);
                 });
+                _activeComboIds.delete(combo.id);
                 showToast(`[${combo.title}] 조합이 해제되었습니다.`, "info");
             } else {
-                // 적용: 없는 태그만 추가
+                // 적용: 기존 조합 태그 먼저 제거(중복 방지) 후 추가
                 Object.keys(combo.tags).forEach(layerId => {
                     const textarea = document.getElementById(`layer-${layerId}`);
                     if (!textarea) return;
-                    let currentTags = textarea.value.split(',').map(s=>s.trim()).filter(s=>s.length>0);
-                    combo.tags[layerId].split(',').map(s=>s.trim()).filter(Boolean).forEach(nt => {
-                        const core = nt.match(/^\((.+):(\d+\.?\d*)\)$/) ? nt.match(/^\((.+):(\d+\.?\d*)\)$/)[1] : nt;
-                        if (!currentTags.some(ct => getRegexForTag(core).test(ct))) currentTags.push(nt);
+                    // 중복 방지: 이미 있는 같은 조합 태그 먼저 클리어
+                    let content = textarea.value;
+                    combo.tags[layerId].split(',').map(s => s.trim()).filter(Boolean).forEach(p => {
+                        const core = p.match(/^\((.+):(\d+\.?\d*)\)$/) ? p.match(/^\((.+):(\d+\.?\d*)\)$/)[1] : p;
+                        content = content.replace(getRegexForTag(core), '');
+                    });
+                    content = content.replace(/,\s*,+/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').trim();
+                    // 추가
+                    const currentTags = content ? content.split(',').map(s => s.trim()).filter(Boolean) : [];
+                    combo.tags[layerId].split(',').map(s => s.trim()).filter(Boolean).forEach(nt => {
+                        currentTags.push(nt);
                     });
                     textarea.value = currentTags.join(', ');
                     syncFromManualInput(layerId);
                 });
+                _activeComboIds.add(combo.id);
                 showToast(`[${combo.title}] 조합이 적용되었습니다!`, "success");
             }
             // 모든 레이어 sync 완료 후 전체 태그 버튼 상태 일괄 갱신
@@ -3799,6 +3838,19 @@
             textarea.value = content.split(',').map(s=>s.trim()).filter(s=>s.length>0).join(', ');
             contextStates[currentContext][layerIndex-1] = textarea.value;
             syncFromManualInput(layerIndex);
+            // 추가 시 해당 레이어로 스크롤 + 플래시 하이라이트
+            if (!isActive) {
+                const layerGroup = document.getElementById(`layer-group-${layerIndex}`);
+                if (layerGroup) {
+                    layerGroup.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    const tagData = activeTagsMap[tagText];
+                    layerGroup.style.setProperty('--flash-color', (tagData?.color || '#60a5fa') + '88');
+                    layerGroup.classList.remove('tag-added-flash');
+                    void layerGroup.offsetWidth; // reflow to restart animation
+                    layerGroup.classList.add('tag-added-flash');
+                    setTimeout(() => layerGroup.classList.remove('tag-added-flash'), 700);
+                }
+            }
         }
 
         // DB 폴더/태그 순서대로 레이어 내용 정렬. DB에 없는 태그는 뒤에 유지.
@@ -3864,18 +3916,25 @@
             checkConflicts(layerIndex);
             if(currentViewMode === 'visual') renderChips(layerIndex);
             updateMasterOutput();
+            // 수동 편집 시 activeComboIds 동기화: 태그가 사라진 조합은 비활성으로
+            _activeComboIds.forEach(comboId => {
+                const combo = comboFS.items[comboId];
+                if (!combo) { _activeComboIds.delete(comboId); return; }
+                const stillActive = Object.keys(combo.tags || {}).every(lid => {
+                    const ta = document.getElementById(`layer-${lid}`);
+                    if (!ta) return false;
+                    return (combo.tags[lid] || '').split(',').map(s => s.trim()).filter(Boolean).every(p => {
+                        const core = p.match(/^\((.+):[\d.]+\)$/) ? p.match(/^\((.+):[\d.]+\)$/)[1] : p;
+                        return getRegexForTag(core).test(ta.value);
+                    });
+                });
+                if (!stillActive) _activeComboIds.delete(comboId);
+            });
             updateComboCardStates();
         }
 
         function isComboActive(combo) {
-            return combo.tags && Object.keys(combo.tags).every(layerId => {
-                const textarea = document.getElementById(`layer-${layerId}`);
-                if (!textarea) return false;
-                return combo.tags[layerId].split(',').map(s => s.trim()).filter(Boolean).every(p => {
-                    const core = p.match(/^\((.+):[\d.]+\)$/) ? p.match(/^\((.+):[\d.]+\)$/)[1] : p;
-                    return getRegexForTag(core).test(textarea.value);
-                });
-            });
+            return _activeComboIds.has(combo.id);
         }
 
         function updateComboCardStates() {
@@ -5058,6 +5117,127 @@
                 renderDBTable(); initApp();
                 showToast("태그가 삭제되었습니다.", "info");
             });
+        }
+
+        // ─── 한국어 번역 세션 모달 ─────────────────────────────────────────────────
+        function openTranslationSessionModal() {
+            document.querySelectorAll('.trans-session-overlay').forEach(e => e.remove());
+
+            // 1) 미번역 태그 수집: k가 없거나 k===t 인 것
+            const LAYER_NAMES = { 1:'화질/렌더링', 2:'구도/피사체', 3:'외형/얼굴', 4:'의상/악세', 5:'액션/포즈', 6:'배경/환경', 7:'조명/이펙트' };
+            const untranslated = []; // { lid, fk, idx, t, k }
+            for (let lid = 1; lid <= 7; lid++) {
+                const layerDB = promptDB[lid];
+                if (!layerDB) continue;
+                for (const fk of Object.keys(layerDB)) {
+                    (layerDB[fk] || []).forEach((tag, idx) => {
+                        if (!tag.k || tag.k === tag.t) {
+                            untranslated.push({ lid, fk, idx, t: tag.t, k: tag.k || '' });
+                        }
+                    });
+                }
+            }
+
+            const overlay = document.createElement('div');
+            overlay.className = 'trans-session-overlay combo-create-modal-overlay';
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:3000;display:flex;align-items:center;justify-content:center;';
+
+            const modal = document.createElement('div');
+            modal.style.cssText = 'background:var(--bg-card);border-radius:12px;padding:24px;width:min(700px,95vw);max-height:90vh;display:flex;flex-direction:column;gap:16px;overflow:hidden;';
+
+            const titleRow = document.createElement('div');
+            titleRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;';
+            titleRow.innerHTML = `<h3 style="margin:0;font-size:16px;color:var(--text-bright)"><i class="fa-solid fa-language" style="color:#f97316;margin-right:8px"></i>한국어 번역 세션</h3><button id="trans-close-btn" style="background:none;border:none;color:var(--text-dim);font-size:18px;cursor:pointer;">✕</button>`;
+
+            const infoEl = document.createElement('div');
+            infoEl.style.cssText = 'font-size:12px;color:var(--text-dim);line-height:1.6;background:var(--bg-main);border-radius:8px;padding:10px 14px;';
+            infoEl.innerHTML = `미번역 태그 <b style="color:#f97316">${untranslated.length}개</b>를 찾았습니다.<br>① 아래 목록을 복사해 번역기에 붙여넣기 → ② 번역 결과를 아래 입력창에 붙여넣기 → ③ [번역 적용] 클릭`;
+
+            const stepOneBox = document.createElement('div');
+            stepOneBox.style.cssText = 'display:flex;flex-direction:column;gap:6px;flex:1;min-height:0;';
+
+            const stepOneLabel = document.createElement('div');
+            stepOneLabel.style.cssText = 'font-size:12px;color:var(--text-dim);display:flex;align-items:center;justify-content:space-between;';
+            stepOneLabel.innerHTML = `<span>① 원문 목록 (복사 후 번역기 사용)</span><button id="trans-copy-src-btn" style="font-size:11px;padding:2px 10px;background:var(--accent-blue);color:#fff;border:none;border-radius:5px;cursor:pointer;">복사</button>`;
+
+            const srcText = document.createElement('textarea');
+            srcText.readOnly = true;
+            srcText.style.cssText = 'resize:none;flex:1;min-height:140px;max-height:200px;background:var(--bg-main);border:1px solid var(--border-color);border-radius:6px;padding:10px;font-size:12px;color:var(--text-main);font-family:monospace;line-height:1.6;';
+            srcText.value = untranslated.map((tag, i) => `${i + 1}. ${tag.t}`).join('\n');
+
+            stepOneBox.append(stepOneLabel, srcText);
+
+            const stepTwoBox = document.createElement('div');
+            stepTwoBox.style.cssText = 'display:flex;flex-direction:column;gap:6px;flex:1;min-height:0;';
+
+            const stepTwoLabel = document.createElement('div');
+            stepTwoLabel.style.cssText = 'font-size:12px;color:var(--text-dim);';
+            stepTwoLabel.textContent = '② 번역 결과 붙여넣기 (번호 순서 유지)';
+
+            const dstText = document.createElement('textarea');
+            dstText.placeholder = '번역 결과를 여기에 붙여넣으세요.\n예:\n1. 소녀\n2. 하늘색 눈\n...';
+            dstText.style.cssText = 'resize:none;flex:1;min-height:140px;max-height:200px;background:var(--bg-main);border:1px solid var(--border-color);border-radius:6px;padding:10px;font-size:12px;color:var(--text-main);font-family:monospace;line-height:1.6;';
+
+            stepTwoBox.append(stepTwoLabel, dstText);
+
+            const applyBtn = document.createElement('button');
+            applyBtn.textContent = '번역 적용';
+            applyBtn.style.cssText = 'background:#f97316;color:#fff;border:none;border-radius:8px;padding:10px 0;font-size:14px;font-weight:600;cursor:pointer;width:100%;';
+
+            modal.append(titleRow, infoEl, stepOneBox, stepTwoBox, applyBtn);
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+
+            const close = () => overlay.remove();
+            titleRow.querySelector('#trans-close-btn').onclick = close;
+            overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+            titleRow.querySelector('#trans-copy-src-btn').onclick = () => {
+                navigator.clipboard.writeText(srcText.value).then(() => showToast('원문 목록이 복사되었습니다.', 'success'));
+            };
+
+            applyBtn.onclick = () => {
+                const lines = dstText.value.split('\n').map(l => l.trim()).filter(Boolean);
+                // 번호 파싱: "1. 번역" or "1) 번역" or 번호없이 순서대로
+                const parsed = [];
+                let useNumbered = lines.some(l => /^\d+[\.\)]\s+/.test(l));
+                if (useNumbered) {
+                    const map = {};
+                    lines.forEach(l => {
+                        const m = l.match(/^(\d+)[\.\)]\s+(.*)/);
+                        if (m) map[parseInt(m[1]) - 1] = m[2].trim();
+                    });
+                    untranslated.forEach((_, i) => parsed.push(map[i] || ''));
+                } else {
+                    untranslated.forEach((_, i) => parsed.push((lines[i] || '').trim()));
+                }
+
+                let applied = 0;
+                parsed.forEach((kor, i) => {
+                    if (!kor) return;
+                    const { lid, fk, idx } = untranslated[i];
+                    if (promptDB[lid]?.[fk]?.[idx]) {
+                        promptDB[lid][fk][idx].k = kor;
+                        applied++;
+                    }
+                });
+
+                if (applied > 0) {
+                    localStorage.setItem('pro_prompt_db_v7_0', JSON.stringify(promptDB));
+                    initApp();
+                    renderDBTable();
+                    showToast(`${applied}개 태그에 번역이 적용되었습니다.`, 'success');
+                    close();
+                } else {
+                    showToast('적용할 번역이 없습니다. 형식을 확인해주세요.', 'warning');
+                }
+            };
+
+            if (untranslated.length === 0) {
+                srcText.value = '미번역 태그가 없습니다. 🎉';
+                applyBtn.disabled = true;
+                applyBtn.style.opacity = '0.5';
+            }
         }
 
         // ─── 프롬프트 붙여넣기 자동분류 → DB 추가 모달 ─────────────────────────
