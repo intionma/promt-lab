@@ -2361,6 +2361,30 @@
                 });
                 showToast(`[${combo.title}] 조합이 적용되었습니다!`, "success");
             }
+            // 모든 레이어 sync 완료 후 전체 태그 버튼 상태 일괄 갱신
+            _refreshAllTagBtnStates();
+        }
+
+        function _refreshAllTagBtnStates() {
+            Object.keys(activeTagsMap).forEach(tagText => {
+                const tagData = activeTagsMap[tagText];
+                const layerIndex = tagData.layer;
+                const textarea = document.getElementById(`layer-${layerIndex}`);
+                if (!textarea) return;
+                const isActive = isTagActive(tagText, textarea.value);
+                document.querySelectorAll(`.tag-btn[data-tag="${tagText.replace(/"/g, '\\"')}"]`).forEach(btn => {
+                    btn.classList.toggle('active', isActive);
+                    if (isActive) {
+                        btn.style.borderColor = tagData.color;
+                        btn.style.boxShadow = `0 0 10px ${tagData.color}80`;
+                        btn.style.color = tagData.color;
+                    } else {
+                        btn.style.borderColor = ''; btn.style.boxShadow = ''; btn.style.color = '';
+                    }
+                });
+            });
+            updateFolderBadges();
+            updateComboCardStates();
         }
 
         function renderContextTabs() {
