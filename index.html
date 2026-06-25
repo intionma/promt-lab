@@ -2246,7 +2246,9 @@
 
             const overlay = document.createElement('div');
             overlay.className = 'combo-create-modal-overlay';
-            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+            const _ccmEscHandler = (e) => { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', _ccmEscHandler); } };
+            document.addEventListener('keydown', _ccmEscHandler);
+            overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); document.removeEventListener('keydown', _ccmEscHandler); } };
 
             const modal = document.createElement('div');
             modal.className = 'combo-create-modal';
@@ -2261,7 +2263,7 @@
             btnAdv.className = 'ccm-mode-btn' + (_ccmState.mode === 'adv' ? ' active' : ''); btnAdv.textContent = '고급';
             const btnClose = document.createElement('button');
             btnClose.className = 'ccm-mode-btn'; btnClose.textContent = '✕';
-            btnClose.onclick = () => overlay.remove();
+            btnClose.onclick = () => { overlay.remove(); document.removeEventListener('keydown', _ccmEscHandler); };
             btnBasic.onclick = () => { _ccmState.mode = 'basic'; btnBasic.classList.add('active'); btnAdv.classList.remove('active'); renderCCMBody(); };
             btnAdv.onclick = () => { _ccmState.mode = 'adv'; btnAdv.classList.add('active'); btnBasic.classList.remove('active'); renderCCMBody(); };
             header.appendChild(btnBasic); header.appendChild(btnAdv); header.appendChild(btnClose);
@@ -5044,7 +5046,9 @@
             document.querySelectorAll('.prompt-classify-overlay').forEach(e => e.remove());
             const overlay = document.createElement('div');
             overlay.className = 'prompt-classify-overlay combo-create-modal-overlay';
-            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+            const _pcEscHandler = (e) => { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', _pcEscHandler); } };
+            document.addEventListener('keydown', _pcEscHandler);
+            overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); document.removeEventListener('keydown', _pcEscHandler); } };
             const modal = document.createElement('div');
             modal.style.cssText = 'background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:14px;width:min(680px,96vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;';
 
@@ -5313,7 +5317,9 @@
             document.querySelectorAll('.db-format-guide-overlay').forEach(e => e.remove());
             const overlay = document.createElement('div');
             overlay.className = 'db-format-guide-overlay combo-create-modal-overlay';
-            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+            const _dbgEscHandler = (e) => { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', _dbgEscHandler); } };
+            document.addEventListener('keydown', _dbgEscHandler);
+            overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); document.removeEventListener('keydown', _dbgEscHandler); } };
             const modal = document.createElement('div');
             modal.style.cssText = 'background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:14px;width:min(700px,95vw);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;';
             const hdr = document.createElement('div');
