@@ -52,29 +52,47 @@
 
         /* 💡 기능 1: 100% 반응형 레이아웃 설계 */
         .app-container {
-            display: grid;
+            display: flex;
             height: 100vh;
-            /* 모바일/태블릿 기본: 최소 폭 제한 유지, 가로 스크롤 발생 */
-            grid-template-columns: minmax(320px, 1.2fr) minmax(400px, 2fr) minmax(350px, 1.5fr);
             min-width: 1070px;
+            overflow: hidden;
+        }
+        .app-container > .panel {
+            min-width: 240px;
+            flex-shrink: 0;
+        }
+        .panel-resize-handle {
+            width: 5px;
+            flex-shrink: 0;
+            background: transparent;
+            cursor: col-resize;
+            position: relative;
+            z-index: 10;
+            transition: background 0.15s;
+        }
+        .panel-resize-handle:hover, .panel-resize-handle.dragging {
+            background: rgba(255,255,255,0.12);
+        }
+        .panel-resize-handle::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 40px;
+            border-radius: 2px;
+            background: rgba(255,255,255,0.18);
+            transition: background 0.15s;
+        }
+        .panel-resize-handle:hover::after, .panel-resize-handle.dragging::after {
+            background: rgba(255,255,255,0.45);
         }
 
-        /* 랩탑 이상 (1200px ~) */
-        @media (min-width: 1200px) {
-            .app-container { grid-template-columns: minmax(360px, 1.2fr) minmax(500px, 2fr) minmax(420px, 1.5fr); min-width: auto; }
-        }
-
-        /* 데스크탑 와이드 (1600px ~) */
-        @media (min-width: 1600px) {
-            .app-container { grid-template-columns: minmax(400px, 1fr) minmax(600px, 2fr) minmax(750px, 2fr); }
-            .right-panel-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
-            .full-width-section { grid-column: 1 / -1; }
-        }
-
-        /* 울트라 와이드 (1920px ~) */
-        @media (min-width: 1920px) {
-            .app-container { grid-template-columns: minmax(450px, 1fr) minmax(700px, 2fr) minmax(900px, 2fr); }
-        }
+        /* 에디터 섹션 접힘 */
+        .editor-section.collapsed .editor-body { display: none; }
+        .editor-header-chevron { transition: transform 0.2s; margin-right: 4px; font-size: 11px; opacity: 0.6; cursor: pointer; }
+        .editor-section.collapsed .editor-header-chevron { transform: rotate(-90deg); }
 
         .panel { display: flex; flex-direction: column; border-right: 1px solid var(--border-dim); background-color: var(--bg-panel); height: 100vh; overflow: hidden; transition: 0.3s; }
         .panel:last-child { border-right: none; }
@@ -370,8 +388,8 @@
         </div>
     </div>
 
-    <div class="app-container">
-        <aside class="panel">
+    <div class="app-container" id="app-container">
+        <aside class="panel" id="panel-left">
             <div class="panel-header">
                 <span><i class="fa-solid fa-tags"></i> 프롬프트 랩</span>
                 <div class="header-actions">
@@ -412,7 +430,9 @@
             </div>
         </aside>
 
-        <main class="panel" style="background-color: var(--bg-base);">
+        <div class="panel-resize-handle" id="resize-handle-1"></div>
+
+        <main class="panel" id="panel-mid" style="background-color: var(--bg-base); flex: 1; min-width: 300px;">
             <div class="context-tabs-wrapper">
                 <div class="context-tabs">
                     <div class="context-tab active" onclick="switchContext('common', this)">
@@ -442,7 +462,9 @@
                 </div>
         </main>
 
-        <section class="panel">
+        <div class="panel-resize-handle" id="resize-handle-2"></div>
+
+        <section class="panel" id="panel-right">
             <div class="panel-header">
                 <span><i class="fa-solid fa-terminal"></i> 조합 및 결과</span>
                 <div class="header-actions">
@@ -1097,8 +1119,9 @@
                 section.id = `editor-section-${i}`;
 
                 section.innerHTML = `
-                    <div class="editor-header">
+                    <div class="editor-header" onclick="toggleEditorSection(event, ${i})">
                         <div class="editor-header-left">
+                            <i class="fa-solid fa-chevron-down editor-header-chevron"></i>
                             <div class="layer-indicator" style="background-color: ${layer.color};"></div>
                             <span>${layer.title}</span>
                             <span class="conflict-badge" id="conflict-badge-${i}">⚠️ 충돌 감지</span>
@@ -2254,6 +2277,82 @@
                 else g.classList.remove('collapsed');
             });
         }
+
+        function toggleEditorSection(event, layerIndex) {
+            if (event.target.closest('.editor-tools') || event.target.closest('.fixed-weight-toolbar')) return;
+            const section = document.getElementById(`editor-section-${layerIndex}`);
+            if (section) section.classList.toggle('collapsed');
+        }
+
+        // Panel resize
+        (function() {
+            const STORAGE_KEY = 'panel_widths_v1';
+            const container = document.getElementById('app-container');
+            const panelLeft = document.getElementById('panel-left');
+            const panelMid = document.getElementById('panel-mid');
+            const panelRight = document.getElementById('panel-right');
+            const handle1 = document.getElementById('resize-handle-1');
+            const handle2 = document.getElementById('resize-handle-2');
+
+            function applyWidths(w1, w3) {
+                panelLeft.style.width = w1 + 'px';
+                panelLeft.style.flex = 'none';
+                panelRight.style.width = w3 + 'px';
+                panelRight.style.flex = 'none';
+                panelMid.style.flex = '1';
+                panelMid.style.width = '';
+            }
+
+            function loadWidths() {
+                try {
+                    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                    if (saved && saved.w1 && saved.w3) {
+                        applyWidths(saved.w1, saved.w3);
+                        return;
+                    }
+                } catch(e) {}
+                // defaults
+                const total = container.getBoundingClientRect().width || window.innerWidth;
+                applyWidths(Math.round(total * 0.24), Math.round(total * 0.28));
+            }
+
+            function saveWidths() {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    w1: panelLeft.getBoundingClientRect().width,
+                    w3: panelRight.getBoundingClientRect().width
+                }));
+            }
+
+            function makeResizable(handle, getFixed, isLeft) {
+                // isLeft=true: handle is to the right of getFixed(); dragging right grows getFixed
+                // isLeft=false: handle is to the left of getFixed(); dragging right shrinks getFixed
+                handle.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    handle.classList.add('dragging');
+                    const startX = e.clientX;
+                    const startW = getFixed().getBoundingClientRect().width;
+
+                    function onMove(e) {
+                        const dx = e.clientX - startX;
+                        const newW = Math.max(220, isLeft ? startW + dx : startW - dx);
+                        getFixed().style.width = newW + 'px';
+                        getFixed().style.flex = 'none';
+                    }
+                    function onUp() {
+                        handle.classList.remove('dragging');
+                        saveWidths();
+                        document.removeEventListener('mousemove', onMove);
+                        document.removeEventListener('mouseup', onUp);
+                    }
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup', onUp);
+                });
+            }
+
+            makeResizable(handle1, () => panelLeft, true);
+            makeResizable(handle2, () => panelRight, false);
+            loadWidths();
+        })();
 
         initApp();
 
