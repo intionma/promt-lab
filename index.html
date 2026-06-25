@@ -3271,20 +3271,98 @@
 
         let currentIOType = '';
         function openIOModal(type) {
-            currentIOType = type; const modal = document.getElementById('db-io-modal'); const title = document.getElementById('io-modal-title'); const desc = document.getElementById('io-desc'); const textarea = document.getElementById('io-textarea'); const btn = document.getElementById('io-action-btn');
-            if(type === 'export') { title.innerHTML = '<i class="fa-solid fa-copy"></i> 클립보드로 DB 내보내기'; desc.innerText = "현재 구축된 전체 마스터 DB의 코드가 생성되었습니다. 복사하여 보관하세요."; textarea.value = JSON.stringify(promptDB); textarea.readOnly = true; btn.innerText = "전체 코드 복사하기"; btn.style.backgroundColor = "var(--accent-blue)"; }
-            else { title.innerHTML = '<i class="fa-solid fa-paste"></i> 클립보드에서 DB 복구하기'; desc.innerText = "백업해둔 DB 텍스트 코드를 아래 빈칸에 붙여넣기 하세요."; textarea.value = ""; textarea.readOnly = false; btn.innerText = "붙여넣은 코드로 복구 실행"; btn.style.backgroundColor = "var(--accent-green)"; }
+            currentIOType = type;
+            const modal = document.getElementById('db-io-modal');
+            const title = document.getElementById('io-modal-title');
+            const desc = document.getElementById('io-desc');
+            const textarea = document.getElementById('io-textarea');
+            const btn = document.getElementById('io-action-btn');
+            if (type === 'export') {
+                title.innerHTML = '<i class="fa-solid fa-copy"></i> 전체 데이터 내보내기';
+                desc.innerText = "태그 DB + 간편 조합 + 에디터 탭 내용이 모두 포함됩니다. 복사하여 보관하세요.";
+                const exportData = {
+                    _version: 2,
+                    promptDB,
+                    comboFS,
+                    contextTabs,
+                    contextStates,
+                    tagDefaultWeights,
+                    favorites,
+                };
+                textarea.value = JSON.stringify(exportData);
+                textarea.readOnly = true;
+                btn.innerText = "전체 코드 복사하기";
+                btn.style.backgroundColor = "var(--accent-blue)";
+            } else {
+                title.innerHTML = '<i class="fa-solid fa-paste"></i> 데이터 복구하기';
+                desc.innerText = "백업해둔 전체 코드(또는 구형 태그DB 코드)를 붙여넣기 하세요.";
+                textarea.value = "";
+                textarea.readOnly = false;
+                btn.innerText = "붙여넣은 코드로 복구 실행";
+                btn.style.backgroundColor = "var(--accent-green)";
+            }
             modal.style.display = 'flex';
         }
 
         function executeIO() {
             const textarea = document.getElementById('io-textarea');
-            if(currentIOType === 'export') {
-                if(navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(textarea.value).then(() => showToast("복사되었습니다.", "success")).catch(() => { textarea.select(); document.execCommand("copy"); showToast("복사되었습니다.", "success"); });
+            if (currentIOType === 'export') {
+                const text = textarea.value;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(() => showToast("복사되었습니다.", "success")).catch(() => { textarea.select(); document.execCommand("copy"); showToast("복사되었습니다.", "success"); });
                 } else { textarea.select(); document.execCommand("copy"); showToast("복사되었습니다.", "success"); }
+            } else {
+                try {
+                    const parsed = JSON.parse(textarea.value);
+                    if (!parsed || typeof parsed !== 'object') throw new Error("Format");
+
+                    // 신형 (v2): 전체 데이터
+                    if (parsed._version === 2) {
+                        if (parsed.promptDB && parsed.promptDB[1] !== undefined) {
+                            promptDB = parsed.promptDB;
+                            safeSetStorage('pro_prompt_db_v7_0', promptDB);
+                        }
+                        if (parsed.comboFS && parsed.comboFS.root) {
+                            comboFS = parsed.comboFS;
+                            saveComboFS();
+                        }
+                        if (parsed.contextTabs && parsed.contextTabs.length > 0) {
+                            contextTabs.length = 0;
+                            parsed.contextTabs.forEach(t => contextTabs.push(t));
+                            Object.keys(contextStates).forEach(k => delete contextStates[k]);
+                            Object.assign(contextStates, parsed.contextStates || {});
+                            // 누락된 탭 상태 보정
+                            contextTabs.forEach(t => { if (!contextStates[t.id]) contextStates[t.id] = ["","","","","","",""]; });
+                            currentContext = contextTabs[0].id;
+                            saveTabsAndStates();
+                        }
+                        if (parsed.tagDefaultWeights) {
+                            Object.keys(tagDefaultWeights).forEach(k => delete tagDefaultWeights[k]);
+                            Object.assign(tagDefaultWeights, parsed.tagDefaultWeights);
+                            saveTagDefaultWeights();
+                        }
+                        if (parsed.favorites && Array.isArray(parsed.favorites)) {
+                            favorites.length = 0;
+                            parsed.favorites.forEach(f => favorites.push(f));
+                            safeSetStorage('pro_prompt_favs_v7_0', favorites);
+                        }
+                        initApp();
+                        showToast("전체 데이터 복구 성공!", "success");
+                    }
+                    // 구형: 태그 DB만
+                    else if (parsed[1] !== undefined) {
+                        promptDB = parsed;
+                        safeSetStorage('pro_prompt_db_v7_0', promptDB);
+                        initApp();
+                        showToast("태그 DB 복구 성공! (간편 조합/탭은 기존 유지)", "success");
+                    } else {
+                        throw new Error("Format");
+                    }
+                    document.getElementById('db-io-modal').style.display = 'none';
+                } catch(e) {
+                    showToast("잘못된 코드 형식입니다.", "error");
+                }
             }
-            else { try { const importedDB = JSON.parse(textarea.value); if (importedDB && typeof importedDB === 'object' && importedDB[1]) { promptDB = importedDB; safeSetStorage('pro_prompt_db_v7_0', promptDB); initApp(); showToast("DB 복구 성공!", "success"); document.getElementById('db-io-modal').style.display='none'; } else { throw new Error("Format"); } } catch (error) { showToast("잘못된 코드 형식입니다.", "error"); } }
         }
 
         function openDBManager() { renderDBTable(); renderDBLayerTabs(); document.getElementById('db-manager-modal').style.display = 'flex'; }
