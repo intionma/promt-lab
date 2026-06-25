@@ -2187,6 +2187,11 @@
                         'black eyes','heterochromia','cat eyes','slanted eyes','large eyes',
                         'petite','tall','slim','curvy','muscular','chubby','thin','small body',
                         'large breasts','medium breasts','small breasts','flat chest',
+                        'huge breasts','gigantic breasts','perky breasts','saggy breasts',
+                        'nipples','areola','cleavage','sideboob','underboob','topless','nude','naked',
+                        'pussy','vagina','labia','clitoris','vulva','anus','buttocks','ass','butt',
+                        'penis','cock','erect','erection','balls','testicles',
+                        'pubic hair','navel','belly button','midriff','abdomen',
                         'young','teen','adult','mature','old','elderly','20 year old',
                         '144cm','150cm','160cm','170cm','180cm','cm tall','head proportion',
                         'tiny head','small head','big head','tiny body','small frame',
@@ -2201,7 +2206,8 @@
                           'body','year old','korean','japanese','asian','beautiful','cute','petite',
                           'head proportion','waist','cheek','doll','fragile','delicate','expressive',
                           'innocent','pure','porcelain','peach','blush','cm tall','tiny','small head',
-                          'height','proportion','frame']
+                          'height','proportion','frame','nipple','cleavage','nude','naked','pussy',
+                          'vagina','penis','cock','pubic','navel','midriff','abdomen','buttock','butt']
             },
             3: { // 의상/착장
                 exact: ['dress','skirt','pants','jeans','shorts','leggings','stockings','pantyhose',
@@ -2213,11 +2219,17 @@
                         'kimono','yukata','hanbok','cheongsam','qipao','maid','miko',
                         'armor','fantasy outfit','casual','formal','sportswear',
                         'oversized','loose','tight','cropped','mini','long','off-shoulder',
-                        'open shirt','unbuttoned','torn','ripped'],
+                        'open shirt','unbuttoned','torn','ripped',
+                        'see-through','transparent','sheer','wet clothes','wet shirt',
+                        'no bra','no panties','topless','bottomless','half naked','partially clothed',
+                        'lifted skirt','skirt lift','shirt lift','panties visible','bra visible',
+                        'exposed','uncovered','revealing','micro bikini','string bikini',
+                        'pasties','body stocking','fishnet','crotchless'],
                 partial: ['wearing','outfit','dress','skirt','shirt','pants','uniform','shoes',
                           'boots','hoodie','sweater','coat','jacket','socks','hat','ribbon',
                           'cloth','fashion','costume','attire','garment','sleeve','collar',
-                          'pastel','pink','white shorts','soft pink']
+                          'pastel','pink','white shorts','soft pink','see-through','transparent',
+                          'revealing','exposed','lifted','visible','bottomless','topless']
             },
             4: { // 포즈/액션/표정
                 exact: ['standing','sitting','lying','kneeling','crouching','jumping','running',
@@ -2231,10 +2243,20 @@
                         'full body','upper body','cowboy shot','bust','portrait','face',
                         'from behind','from above','from below','from side','dutch angle',
                         'profile','three-quarter view','dynamic pose','action pose',
-                        'spread legs','legs together','crossed legs','on knees'],
+                        'spread legs','legs together','crossed legs','on knees',
+                        'doggy style','missionary','cowgirl','reverse cowgirl','prone bone',
+                        'mating press','paizuri','fellatio','cunnilingus','69','anal',
+                        'masturbating','fingering','penetration','sex','intercourse',
+                        'orgasm','ahegao','heart eyes','tongue out','drooling','cum','cumshot',
+                        'creampie','cum on face','cum on body','cum on breasts','facial',
+                        'bondage','tied up','restrained','handcuffed','collar and leash',
+                        'blindfolded','gagged','maid pose','presenting','ass up','bent over',
+                        'legs up','legs spread wide','on all fours','squatting spread legs'],
                 partial: ['standing','sitting','looking','smile','smiling','expression','pose',
                           'body shot','holding','gesture','action','shy','gentle','innocent',
-                          'one hand','lightly']
+                          'one hand','lightly','spread','ahegao','tongue','drool','cum',
+                          'bondage','tied','restrained','presenting','bent over','missionary',
+                          'penetrat','orgasm','masturbat','fingering']
             },
             5: { // 배경/장소
                 exact: ['background','simple background','white background','black background',
@@ -2529,12 +2551,17 @@
                 });
             }
 
-            // Section 2: 🔶 유사 항목
+            // Section 2: 🔶 유사 항목 (계층→폴더 순 정렬)
             if (fuzzyItems.length > 0) {
                 const secHdr = document.createElement('div');
                 secHdr.style.cssText = 'font-size:11px;font-weight:700;color:#f97316;margin-top:8px;margin-bottom:2px;';
                 secHdr.textContent = '🔶 유사 항목 (추정 계층)';
                 list.appendChild(secHdr);
+                // 계층 오름차순 → 폴더명 오름차순 → 원본 입력 순
+                fuzzyItems.sort((a, b) => {
+                    if ((a.fuzzyLid || 99) !== (b.fuzzyLid || 99)) return (a.fuzzyLid || 99) - (b.fuzzyLid || 99);
+                    return (a.fuzzyFk || '').localeCompare(b.fuzzyFk || '');
+                });
                 fuzzyItems.forEach(it => {
                     const item = document.createElement('div');
                     item.className = 'ccm-recog-item';
@@ -2575,12 +2602,13 @@
                 });
             }
 
-            // Section 3: ❓ 미감지 항목
+            // Section 3: ❓ 미감지 항목 (알파벳순 정렬)
             if (unknownItems.length > 0) {
                 const secHdr = document.createElement('div');
                 secHdr.style.cssText = 'font-size:11px;font-weight:700;color:var(--text-dim);margin-top:8px;margin-bottom:2px;';
                 secHdr.textContent = '❓ 미감지 항목';
                 list.appendChild(secHdr);
+                unknownItems.sort((a, b) => a.clean.localeCompare(b.clean));
                 unknownItems.forEach(it => {
                     const item = document.createElement('div');
                     item.className = 'ccm-recog-item';
@@ -4398,8 +4426,12 @@
                 resultDiv.appendChild(sec.el);
             }
 
-            // Fuzzy section
+            // Fuzzy section (계층→폴더 순 정렬)
             if (fuzzy.length > 0) {
+                fuzzy.sort((a, b) => {
+                    if ((a.lid || 99) !== (b.lid || 99)) return (a.lid || 99) - (b.lid || 99);
+                    return (a.fk || '').localeCompare(b.fk || '');
+                });
                 const sec = _pcmSection('🔶 유사 항목 — 계층/폴더 확인 후 추가', '#f59e0b');
                 fuzzy.forEach(item => {
                     sec.content.appendChild(_pcmNewItem(item.clean, item.lid, item.fk));
@@ -4407,8 +4439,9 @@
                 resultDiv.appendChild(sec.el);
             }
 
-            // Unknown section
+            // Unknown section (알파벳순)
             if (unknown.length > 0) {
+                unknown.sort((a, b) => a.clean.localeCompare(b.clean));
                 const sec = _pcmSection('❓ 미인식 — 계층/폴더를 직접 선택하세요', 'var(--text-dim)');
                 unknown.forEach(item => {
                     sec.content.appendChild(_pcmNewItem(item.clean, null, null));
