@@ -1336,6 +1336,10 @@
         // comboFS.items: { [id]: { type:'combo'|'folder', id, title, tags?(combo), children?(folder) } }
         // comboFS.root: [id, ...]
         const FS_KEY = 'combo_fs_v2';
+        const KOR_MAP_KEY = 'pro_custom_kor_map';
+        let customKorMap = {};
+        try { customKorMap = JSON.parse(localStorage.getItem(KOR_MAP_KEY)) || {}; } catch(e) {}
+        function saveCustomKorMap() { localStorage.setItem(KOR_MAP_KEY, JSON.stringify(customKorMap)); }
         let comboFS = { items: {}, root: [] };
         try {
             const saved = JSON.parse(localStorage.getItem(FS_KEY));
@@ -4324,7 +4328,7 @@
                     clean = clean.replace(/^[()\[\]]+|[()\[\]]+$/g, '').trim();
                     if (!clean) return;
                     const d = activeTagsMap[clean];
-                    out.push({ raw: clean, kor: d?.kor || clean, c: d?.c || '', li });
+                    out.push({ raw: clean, kor: d?.kor || customKorMap[clean] || clean, c: d?.c || '', li });
                 });
                 return out;
             }
@@ -5491,19 +5495,51 @@
         function openTranslationSessionModal() {
             document.querySelectorAll('.trans-session-overlay').forEach(e => e.remove());
 
-            // 미번역 태그 수집: k가 없거나 k===t 인 것
-            const untranslated = [];
+            // ── 미번역 토큰 수집: promptDB + 콤보 + 커스텀 맵 없는 것 모두
+            const untranslated = []; // { type:'db'|'custom', lid?, fk?, idx?, t }
+            const seenT = new Set();
+
+            // 1) promptDB 태그
             for (let lid = 1; lid <= 7; lid++) {
                 const layerDB = promptDB[lid];
                 if (!layerDB) continue;
                 for (const fk of Object.keys(layerDB)) {
                     (layerDB[fk] || []).forEach((tag, idx) => {
                         if (!tag.k || tag.k === tag.t) {
-                            untranslated.push({ lid, fk, idx, t: tag.t });
+                            if (!seenT.has(tag.t)) {
+                                seenT.add(tag.t);
+                                untranslated.push({ type: 'db', lid, fk, idx, t: tag.t });
+                            }
                         }
                     });
                 }
             }
+
+            // 2) 콤보 태그 (DB에 없거나 k 없는 토큰)
+            const _hasKor = (token) => {
+                // activeTagsMap에 kor가 영문과 다르면 번역 있는 것
+                const d = activeTagsMap[token];
+                if (d && d.kor && d.kor !== token) return true;
+                if (customKorMap[token]) return true;
+                return false;
+            };
+            Object.values(comboFS.items).forEach(item => {
+                if (item.type !== 'combo' || !item.tags) return;
+                Object.values(item.tags).forEach(tagStr => {
+                    tagStr.split(',').forEach(raw => {
+                        // 토큰 정규화 (가중치/괄호 제거)
+                        let t = raw.trim()
+                            .replace(/^\(+|\)+$/g, '')
+                            .replace(/:\d*\.?\d+$/, '')
+                            .trim();
+                        if (!t || seenT.has(t)) return;
+                        if (!_hasKor(t)) {
+                            seenT.add(t);
+                            untranslated.push({ type: 'custom', t });
+                        }
+                    });
+                });
+            });
 
             const overlay = document.createElement('div');
             overlay.className = 'trans-session-overlay';
@@ -5526,7 +5562,14 @@
             // ── 안내 문구
             const infoEl = document.createElement('div');
             infoEl.style.cssText = 'font-size:12px;color:var(--text-dim);line-height:1.6;background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 14px;flex-shrink:0;';
-            infoEl.innerHTML = `미번역 태그 <b style="color:#f97316">${untranslated.length}개</b>를 찾았습니다.<br>① 아래 목록을 복사해 번역기에 붙여넣기 → ② 번역 결과를 아래 입력창에 붙여넣기 → ③ [번역 적용] 클릭`;
+            (() => {
+                const dbCount = untranslated.filter(u => u.type === 'db').length;
+                const customCount = untranslated.filter(u => u.type === 'custom').length;
+                const parts = [];
+                if (dbCount > 0) parts.push(`DB 태그 <b style="color:#f97316">${dbCount}개</b>`);
+                if (customCount > 0) parts.push(`조합 전용 <b style="color:#a78bfa">${customCount}개</b>`);
+                infoEl.innerHTML = `미번역 항목 ${parts.join(' + ')} 발견<br>① 아래 목록 복사 → 번역기 사용 → ② 번역 결과 붙여넣기 → ③ [번역 적용]`;
+            })();
 
             // ── ① 원문 목록
             const stepOneBox = document.createElement('div');
@@ -5542,7 +5585,10 @@
             const srcText = document.createElement('textarea');
             srcText.readOnly = true;
             srcText.style.cssText = 'resize:none;min-height:130px;max-height:180px;background:rgba(255,255,255,0.04);border:1px solid var(--border-dim);border-radius:6px;padding:10px;font-size:12px;color:var(--text-main);font-family:monospace;line-height:1.6;outline:none;';
-            srcText.value = untranslated.map((tag, i) => `${i + 1}. ${tag.t}`).join('\n');
+            srcText.value = untranslated.map((tag, i) => {
+                const src = tag.type === 'db' ? '[DB]  ' : '[조합] ';
+                return `${i + 1}. ${src}${tag.t}`;
+            }).join('\n');
             stepOneBox.append(stepOneHeader, srcText);
 
             // ── ② 번역 결과 입력
@@ -5603,21 +5649,31 @@
                     untranslated.forEach((_, i) => parsed.push((lines[i] || '').trim()));
                 }
 
-                let applied = 0;
+                let appliedDB = 0, appliedCustom = 0;
                 parsed.forEach((kor, i) => {
                     if (!kor) return;
-                    const { lid, fk, idx } = untranslated[i];
-                    if (promptDB[lid] && promptDB[lid][fk] && promptDB[lid][fk][idx]) {
-                        promptDB[lid][fk][idx].k = kor;
-                        applied++;
+                    const item = untranslated[i];
+                    if (item.type === 'db') {
+                        const { lid, fk, idx } = item;
+                        if (promptDB[lid] && promptDB[lid][fk] && promptDB[lid][fk][idx]) {
+                            promptDB[lid][fk][idx].k = kor;
+                            appliedDB++;
+                        }
+                    } else {
+                        customKorMap[item.t] = kor;
+                        appliedCustom++;
                     }
                 });
 
-                if (applied > 0) {
-                    safeSetStorage('pro_prompt_db_v7_0', promptDB);
-                    initApp();
-                    renderDBTable();
-                    showToast(`${applied}개 태그에 번역이 적용되었습니다.`, 'success');
+                const total = appliedDB + appliedCustom;
+                if (total > 0) {
+                    if (appliedDB > 0) { safeSetStorage('pro_prompt_db_v7_0', promptDB); initApp(); renderDBTable(); }
+                    if (appliedCustom > 0) saveCustomKorMap();
+                    updateFinalOutput();
+                    const msgs = [];
+                    if (appliedDB > 0) msgs.push(`DB 태그 ${appliedDB}개`);
+                    if (appliedCustom > 0) msgs.push(`커스텀 ${appliedCustom}개`);
+                    showToast(`번역 적용 완료: ${msgs.join(', ')}`, 'success');
                     close();
                 } else {
                     showToast('적용할 번역이 없습니다. 형식을 확인해주세요.', 'warning');
