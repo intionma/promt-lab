@@ -152,8 +152,10 @@
         .tag-btn.mini .tag-fav-icon { position: static; padding: 0; font-size: 13px;}
 
         .context-tabs-wrapper { display: flex; background: var(--bg-surface); border-bottom: 1px solid var(--border-dim); align-items: flex-end; }
-        .context-tabs { display: flex; padding: 10px 12px 0 24px; gap: 8px; align-items: flex-end; overflow-x: auto; flex: 1; scrollbar-width: none; }
-        .context-tabs::-webkit-scrollbar { display: none; }
+        .context-tabs { display: flex; padding: 10px 12px 0 24px; gap: 8px; align-items: flex-end; overflow-x: auto; flex: 1; scrollbar-width: thin; scrollbar-color: var(--border-dim) transparent; cursor: grab; user-select: none; }
+        .context-tabs.dragging { cursor: grabbing; }
+        .context-tabs::-webkit-scrollbar { height: 3px; }
+        .context-tabs::-webkit-scrollbar-thumb { background: var(--border-dim); border-radius: 2px; }
         .context-tab-delete-btn { flex-shrink: 0; margin: 6px 12px 6px 4px; padding: 6px 12px; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--accent-danger); border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: var(--font-ui); white-space: nowrap; transition: 0.2s; align-self: center; }
         .context-tab-delete-btn:hover { background: rgba(239,68,68,0.1); border-color: var(--accent-danger); }
         .context-tab { padding: 12px 18px; font-size: 14px; font-weight: 800; font-family: var(--font-heading); color: var(--text-dim); cursor: pointer; border-radius: 8px 8px 0 0; border: 1px solid transparent; border-bottom: none; transition: 0.2s; background: var(--folder-bg); display: flex; align-items: center; gap: 8px; white-space: nowrap;}
@@ -173,7 +175,11 @@
         .editor-tools button.clear-btn { background: none; border: 1px solid var(--border-dim); color: var(--text-dim); cursor: pointer; font-size: 12px; padding: 4px 10px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-family: var(--font-ui);}
         .editor-tools button.clear-btn:hover { color: var(--accent-danger); border-color: var(--accent-danger); }
 
-        .fixed-weight-toolbar { display: none; }
+        .fixed-weight-toolbar { display: none; background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 6px; padding: 2px 4px; gap: 2px; align-items: center; }
+        .fixed-weight-toolbar button { background: transparent; border: none; color: var(--text-dim); padding: 3px 8px; font-size: 12px; font-weight: 700; font-family: var(--font-code); cursor: pointer; border-radius: 4px; transition: 0.15s; }
+        .fixed-weight-toolbar button:hover { background: var(--accent-blue); color: #fff; }
+        .fixed-weight-toolbar .fw-val { font-size: 12px; font-family: var(--font-code); color: var(--accent-blue); min-width: 32px; text-align: center; font-weight: 700; }
+        .fixed-weight-toolbar button.reset-btn { color: var(--text-dim); font-size: 11px; }
 
         /* 우클릭 컨텍스트 메뉴 */
         #ctx-menu { position: fixed; z-index: 99999; background: rgba(18,21,27,0.85); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid var(--border-dim); border-radius: 10px; padding: 6px; min-width: 200px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); display: none; }
@@ -271,8 +277,8 @@
 
         /* 토스트 알림 */
         #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
-        .toast { background: rgba(40, 48, 70, 0.28); backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%); border: 1px solid rgba(255,255,255,0.15); color: var(--text-main); padding: 14px 20px; border-radius: 14px; font-size: 14px; font-weight: 600; font-family: var(--font-ui); box-shadow: 0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; min-width: 260px; max-width: 360px; pointer-events: all; opacity: 0; transform: translateX(30px); transition: opacity 0.3s, transform 0.3s; }
-        [data-theme="light"] .toast { background: rgba(255,255,255,0.32); backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%); border: 1px solid rgba(200,210,230,0.5); box-shadow: 0 4px 24px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.7); color: var(--text-main); }
+        .toast { background: rgba(255,255,255,0.06); backdrop-filter: blur(32px) saturate(200%) brightness(1.15); -webkit-backdrop-filter: blur(32px) saturate(200%) brightness(1.15); border: 1px solid rgba(255,255,255,0.18); border-bottom-color: rgba(255,255,255,0.06); color: var(--text-main); padding: 14px 20px; border-radius: 16px; font-size: 14px; font-weight: 600; font-family: var(--font-ui); box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.08); display: flex; align-items: center; gap: 10px; min-width: 260px; max-width: 360px; pointer-events: all; opacity: 0; transform: translateX(30px); transition: opacity 0.35s, transform 0.35s; }
+        [data-theme="light"] .toast { background: rgba(255,255,255,0.12); backdrop-filter: blur(32px) saturate(200%) brightness(1.1); -webkit-backdrop-filter: blur(32px) saturate(200%) brightness(1.1); border: 1px solid rgba(255,255,255,0.7); border-bottom-color: rgba(200,215,240,0.3); box-shadow: 0 8px 32px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04); color: var(--text-main); }
         .toast.show { opacity: 1; transform: translateX(0); }
         .toast.success { border-left: 4px solid var(--accent-green); }
         .toast.error { border-left: 4px solid var(--accent-danger); }
@@ -776,7 +782,7 @@
                 }
 
                 showCtxMenu(e.clientX, e.clientY, [
-                    { label: '캡슐 편집', icon: 'fa-solid fa-pencil', action: () => chip.click() },
+                    { label: '캡슐 편집', icon: 'fa-solid fa-pencil', action: () => chip.dispatchEvent(new MouseEvent('dblclick', {bubbles:true})) },
                     { label: '캡슐 삭제', icon: 'fa-solid fa-xmark', danger: true, action: () => {
                         if (!textarea || !layerIndex) return;
                         saveStateToUndoStack();
@@ -830,6 +836,28 @@
                 showCtxMenu(e.clientX, e.clientY, [
                     { label: '전체 복사', icon: 'fa-solid fa-copy', action: () => { navigator.clipboard.writeText(resultTA.value).then(() => showToast('복사됨', 'success')); } },
                 ]);
+            } else if (e.target.closest('.panel-content.right-panel-wrapper') || e.target.closest('[id="editor-content"]') || e.target.closest('.editor-section')) {
+                e.preventDefault();
+                showCtxMenu(e.clientX, e.clientY, [
+                    { label: '되돌리기 (Ctrl+Z)', icon: 'fa-solid fa-rotate-left', action: () => performUndo() },
+                    'sep',
+                    { label: `클릭 기본 가중치: ${globalWeightCurrent.toFixed(1)}`, isHeader: true },
+                    { label: '기본 가중치 +0.1', icon: 'fa-solid fa-arrow-up', action: () => adjustGlobalWeight(0.1) },
+                    { label: '기본 가중치 -0.1', icon: 'fa-solid fa-arrow-down', action: () => adjustGlobalWeight(-0.1) },
+                    { label: '기본 가중치 초기화 (1.0)', icon: 'fa-solid fa-rotate-left', action: () => { globalWeightCurrent = 1.0; showToast('기본 가중치가 1.0으로 초기화됐습니다.', 'info', 1500); } },
+                ]);
+            } else if (e.target.closest('.panel') && !e.target.closest('input') && !e.target.closest('textarea') && !e.target.closest('button') && !e.target.closest('select')) {
+                // 사이드바 / 기타 패널
+                e.preventDefault();
+                const sidebar = e.target.closest('.panel:first-child');
+                if (sidebar) {
+                    showCtxMenu(e.clientX, e.clientY, [
+                        { label: 'DB 내보내기', icon: 'fa-solid fa-file-export', action: () => document.getElementById('btn-export')?.click() },
+                        { label: 'DB 불러오기', icon: 'fa-solid fa-file-import', action: () => document.getElementById('btn-import')?.click() },
+                        'sep',
+                        { label: '되돌리기 (Ctrl+Z)', icon: 'fa-solid fa-rotate-left', action: () => performUndo() },
+                    ]);
+                }
             }
         });
 
@@ -937,8 +965,9 @@
                         <div class="editor-tools">
                             <div class="fixed-weight-toolbar" id="toolbar-${i}">
                                 <button onclick="applyFixedToolbar(${i}, 'down')">-0.1</button>
+                                <span class="fw-val" id="fw-val-${i}">1.0</span>
+                                <button class="reset-btn" onclick="applyFixedToolbar(${i}, 'reset')" title="초기화">0</button>
                                 <button onclick="applyFixedToolbar(${i}, 'up')">+0.1</button>
-                                <button class="reset-btn" onclick="applyFixedToolbar(${i}, 'reset')" title="리셋"><i class="fa-solid fa-rotate-left"></i></button>
                             </div>
                             <button class="clear-btn" onclick="clearLayer(${i})">비우기</button>
                         </div>
@@ -1307,21 +1336,18 @@
                     syncFromManualInput(layerIndex);
                 });
 
-                chip.onclick = (e) => {
-                    if (e.target.classList.contains('chip-delete') || e.target.closest('.chip-delete')) return;
-                    e.stopPropagation();
+                const enterEditMode = () => {
                     chip.draggable = false;
-                    document.getElementById('toolbar-' + layerIndex).style.display = 'none';
+                    document.querySelectorAll('.prompt-chip.selected').forEach(c => c.classList.remove('selected'));
+                    document.querySelectorAll('.fixed-weight-toolbar').forEach(tb => tb.style.display = 'none');
                     chip.innerHTML = '';
                     const editInput = document.createElement('input');
                     editInput.type = 'text'; editInput.value = tag; editInput.className = 'chip-edit-input';
                     editInput.style.width = Math.max(50, tag.length * 8) + 'px';
                     chip.appendChild(editInput); editInput.focus();
-
                     const finishEdit = () => {
                         const newVal = editInput.value.trim();
                         if(newVal !== tag) saveStateToUndoStack();
-
                         if(newVal) tags[idx] = newVal; else tags.splice(idx, 1);
                         textarea.value = tags.join(', ');
                         syncFromManualInput(layerIndex);
@@ -1331,6 +1357,33 @@
                         if(e2.key === 'Enter') { e2.preventDefault(); finishEdit(); }
                         if(e2.key === 'Escape') { editInput.value = tag; editInput.blur(); }
                     };
+                };
+
+                chip.onclick = (e) => {
+                    if (e.target.classList.contains('chip-delete') || e.target.closest('.chip-delete')) return;
+                    e.stopPropagation();
+                    // 선택 상태 토글 & 툴바 표시
+                    const alreadySelected = chip.classList.contains('selected');
+                    document.querySelectorAll('.prompt-chip.selected').forEach(c => c.classList.remove('selected'));
+                    document.querySelectorAll('.fixed-weight-toolbar').forEach(tb => tb.style.display = 'none');
+                    if (!alreadySelected) {
+                        chip.classList.add('selected');
+                        const toolbar = document.getElementById('toolbar-' + layerIndex);
+                        toolbar.style.display = 'flex';
+                        toolbar.dataset.activeTextarea = 'layer-' + layerIndex;
+                        toolbar.dataset.activeChipIndex = idx;
+                        // 현재 가중치 표시
+                        const wm = tag.match(/^\((.+):(\d+\.?\d*)\)$/);
+                        const w = wm ? parseFloat(wm[2]) : 1.0;
+                        const fwVal = document.getElementById('fw-val-' + layerIndex);
+                        if (fwVal) fwVal.textContent = w.toFixed(1);
+                    }
+                };
+
+                chip.ondblclick = (e) => {
+                    if (e.target.classList.contains('chip-delete') || e.target.closest('.chip-delete')) return;
+                    e.stopPropagation();
+                    enterEditMode();
                 };
 
                 const delBtn = document.createElement('i');
@@ -1365,8 +1418,13 @@
                 if(e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(); return; }
                 if(e.key === 'Backspace' && input.value === '') {
                     e.preventDefault();
-                    const chips = container.querySelectorAll('.prompt-chip');
-                    if(chips.length > 0) chips[chips.length - 1].click();
+                    if(tags.length > 0) {
+                        // 마지막 태그 편집 모드로 직접 진입
+                        const lastIdx = tags.length - 1;
+                        const lastTag = tags[lastIdx];
+                        const chips = container.querySelectorAll('.prompt-chip');
+                        if(chips.length > 0) chips[chips.length - 1].dispatchEvent(new MouseEvent('dblclick', {bubbles: true}));
+                    }
                 }
             };
             container.appendChild(input);
@@ -1476,9 +1534,14 @@
                 else {
                     let w = weightMatch ? parseFloat(weightMatch[2]) : 1.0;
                     if(action === 'up') w += 0.1; if(action === 'down') w -= 0.1;
+                    w = Math.max(0.1, Math.min(2.0, w));
                     tags[idx] = Math.abs(w - 1.0) < 0.01 ? coreTag : `(${coreTag}:${w.toFixed(1)})`;
                 }
                 textarea.value = tags.join(', '); syncFromManualInput(layerIndex);
+                // 가중치 표시 업데이트
+                const newWm = tags[idx] ? tags[idx].match(/^\((.+):(\d+\.?\d*)\)$/) : null;
+                const fwVal = document.getElementById('fw-val-' + layerIndex);
+                if (fwVal) fwVal.textContent = newWm ? parseFloat(newWm[2]).toFixed(1) : '1.0';
             }
             else {
                 const start = textarea.selectionStart; const end = textarea.selectionEnd;
@@ -1970,6 +2033,24 @@
         }
 
         initApp();
+
+        // 탭 드래그 스크롤
+        (function() {
+            const tabs = document.querySelector('.context-tabs');
+            if (!tabs) return;
+            let isDown = false, startX, scrollLeft;
+            tabs.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.context-tab')) return; // 탭 클릭은 드래그 제외
+                isDown = true; tabs.classList.add('dragging');
+                startX = e.pageX - tabs.offsetLeft; scrollLeft = tabs.scrollLeft;
+            });
+            tabs.addEventListener('mouseleave', () => { isDown = false; tabs.classList.remove('dragging'); });
+            tabs.addEventListener('mouseup', () => { isDown = false; tabs.classList.remove('dragging'); });
+            tabs.addEventListener('mousemove', (e) => {
+                if (!isDown) return; e.preventDefault();
+                tabs.scrollLeft = scrollLeft - (e.pageX - tabs.offsetLeft - startX);
+            });
+        })();
     </script>
 </body>
 </html>
