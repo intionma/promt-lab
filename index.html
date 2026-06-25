@@ -2160,45 +2160,305 @@
             body.appendChild(recogLabel); body.appendChild(recogList);
         }
 
+        // ─── 자동 분류 시스템 v2 ────────────────────────────────────────────────
+
+        // 도메인 키워드 맵: 각 계층에 해당하는 키워드/패턴 목록
+        // 사용자 DB가 있으면 DB 기반 점수가 우선, 없으면 이 맵으로 fallback
+        const _LAYER_KEYWORDS = {
+            1: { // 품질/기술 태그
+                exact: ['score_9','score_8_up','score_7_up','score_6_up','score_5_up','score_4_up',
+                        'masterpiece','best quality','high quality','ultra quality','amazing quality',
+                        'source_anime','source_real','source_furry','source_cartoon',
+                        'photorealistic','realistic','hyperrealistic','ultra realistic',
+                        'sharp focus','high resolution','highres','absurdres','8k','4k','uhd',
+                        'ray tracing','depth of field','bokeh','perfect anatomy','intricate detail',
+                        'detailed','highly detailed','ultra detailed','fine detail',
+                        'subsurface scattering','skin texture','realistic skin'],
+                partial: ['score_','quality','realistic','resolution','detail','texture','scattering',
+                          'photoreali','absurd','highres','masterpi','intricate']
+            },
+            2: { // 캐릭터/인물
+                exact: ['girl','boy','woman','man','female','male','person','human',
+                        'blonde hair','brown hair','black hair','white hair','silver hair','red hair',
+                        'blue hair','pink hair','purple hair','green hair','orange hair','gray hair',
+                        'short hair','long hair','medium hair','wavy hair','curly hair','straight hair',
+                        'twintails','ponytail','braid','bun','pigtails','bangs','fringe',
+                        'blue eyes','brown eyes','green eyes','red eyes','purple eyes','golden eyes',
+                        'black eyes','heterochromia','cat eyes','slanted eyes','large eyes',
+                        'petite','tall','slim','curvy','muscular','chubby','thin','small body',
+                        'large breasts','medium breasts','small breasts','flat chest',
+                        'young','teen','adult','mature','old','elderly','20 year old',
+                        '144cm','150cm','160cm','170cm','180cm','cm tall','head proportion',
+                        'tiny head','small head','big head','tiny body','small frame',
+                        'beautiful','cute','pretty','gorgeous','handsome',
+                        'korean','japanese','chinese','asian','western','european',
+                        'dark skin','tan skin','pale skin','white skin','porcelain skin',
+                        'freckles','mole','scar','tattoo','makeup','blush','lipstick',
+                        'cat ears','elf ears','fox ears','animal ears','tail',
+                        'ahoge','hair ornament','hair ribbon','hair flower','hair pin',
+                        'glasses','eyepatch','blindfold'],
+                partial: ['hair','eyes','skin','girl','boy','woman','man','ears','face','breast',
+                          'body','year old','korean','japanese','asian','beautiful','cute','petite',
+                          'head proportion','waist','cheek','doll','fragile','delicate','expressive',
+                          'innocent','pure','porcelain','peach','blush','cm tall','tiny','small head',
+                          'height','proportion','frame']
+            },
+            3: { // 의상/착장
+                exact: ['dress','skirt','pants','jeans','shorts','leggings','stockings','pantyhose',
+                        'shirt','blouse','jacket','coat','hoodie','sweater','cardigan','vest',
+                        'uniform','school uniform','sailor uniform','military uniform',
+                        'bikini','swimsuit','one piece','lingerie','underwear','bra','panties',
+                        'shoes','boots','heels','sneakers','sandals','socks','thighhighs',
+                        'hat','cap','ribbon','bow','tie','scarf','gloves','belt','bag',
+                        'kimono','yukata','hanbok','cheongsam','qipao','maid','miko',
+                        'armor','fantasy outfit','casual','formal','sportswear',
+                        'oversized','loose','tight','cropped','mini','long','off-shoulder',
+                        'open shirt','unbuttoned','torn','ripped'],
+                partial: ['wearing','outfit','dress','skirt','shirt','pants','uniform','shoes',
+                          'boots','hoodie','sweater','coat','jacket','socks','hat','ribbon',
+                          'cloth','fashion','costume','attire','garment','sleeve','collar',
+                          'pastel','pink','white shorts','soft pink']
+            },
+            4: { // 포즈/액션/표정
+                exact: ['standing','sitting','lying','kneeling','crouching','jumping','running',
+                        'walking','dancing','flying','floating','leaning','bending',
+                        'looking at viewer','looking away','looking back','looking up','looking down',
+                        'smile','smiling','grinning','laughing','crying','frowning','pouting',
+                        'serious','angry','surprised','shocked','embarrassed','shy','nervous',
+                        'blushing','winking','blinking','sleeping','yawning',
+                        'arms up','arms behind back','arms crossed','hand on hip',
+                        'holding','grabbing','reaching','pointing','waving','peace sign',
+                        'full body','upper body','cowboy shot','bust','portrait','face',
+                        'from behind','from above','from below','from side','dutch angle',
+                        'profile','three-quarter view','dynamic pose','action pose',
+                        'spread legs','legs together','crossed legs','on knees'],
+                partial: ['standing','sitting','looking','smile','smiling','expression','pose',
+                          'body shot','holding','gesture','action','shy','gentle','innocent',
+                          'one hand','lightly']
+            },
+            5: { // 배경/장소
+                exact: ['background','simple background','white background','black background',
+                        'gradient background','transparent background','plain background',
+                        'indoor','outdoor','interior','exterior',
+                        'bedroom','living room','bathroom','kitchen','classroom','office','library',
+                        'city','street','alley','park','garden','forest','mountain','beach','ocean',
+                        'sky','sunset','sunrise','night','day','dawn','dusk',
+                        'japan','japanese street','shrine','traditional','modern',
+                        'fantasy world','space','galaxy','cyberpunk','steampunk',
+                        'bokeh background','blurred background','depth of field'],
+                partial: ['background','room','indoor','outdoor','city','street','park','forest',
+                          'beach','ocean','sky','bedroom','cozy']
+            },
+            6: { // 조명/분위기
+                exact: ['soft light','hard light','natural light','sunlight','moonlight',
+                        'backlight','rim light','side light','front light','top light','god rays',
+                        'soft bedroom lighting','bedroom lighting','room lighting','indoor lighting',
+                        'studio lighting','dramatic lighting','cinematic lighting','ambient light',
+                        'warm light','cool light','golden hour','blue hour',
+                        'glowing','neon','fluorescent','candlelight','firelight',
+                        'shadow','deep shadow','high contrast','low contrast',
+                        'fog','mist','haze','rain','snow','sparkle','bloom',
+                        'dark','bright','colorful','monochrome','sepia','vibrant',
+                        'soft colors','muted colors','pastel colors','vivid'],
+                partial: ['light','lighting','shadow','glow','bright','dark','warm','cool',
+                          'neon','fog','mist','cinematic','ambient','dramatic','soft light',
+                          'dimly','illuminat','lit']
+            },
+            7: { // 스타일/아트스타일
+                exact: ['anime','manga','cartoon','illustration','painting','drawing','sketch',
+                        'oil painting','watercolor','acrylic','digital art','pixel art','3d','cgi',
+                        'realistic style','semi-realistic','stylized','flat color','cell shading',
+                        'line art','comic','doujinshi','light novel','game cg',
+                        'studio ghibli','makoto shinkai','artgerm','greg rutkowski',
+                        'impressionist','expressionist','surrealist','abstract',
+                        'noir','gothic','kawaii','moe','ecchi','dark fantasy','high fantasy'],
+                partial: ['anime','manga','style','art','paint','draw','sketch','illustration',
+                          'cartoon','pixel','render','cgi','realistic','3d']
+            }
+        };
+
+        // 바이그램(2글자 쌍) 집합 생성
+        function _bigrams(str) {
+            const s = str.toLowerCase().replace(/\s+/g, ' ').trim();
+            const set = new Set();
+            for (let i = 0; i < s.length - 1; i++) set.add(s.slice(i, i + 2));
+            return set;
+        }
+
+        // Dice coefficient (바이그램 기반 문자열 유사도, 0~1)
+        function _dice(a, b) {
+            if (!a || !b) return 0;
+            if (a === b) return 1;
+            const bg1 = _bigrams(a), bg2 = _bigrams(b);
+            if (!bg1.size || !bg2.size) return 0;
+            let inter = 0;
+            bg1.forEach(g => { if (bg2.has(g)) inter++; });
+            return (2 * inter) / (bg1.size + bg2.size);
+        }
+
+        // 토큰 Jaccard (단어 기반)
+        function _tokenJaccard(a, b) {
+            const ta = new Set(a.toLowerCase().split(/\s+/).filter(w => w.length > 1));
+            const tb = new Set(b.toLowerCase().split(/\s+/).filter(w => w.length > 1));
+            if (!ta.size || !tb.size) return 0;
+            let inter = 0;
+            ta.forEach(w => { if (tb.has(w)) inter++; });
+            const union = new Set([...ta, ...tb]).size;
+            return inter / union;
+        }
+
+        // 도메인 키워드 맵으로 계층 점수 계산
+        function _domainScore(p) {
+            const scores = {};
+            const pl = p.toLowerCase();
+            const pTokens = pl.split(/[\s_-]+/).filter(w => w.length > 1);
+
+            for (const [lid, kmap] of Object.entries(_LAYER_KEYWORDS)) {
+                let score = 0;
+                const layer = parseInt(lid);
+
+                // exact phrase match (높은 가중치)
+                for (const kw of kmap.exact) {
+                    if (pl === kw) { score = Math.max(score, 1.0); break; }
+                    // 긴 exact 키워드가 포함될수록 더 높은 점수 (길이 보정)
+                    if (pl.includes(kw) || kw.includes(pl)) {
+                        const lenBonus = Math.min(kw.length / 20, 0.2);
+                        score = Math.max(score, 0.75 + lenBonus);
+                    }
+                    // token overlap (부분 매칭)
+                    const kwTokens = kw.split(/[\s_-]+/).filter(w => w.length > 1);
+                    if (kwTokens.length > 0) {
+                        const common = pTokens.filter(t => kwTokens.includes(t)).length;
+                        const ratio = common / Math.max(kwTokens.length, pTokens.length);
+                        if (common > 0) score = Math.max(score, 0.35 + 0.4 * ratio);
+                    }
+                }
+
+                // partial/stem match (낮은 가중치, exact보다 짧은 단어)
+                for (const stem of kmap.partial) {
+                    if (pl.includes(stem) || stem.includes(pl)) {
+                        // stem이 짧을수록 점수 낮춤 (노이즈 방지)
+                        const stemScore = 0.3 + Math.min(stem.length / 30, 0.2);
+                        score = Math.max(score, stemScore);
+                    }
+                }
+
+                if (score > 0) scores[layer] = score;
+            }
+            return scores;
+        }
+
+        // 메인 퍼지 분류 함수 (DB 기반 + 도메인 지식 결합)
         function _fuzzyFindLayer(cleanPrompt) {
-            const p = cleanPrompt.toLowerCase();
-            let best = null;
+            const p = cleanPrompt.toLowerCase().trim();
+            if (!p) return null;
+
+            // 점수 누적: {lid: {score, fk}}
+            const layerScores = {};
+
+            const updateBest = (lid, fk, score) => {
+                if (!layerScores[lid] || score > layerScores[lid].score) {
+                    layerScores[lid] = { score, fk };
+                }
+            };
+
+            // ── 1단계: DB 내 모든 태그와 비교 ────────────────────────────────
             for (let lid = 1; lid <= 7; lid++) {
                 if (!promptDB[lid]) continue;
                 for (const [fk, tags] of Object.entries(promptDB[lid])) {
-                    // Check folder key words
-                    const fkWords = fk.toLowerCase().split(/[\s|_,]+/).filter(Boolean);
+                    const fkName = fk.split('|')[0].toLowerCase();
+
+                    // 폴더명 유사도
                     let fkScore = 0;
-                    if (fk.toLowerCase().includes(p) || p.includes(fk.toLowerCase().split('|')[0])) fkScore = 0.2;
-                    for (const w of fkWords) { if (p.includes(w) && w.length > 2) fkScore = Math.max(fkScore, 0.2); }
+                    if (p.includes(fkName) || fkName.includes(p)) fkScore = 0.25;
+                    else {
+                        const d = _dice(p, fkName);
+                        const j = _tokenJaccard(p, fkName);
+                        fkScore = Math.max(d, j) * 0.3;
+                    }
 
                     for (const t of tags) {
                         const tagPrompts = (t.t || '').split(',').map(s => s.trim().toLowerCase());
                         const kr = (t.k || '').toLowerCase();
-                        let score = 0;
+                        let tagScore = fkScore;
+
                         for (const tp of tagPrompts) {
                             if (!tp) continue;
-                            // substring match
-                            if (tp.includes(p) || p.includes(tp)) { score = Math.max(score, 0.5); }
-                            // char-level similarity
-                            const longer = tp.length > p.length ? tp : p;
-                            const shorter = tp.length <= p.length ? tp : p;
-                            let matchChars = 0;
-                            for (const ch of shorter) { if (longer.includes(ch)) matchChars++; }
-                            const charScore = matchChars / longer.length;
-                            score = Math.max(score, charScore);
+                            // 완전 일치
+                            if (tp === p) { tagScore = 1.0; break; }
+                            // 포함 관계
+                            if (tp.includes(p) || p.includes(tp)) {
+                                const ratio = Math.min(tp.length, p.length) / Math.max(tp.length, p.length);
+                                tagScore = Math.max(tagScore, 0.55 + 0.35 * ratio);
+                                continue;
+                            }
+                            // Dice coefficient
+                            const d = _dice(p, tp);
+                            if (d > 0.4) tagScore = Math.max(tagScore, d * 0.85);
+                            // Token Jaccard
+                            const j = _tokenJaccard(p, tp);
+                            if (j > 0.3) tagScore = Math.max(tagScore, j * 0.9);
+                            // 가장 긴 공통 부분 문자열 비율
+                            const lcs = _lcsSim(p, tp);
+                            if (lcs > 0.5) tagScore = Math.max(tagScore, lcs * 0.7);
                         }
-                        // check kr match
-                        if (kr && (kr.includes(p) || p.includes(kr))) score = Math.max(score, 0.3);
-                        score = Math.max(score, fkScore);
-                        if (score > 0.15 && (!best || score > best.score)) {
-                            best = { lid, fk, score };
+
+                        // 한국어 표시명 매칭
+                        if (kr && (kr.includes(p) || p.includes(kr))) {
+                            tagScore = Math.max(tagScore, 0.4);
                         }
+
+                        if (tagScore > 0.12) updateBest(lid, fk, tagScore);
                     }
                 }
             }
+
+            // ── 2단계: 도메인 키워드 맵 점수 합산 ───────────────────────────
+            const domainScores = _domainScore(p);
+            for (const [lid, ds] of Object.entries(domainScores)) {
+                const layer = parseInt(lid);
+                // 도메인 점수는 DB 점수가 없거나 약할 때 보완
+                const existing = layerScores[layer]?.score || 0;
+                const combined = Math.max(existing, ds * 0.85);
+                if (combined > (layerScores[layer]?.score || 0)) {
+                    updateBest(layer, layerScores[layer]?.fk || null, combined);
+                }
+            }
+
+            // ── 3단계: 최고 점수 계층 선택 ───────────────────────────────────
+            let best = null;
+            for (const [lid, data] of Object.entries(layerScores)) {
+                if (data.score > 0.12 && (!best || data.score > best.score)) {
+                    best = { lid: parseInt(lid), fk: data.fk, score: data.score };
+                }
+            }
+
+            // fk가 없으면 해당 계층의 첫 번째 폴더로
+            if (best && !best.fk && promptDB[best.lid]) {
+                best.fk = Object.keys(promptDB[best.lid])[0] || null;
+            }
+
             return best;
         }
+
+        // 가장 긴 공통 부분 문자열 비율 (LCS-based similarity)
+        function _lcsSim(a, b) {
+            if (!a || !b) return 0;
+            const m = a.length, n = b.length;
+            if (m > 60 || n > 60) return 0; // 성능 보호
+            let maxLen = 0;
+            const dp = Array.from({length: m + 1}, () => new Int32Array(n + 1));
+            for (let i = 1; i <= m; i++) {
+                for (let j = 1; j <= n; j++) {
+                    if (a[i-1] === b[j-1]) {
+                        dp[i][j] = dp[i-1][j-1] + 1;
+                        if (dp[i][j] > maxLen) maxLen = dp[i][j];
+                    }
+                }
+            }
+            return maxLen / Math.max(m, n);
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         function _findInDB(p) {
             // p: 단일 프롬프트 문자열 (가중치 제거 후)
