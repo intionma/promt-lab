@@ -2487,52 +2487,80 @@
 
         // 도메인 키워드 맵: 각 계층에 해당하는 키워드/패턴 목록
         // 사용자 DB가 있으면 DB 기반 점수가 우선, 없으면 이 맵으로 fallback
+        // 레이어 구조: L1=화질/렌더링, L2=구도/피사체, L3=외형/얼굴, L4=의상/악세, L5=액션/포즈, L6=배경/환경, L7=조명/이펙트
         const _LAYER_KEYWORDS = {
-            1: { // 품질/기술 태그
+            1: { // L1: 화질/렌더링 + 화풍/아트스타일
                 exact: ['score_9','score_8_up','score_7_up','score_6_up','score_5_up','score_4_up',
                         'masterpiece','best quality','high quality','ultra quality','amazing quality',
                         'source_anime','source_real','source_furry','source_cartoon',
-                        'photorealistic','realistic','hyperrealistic','ultra realistic',
+                        'photorealistic','hyperrealistic','ultra realistic',
                         'sharp focus','high resolution','highres','absurdres','8k','4k','uhd',
-                        'ray tracing','depth of field','bokeh','perfect anatomy','intricate detail',
+                        'ray tracing','perfect anatomy','intricate detail',
                         'detailed','highly detailed','ultra detailed','fine detail',
-                        'subsurface scattering','skin texture','realistic skin'],
-                partial: ['score_','quality','realistic','resolution','detail','texture','scattering',
-                          'photoreali','absurd','highres','masterpi','intricate']
+                        'subsurface scattering','skin texture','realistic skin',
+                        'anime','manga','cartoon','illustration','painting','drawing','sketch',
+                        'oil painting','watercolor','acrylic','digital art','pixel art','3d','cgi',
+                        'realistic style','semi-realistic','stylized','flat color','cell shading',
+                        'line art','comic','doujinshi','light novel','game cg',
+                        'studio ghibli','makoto shinkai','artgerm','greg rutkowski',
+                        'impressionist','expressionist','surrealist','abstract',
+                        'noir','gothic','kawaii','moe','ecchi','dark fantasy','high fantasy',
+                        'pony diffusion','pony xl','sdxl','stable diffusion'],
+                partial: ['score_','quality','resolution','detail','scattering',
+                          'photoreali','absurd','highres','masterpi','intricate',
+                          'anime','manga','style','art','paint','draw','sketch','illustration',
+                          'cartoon','pixel','render','cgi','3d','source_']
             },
-            2: { // 캐릭터/인물
-                exact: ['girl','boy','woman','man','female','male','person','human',
-                        'blonde hair','brown hair','black hair','white hair','silver hair','red hair',
+            2: { // L2: 구도/피사체 (인원수, 성별, 국적, 카메라앵글)
+                exact: ['1girl','2girls','3girls','4girls','5girls','6+girls',
+                        '1boy','2boys','3boys','multiple girls','multiple boys','multiple people',
+                        'solo','couple','group','duo','trio',
+                        'girl','boy','woman','man','female','male','person','human',
+                        'young','teen','adult','mature','old','elderly','20 year old',
+                        '144cm','150cm','160cm','170cm','180cm','cm tall',
+                        'beautiful','cute','pretty','gorgeous','handsome',
+                        'korean','japanese','chinese','asian','western','european',
+                        'full body','upper body','cowboy shot','bust','portrait','face',
+                        'from behind','from above','from below','from side','dutch angle',
+                        'profile','three-quarter view','close-up','wide shot','medium shot',
+                        'overhead view','bird eye view','low angle','high angle','worm eye view',
+                        'pov','first person','selfie'],
+                partial: ['girl','boy','woman','man','person','solo','couple','multiple',
+                          'year old','korean','japanese','asian','cm tall','height',
+                          'angle','shot','view','pov','body shot','portrait','close']
+            },
+            3: { // L3: 외형/얼굴 (헤어, 눈, 피부, 체형, 표정, 메이크업, 신체디테일)
+                exact: ['blonde hair','brown hair','black hair','white hair','silver hair','red hair',
                         'blue hair','pink hair','purple hair','green hair','orange hair','gray hair',
                         'short hair','long hair','medium hair','wavy hair','curly hair','straight hair',
                         'twintails','ponytail','braid','bun','pigtails','bangs','fringe',
+                        'ahoge','hair ornament','hair ribbon','hair flower','hair pin',
                         'blue eyes','brown eyes','green eyes','red eyes','purple eyes','golden eyes',
                         'black eyes','heterochromia','cat eyes','slanted eyes','large eyes',
                         'petite','tall','slim','curvy','muscular','chubby','thin','small body',
                         'large breasts','medium breasts','small breasts','flat chest',
                         'huge breasts','gigantic breasts','perky breasts','saggy breasts',
-                        'nipples','areola','cleavage','sideboob','underboob','topless','nude','naked',
+                        'nipples','areola','cleavage','sideboob','underboob',
                         'pussy','vagina','labia','clitoris','vulva','anus','buttocks','ass','butt',
                         'penis','cock','erect','erection','balls','testicles',
                         'pubic hair','navel','belly button','midriff','abdomen',
-                        'young','teen','adult','mature','old','elderly','20 year old',
-                        '144cm','150cm','160cm','170cm','180cm','cm tall','head proportion',
-                        'tiny head','small head','big head','tiny body','small frame',
-                        'beautiful','cute','pretty','gorgeous','handsome',
-                        'korean','japanese','chinese','asian','western','european',
+                        'head proportion','tiny head','small head','big head','small frame',
                         'dark skin','tan skin','pale skin','white skin','porcelain skin',
-                        'freckles','mole','scar','tattoo','makeup','blush','lipstick',
+                        'freckles','mole','scar','tattoo','blush','lipstick',
                         'cat ears','elf ears','fox ears','animal ears','tail',
-                        'ahoge','hair ornament','hair ribbon','hair flower','hair pin',
-                        'glasses','eyepatch','blindfold'],
-                partial: ['hair','eyes','skin','girl','boy','woman','man','ears','face','breast',
-                          'body','year old','korean','japanese','asian','beautiful','cute','petite',
-                          'head proportion','waist','cheek','doll','fragile','delicate','expressive',
-                          'innocent','pure','porcelain','peach','blush','cm tall','tiny','small head',
-                          'height','proportion','frame','nipple','cleavage','nude','naked','pussy',
-                          'vagina','penis','cock','pubic','navel','midriff','abdomen','buttock','butt']
+                        'glasses','eyepatch','smile','smiling','grinning','laughing','crying',
+                        'frowning','pouting','serious','angry','surprised','shocked',
+                        'embarrassed','shy','nervous','blushing','winking','blinking',
+                        'sleeping','yawning','ahegao','heart eyes','tongue out','drooling',
+                        'makeup','eyeshadow','eyelashes','mascara','foundation','blush makeup'],
+                partial: ['hair','eyes','skin','breast','nipple','cleavage','nude','naked','pussy',
+                          'vagina','penis','cock','pubic','navel','midriff','abdomen','buttock','butt',
+                          'ears','face','head proportion','waist','cheek','doll','fragile','delicate',
+                          'innocent','pure','porcelain','peach','blush','tiny','small head',
+                          'height','proportion','frame','smile','smiling','expression','makeup',
+                          'tattoo','mole','freckle','scar','tail','ahegao','tongue','drool']
             },
-            3: { // 의상/착장
+            4: { // L4: 의상/악세서리
                 exact: ['dress','skirt','pants','jeans','shorts','leggings','stockings','pantyhose',
                         'shirt','blouse','jacket','coat','hoodie','sweater','cardigan','vest',
                         'uniform','school uniform','sailor uniform','military uniform',
@@ -2547,41 +2575,36 @@
                         'no bra','no panties','topless','bottomless','half naked','partially clothed',
                         'lifted skirt','skirt lift','shirt lift','panties visible','bra visible',
                         'exposed','uncovered','revealing','micro bikini','string bikini',
-                        'pasties','body stocking','fishnet','crotchless'],
+                        'pasties','body stocking','fishnet','crotchless',
+                        'necklace','earrings','bracelet','ring','choker','collar',
+                        'watch','sunglasses','hair clip','hair tie','headband'],
                 partial: ['wearing','outfit','dress','skirt','shirt','pants','uniform','shoes',
                           'boots','hoodie','sweater','coat','jacket','socks','hat','ribbon',
                           'cloth','fashion','costume','attire','garment','sleeve','collar',
-                          'pastel','pink','white shorts','soft pink','see-through','transparent',
-                          'revealing','exposed','lifted','visible','bottomless','topless']
+                          'see-through','transparent','revealing','exposed','lifted','visible',
+                          'bottomless','topless','necklace','earring','bracelet','choker']
             },
-            4: { // 포즈/액션/표정
+            5: { // L5: 액션/포즈/제스처
                 exact: ['standing','sitting','lying','kneeling','crouching','jumping','running',
                         'walking','dancing','flying','floating','leaning','bending',
                         'looking at viewer','looking away','looking back','looking up','looking down',
-                        'smile','smiling','grinning','laughing','crying','frowning','pouting',
-                        'serious','angry','surprised','shocked','embarrassed','shy','nervous',
-                        'blushing','winking','blinking','sleeping','yawning',
                         'arms up','arms behind back','arms crossed','hand on hip',
                         'holding','grabbing','reaching','pointing','waving','peace sign',
-                        'full body','upper body','cowboy shot','bust','portrait','face',
-                        'from behind','from above','from below','from side','dutch angle',
-                        'profile','three-quarter view','dynamic pose','action pose',
                         'spread legs','legs together','crossed legs','on knees',
                         'doggy style','missionary','cowgirl','reverse cowgirl','prone bone',
                         'mating press','paizuri','fellatio','cunnilingus','69','anal',
                         'masturbating','fingering','penetration','sex','intercourse',
-                        'orgasm','ahegao','heart eyes','tongue out','drooling','cum','cumshot',
-                        'creampie','cum on face','cum on body','cum on breasts','facial',
-                        'bondage','tied up','restrained','handcuffed','collar and leash',
-                        'blindfolded','gagged','maid pose','presenting','ass up','bent over',
-                        'legs up','legs spread wide','on all fours','squatting spread legs'],
-                partial: ['standing','sitting','looking','smile','smiling','expression','pose',
-                          'body shot','holding','gesture','action','shy','gentle','innocent',
-                          'one hand','lightly','spread','ahegao','tongue','drool','cum',
-                          'bondage','tied','restrained','presenting','bent over','missionary',
-                          'penetrat','orgasm','masturbat','fingering']
+                        'orgasm','cum','cumshot','creampie','cum on face','cum on body',
+                        'cum on breasts','facial','bondage','tied up','restrained',
+                        'handcuffed','blindfolded','gagged','maid pose','presenting',
+                        'ass up','bent over','legs up','legs spread wide',
+                        'on all fours','squatting spread legs','dynamic pose','action pose'],
+                partial: ['standing','sitting','looking','pose','holding','gesture','action',
+                          'spread','bent over','presenting','missionary','penetrat',
+                          'orgasm','masturbat','fingering','bondage','tied','restrained',
+                          'cum','drool','running','walking','dancing','jumping','leaning']
             },
-            5: { // 배경/장소
+            6: { // L6: 배경/환경 (장소, 시간, 날씨)
                 exact: ['background','simple background','white background','black background',
                         'gradient background','transparent background','plain background',
                         'indoor','outdoor','interior','exterior',
@@ -2590,11 +2613,14 @@
                         'sky','sunset','sunrise','night','day','dawn','dusk',
                         'japan','japanese street','shrine','traditional','modern',
                         'fantasy world','space','galaxy','cyberpunk','steampunk',
-                        'bokeh background','blurred background','depth of field'],
+                        'bokeh background','blurred background','depth of field',
+                        'rain','snow','cloudy','sunny','overcast','stormy',
+                        'spring','summer','autumn','winter','cherry blossom'],
                 partial: ['background','room','indoor','outdoor','city','street','park','forest',
-                          'beach','ocean','sky','bedroom','cozy']
+                          'beach','ocean','sky','bedroom','cozy','shrine','school','office',
+                          'rain','snow','cloud','sunny','season','blossom']
             },
-            6: { // 조명/분위기
+            7: { // L7: 조명/이펙트/파티클
                 exact: ['soft light','hard light','natural light','sunlight','moonlight',
                         'backlight','rim light','side light','front light','top light','god rays',
                         'soft bedroom lighting','bedroom lighting','room lighting','indoor lighting',
@@ -2602,23 +2628,16 @@
                         'warm light','cool light','golden hour','blue hour',
                         'glowing','neon','fluorescent','candlelight','firelight',
                         'shadow','deep shadow','high contrast','low contrast',
-                        'fog','mist','haze','rain','snow','sparkle','bloom',
+                        'fog','mist','haze','sparkle','bloom','lens flare','bokeh',
                         'dark','bright','colorful','monochrome','sepia','vibrant',
-                        'soft colors','muted colors','pastel colors','vivid'],
+                        'soft colors','muted colors','pastel colors','vivid',
+                        'particles','floating particles','magic particles','dust','petal',
+                        'fireworks','lightning','aurora','starburst','light beam',
+                        'color grading','film grain','vignette','chromatic aberration'],
                 partial: ['light','lighting','shadow','glow','bright','dark','warm','cool',
-                          'neon','fog','mist','cinematic','ambient','dramatic','soft light',
-                          'dimly','illuminat','lit']
-            },
-            7: { // 스타일/아트스타일
-                exact: ['anime','manga','cartoon','illustration','painting','drawing','sketch',
-                        'oil painting','watercolor','acrylic','digital art','pixel art','3d','cgi',
-                        'realistic style','semi-realistic','stylized','flat color','cell shading',
-                        'line art','comic','doujinshi','light novel','game cg',
-                        'studio ghibli','makoto shinkai','artgerm','greg rutkowski',
-                        'impressionist','expressionist','surrealist','abstract',
-                        'noir','gothic','kawaii','moe','ecchi','dark fantasy','high fantasy'],
-                partial: ['anime','manga','style','art','paint','draw','sketch','illustration',
-                          'cartoon','pixel','render','cgi','realistic','3d']
+                          'neon','fog','mist','cinematic','ambient','dramatic','bloom',
+                          'dimly','illuminat','lit','sparkle','particle','grain','vignette',
+                          'color grad','lens','bokeh','aurora','lightning','firework']
             }
         };
 
@@ -5058,7 +5077,7 @@
             hdr.innerHTML = '<span style="font-size:15px;font-weight:800;font-family:var(--font-heading);"><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--accent-purple,#a78bfa);margin-right:6px;"></i>프롬프트 자동 분류 추가</span>';
             const closeBtn = document.createElement('button');
             closeBtn.textContent = '✕'; closeBtn.style.cssText = 'background:none;border:none;color:var(--text-dim);font-size:16px;cursor:pointer;padding:2px 6px;';
-            closeBtn.onclick = () => overlay.remove();
+            closeBtn.onclick = () => { overlay.remove(); document.removeEventListener('keydown', _pcEscHandler); };
             hdr.appendChild(closeBtn);
 
             // Body
@@ -5092,7 +5111,7 @@
             footer.style.cssText = 'padding:12px 18px;border-top:1px solid var(--border-dim);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;';
             const cancelBtn = document.createElement('button');
             cancelBtn.className = 'action-btn'; cancelBtn.textContent = '닫기';
-            cancelBtn.onclick = () => overlay.remove();
+            cancelBtn.onclick = () => { overlay.remove(); document.removeEventListener('keydown', _pcEscHandler); };
             const addBtn = document.createElement('button');
             addBtn.className = 'action-btn';
             addBtn.style.cssText = 'background:var(--accent-green);color:#fff;border:none;padding:8px 18px;font-size:13px;display:none;';
