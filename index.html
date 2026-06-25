@@ -216,9 +216,13 @@
         .fav-recent-box.collapsed .toggle-icon { transform: rotate(-90deg); }
         .fav-recent-box:not(.collapsed) .box-header { border-radius: 8px 8px 0 0 !important; border-bottom: 1px solid var(--border-dim); }
 
-        .layer-group { background: var(--bg-surface); border-radius: 10px; border: 1px solid var(--border-dim); overflow: hidden; flex-shrink: 0; transition: 0.3s;}
-        @keyframes layerFlash { 0%{box-shadow:0 0 0 0 transparent} 20%{box-shadow:0 0 0 4px var(--flash-color,#60a5fa88)} 100%{box-shadow:0 0 0 0 transparent} }
-        .layer-group.tag-added-flash { animation: layerFlash 0.7s ease-out; }
+        .layer-group { background: var(--bg-surface); border-radius: 10px; border: 1px solid var(--border-dim); overflow: hidden; flex-shrink: 0; transition: border-color 0.3s, opacity 0.3s; }
+        @keyframes layerFlash {
+            0%   { border-color: var(--border-dim); box-shadow: inset 0 0 0px 0 transparent; }
+            20%  { border-color: var(--flash-color, #60a5fa); box-shadow: inset 0 0 18px 0 var(--flash-color, #60a5fa44); }
+            100% { border-color: var(--border-dim); box-shadow: inset 0 0 0px 0 transparent; }
+        }
+        .layer-group.tag-added-flash { animation: layerFlash 0.9s ease-out; }
         .layer-group.collapsed .layer-group-content { display: none; }
         .layer-group.collapsed .layer-title-chevron { transform: rotate(-90deg); }
         .layer-title-bar { padding: 10px 14px; font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 8px; background: var(--folder-bg); border-bottom: 1px solid var(--border-dim); font-family: var(--font-heading); cursor: pointer; user-select: none; }
@@ -3902,11 +3906,17 @@
                 if (layerGroup) {
                     layerGroup.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     const tagData = activeTagsMap[tagText];
-                    layerGroup.style.setProperty('--flash-color', (tagData?.color || '#60a5fa') + '88');
-                    layerGroup.classList.remove('tag-added-flash');
-                    void layerGroup.offsetWidth; // reflow to restart animation
+                    const flashColor = tagData?.color || '#60a5fa';
+                    layerGroup.style.setProperty('--flash-color', flashColor);
+                    // animation 재시작: inline style로 강제 초기화 후 클래스 적용
+                    layerGroup.style.animation = 'none';
+                    void layerGroup.offsetWidth;
+                    layerGroup.style.animation = '';
                     layerGroup.classList.add('tag-added-flash');
-                    setTimeout(() => layerGroup.classList.remove('tag-added-flash'), 700);
+                    setTimeout(() => {
+                        layerGroup.classList.remove('tag-added-flash');
+                        layerGroup.style.removeProperty('--flash-color');
+                    }, 950);
                 }
             }
         }
@@ -5201,7 +5211,7 @@
             overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:3000;display:flex;align-items:center;justify-content:center;';
 
             const modal = document.createElement('div');
-            modal.style.cssText = 'background:var(--bg-card);border-radius:12px;padding:24px;width:min(700px,95vw);max-height:90vh;display:flex;flex-direction:column;gap:16px;overflow:hidden;';
+            modal.style.cssText = 'background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:12px;padding:24px;width:min(700px,95vw);max-height:90vh;display:flex;flex-direction:column;gap:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);';
 
             const titleRow = document.createElement('div');
             titleRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;';
