@@ -1029,8 +1029,7 @@
                     { label: '기본 가중치 설정', isHeader: true },
                 ];
                 prompts.forEach(p => {
-                    const dispLabel = prompts.length === 1 ? (activeTagsMap[tagText]?.kor || p) : p;
-                    menuItems.push({ isWeightRow: true, promptText: p, label: dispLabel });
+                    menuItems.push({ isWeightRow: true, promptText: p, label: p });
                 });
                 if (foundFolder !== null) {
                     menuItems.push('sep');
@@ -1665,51 +1664,46 @@
             container.appendChild(input);
         }
 
+        function _applyTagBtnWeightDisplay(btn) {
+            const tagText = btn.dataset.tag || '';
+            const prompts = tagText.split(',').map(s => s.trim()).filter(Boolean);
+            const krEl = btn.querySelector('.tag-kr');
+            const enEl = btn.querySelector('.tag-en');
+            if (!krEl) return;
+            const data = activeTagsMap[tagText];
+            const baseKr = data ? data.kor : tagText;
+            const baseEn = tagText; // original raw tag text
+
+            if (prompts.length === 1) {
+                const w = getTagWeight(prompts[0]);
+                const wStr = Math.abs(w - 1.0) < 0.01 ? '' : `(${w.toFixed(1)})`;
+                // show weight on both kr and en
+                krEl.textContent = wStr ? `${baseKr}${wStr}` : baseKr;
+                if (enEl) enEl.textContent = wStr ? `${prompts[0]}${wStr}` : baseEn;
+            } else {
+                // multi-prompt: kr stays clean, en shows per-prompt weights
+                krEl.textContent = baseKr;
+                if (enEl) {
+                    const parts = prompts.map(p => {
+                        const pw = getTagWeight(p);
+                        return Math.abs(pw - 1.0) < 0.01 ? p : `${p}(${pw.toFixed(1)})`;
+                    });
+                    enEl.textContent = parts.join(', ');
+                }
+            }
+        }
+
         function updateTagBtnDisplay(promptText) {
-            // update all tag-btn buttons that include this prompt in their data-tag
             document.querySelectorAll('.tag-btn').forEach(btn => {
                 const tagText = btn.dataset.tag || '';
                 const prompts = tagText.split(',').map(s => s.trim()).filter(Boolean);
                 if (!prompts.includes(promptText)) return;
-                // rebuild tag-kr display: if single prompt use its own weight; if multi only show if all have same weight
-                const krEl = btn.querySelector('.tag-kr');
-                if (!krEl) return;
-                const data = activeTagsMap[tagText];
-                const baseLabel = data ? data.kor : tagText;
-                const w = getTagWeight(promptText);
-                // for multi-prompt, show weight on individual if only that one has non-1.0 weight
-                if (prompts.length === 1) {
-                    krEl.textContent = Math.abs(w - 1.0) < 0.01 ? baseLabel : `${baseLabel}(${w.toFixed(1)})`;
-                } else {
-                    // show weights for each that differs from 1.0
-                    const parts = prompts.map(p => {
-                        const pw = getTagWeight(p);
-                        return Math.abs(pw - 1.0) < 0.01 ? null : `${p}(${pw.toFixed(1)})`;
-                    }).filter(Boolean);
-                    krEl.textContent = parts.length > 0 ? `${baseLabel} [${parts.join(', ')}]` : baseLabel;
-                }
+                _applyTagBtnWeightDisplay(btn);
             });
         }
 
         function refreshAllTagBtnDisplays() {
-            document.querySelectorAll('.tag-btn').forEach(btn => {
-                const tagText = btn.dataset.tag || '';
-                const prompts = tagText.split(',').map(s => s.trim()).filter(Boolean);
-                const krEl = btn.querySelector('.tag-kr');
-                if (!krEl) return;
-                const data = activeTagsMap[tagText];
-                const baseLabel = data ? data.kor : tagText;
-                if (prompts.length === 1) {
-                    const w = getTagWeight(prompts[0]);
-                    krEl.textContent = Math.abs(w - 1.0) < 0.01 ? baseLabel : `${baseLabel}(${w.toFixed(1)})`;
-                } else {
-                    const parts = prompts.map(p => {
-                        const pw = getTagWeight(p);
-                        return Math.abs(pw - 1.0) < 0.01 ? null : `${p}(${pw.toFixed(1)})`;
-                    }).filter(Boolean);
-                    krEl.textContent = parts.length > 0 ? `${baseLabel} [${parts.join(', ')}]` : baseLabel;
-                }
-            });
+            document.querySelectorAll('.tag-btn').forEach(btn => _applyTagBtnWeightDisplay(btn));
         }
 
         function adjustGlobalWeight(delta) {
