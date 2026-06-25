@@ -468,28 +468,39 @@
             .app-container {
                 flex-direction: column;
                 height: auto;
-                min-height: 100dvh;
                 overflow: visible;
             }
             .panel {
-                height: auto !important;
-                min-height: 0;
-                overflow: visible;
+                height: 0 !important;
+                min-height: 0 !important;
+                overflow: hidden !important;
                 border-right: none !important;
-                border-bottom: 1px solid var(--border-dim);
+                border-bottom: none;
                 width: 100% !important;
-                display: none; /* JS로 active 패널만 표시 */
+                display: none !important;
                 flex: none !important;
             }
             .panel.mobile-active {
-                display: flex;
-                flex-direction: column;
-                min-height: calc(100dvh - 56px); /* 하단 탭바 높이 제외 */
+                display: flex !important;
+                flex-direction: column !important;
+                height: calc(100dvh - 56px) !important; /* 하단 탭바 56px 제외 */
+                overflow: hidden !important;
             }
-            .panel-content {
-                overflow-y: auto;
-                -webkit-overflow-scrolling: touch;
+            .panel.mobile-active .panel-content {
                 flex: 1;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
+                min-height: 0;
+            }
+            /* 콤보 패널 내부 스크롤 */
+            .panel.mobile-active #sidebar-content-combo {
+                flex: 1;
+                min-height: 0;
+                overflow: hidden;
+            }
+            .panel.mobile-active .combo-grid {
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
             }
             /* 패널 리사이즈 핸들 숨김 */
             .panel-resize-handle { display: none !important; }
