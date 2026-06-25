@@ -710,31 +710,11 @@
                 return;
             }
 
-            // 선택된 캡슐을 백스페이스/Delete로 삭제
-            if ((e.key === 'Backspace' || e.key === 'Delete') && !inInput) {
-                const selected = document.querySelector('.prompt-chip.selected');
-                if (!selected) return;
-                e.preventDefault();
-                const layerSection = selected.closest('.editor-body');
-                if (!layerSection) return;
-                const layerIndex = layerSection.id.replace('editor-body-', '');
-                const textarea = document.getElementById('layer-' + layerIndex);
-                const chipKr = selected.querySelector('.chip-kr');
-                const chipTooltip = selected.querySelector('.chip-tooltip');
-                const chipText = chipTooltip ? chipTooltip.textContent : (chipKr ? chipKr.textContent : '');
-                if (!chipText) return;
-                saveStateToUndoStack();
-                const tags = textarea.value.split(',').map(s => s.trim()).filter(s => s.length > 0);
-                const newTags = tags.filter(t => t !== chipText);
-                textarea.value = newTags.join(', ');
-                syncFromManualInput(parseInt(layerIndex));
-            }
         });
 
         document.addEventListener('mousedown', (e) => {
             if(!e.target.closest('.fixed-weight-toolbar') && !e.target.closest('.prompt-chip') && !e.target.closest('.layer-input')) {
                 document.querySelectorAll('.fixed-weight-toolbar').forEach(tb => tb.style.display = 'none');
-                document.querySelectorAll('.prompt-chip').forEach(c => c.classList.remove('selected'));
             }
         });
 
@@ -1213,15 +1193,7 @@
                 });
 
                 chip.onclick = (e) => {
-                    document.querySelectorAll('.prompt-chip').forEach(c => c.classList.remove('selected'));
-                    chip.classList.add('selected');
-                    const toolbar = document.getElementById('toolbar-' + layerIndex);
-                    toolbar.style.display = 'flex';
-                    toolbar.dataset.activeTextarea = 'layer-' + layerIndex;
-                    toolbar.dataset.activeChipIndex = idx;
-                };
-
-                chip.ondblclick = (e) => {
+                    if (e.target.classList.contains('chip-delete') || e.target.closest('.chip-delete')) return;
                     e.stopPropagation();
                     chip.draggable = false;
                     document.getElementById('toolbar-' + layerIndex).style.display = 'none';
@@ -1239,7 +1211,11 @@
                         textarea.value = tags.join(', ');
                         syncFromManualInput(layerIndex);
                     };
-                    editInput.onblur = finishEdit; editInput.onkeydown = (e2) => { if(e2.key === 'Enter') finishEdit(); };
+                    editInput.onblur = finishEdit;
+                    editInput.onkeydown = (e2) => {
+                        if(e2.key === 'Enter') { e2.preventDefault(); finishEdit(); }
+                        if(e2.key === 'Escape') { editInput.value = tag; editInput.blur(); }
+                    };
                 };
 
                 const delBtn = document.createElement('i');
@@ -1626,22 +1602,70 @@
 
         function renderPresetManagerTable() {
             const tbody = document.getElementById('preset-table-body');
-            let htmlStr = `<tr><td colspan="2" class="preset-group-title" style="margin-top:10px;">💾 내 프리셋</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="2" class="preset-group-title">💾 내 프리셋</td></tr>`;
             if(Object.keys(userPresets).length === 0) {
-                htmlStr += `<tr><td colspan="2" style="color:var(--text-dim);">저장된 프리셋이 없습니다.</td></tr>`;
-            } else {
-                Object.keys(userPresets).forEach(name => {
-                    htmlStr += `
-                        <tr>
-                            <td style="font-weight:700; cursor:pointer;" onclick="renamePreset('${name.replace(/'/g, "\\'")}')" title="클릭하여 이름 수정">${name}</td>
-                            <td>
-                                <button class="btn-preset-action btn-preset-load" onclick="loadPresetFromManager('${name.replace(/'/g, "\\'")}')">✅ 적용</button>
-                                <button class="btn-preset-action btn-preset-del" onclick="deletePresetFromManager('${name.replace(/'/g, "\\'")}')">🗑️ 삭제</button>
-                            </td>
-                        </tr>`;
-                });
+                tbody.innerHTML += `<tr><td colspan="2" style="color:var(--text-dim);">저장된 프리셋이 없습니다.</td></tr>`;
+                return;
             }
-            tbody.innerHTML = htmlStr;
+            Object.keys(userPresets).forEach(name => {
+                const tr = document.createElement('tr');
+
+                const nameTd = document.createElement('td');
+                nameTd.style.fontWeight = '700';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = name;
+                nameSpan.style.marginRight = '8px';
+
+                const editBtn = document.createElement('button');
+                editBtn.innerHTML = '<i class="fa-solid fa-pencil"></i>';
+                editBtn.title = '이름 수정';
+                editBtn.style.cssText = 'background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:13px; padding:2px 6px; border-radius:4px; transition:0.2s;';
+                editBtn.onmouseover = () => editBtn.style.color = 'var(--accent-blue)';
+                editBtn.onmouseout = () => editBtn.style.color = 'var(--text-dim)';
+                editBtn.onclick = () => {
+                    nameSpan.style.display = 'none';
+                    editBtn.style.display = 'none';
+                    const input = document.createElement('input');
+                    input.value = name;
+                    input.style.cssText = 'background:var(--input-bg); border:1px solid var(--accent-blue); color:var(--text-main); padding:4px 8px; border-radius:6px; font-size:14px; font-weight:700; font-family:var(--font-ui); outline:none; width:220px;';
+                    nameTd.insertBefore(input, editBtn);
+                    input.focus(); input.select();
+                    const finish = () => {
+                        const newName = input.value.trim();
+                        if(newName && newName !== name) {
+                            userPresets[newName] = userPresets[name];
+                            delete userPresets[name];
+                            presets = { ...userPresets };
+                            safeSetStorage('pro_prompt_presets_v7_0', userPresets);
+                            showToast("이름이 변경되었습니다.", "success");
+                        }
+                        renderPresetManagerTable();
+                    };
+                    input.onblur = finish;
+                    input.onkeydown = (e) => { if(e.key === 'Enter') finish(); if(e.key === 'Escape') renderPresetManagerTable(); };
+                };
+
+                nameTd.appendChild(nameSpan);
+                nameTd.appendChild(editBtn);
+
+                const actionTd = document.createElement('td');
+                const loadBtn = document.createElement('button');
+                loadBtn.className = 'btn-preset-action btn-preset-load';
+                loadBtn.textContent = '✅ 적용';
+                loadBtn.onclick = () => loadPresetFromManager(name);
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'btn-preset-action btn-preset-del';
+                delBtn.textContent = '🗑️ 삭제';
+                delBtn.onclick = () => deletePresetFromManager(name);
+
+                actionTd.appendChild(loadBtn);
+                actionTd.appendChild(delBtn);
+                tr.appendChild(nameTd);
+                tr.appendChild(actionTd);
+                tbody.appendChild(tr);
+            });
         }
 
         function loadPresetFromManager(name) {
