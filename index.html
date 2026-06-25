@@ -46,9 +46,9 @@
             letter-spacing: -0.2px; transition: background-color 0.3s, color 0.3s;
         }
 
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--text-dim); border-radius: 4px; opacity: 0.5;}
+        ::-webkit-scrollbar-thumb { background: var(--text-dim); border-radius: 4px; opacity: 0.4;}
 
         /* 💡 기능 1: 100% 반응형 레이아웃 설계 */
         .app-container {
@@ -97,25 +97,25 @@
         .panel:last-child { border-right: none; }
 
         .panel-header {
-            padding: 16px 20px; border-bottom: 1px solid var(--border-dim); font-size: 15px; font-weight: 800;
+            padding: 10px 16px; border-bottom: 1px solid var(--border-dim); font-size: 13px; font-weight: 800;
             display: flex; justify-content: space-between; align-items: center; background-color: var(--header-bg); flex-shrink: 0;
             font-family: var(--font-heading); transition: 0.3s;
         }
         .header-actions { display: flex; gap: 8px; align-items: center; }
-        .action-btn { background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-main); padding: 8px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 700; transition: 0.2s; font-family: var(--font-ui); white-space: nowrap;}
+        .action-btn { background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-main); padding: 6px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 700; transition: 0.2s; font-family: var(--font-ui); white-space: nowrap;}
         .action-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
 
-        .panel-content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
-        .right-panel-wrapper { display: flex; flex-direction: column; gap: 20px; }
-        .pos-section, .neg-section { display: flex; flex-direction: column; gap: 20px; }
+        .panel-content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .right-panel-wrapper { display: flex; flex-direction: column; gap: 14px; }
+        .pos-section, .neg-section { display: flex; flex-direction: column; gap: 12px; }
 
         .sidebar-tools { display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; margin-bottom: 10px; }
         .mode-toggle-group { display: flex; background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 8px; padding: 4px; }
-        .mode-toggle-btn { flex: 1; background: transparent; border: none; color: var(--text-dim); padding: 8px; border-radius: 6px; font-weight: 700; cursor: pointer; transition: 0.2s; font-family: var(--font-ui); font-size: 13px; }
+        .mode-toggle-btn { flex: 1; background: transparent; border: none; color: var(--text-dim); padding: 6px; border-radius: 6px; font-weight: 700; cursor: pointer; transition: 0.2s; font-family: var(--font-ui); font-size: 12px; }
         .mode-toggle-btn.active { background: var(--accent-blue); color: #fff; }
 
         .search-box { position: relative; width: 100%; }
-        .search-box input { width: 100%; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-main); padding: 12px 12px 12px 38px; border-radius: 8px; font-family: var(--font-ui); font-size: 13px; transition: 0.3s;}
+        .search-box input { width: 100%; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-main); padding: 8px 8px 8px 34px; border-radius: 8px; font-family: var(--font-ui); font-size: 12px; transition: 0.3s;}
         .search-box input:focus { border-color: var(--accent-blue); }
         .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-dim); font-size: 14px;}
 
@@ -214,7 +214,7 @@
         .layer-group { background: var(--bg-surface); border-radius: 10px; border: 1px solid var(--border-dim); overflow: hidden; flex-shrink: 0; transition: 0.3s;}
         .layer-group.collapsed .layer-group-content { display: none; }
         .layer-group.collapsed .layer-title-chevron { transform: rotate(-90deg); }
-        .layer-title-bar { padding: 16px 18px; font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 8px; background: var(--folder-bg); border-bottom: 1px solid var(--border-dim); font-family: var(--font-heading); cursor: pointer; user-select: none; }
+        .layer-title-bar { padding: 10px 14px; font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 8px; background: var(--folder-bg); border-bottom: 1px solid var(--border-dim); font-family: var(--font-heading); cursor: pointer; user-select: none; }
         .layer-title-bar:hover { background: var(--folder-hover); }
         .layer-title-chevron { margin-left: auto; color: var(--text-dim); font-size: 12px; transition: transform 0.2s; flex-shrink: 0; }
         .sidebar-sticky-bar { background: var(--bg-panel); border-bottom: 1px solid var(--border-dim); display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
@@ -238,14 +238,14 @@
         .tag-btn.dnd-dragging { opacity: 0.25; }
         .tag-btn.dnd-tag-over { box-shadow: -3px 0 0 0 var(--accent-blue); }
         .sub-folder:last-child { border-bottom: none; }
-        .sub-folder-header { padding: 12px 16px 12px 10px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 4px; transition: 0.2s; background: var(--folder-bg); border-left: 4px solid transparent; }
+        .sub-folder-header { padding: 8px 14px 8px 10px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 4px; transition: 0.2s; background: var(--folder-bg); border-left: 4px solid transparent; }
         .sub-folder-header:hover { background: var(--folder-hover); }
         .folder-meta { display: flex; align-items: center; gap: 10px; }
         .folder-recommend { font-size: 11px; background: var(--border-dim); padding: 2px 6px; border-radius: 4px; opacity: 0.8; font-weight: 500; color: var(--text-main);}
         .folder-badge { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; font-size: 11px; font-weight: bold; color: #fff; opacity: 0; transform: scale(0.8); transition: 0.2s; margin-left: 6px; font-family: var(--font-code);}
         .folder-badge.active { opacity: 1; transform: scale(1); }
 
-        .sub-folder-content { padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 6px; background: var(--bg-base); }
+        .sub-folder-content { padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 5px; background: var(--bg-base); }
         .sub-folder.collapsed .sub-folder-content { display: none; }
         .sub-folder.collapsed .fa-chevron-down { transform: rotate(-90deg); }
 
@@ -291,7 +291,7 @@
         .view-btn.active { background: var(--accent-blue); color: #fff; }
 
         .editor-section { flex-shrink: 0; background-color: var(--bg-base); border: 1px solid var(--border-dim); border-radius: 10px; display: flex; flex-direction: column; position: relative; transition:0.3s;}
-        .editor-header { padding: 12px 18px; font-size: 14px; color: var(--text-main); background-color: var(--bg-surface); border-bottom: 1px solid var(--border-dim); display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-family: var(--font-heading); border-radius: 10px 10px 0 0;}
+        .editor-header { padding: 9px 14px; font-size: 13px; color: var(--text-main); background-color: var(--bg-surface); border-bottom: 1px solid var(--border-dim); display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-family: var(--font-heading); border-radius: 10px 10px 0 0;}
         .editor-header-left { display: flex; align-items: center; gap: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .conflict-badge { display: none; background: rgba(234, 179, 8, 0.1); border: 1px solid #eab308; color: #eab308; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 10px; flex-shrink: 0; }
         .editor-tools { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
@@ -323,7 +323,7 @@
         .ctx-weight-btn:hover { background: var(--folder-hover); border-color: var(--accent-blue); color: var(--accent-blue); }
         .ctx-weight-btn.reset { color: var(--text-dim); font-size: 10px; }
 
-        .editor-body { position: relative; width: 100%; min-height: 80px; padding: 16px; }
+        .editor-body { position: relative; width: 100%; min-height: 80px; padding: 12px; }
         textarea.layer-input { width: 100%; height: 70px; background-color: transparent; border: none; color: var(--text-main); font-family: var(--font-code); font-size: 14px; resize: vertical; line-height: 1.6; display: none; }
 
         .chip-container { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; align-items: center; }
@@ -576,6 +576,14 @@
             }
             body { padding-bottom: 56px; }
         }
+
+        /* ── 결과 패널 탭 ── */
+        .result-tabs { display:flex; gap:4px; padding:0 0 12px 0; border-bottom:1px solid var(--border-dim); margin-bottom:4px; flex-shrink:0; }
+        .result-tab { flex:1; padding:7px 10px; border-radius:7px; border:1px solid var(--border-dim); background:transparent; color:var(--text-dim); font-size:12px; font-weight:700; font-family:var(--font-ui); cursor:pointer; transition:0.15s; }
+        .result-tab:hover { color:var(--text-main); border-color:var(--text-dim); }
+        .result-tab.active { background:var(--accent-blue); color:#fff; border-color:var(--accent-blue); }
+        .result-tab-content { display:none; flex-direction:column; gap:12px; flex:1; }
+        .result-tab-content.active { display:flex; }
     </style>
 </head>
 <body data-theme="dark">
@@ -613,15 +621,15 @@
             <div class="panel-header">
                 <span><i class="fa-solid fa-tags"></i> 프롬프트 랩</span>
                 <div class="header-actions">
-                    <button class="action-btn" onclick="openPromptClassifyModal()" title="프롬프트 붙여넣기 → 자동 분류 → DB 추가" style="color:var(--accent-purple,#a78bfa); border-color:var(--accent-purple,#a78bfa);"><i class="fa-solid fa-wand-magic-sparkles"></i> 분류 추가</button>
-                    <button class="action-btn" onclick="openDBManager()" style="color:var(--accent-blue); border-color:var(--accent-blue);"><i class="fa-solid fa-database"></i> DB 관리</button>
+                    <button class="action-btn" onclick="openPromptClassifyModal()" title="프롬프트 붙여넣기 → 자동 분류 → DB 추가" style="color:var(--accent-purple,#a78bfa); border-color:var(--accent-purple,#a78bfa);"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                    <button class="action-btn" onclick="openDBManager()" title="DB 관리" style="color:var(--accent-blue); border-color:var(--accent-blue);"><i class="fa-solid fa-database"></i></button>
                     <button class="action-btn" onclick="openDBTextEditor()" title="텍스트로 DB 편집" style="color:var(--accent-green); border-color:var(--accent-green);"><i class="fa-solid fa-code"></i></button>
                     <button class="action-btn" onclick="openIOModal('export')" title="내보내기"><i class="fa-solid fa-copy"></i></button>
-                    <button class="action-btn" onclick="openIOModal('import')" title="복구/추가"><i class="fa-solid fa-paste"></i> 복구/추가</button>
+                    <button class="action-btn" onclick="openIOModal('import')" title="복구/추가"><i class="fa-solid fa-paste"></i></button>
                 </div>
             </div>
 
-            <div style="flex-shrink:0; padding: 16px 20px 0; display:flex; flex-direction:column; gap:10px;">
+            <div style="flex-shrink:0; padding: 10px 14px 0; display:flex; flex-direction:column; gap:10px;">
                 <div class="sidebar-tools" style="margin-bottom:0;">
                     <div class="mode-toggle-group">
                         <button class="mode-toggle-btn active" id="btn-mode-detail" onclick="switchSidebarMode('detail')"><i class="fa-solid fa-list-ul"></i> 상세 태그</button>
@@ -638,7 +646,7 @@
                     <button onclick="collapseAllLayers(false)"><i class="fa-solid fa-angles-down"></i> 모두 열기</button>
                 </div>
             </div>
-            <div class="panel-content" style="padding-top: 12px;">
+            <div class="panel-content" style="padding-top: 8px;">
                 <div id="sidebar-content-detail" style="display:flex; flex-direction:column; gap:16px;"></div>
 
                 <div id="sidebar-content-combo" style="display:none; flex-direction:column; overflow:hidden; flex:1; min-height:0;">
@@ -677,65 +685,76 @@
 
         <section class="panel" id="panel-right">
             <div class="panel-header">
-                <span><i class="fa-solid fa-terminal"></i> 조합 및 결과</span>
+                <span><i class="fa-solid fa-terminal"></i> 결과</span>
                 <div class="header-actions">
-                    <button class="action-btn" id="btn-undo" onclick="performUndo()" style="color:var(--text-main); opacity:0.5; cursor:not-allowed;" title="되돌리기 (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i> 되돌리기</button>
-                    <button class="action-btn" onclick="openPresetManager()" style="color:var(--accent-green); border-color:var(--border-dim);"><i class="fa-solid fa-floppy-disk"></i> 프리셋 관리</button>
+                    <button class="action-btn" id="btn-undo" onclick="performUndo()" style="color:var(--text-main); opacity:0.5; cursor:not-allowed;" title="되돌리기 (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i></button>
+                    <button class="action-btn" onclick="openPresetManager()" title="프리셋 관리" style="color:var(--accent-green); border-color:var(--border-dim);"><i class="fa-solid fa-floppy-disk"></i></button>
                     <button class="action-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i class="fa-solid fa-sun"></i></button>
                 </div>
             </div>
 
             <div class="panel-content right-panel-wrapper">
-                <div class="pos-section">
+                <!-- Result tabs -->
+                <div class="result-tabs" id="result-tabs">
+                    <button class="result-tab active" id="rtab-pos" onclick="switchResultTab('pos')"><i class="fa-solid fa-circle-plus"></i> 긍정</button>
+                    <button class="result-tab" id="rtab-neg" onclick="switchResultTab('neg')"><i class="fa-solid fa-circle-minus"></i> 부정</button>
+                    <button class="result-tab" id="rtab-memo" onclick="switchResultTab('memo')"><i class="fa-solid fa-pen-to-square"></i> 메모</button>
+                </div>
+
+                <!-- 긍정 탭 -->
+                <div class="result-tab-content active" id="rtab-content-pos">
                     <div class="result-box-container">
                         <div class="result-label">
-                            <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
                                 <span style="color:var(--accent-blue);">통합 긍정 프롬프트</span>
-                                <select id="output-format-toggle" onchange="updateMasterOutput()" style="background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-dim); border-radius:6px; font-size:12px; padding:4px 8px; outline:none; font-family:var(--font-ui); cursor:pointer;">
+                                <select id="output-format-toggle" onchange="updateMasterOutput()" style="background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-dim); border-radius:6px; font-size:11px; padding:3px 6px; outline:none; font-family:var(--font-ui); cursor:pointer;">
                                     <option value="labeled">구분자 포함</option>
                                     <option value="comma">순수 쉼표</option>
                                 </select>
-                                <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-dim); cursor:pointer;">
-                                    <input type="checkbox" id="break-toggle" onchange="updateMasterOutput()"> BREAK 삽입
+                                <label style="display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-dim); cursor:pointer;">
+                                    <input type="checkbox" id="break-toggle" onchange="updateMasterOutput()"> BREAK
                                 </label>
                             </div>
-                            <div style="display:flex; align-items:center; gap:12px;">
-                                <span id="pos-count" style="color:var(--text-dim); font-weight:bold; font-family:var(--font-code); transition: color 0.3s; cursor:help; font-size: 15px;">0</span>
-                                <span id="token-count" style="color:var(--text-dim); font-weight:bold; font-family:var(--font-code); transition: color 0.3s; font-size: 13px;">약 0토큰</span>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <span id="pos-count" style="color:var(--text-dim); font-weight:bold; font-family:var(--font-code); transition: color 0.3s; cursor:help; font-size: 13px;">0</span>
+                                <span id="token-count" style="color:var(--text-dim); font-weight:bold; font-family:var(--font-code); transition: color 0.3s; font-size: 11px;">약 0토큰</span>
                             </div>
                         </div>
                         <textarea class="result-textarea" id="final-positive" readonly></textarea>
-                        <div id="syntax-warning" style="display:none; color:var(--accent-danger); font-size:13px; margin-top:6px; font-weight:bold;">
+                        <div id="syntax-warning" style="display:none; color:var(--accent-danger); font-size:12px; margin-top:4px; font-weight:bold;">
                             <i class="fa-solid fa-triangle-exclamation"></i> 문법 경고: <span id="syntax-warning-text"></span>
                         </div>
                     </div>
-
                     <div class="result-box-container">
-                        <div class="result-label"><span style="color: var(--text-dim);"><i class="fa-solid fa-language"></i> 실시간 한글 번역 (긍정)</span></div>
+                        <div class="result-label"><span style="color: var(--text-dim); font-size:12px;"><i class="fa-solid fa-language"></i> 한글 번역 (긍정)</span></div>
                         <div class="preview-box" id="korean-preview">태그의 한글 뜻이 표시됩니다.</div>
+                    </div>
+                    <div style="margin-top:auto; padding-top:8px;">
+                        <button class="btn-copy pos" style="width:100%;" onclick="copyPrompt('pos')"><i class="fa-solid fa-copy"></i> 긍정 복사</button>
                     </div>
                 </div>
 
-                <div class="neg-section">
+                <!-- 부정 탭 -->
+                <div class="result-tab-content" id="rtab-content-neg">
                     <div class="result-box-container">
                         <div class="result-label"><span style="color:var(--accent-danger);">부정 프롬프트 (Pony V6)</span></div>
                         <textarea class="result-textarea neg" id="final-negative" readonly></textarea>
                     </div>
-
                     <div class="result-box-container">
-                        <div class="result-label"><span style="color: var(--text-dim);"><i class="fa-solid fa-language"></i> 실시간 한글 번역 (부정)</span></div>
+                        <div class="result-label"><span style="color: var(--text-dim); font-size:12px;"><i class="fa-solid fa-language"></i> 한글 번역 (부정)</span></div>
                         <div class="preview-box" id="negative-korean-preview">부정 프롬프트의 한글 뜻이 표시됩니다.</div>
                     </div>
-
-                    <div class="result-box-container">
-                        <div class="result-label"><span style="color: var(--text-dim);"><i class="fa-solid fa-pen-to-square"></i> 생성 세팅 메모</span></div>
-                        <textarea class="result-textarea" id="generation-memo" placeholder="시드, 샘플러, CFG 등 생성 관련 세팅을 메모하세요 (프리셋과 연동됩니다)..." style="background-color: var(--folder-bg);"></textarea>
+                    <div style="margin-top:auto; padding-top:8px;">
+                        <button class="btn-copy neg" style="width:100%;" onclick="copyPrompt('neg')"><i class="fa-solid fa-copy"></i> 부정 복사</button>
                     </div>
                 </div>
 
-                <div class="copy-btn-group full-width-section">
-                    <button class="btn-copy pos" onclick="copyPrompt('pos')"><i class="fa-solid fa-copy"></i> 긍정 복사</button>
-                    <button class="btn-copy neg" onclick="copyPrompt('neg')"><i class="fa-solid fa-copy"></i> 부정 복사</button>
+                <!-- 메모 탭 -->
+                <div class="result-tab-content" id="rtab-content-memo">
+                    <div class="result-box-container">
+                        <div class="result-label"><span style="color: var(--text-dim);"><i class="fa-solid fa-pen-to-square"></i> 생성 세팅 메모</span></div>
+                        <textarea class="result-textarea" id="generation-memo" placeholder="시드, 샘플러, CFG 등 생성 관련 세팅을 메모하세요..." style="background-color: var(--folder-bg); min-height:200px;"></textarea>
+                    </div>
                 </div>
             </div>
         </section>
@@ -1101,6 +1120,13 @@
             undoStack.push(JSON.parse(curStateStr));
             if(undoStack.length > 30) undoStack.shift();
             updateUndoButton();
+        }
+
+        function switchResultTab(tab) {
+            ['pos','neg','memo'].forEach(t => {
+                document.getElementById('rtab-'+t)?.classList.toggle('active', t === tab);
+                document.getElementById('rtab-content-'+t)?.classList.toggle('active', t === tab);
+            });
         }
 
         function performUndo() {
