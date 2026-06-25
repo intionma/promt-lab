@@ -3621,91 +3621,117 @@
             const container = document.getElementById('chip-container-' + layerIndex);
             container.innerHTML = '';
 
-            let tags = textarea.value.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            let rawTags = textarea.value.split(',').map(s => s.trim()).filter(s => s.length > 0);
 
+            // ── 다중 프롬포트 그룹화 ──────────────────────────────────────────────
+            const _getCoreTag = (t) => { const m = t.match(/^\((.+):[\d.]+\)$/); return m ? m[1] : t.replace(/^[()\[\]]+|[()\[\]]+$/g, '').trim(); };
+
+            // activeTagsMap 에서 다중 프롬포트 키만 추출 (길이 내림차순 = longest match)
+            const multiGroups = Object.keys(activeTagsMap)
+                .filter(k => k.includes(','))
+                .map(k => ({ key: k, parts: k.split(',').map(s => s.trim()).filter(Boolean) }))
+                .sort((a, b) => b.parts.length - a.parts.length);
+
+            // rawTags → tagGroups (연속된 다중 프롬포트를 하나로 묶음)
+            const tagGroups = []; // { rawSlice: string[], mapKey: string, rawStart: number }
+            let ri = 0;
+            while (ri < rawTags.length) {
+                let matched = false;
+                for (const mg of multiGroups) {
+                    if (ri + mg.parts.length > rawTags.length) continue;
+                    const slice = rawTags.slice(ri, ri + mg.parts.length);
+                    if (slice.every((t, j) => _getCoreTag(t).toLowerCase() === mg.parts[j].toLowerCase())) {
+                        tagGroups.push({ rawSlice: slice, mapKey: mg.key, rawStart: ri });
+                        ri += mg.parts.length;
+                        matched = true;
+                        break;
+                    }
+                }
+                if (!matched) {
+                    const t = rawTags[ri];
+                    tagGroups.push({ rawSlice: [t], mapKey: _getCoreTag(t), rawStart: ri });
+                    ri++;
+                }
+            }
+            // ────────────────────────────────────────────────────────────────────
+
+            // 컨테이너 드롭 (맨 뒤에 붙이기)
             container.addEventListener('dragover', (e) => e.preventDefault());
             container.addEventListener('drop', (e) => {
                 e.preventDefault();
-                if(e.target === container) {
+                if (e.target === container) {
                     const sourceLayer = parseInt(e.dataTransfer.getData('sourceLayer'));
                     if (sourceLayer !== layerIndex) return;
-                    const sourceIndex = parseInt(e.dataTransfer.getData('sourceIndex'));
-
+                    const srcStart = parseInt(e.dataTransfer.getData('srcStart'));
+                    const srcCount = parseInt(e.dataTransfer.getData('srcCount'));
                     saveStateToUndoStack();
-
-                    const draggedTag = tags[sourceIndex];
-                    tags.splice(sourceIndex, 1);
-                    tags.push(draggedTag);
-                    textarea.value = tags.join(', ');
+                    const moved = rawTags.splice(srcStart, srcCount);
+                    rawTags.push(...moved);
+                    textarea.value = rawTags.join(', ');
                     syncFromManualInput(layerIndex);
                 }
             });
 
-            tags.forEach((tag, idx) => {
+            tagGroups.forEach((group, groupIdx) => {
+                const { rawSlice, mapKey, rawStart } = group;
+                const isMulti = rawSlice.length > 1;
+                const tag = rawSlice.join(', '); // 편집/툴팁용 결합 텍스트
+
                 const chip = document.createElement('div');
-                chip.className = 'prompt-chip';
+                chip.className = 'prompt-chip' + (isMulti ? ' multi-prompt-chip' : '');
                 chip.draggable = true;
 
-                const _wm = tag.match(/^\((.+):(\d+\.?\d*)\)$/);
-                let coreTag = _wm ? _wm[1] : tag.replace(/^[()\[\]]+|[()\[\]]+$/g, '').trim();
-                if(activeTagsMap[coreTag]) {
-                    chip.style.borderColor = activeTagsMap[coreTag].color;
-                    chip.style.color = activeTagsMap[coreTag].color;
+                const tagData = activeTagsMap[mapKey];
+                if (tagData) {
+                    chip.style.borderColor = tagData.color;
+                    chip.style.color = tagData.color;
                 }
 
-                const weightMatch = tag.match(/^\((.+):(\d+\.?\d*)\)$/);
-                if(weightMatch) {
-                    let w = parseFloat(weightMatch[2]);
-                    if(w > 1.0) chip.classList.add('weight-high');
-                    else if(w < 1.0) chip.classList.add('weight-low');
+                // 가중치 표시 (첫 번째 토큰 기준)
+                const weightMatch = rawSlice[0].match(/^\((.+):(\d+\.?\d*)\)$/);
+                if (weightMatch) {
+                    const w = parseFloat(weightMatch[2]);
+                    if (w > 1.0) chip.classList.add('weight-high');
+                    else if (w < 1.0) chip.classList.add('weight-low');
                 }
 
-                const korLabel = activeTagsMap[coreTag] ? activeTagsMap[coreTag].kor : null;
-                const baseLabel = korLabel || coreTag;
+                const korLabel = tagData ? tagData.kor : null;
+                const baseLabel = korLabel || mapKey;
                 const weightSuffix = weightMatch ? `(${parseFloat(weightMatch[2]).toFixed(1)})` : '';
                 const displayLabel = weightSuffix ? `${baseLabel}${weightSuffix}` : baseLabel;
-                chip.innerHTML = korLabel && korLabel !== coreTag
+                chip.innerHTML = korLabel && korLabel !== mapKey
                     ? `<span class="chip-kr">${displayLabel}</span><span class="chip-tooltip">${tag}</span>`
                     : `<span class="chip-kr">${displayLabel}</span>`;
 
+                // 드래그 (그룹 단위)
                 chip.addEventListener('dragstart', (e) => {
                     e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('sourceIndex', idx);
+                    e.dataTransfer.setData('srcStart', rawStart);
+                    e.dataTransfer.setData('srcCount', rawSlice.length);
                     e.dataTransfer.setData('sourceLayer', layerIndex);
                     setTimeout(() => chip.style.opacity = '0.4', 0);
                 });
-
                 chip.addEventListener('dragend', () => chip.style.opacity = '1');
-
-                chip.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                    chip.classList.add('drag-over');
-                });
-
+                chip.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; chip.classList.add('drag-over'); });
                 chip.addEventListener('dragleave', () => chip.classList.remove('drag-over'));
-
                 chip.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
+                    e.preventDefault(); e.stopPropagation();
                     chip.classList.remove('drag-over');
-
                     const sourceLayer = parseInt(e.dataTransfer.getData('sourceLayer'));
                     if (sourceLayer !== layerIndex) return;
-
-                    const sourceIndex = parseInt(e.dataTransfer.getData('sourceIndex'));
-                    if (sourceIndex === idx) return;
-
+                    const srcStart = parseInt(e.dataTransfer.getData('srcStart'));
+                    const srcCount = parseInt(e.dataTransfer.getData('srcCount'));
+                    if (srcStart === rawStart) return;
                     saveStateToUndoStack();
-
-                    const draggedTag = tags[sourceIndex];
-                    tags.splice(sourceIndex, 1);
-                    tags.splice(idx, 0, draggedTag);
-
-                    textarea.value = tags.join(', ');
+                    const moved = rawTags.splice(srcStart, srcCount);
+                    // splice 후 목표 위치 보정
+                    const targetStart = rawStart > srcStart ? rawStart - srcCount : rawStart;
+                    rawTags.splice(targetStart, 0, ...moved);
+                    textarea.value = rawTags.join(', ');
                     syncFromManualInput(layerIndex);
                 });
 
+                // 편집 모드
                 const enterEditMode = () => {
                     chip.draggable = false;
                     document.querySelectorAll('.prompt-chip.selected').forEach(c => c.classList.remove('selected'));
@@ -3717,32 +3743,31 @@
                     chip.appendChild(editInput); editInput.focus();
                     const finishEdit = () => {
                         const newVal = editInput.value.trim();
-                        if(newVal !== tag) saveStateToUndoStack();
+                        if (newVal !== tag) saveStateToUndoStack();
                         const wasDeleted = !newVal;
-                        const prevIdx = idx - 1;
-                        if(newVal) tags[idx] = newVal; else tags.splice(idx, 1);
-                        textarea.value = tags.join(', ');
+                        const newParts = newVal ? newVal.split(',').map(s => s.trim()).filter(Boolean) : [];
+                        rawTags.splice(rawStart, rawSlice.length, ...newParts);
+                        textarea.value = rawTags.join(', ');
                         syncFromManualInput(layerIndex);
-                        if (wasDeleted && prevIdx >= 0) {
+                        if (wasDeleted && groupIdx > 0) {
                             setTimeout(() => {
-                                const newContainer = document.getElementById('chip-container-' + layerIndex);
-                                const chips = newContainer ? newContainer.querySelectorAll('.prompt-chip') : [];
-                                const target = chips[prevIdx];
-                                if (target) target.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+                                const nc = document.getElementById('chip-container-' + layerIndex);
+                                const chips = nc ? nc.querySelectorAll('.prompt-chip') : [];
+                                const prev = chips[groupIdx - 1];
+                                if (prev) prev.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
                             }, 0);
                         }
                     };
                     editInput.onblur = finishEdit;
                     editInput.onkeydown = (e2) => {
-                        if(e2.key === 'Enter') { e2.preventDefault(); finishEdit(); }
-                        if(e2.key === 'Escape') { editInput.value = tag; editInput.blur(); }
+                        if (e2.key === 'Enter') { e2.preventDefault(); finishEdit(); }
+                        if (e2.key === 'Escape') { editInput.value = tag; editInput.blur(); }
                     };
                 };
 
                 chip.onclick = (e) => {
                     if (e.target.classList.contains('chip-delete') || e.target.closest('.chip-delete')) return;
                     e.stopPropagation();
-                    // 선택 상태 토글 & 툴바 표시
                     const alreadySelected = chip.classList.contains('selected');
                     document.querySelectorAll('.prompt-chip.selected').forEach(c => c.classList.remove('selected'));
                     document.querySelectorAll('.fixed-weight-toolbar').forEach(tb => tb.style.display = 'none');
@@ -3751,10 +3776,7 @@
                         const toolbar = document.getElementById('toolbar-' + layerIndex);
                         toolbar.style.display = 'flex';
                         toolbar.dataset.activeTextarea = 'layer-' + layerIndex;
-                        toolbar.dataset.activeChipIndex = idx;
-                        // 현재 가중치 표시
-                        const wm = tag.match(/^\((.+):(\d+\.?\d*)\)$/);
-                        const w = wm ? parseFloat(wm[2]) : 1.0;
+                        toolbar.dataset.activeChipIndex = rawStart;
                     }
                 };
 
@@ -3765,44 +3787,44 @@
                     enterEditMode();
                 };
 
+                // 삭제 버튼 (그룹 전체 삭제)
                 const delBtn = document.createElement('i');
                 delBtn.className = 'fa-solid fa-xmark chip-delete';
                 delBtn.onclick = (e) => {
                     e.stopPropagation();
                     saveStateToUndoStack();
-                    tags.splice(idx, 1); textarea.value = tags.join(', '); syncFromManualInput(layerIndex);
+                    rawTags.splice(rawStart, rawSlice.length);
+                    textarea.value = rawTags.join(', ');
+                    syncFromManualInput(layerIndex);
                 };
-                chip.appendChild(delBtn); container.appendChild(chip);
+                chip.appendChild(delBtn);
+                container.appendChild(chip);
             });
 
             const input = document.createElement('input');
             input.className = 'chip-add-input'; input.placeholder = "+ 태그 추가...";
             const addTag = () => {
                 let val = input.value.trim();
-                if(val) {
+                if (val) {
                     input.value = '';
                     saveStateToUndoStack();
-                    tags.push(val); textarea.value = tags.join(', '); syncFromManualInput(layerIndex);
+                    val.split(',').map(s => s.trim()).filter(Boolean).forEach(v => rawTags.push(v));
+                    textarea.value = rawTags.join(', ');
+                    syncFromManualInput(layerIndex);
                     setTimeout(() => {
-                        const newContainer = document.getElementById('chip-container-' + layerIndex);
-                        if(newContainer) {
-                            const newInputs = newContainer.getElementsByClassName('chip-add-input');
-                            if(newInputs.length > 0) newInputs[0].focus();
-                        }
+                        const nc = document.getElementById('chip-container-' + layerIndex);
+                        if (nc) { const ni = nc.getElementsByClassName('chip-add-input'); if (ni.length > 0) ni[0].focus(); }
                     }, 0);
                 }
             };
             input.onblur = addTag;
             input.onkeydown = (e) => {
-                if(e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(); return; }
-                if(e.key === 'Backspace' && input.value === '') {
+                if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(); return; }
+                if (e.key === 'Backspace' && input.value === '') {
                     e.preventDefault();
-                    if(tags.length > 0) {
-                        // 마지막 태그 편집 모드로 직접 진입
-                        const lastIdx = tags.length - 1;
-                        const lastTag = tags[lastIdx];
+                    if (rawTags.length > 0) {
                         const chips = container.querySelectorAll('.prompt-chip');
-                        if(chips.length > 0) chips[chips.length - 1].dispatchEvent(new MouseEvent('dblclick', {bubbles: true}));
+                        if (chips.length > 0) chips[chips.length - 1].dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
                     }
                 }
             };
