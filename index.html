@@ -216,6 +216,21 @@
         .chip-delete { margin-left: 8px; color: var(--text-dim); cursor: pointer; font-size: 12px; padding: 2px; }
         .chip-delete:hover { color: var(--accent-danger); }
         .chip-edit-input { background: transparent; border: none; color: var(--text-main); font-family: var(--font-code); font-size: 13px; outline: none; width: 100%; text-align: center; }
+
+        /* 인라인 태그 편집 팝업 */
+        #tag-inline-popup { position: fixed; z-index: 99998; background: rgba(18,24,38,0.82); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; padding: 16px; width: 300px; box-shadow: 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1); display: none; flex-direction: column; gap: 10px; }
+        [data-theme="light"] #tag-inline-popup { background: rgba(255,255,255,0.82); border: 1px solid rgba(200,215,240,0.6); box-shadow: 0 12px 40px rgba(0,0,0,0.12); }
+        #tag-inline-popup .tip-title { font-size: 13px; font-weight: 800; font-family: var(--font-heading); color: var(--text-main); display: flex; justify-content: space-between; align-items: center; }
+        #tag-inline-popup .tip-title span { color: var(--accent-blue); font-size: 11px; font-weight: 600; }
+        #tag-inline-popup input { width: 100%; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); border-radius: 8px; padding: 8px 10px; font-size: 13px; font-family: var(--font-ui); outline: none; transition: border-color 0.2s; }
+        [data-theme="light"] #tag-inline-popup input { background: rgba(0,0,0,0.04); border: 1px solid var(--border-dim); }
+        #tag-inline-popup input:focus { border-color: var(--accent-blue); }
+        #tag-inline-popup label { font-size: 11px; font-weight: 700; color: var(--text-dim); font-family: var(--font-ui); margin-bottom: 2px; display: block; }
+        #tag-inline-popup .tip-row { display: flex; gap: 6px; }
+        #tag-inline-popup .tip-btn-save { flex: 1; background: var(--accent-blue); color: #fff; border: none; border-radius: 8px; padding: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: var(--font-ui); transition: 0.15s; }
+        #tag-inline-popup .tip-btn-save:hover { opacity: 0.85; }
+        #tag-inline-popup .tip-btn-cancel { background: transparent; color: var(--text-dim); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 8px 12px; font-size: 13px; cursor: pointer; font-family: var(--font-ui); transition: 0.15s; }
+        #tag-inline-popup .tip-btn-cancel:hover { color: var(--text-main); }
         .chip-add-input { background: transparent; border: none; color: var(--text-dim); font-family: var(--font-code); font-size: 13px; outline: none; width: 130px; padding: 4px; }
         .chip-add-input:focus { color: var(--text-main); }
 
@@ -328,6 +343,32 @@
 <body data-theme="dark">
     <div id="toast-container"></div>
     <div id="ctx-menu"></div>
+    <div id="tag-inline-popup">
+        <div class="tip-title">
+            <span id="tip-mode-label">태그 수정</span>
+            <span id="tip-folder-label"></span>
+        </div>
+        <div id="tip-new-folder-row" style="display:none;">
+            <label>새 폴더 이름 *</label>
+            <input id="tip-folder-name" type="text" placeholder="새폴더명">
+        </div>
+        <div>
+            <label>프롬프트 (EN) *</label>
+            <input id="tip-en" type="text" placeholder="cowboy shot">
+        </div>
+        <div>
+            <label>한글 뜻 (KR)</label>
+            <input id="tip-kr" type="text" placeholder="카우보이 샷">
+        </div>
+        <div>
+            <label>충돌 그룹</label>
+            <input id="tip-conflict" type="text" placeholder="예: angle">
+        </div>
+        <div class="tip-row">
+            <button class="tip-btn-save" id="tip-save-btn" onclick="saveTagInlinePopup()">저장</button>
+            <button class="tip-btn-cancel" onclick="closeTagInlinePopup()">취소</button>
+        </div>
+    </div>
 
     <div class="app-container">
         <aside class="panel">
@@ -847,6 +888,55 @@
                     { label: '기본 가중치 -0.1', icon: 'fa-solid fa-arrow-down', action: () => adjustGlobalWeight(-0.1) },
                     { label: '기본 가중치 초기화 (1.0)', icon: 'fa-solid fa-rotate-left', action: () => { globalWeightCurrent = 1.0; } },
                 ]);
+            } else if (e.target.closest('.layer-title-bar') || e.target.closest('.sub-folder-header')) {
+                e.preventDefault();
+                const layerTitleBar = e.target.closest('.layer-title-bar');
+                const subFolderHeader = e.target.closest('.sub-folder-header');
+                const anchorEl = layerTitleBar || subFolderHeader;
+
+                if (layerTitleBar) {
+                    // 계층 우클릭 → 해당 계층의 첫 폴더 또는 새 폴더에 추가
+                    const layerGroup = layerTitleBar.closest('.layer-group');
+                    const layerBadge = layerGroup?.querySelector('[id^="layer-badge-"]');
+                    const layerId = layerBadge ? parseInt(layerBadge.id.replace('layer-badge-', '')) : null;
+                    if (!layerId) return;
+                    const layerInfo = layerMeta.find(l => l.id === layerId);
+                    const existingFolders = promptDB[layerId] ? Object.keys(promptDB[layerId]) : [];
+
+                    const items = [{ label: `${layerInfo?.title || layerId+'계층'} 에 태그 추가`, isHeader: true }];
+                    if (existingFolders.length > 0) {
+                        existingFolders.forEach(folder => {
+                            const folderName = folder.split('|')[0];
+                            items.push({ label: `📂 ${folderName}`, icon: 'fa-solid fa-plus', action: () => {
+                                openTagInlinePopup(anchorEl, { mode: 'add', layerId, folderName: folder, folderLabel: `${layerId}. ${folderName}` });
+                            }});
+                        });
+                        items.push('sep');
+                    }
+                    items.push({ label: '새 폴더 만들고 추가...', icon: 'fa-solid fa-folder-plus', action: () => {
+                        openTagInlinePopup(anchorEl, { mode: 'add', layerId, folderName: null, folderLabel: `${layerId}계층 - 새 폴더`, newFolder: true });
+                    }});
+                    showCtxMenu(e.clientX, e.clientY, items);
+
+                } else if (subFolderHeader) {
+                    // 폴더 헤더 우클릭 → 해당 폴더에 직접 추가
+                    const subFolder = subFolderHeader.closest('.sub-folder');
+                    const layerGroup = subFolder?.closest('.layer-group');
+                    const layerBadge = layerGroup?.querySelector('[id^="layer-badge-"]');
+                    const layerId = layerBadge ? parseInt(layerBadge.id.replace('layer-badge-', '')) : null;
+                    // 폴더 이름은 sub-folder-header의 첫 span 텍스트
+                    const folderNameText = subFolderHeader.querySelector('span')?.textContent?.trim();
+                    if (!layerId || !folderNameText) return;
+                    // DB에서 실제 폴더 키 찾기
+                    const actualFolder = promptDB[layerId] ? Object.keys(promptDB[layerId]).find(k => k.split('|')[0] === folderNameText) || (folderNameText + '|자유') : (folderNameText + '|자유');
+
+                    showCtxMenu(e.clientX, e.clientY, [
+                        { label: `📂 "${folderNameText}" 에 태그 추가`, isHeader: true },
+                        { label: '이 폴더에 태그 추가', icon: 'fa-solid fa-plus', action: () => {
+                            openTagInlinePopup(anchorEl, { mode: 'add', layerId, folderName: actualFolder, folderLabel: `${layerId}. ${folderNameText}` });
+                        }},
+                    ]);
+                }
             } else if (dbTagBtn) {
                 e.preventDefault();
                 const tagText = dbTagBtn.dataset.tag;
@@ -866,8 +956,12 @@
                 if (foundFolder !== null) {
                     menuItems.push('sep');
                     menuItems.push({ label: 'DB에서 태그 수정', icon: 'fa-solid fa-pencil', action: () => {
-                        openDBManager();
-                        setTimeout(() => editTagSetup(layerId, foundFolder, foundIndex), 100);
+                        const data = promptDB[layerId][foundFolder][foundIndex];
+                        openTagInlinePopup(dbTagBtn, {
+                            mode: 'edit', layerId, folderName: foundFolder, index: foundIndex,
+                            en: data.t, kr: data.k || '', conflict: data.c || '',
+                            folderLabel: `${layerId}. ${foundFolder.split('|')[0]}`
+                        });
                     }});
                     menuItems.push({ label: 'DB에서 태그 삭제', icon: 'fa-solid fa-xmark', danger: true, action: () => {
                         deleteTag(layerId, foundFolder, foundIndex);
@@ -946,7 +1040,7 @@
                 group.className = 'layer-group';
 
                 group.innerHTML = `
-                    <div class="layer-title-bar" onclick="this.closest('.layer-group').classList.toggle('collapsed')">
+                    <div class="layer-title-bar" onmousedown="if(event.button===2)event.stopPropagation()" onclick="this.closest('.layer-group').classList.toggle('collapsed')">
                         <div class="layer-indicator" style="background-color: ${layer.color};"></div>
                         <span style="color: ${layer.color}">${layer.title}</span>
                         <span class="layer-badge" id="layer-badge-${i}" style="display:none; background-color: ${layer.color};">0</span>
@@ -2079,6 +2173,80 @@
                 showToast("저장 실패: JSON 형식을 확인해주세요.", "error");
             }
         }
+
+        // ===== 인라인 태그 편집/추가 팝업 =====
+        let _tipState = {}; // { mode: 'edit'|'add', layerId, folderName, index }
+
+        function openTagInlinePopup(anchorEl, state) {
+            _tipState = state;
+            const popup = document.getElementById('tag-inline-popup');
+            document.getElementById('tip-mode-label').textContent = state.mode === 'edit' ? '태그 수정' : '태그 추가';
+            document.getElementById('tip-folder-label').textContent = state.folderLabel || '';
+            document.getElementById('tip-en').value = state.en || '';
+            document.getElementById('tip-kr').value = state.kr || '';
+            document.getElementById('tip-conflict').value = state.conflict || '';
+            const newFolderRow = document.getElementById('tip-new-folder-row');
+            document.getElementById('tip-folder-name').value = '';
+            newFolderRow.style.display = state.newFolder ? 'block' : 'none';
+            popup.style.display = 'flex';
+
+            // 위치 계산 — 앵커 근처, 화면 밖으로 나가지 않게
+            const rect = anchorEl.getBoundingClientRect();
+            const popW = 300, popH = 260;
+            let left = rect.right + 8;
+            let top = rect.top;
+            if (left + popW > window.innerWidth) left = rect.left - popW - 8;
+            if (top + popH > window.innerHeight) top = window.innerHeight - popH - 12;
+            if (left < 8) left = 8;
+            if (top < 8) top = 8;
+            popup.style.left = left + 'px';
+            popup.style.top = top + 'px';
+            setTimeout(() => document.getElementById('tip-en').focus(), 50);
+        }
+
+        function closeTagInlinePopup() {
+            document.getElementById('tag-inline-popup').style.display = 'none';
+            _tipState = {};
+        }
+
+        function saveTagInlinePopup() {
+            const t = document.getElementById('tip-en').value.trim();
+            const k = document.getElementById('tip-kr').value.trim();
+            const c = document.getElementById('tip-conflict').value.trim();
+            if (!t) { showToast('프롬프트(EN)는 필수입니다.', 'warning'); return; }
+
+            if (_tipState.mode === 'edit') {
+                const { layerId, folderName, index } = _tipState;
+                promptDB[layerId][folderName][index] = { ...promptDB[layerId][folderName][index], t, k, c };
+            } else {
+                const { layerId } = _tipState;
+                let folderName = _tipState.folderName;
+                if (_tipState.newFolder) {
+                    const newFolderName = document.getElementById('tip-folder-name').value.trim();
+                    if (!newFolderName) { showToast('폴더 이름을 입력하세요.', 'warning'); return; }
+                    folderName = newFolderName + '|자유';
+                }
+                if (!promptDB[layerId]) promptDB[layerId] = {};
+                if (!promptDB[layerId][folderName]) promptDB[layerId][folderName] = [];
+                promptDB[layerId][folderName].push({ t, n: '', k, c });
+            }
+            safeSetStorage('pro_prompt_db_v7_0', promptDB);
+            initApp();
+            closeTagInlinePopup();
+            showToast(_tipState.mode === 'edit' ? '태그가 수정됐습니다.' : '태그가 추가됐습니다.', 'success');
+        }
+
+        // 팝업 외부 클릭 시 닫기
+        document.addEventListener('mousedown', (e) => {
+            const popup = document.getElementById('tag-inline-popup');
+            if (popup.style.display !== 'none' && !popup.contains(e.target)) closeTagInlinePopup();
+        }, true);
+
+        // Enter로 저장
+        document.getElementById('tag-inline-popup').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveTagInlinePopup(); }
+            if (e.key === 'Escape') closeTagInlinePopup();
+        });
 
         function collapseAllLayers(collapse) {
             document.querySelectorAll('.layer-group').forEach(g => {
