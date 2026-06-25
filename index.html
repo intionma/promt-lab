@@ -984,7 +984,187 @@
             "flat lighting": "단조로운 조명", "smooth": "매끄러운"
         };
 
-        const defaultNestedDB = { 1: {}, 2: {}, 3: {}, 4: {}, 5: {}, 6: {}, 7: {} };
+        const defaultNestedDB = {
+          1: {
+            "Pony 코어|자유": [
+              {"t":"score_9, score_8_up, score_7_up","n":"","k":"Pony 최고 품질 베이스","c":""},
+              {"t":"masterpiece, best_quality","n":"worst_quality, low_quality","k":"최상급 걸작","c":""},
+              {"t":"highres, highly_detailed","n":"lowres","k":"고해상도 디테일","c":""}
+            ],
+            "수위 (Rating)|1개": [
+              {"t":"rating_safe","n":"nsfw, explicit","k":"건전한 전연령 (세이프)","c":"rating"},
+              {"t":"rating_questionable","n":"rating_safe, explicit","k":"약한 수위 (Questionable)","c":"rating"},
+              {"t":"rating_explicit","n":"rating_safe","k":"성인 (Explicit)","c":"rating"}
+            ],
+            "화풍 (Style)|1~2개": [
+              {"t":"source_realistic, photorealistic","n":"source_anime, cartoon","k":"실사풍","c":"style"},
+              {"t":"source_anime","n":"source_realistic, 3d","k":"애니메이션풍","c":"style"},
+              {"t":"3d, octane render","n":"2d, flat","k":"3D 렌더링","c":"style"}
+            ],
+            "색감 & 톤|1개": [
+              {"t":"monochrome","n":"colorful, vibrant_colors","k":"흑백 모노톤","c":"color_tone"},
+              {"t":"pastel_colors","n":"dark_theme, muted_colors","k":"파스텔톤","c":"color_tone"},
+              {"t":"vibrant_colors","n":"monochrome, muted_colors","k":"선명한 컬러","c":"color_tone"}
+            ]
+          },
+          2: {
+            "인원 & 성별|1개": [
+              {"t":"1girl","n":"multiple_girls, boys","k":"여성 1명","c":"gender"},
+              {"t":"1boy","n":"1girl","k":"남성 1명","c":"gender"},
+              {"t":"2girls","n":"1girl, boys","k":"여성 2명","c":"gender"}
+            ],
+            "국적 & 스타일|1~2개": [
+              {"t":"korean_girl","n":"japanese_girl","k":"한국인 여성","c":""},
+              {"t":"japanese_girl","n":"korean_girl","k":"일본인 여성","c":""},
+              {"t":"k-pop_aesthetic","n":"","k":"K-pop 스타일","c":""}
+            ],
+            "카메라 앵글|1개": [
+              {"t":"close_up","n":"full_body","k":"클로즈업","c":"angle"},
+              {"t":"full_body","n":"close_up","k":"전신 샷","c":"angle"},
+              {"t":"from_behind","n":"","k":"뒷모습","c":""}
+            ]
+          },
+          3: {
+            "체형|자유": [
+              {"t":"petite","n":"tall, mature","k":"아담한 체형","c":"body_size"},
+              {"t":"tall","n":"petite","k":"늘씬한 장신","c":"body_size"},
+              {"t":"skinny","n":"curvy, fat","k":"슬렌더 체형","c":"body_type"}
+            ],
+            "가슴 사이즈|1개": [
+              {"t":"small_breasts","n":"large_breasts","k":"작은 가슴","c":"chest"},
+              {"t":"medium_breasts","n":"flat_chest","k":"보통 가슴","c":"chest"},
+              {"t":"large_breasts","n":"flat_chest","k":"큰 가슴","c":"chest"}
+            ],
+            "신체 디테일|자유": [
+              {"t":"smooth_skin_texture","n":"dry","k":"매끄러운 피부 질감","c":""},
+              {"t":"defined_spine","n":"flat_back","k":"등 척추 라인","c":""},
+              {"t":"barefoot","n":"shoes","k":"맨발","c":""}
+            ],
+            "피부 & 질감|1개": [
+              {"t":"pale_skin","n":"dark_skin, tanned","k":"밝은 피부","c":"skin_color"},
+              {"t":"tanned","n":"pale_skin","k":"건강한 태닝 피부","c":"skin_color"},
+              {"t":"freckles","n":"flawless_skin","k":"주근깨","c":""}
+            ],
+            "헤어 컬러|1개": [
+              {"t":"blonde_hair","n":"black_hair","k":"금발","c":"hair_color"},
+              {"t":"brown_hair","n":"blonde_hair","k":"갈색 머리","c":"hair_color"},
+              {"t":"black_hair","n":"blonde_hair","k":"흑발","c":"hair_color"}
+            ],
+            "헤어 스타일|1~2개": [
+              {"t":"long_hair","n":"short_hair","k":"긴 머리","c":"hair_len"},
+              {"t":"short_hair","n":"long_hair","k":"단발 머리","c":"hair_len"},
+              {"t":"ponytail","n":"","k":"포니테일","c":"hair_style"}
+            ],
+            "메이크업|자유": [
+              {"t":"lipstick","n":"pale_lips","k":"립스틱","c":""},
+              {"t":"eyeshadow","n":"no_makeup","k":"아이섀도우","c":""},
+              {"t":"blush","n":"pale_face","k":"홍조 메이크업","c":""}
+            ],
+            "눈동자 (Eyes)|1개": [
+              {"t":"blue_eyes","n":"","k":"파란 눈","c":"eye_color"},
+              {"t":"red_eyes","n":"","k":"붉은 눈","c":"eye_color"},
+              {"t":"looking_at_viewer","n":"looking_away","k":"정면 응시","c":""}
+            ],
+            "표정 (Expression)|1~2개": [
+              {"t":"smile","n":"serious","k":"미소","c":"exp"},
+              {"t":"tears, crying","n":"smile","k":"우는 표정","c":"exp"},
+              {"t":"open_mouth","n":"closed_mouth","k":"입 벌린 표정","c":"exp"}
+            ],
+            "얼굴 디테일|자유": [
+              {"t":"small_face","n":"large","k":"작은 얼굴","c":"face_type"},
+              {"t":"round_face","n":"sharp_jawline","k":"둥근 얼굴","c":"face_type"},
+              {"t":"big_eyes","n":"small_eyes","k":"큰 눈","c":"face_type"}
+            ]
+          },
+          4: {
+            "의상 (Clothes)|1~2개": [
+              {"t":"school_uniform","n":"","k":"교복","c":"clothes"},
+              {"t":"oversized_hoodie","n":"tight","k":"오버핏 후드티","c":"clothes"},
+              {"t":"business_suit","n":"casual","k":"비즈니스 정장","c":"clothes"}
+            ],
+            "하의 및 핏|자유": [
+              {"t":"skirt","n":"pants","k":"치마","c":"bottoms"},
+              {"t":"pants","n":"skirt","k":"긴 바지","c":"bottoms"},
+              {"t":"loose_clothing","n":"vacuum_sealed_clothes","k":"여유로운 핏의 옷","c":""}
+            ],
+            "레그웨어 & 양말|1~2개": [
+              {"t":"bare_legs","n":"pantyhose","k":"맨다리","c":"legwear"},
+              {"t":"pantyhose","n":"bare_legs","k":"팬티스타킹","c":"legwear"},
+              {"t":"socks","n":"bare_legs","k":"양말","c":"legwear"}
+            ],
+            "신발 (Footwear)|1개": [
+              {"t":"sneakers","n":"high_heels","k":"스니커즈","c":"footwear"},
+              {"t":"high_heels","n":"sneakers","k":"하이힐","c":"footwear"},
+              {"t":"boots","n":"sandals","k":"부츠","c":"footwear"}
+            ],
+            "악세서리|자유": [
+              {"t":"glasses","n":"","k":"안경","c":""},
+              {"t":"animal_ears","n":"human_ears","k":"동물 귀","c":""},
+              {"t":"headphones","n":"","k":"헤드폰","c":""}
+            ],
+            "주얼리|자유": [
+              {"t":"earrings","n":"","k":"귀걸이","c":""},
+              {"t":"ring","n":"","k":"반지","c":""},
+              {"t":"necklace","n":"","k":"목걸이","c":""}
+            ]
+          },
+          5: {
+            "구도 및 자세 (Pose)|자유": [
+              {"t":"standing","n":"sitting","k":"서 있는 자세","c":"pose"},
+              {"t":"sitting","n":"standing","k":"앉아 있는 자세","c":"pose"},
+              {"t":"lying_on_back","n":"standing","k":"누운 자세","c":"pose"}
+            ],
+            "손 & 팔 제스처|자유": [
+              {"t":"hands_on_hips","n":"","k":"허리에 얹은 손","c":""},
+              {"t":"peace_sign","n":"","k":"브이(V) 포즈","c":""},
+              {"t":"crossed_arms","n":"","k":"팔짱 낀 포즈","c":""}
+            ]
+          },
+          6: {
+            "스튜디오 & 배경|1개": [
+              {"t":"simple_background","n":"detailed_background","k":"심플 배경","c":"bg_type"},
+              {"t":"white_background","n":"black_background","k":"흰색 배경","c":"bg_type"},
+              {"t":"solid_color","n":"gradient_background","k":"단색 바탕","c":"bg_type"}
+            ],
+            "가구 & 소품|자유": [
+              {"t":"bed","n":"","k":"침대","c":"furniture"},
+              {"t":"sofa","n":"","k":"소파","c":"furniture"},
+              {"t":"window","n":"","k":"창가","c":"furniture"}
+            ],
+            "실내 환경|1개": [
+              {"t":"indoors","n":"outdoors","k":"실내","c":"in_out"},
+              {"t":"bedroom","n":"living_room","k":"아늑한 침실","c":"bg_place"},
+              {"t":"classroom","n":"outdoors","k":"교실","c":"bg_place"}
+            ],
+            "실외 & 자연|1개": [
+              {"t":"outdoors","n":"indoors","k":"야외","c":"in_out"},
+              {"t":"nature","n":"city","k":"자연 풍경","c":"bg_place"},
+              {"t":"city","n":"nature","k":"도심","c":"bg_place"}
+            ],
+            "시간 & 날씨|1개": [
+              {"t":"daytime","n":"night","k":"대낮","c":"daytime"},
+              {"t":"night","n":"daytime","k":"밤하늘","c":"daytime"},
+              {"t":"raining","n":"clear_sky","k":"비 내리는 날씨","c":"weather"}
+            ]
+          },
+          7: {
+            "조명 세팅|자유": [
+              {"t":"cinematic_lighting","n":"flat_lighting","k":"시네마틱 조명","c":""},
+              {"t":"soft_lighting","n":"direct_flash","k":"부드러운 조명","c":""},
+              {"t":"natural_lighting","n":"neon_lighting","k":"자연광","c":""}
+            ],
+            "카메라 필터|자유": [
+              {"t":"depth_of_field","n":"flat_background","k":"아웃포커싱 (심도)","c":""},
+              {"t":"sharp_focus","n":"blurry_background","k":"선명한 초점","c":""},
+              {"t":"lens_flare","n":"","k":"렌즈 플레어","c":""}
+            ],
+            "자연 & 파티클|자유": [
+              {"t":"falling_petals","n":"static","k":"흩날리는 꽃잎","c":"particles"},
+              {"t":"wind","n":"static","k":"바람","c":"particles"},
+              {"t":"water_drops","n":"dry","k":"맺혀 있는 물방울","c":"particles"}
+            ]
+          }
+        };
 
         let promptDB; try { promptDB = JSON.parse(localStorage.getItem('pro_prompt_db_v7_0')) || defaultNestedDB; } catch(e) { promptDB = defaultNestedDB; }
 
@@ -5176,6 +5356,9 @@
                 if (collapse) g.classList.add('collapsed');
                 else g.classList.remove('collapsed');
             });
+            if (collapse) {
+                document.querySelectorAll('.sub-folder:not(.collapsed)').forEach(f => f.classList.add('collapsed'));
+            }
         }
 
         function toggleEditorSection(event, layerIndex) {
