@@ -3454,6 +3454,7 @@
 
                 chip.ondblclick = (e) => {
                     if (e.target.classList.contains('chip-delete') || e.target.closest('.chip-delete')) return;
+                    if ('ontouchstart' in window) return;
                     e.stopPropagation();
                     enterEditMode();
                 };
@@ -3786,6 +3787,95 @@
             }
         }
 
+        function _ptcl(word, c, v) {
+            if (!word) return c;
+            const code = word.charCodeAt(word.length - 1);
+            if (code >= 0xAC00 && code <= 0xD7A3) return ((code - 0xAC00) % 28) !== 0 ? c : v;
+            return c;
+        }
+
+        function _buildKoreanScene(state) {
+            function getKors(layerIdx) {
+                const str = (state[layerIdx] || '').trim();
+                if (!str) return [];
+                return str.split(',').map(t => {
+                    let clean = t.trim();
+                    if (clean.startsWith('{') || clean.startsWith('__')) return null;
+                    const wm = clean.match(/^\((.+):[\d.]+\)$/);
+                    if (wm) clean = wm[1];
+                    clean = clean.replace(/^[()\[\]]+|[()\[\]]+$/g, '').trim();
+                    const data = activeTagsMap[clean];
+                    return data ? data.kor : clean;
+                }).filter(Boolean);
+            }
+
+            const L = [getKors(0), getKors(1), getKors(2), getKors(3), getKors(4), getKors(5), getKors(6)];
+            // L[0]=품질, L[1]=인물, L[2]=의상, L[3]=포즈/행동, L[4]=배경, L[5]=조명, L[6]=스타일
+            const [lQ, lC, lCl, lP, lBg, lLt, lSt] = L;
+
+            const sentences = [];
+
+            // 1. 스타일 도입
+            if (lSt.length > 0) {
+                const styleStr = lSt.join(', ');
+                sentences.push(`<span style="color:var(--accent-blue);">${styleStr}</span> 화풍으로 표현된 이미지입니다.`);
+            }
+
+            // 2. 배경 + 조명 묘사
+            if (lBg.length > 0 && lLt.length > 0) {
+                const bgStr = lBg.join('·');
+                const ltStr = lLt.join('·');
+                sentences.push(`배경은 <strong>${bgStr}</strong>이며, <strong>${ltStr}</strong> 분위기가 공간 전체를 감싸고 있습니다.`);
+            } else if (lBg.length > 0) {
+                const bgStr = lBg.join('·');
+                sentences.push(`배경은 <strong>${bgStr}</strong>${_ptcl(lBg[lBg.length-1],'으로','로')} 설정되어 있습니다.`);
+            } else if (lLt.length > 0) {
+                const ltStr = lLt.join('·');
+                sentences.push(`<strong>${ltStr}</strong> 분위기 속에서 장면이 펼쳐집니다.`);
+            }
+
+            // 3. 인물 묘사 + 의상 + 포즈
+            if (lC.length > 0 || lCl.length > 0 || lP.length > 0) {
+                let charParts = [];
+
+                if (lC.length > 0) {
+                    // 인물 특징 나열 - 앞 2개는 주요 묘사, 나머지는 세부
+                    const mainChar = lC.slice(0, 3).join(', ');
+                    const extraChar = lC.slice(3);
+                    let charDesc = `<strong>${mainChar}</strong>`;
+                    if (extraChar.length > 0) charDesc += ` (${extraChar.join(', ')})`;
+                    charParts.push(`${charDesc}${_ptcl(lC[lC.length > 3 ? 2 : lC.length - 1], '이', '가')} 등장합니다.`);
+                }
+
+                if (lCl.length > 0 && lP.length > 0) {
+                    const clStr = lCl.join('·');
+                    const pStr = lP.join('·');
+                    charParts.push(`<strong>${clStr}</strong>${_ptcl(lCl[lCl.length-1],'을','를')} 착용한 채 <strong>${pStr}</strong> 자세를 취하고 있습니다.`);
+                } else if (lCl.length > 0) {
+                    const clStr = lCl.join('·');
+                    charParts.push(`<strong>${clStr}</strong>${_ptcl(lCl[lCl.length-1],'을','를')} 착용하고 있습니다.`);
+                } else if (lP.length > 0) {
+                    const pStr = lP.join('·');
+                    charParts.push(`<strong>${pStr}</strong> 자세를 취하고 있습니다.`);
+                }
+
+                sentences.push(charParts.join(' '));
+            }
+
+            // 4. 품질 노트 (마지막에 짧게)
+            if (lQ.length > 0) {
+                const shown = lQ.slice(0, 4);
+                const extra = lQ.length > 4 ? ` 등 총 ${lQ.length}개` : '';
+                sentences.push(`<span style="color:var(--text-dim); font-size:12px;">✦ 품질 설정: ${shown.join(', ')}${extra}</span>`);
+            }
+
+            if (sentences.length === 0) {
+                return `<span style="color:var(--text-dim);">태그 정보를 불러올 수 없습니다.</span>`;
+            }
+
+            return sentences.map(s => `<p style="margin:0 0 8px 0; line-height:1.7;">${s}</p>`).join('');
+        }
+
         function updateMasterOutput() {
             // 동적 탭 기반으로 각 탭의 내용 수집
             const tabStrings = contextTabs.map(tab => {
@@ -3843,29 +3933,12 @@
             }
 
             const previewBox = document.getElementById('korean-preview');
-            let currentTabRaw = contextStates[currentContext].filter(s=>s.trim()!=="").join(", ");
-            if (currentTabRaw.length === 0) {
-                previewBox.innerText = `현재 탭에 등록된 태그가 없습니다.`;
+            const _currentState = contextStates[currentContext] || [];
+            const _hasAnyTag = _currentState.some(s => s.trim() !== '');
+            if (!_hasAnyTag) {
+                previewBox.innerHTML = `<span style="color:var(--text-dim);">현재 탭에 등록된 태그가 없습니다.</span>`;
             } else {
-                previewBox.innerHTML = currentTabRaw.split(',').map(tag => {
-                    let cleanTag = tag.trim();
-
-                    if(cleanTag.startsWith('{') && cleanTag.endsWith('}')) {
-                        let inner = cleanTag.slice(1, -1).replace(/\|/g, '/');
-                        return `<strong style="color:#eab308; font-weight:700;">랜덤: ${inner}</strong>`;
-                    }
-                    if(cleanTag.startsWith('__') && cleanTag.endsWith('__')) {
-                        let inner = cleanTag.slice(2, -2);
-                        return `<strong style="color:#eab308; font-weight:700;">와일드카드: ${inner}</strong>`;
-                    }
-
-                    const wm = cleanTag.match(/^\((.+):(\d+\.?\d*)\)$/);
-                    let core = wm ? wm[1] : cleanTag.replace(/^[()\[\]]+|[()\[\]]+$/g, '').trim();
-                    let weight = wm ? `(${parseFloat(wm[2]).toFixed(1)})` : '';
-                    let kor = (activeTagsMap[core] && activeTagsMap[core].kor) ? activeTagsMap[core].kor : (negKorMap[core.toLowerCase()] || core);
-
-                    return `<strong style="color:var(--text-main); font-weight:700;">${kor}${weight}</strong>`;
-                }).join(' <span style="color:var(--text-dim);">/</span> ');
+                previewBox.innerHTML = _buildKoreanScene(_currentState);
             }
 
             const styleToNegMap = {
