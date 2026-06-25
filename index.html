@@ -686,7 +686,15 @@
                 <button class="action-btn" onclick="document.getElementById('db-io-modal').style.display='none'"><i class="fa-solid fa-xmark"></i> 닫기</button>
             </div>
             <div style="padding: 24px;">
-                <p id="io-desc" style="font-size: 15px; color: var(--text-dim); line-height: 1.6;"></p>
+                <p id="io-desc" style="font-size: 14px; color: var(--text-dim); line-height: 1.6; margin-bottom: 12px;"></p>
+                <div id="io-export-options" style="display:none; margin-bottom:14px; display:flex; gap:10px; flex-wrap:wrap;">
+                    <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-family:var(--font-ui);cursor:pointer;"><input type="checkbox" id="io-chk-db" checked> 태그 DB</label>
+                    <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-family:var(--font-ui);cursor:pointer;"><input type="checkbox" id="io-chk-combo" checked> 간편 조합</label>
+                    <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-family:var(--font-ui);cursor:pointer;"><input type="checkbox" id="io-chk-tabs" checked> 에디터 탭/내용</label>
+                    <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-family:var(--font-ui);cursor:pointer;"><input type="checkbox" id="io-chk-weights" checked> 태그 가중치</label>
+                    <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-family:var(--font-ui);cursor:pointer;"><input type="checkbox" id="io-chk-favs" checked> 즐겨찾기</label>
+                    <button onclick="updateExportPreview()" style="margin-left:auto;padding:4px 12px;border-radius:6px;border:1px solid var(--border-dim);background:var(--bg-base);color:var(--text-main);font-size:12px;font-family:var(--font-ui);cursor:pointer;">미리보기 갱신</button>
+                </div>
                 <textarea class="io-textarea" id="io-textarea"></textarea>
                 <div style="display: flex; gap: 15px; margin-top: 24px;">
                     <button class="btn-add-db" style="flex: 1; border:none;" id="io-action-btn" onclick="executeIO()"></button>
@@ -978,7 +986,10 @@
 
         function performUndo() {
             if(undoStack.length === 0) return;
-            contextStates = undoStack.pop();
+            const prev = undoStack.pop();
+            // 현재 탭 키에 맞는 상태만 복원
+            Object.keys(prev).forEach(k => { if (contextStates[k] !== undefined) contextStates[k] = prev[k]; });
+            saveTabsAndStates();
             loadContextState();
             updateUndoButton();
         }
@@ -2383,9 +2394,19 @@
                 el.appendChild(badge);
                 el.appendChild(closeBtn);
 
-                el.addEventListener('click', () => switchContext(tab.id));
+                let clickTimer = null;
+                el.addEventListener('click', () => {
+                    if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; return; } // dblclick 방지
+                    clickTimer = setTimeout(() => { clickTimer = null; switchContext(tab.id); }, 220);
+                });
                 // 더블클릭 → 이름 편집
-                el.addEventListener('dblclick', (e) => { e.stopPropagation(); startTabRename(el, tab); });
+                el.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+                    // 현재 탭이 아니면 먼저 전환
+                    if (currentContext !== tab.id) { switchContext(tab.id); setTimeout(() => startTabRename(document.querySelector(`.context-tab[data-tab-id="${tab.id}"]`), tab), 10); }
+                    else { startTabRename(el, tab); }
+                });
 
                 row.appendChild(el);
             });
@@ -2959,18 +2980,20 @@
         }
 
         function updateMasterOutput() {
-            let commonStr = contextStates['common'].filter(s=>s.trim()!=="").join(", ");
-            let char1Str = contextStates['char1'].filter(s=>s.trim()!=="").join(", ");
-            let char2Str = contextStates['char2'].filter(s=>s.trim()!=="").join(", ");
+            // 동적 탭 기반으로 각 탭의 내용 수집
+            const tabStrings = contextTabs.map(tab => {
+                const state = contextStates[tab.id] || [];
+                return state.filter(s => s.trim() !== "").join(", ");
+            });
 
             const outputFormat = document.getElementById('output-format-toggle') ? document.getElementById('output-format-toggle').value : 'labeled';
             const useBreak = document.getElementById('break-toggle') && document.getElementById('break-toggle').checked;
 
             let finalOutput = "";
             let validBlocks = [];
-            if(commonStr) validBlocks.push({ label: 'Common/Bg', content: commonStr });
-            if(char1Str) validBlocks.push({ label: 'Char 1', content: char1Str });
-            if(char2Str) validBlocks.push({ label: 'Char 2', content: char2Str });
+            contextTabs.forEach((tab, idx) => {
+                if (tabStrings[idx]) validBlocks.push({ label: tab.name, content: tabStrings[idx] });
+            });
 
             if (outputFormat === 'labeled') {
                 finalOutput = validBlocks.map(b => `[${b.label}]\n${b.content}`).join(useBreak ? "\n\nBREAK\n\n" : "\n\n");
@@ -3045,7 +3068,7 @@
                 "octane render": ["3d"]
             };
 
-            let allPosTagsStr = [commonStr, char1Str, char2Str].join(", ").toLowerCase();
+            let allPosTagsStr = tabStrings.join(", ").toLowerCase();
             let negsToRemove = new Set();
             Object.keys(styleToNegMap).forEach(styleTag => {
                 if (allPosTagsStr.includes(styleTag)) {
@@ -3057,7 +3080,9 @@
 
             let activeNegatives = new Set();
             Object.keys(activeTagsMap).forEach(tag => {
-                const isUsed = contextStates['common'].some(layer => getRegexForTag(tag).test(layer)) || contextStates['char1'].some(layer => getRegexForTag(tag).test(layer)) || contextStates['char2'].some(layer => getRegexForTag(tag).test(layer));
+                const isUsed = contextTabs.some(tab =>
+                    (contextStates[tab.id] || []).some(layer => getRegexForTag(tag).test(layer))
+                );
                 if(isUsed && activeTagsMap[tag].neg.trim() !== "") { activeTagsMap[tag].neg.split(',').forEach(n => { if(n.trim()) activeNegatives.add(n.trim()); }); }
             });
             const negArray = Array.from(activeNegatives);
@@ -3133,16 +3158,9 @@
             if(!name) { showToast("저장할 프리셋 이름을 입력해주세요.", "warning"); return; }
 
             let iconStr = "";
-            let c = contextStates['common'].join('').trim().length > 0;
-            let c1 = contextStates['char1'].join('').trim().length > 0;
-            let c2 = contextStates['char2'].join('').trim().length > 0;
-
-            if(c || c1 || c2) {
-                iconStr += "[";
-                if(c) iconStr += "🌐";
-                if(c1) iconStr += "👩";
-                if(c2) iconStr += "👱‍♀️";
-                iconStr += "] ";
+            const hasAny = contextTabs.some(tab => (contextStates[tab.id] || []).join('').trim().length > 0);
+            if (hasAny) {
+                iconStr += "[" + contextTabs.filter(tab => (contextStates[tab.id] || []).join('').trim().length > 0).map(() => "📝").join('') + "] ";
             }
 
             const finalName = iconStr + name;
@@ -3234,15 +3252,20 @@
             const savedData = presets[name];
 
             if(Array.isArray(savedData)) {
-                contextStates = { 'common': ["", "", "", "", "", "", ""], 'char1': [...savedData], 'char2': ["", "", "", "", "", "", ""] };
+                // 구형: 배열 형태 - 현재 첫 번째 탭에 로드
+                contextStates[currentContext] = [...savedData];
                 if(document.getElementById('generation-memo')) document.getElementById('generation-memo').value = "";
             } else if (savedData.states) {
-                contextStates = JSON.parse(JSON.stringify(savedData.states));
+                // states가 현재 탭 구조와 맞으면 그대로, 아니면 현재 탭에 병합
+                const saved = JSON.parse(JSON.stringify(savedData.states));
+                Object.keys(saved).forEach(k => { if (contextStates[k] !== undefined) contextStates[k] = saved[k]; });
                 if(document.getElementById('generation-memo')) document.getElementById('generation-memo').value = savedData.memo || "";
             } else {
-                contextStates = JSON.parse(JSON.stringify(savedData));
+                const saved = JSON.parse(JSON.stringify(savedData));
+                Object.keys(saved).forEach(k => { if (contextStates[k] !== undefined) contextStates[k] = saved[k]; });
                 if(document.getElementById('generation-memo')) document.getElementById('generation-memo').value = "";
             }
+            saveTabsAndStates();
 
             loadContextState();
             document.getElementById('preset-manager-modal').style.display = 'none';
@@ -3270,6 +3293,26 @@
         }
 
         let currentIOType = '';
+        function buildExportData() {
+            const chkDB = document.getElementById('io-chk-db')?.checked !== false;
+            const chkCombo = document.getElementById('io-chk-combo')?.checked !== false;
+            const chkTabs = document.getElementById('io-chk-tabs')?.checked !== false;
+            const chkWeights = document.getElementById('io-chk-weights')?.checked !== false;
+            const chkFavs = document.getElementById('io-chk-favs')?.checked !== false;
+            const data = { _version: 2 };
+            if (chkDB) data.promptDB = promptDB;
+            if (chkCombo) data.comboFS = comboFS;
+            if (chkTabs) { data.contextTabs = contextTabs; data.contextStates = contextStates; }
+            if (chkWeights) data.tagDefaultWeights = tagDefaultWeights;
+            if (chkFavs) data.favorites = favorites;
+            return JSON.stringify(data);
+        }
+
+        function updateExportPreview() {
+            const textarea = document.getElementById('io-textarea');
+            if (textarea) textarea.value = buildExportData();
+        }
+
         function openIOModal(type) {
             currentIOType = type;
             const modal = document.getElementById('db-io-modal');
@@ -3277,25 +3320,24 @@
             const desc = document.getElementById('io-desc');
             const textarea = document.getElementById('io-textarea');
             const btn = document.getElementById('io-action-btn');
+            const exportOpts = document.getElementById('io-export-options');
             if (type === 'export') {
-                title.innerHTML = '<i class="fa-solid fa-copy"></i> 전체 데이터 내보내기';
-                desc.innerText = "태그 DB + 간편 조합 + 에디터 탭 내용이 모두 포함됩니다. 복사하여 보관하세요.";
-                const exportData = {
-                    _version: 2,
-                    promptDB,
-                    comboFS,
-                    contextTabs,
-                    contextStates,
-                    tagDefaultWeights,
-                    favorites,
-                };
-                textarea.value = JSON.stringify(exportData);
+                title.innerHTML = '<i class="fa-solid fa-copy"></i> 데이터 내보내기';
+                desc.innerText = "내보낼 항목을 선택하고 코드를 복사하세요.";
+                if (exportOpts) exportOpts.style.display = 'flex';
+                textarea.value = buildExportData();
                 textarea.readOnly = true;
-                btn.innerText = "전체 코드 복사하기";
+                btn.innerText = "선택 항목 복사하기";
                 btn.style.backgroundColor = "var(--accent-blue)";
+                // 체크박스 변경 시 미리보기 자동 갱신
+                ['io-chk-db','io-chk-combo','io-chk-tabs','io-chk-weights','io-chk-favs'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.onchange = updateExportPreview;
+                });
             } else {
                 title.innerHTML = '<i class="fa-solid fa-paste"></i> 데이터 복구하기';
-                desc.innerText = "백업해둔 전체 코드(또는 구형 태그DB 코드)를 붙여넣기 하세요.";
+                desc.innerText = "백업해둔 코드(전체 또는 구형 태그DB)를 붙여넣기 하세요. 선택한 항목만 덮어씁니다.";
+                if (exportOpts) exportOpts.style.display = 'none';
                 textarea.value = "";
                 textarea.readOnly = false;
                 btn.innerText = "붙여넣은 코드로 복구 실행";
@@ -3307,7 +3349,8 @@
         function executeIO() {
             const textarea = document.getElementById('io-textarea');
             if (currentIOType === 'export') {
-                const text = textarea.value;
+                const text = buildExportData();
+                textarea.value = text;
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(text).then(() => showToast("복사되었습니다.", "success")).catch(() => { textarea.select(); document.execCommand("copy"); showToast("복사되었습니다.", "success"); });
                 } else { textarea.select(); document.execCommand("copy"); showToast("복사되었습니다.", "success"); }
