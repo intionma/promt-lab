@@ -124,8 +124,37 @@
         .combo-card.active { border-color: var(--accent-green); background: rgba(34,197,94,0.06); }
         .combo-header { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; color: var(--text-main); font-family: var(--font-heading); padding-right: 30px; }
         .combo-desc { font-size: 13px; color: var(--text-dim); line-height: 1.4; }
-        .btn-combo-del { position: absolute; right: 12px; top: 12px; background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 14px; padding: 4px; transition: 0.2s; }
-        .btn-combo-del:hover { color: var(--accent-danger); transform: scale(1.1); }
+        .btn-combo-del { position: absolute; right: 6px; top: 6px; background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 12px; padding: 4px; transition: 0.2s; z-index: 3; }
+        .btn-combo-del:hover { color: var(--accent-danger); }
+
+        /* ─── 간편 조합 그리드 ─── */
+        .combo-toolbar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--bg-surface); border-bottom: 1px solid var(--border-dim); flex-shrink: 0; }
+        .combo-breadcrumb { display: flex; align-items: center; gap: 4px; flex: 1; flex-wrap: wrap; font-size: 12px; font-family: var(--font-ui); }
+        .combo-breadcrumb-item { color: var(--text-dim); cursor: pointer; padding: 2px 4px; border-radius: 4px; transition: 0.15s; white-space: nowrap; }
+        .combo-breadcrumb-item:hover { background: var(--bg-base); color: var(--text-main); }
+        .combo-breadcrumb-item.current { color: var(--text-main); font-weight: 700; cursor: default; }
+        .combo-breadcrumb-sep { color: var(--text-dim); opacity: 0.5; }
+        .combo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; padding: 14px; align-content: start; overflow-y: auto; flex: 1; }
+        .combo-item { position: relative; border-radius: 10px; cursor: pointer; transition: all 0.18s; user-select: none; }
+        .combo-item:hover { transform: translateY(-2px); }
+        .combo-item.dnd-over { box-shadow: 0 0 0 2px var(--accent-blue); }
+        .combo-item.dnd-dragging-fs { opacity: 0.35; }
+
+        /* 폴더 아이템 */
+        .combo-folder-item { background: var(--bg-surface); border: 1px solid var(--border-dim); display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 10px 10px; text-align: center; min-height: 90px; }
+        .combo-folder-item:hover { border-color: var(--accent-blue); }
+        .combo-folder-icon { font-size: 30px; line-height: 1; }
+        .combo-folder-name { font-size: 12px; font-weight: 700; font-family: var(--font-ui); color: var(--text-main); word-break: break-all; line-height: 1.3; width: 100%; }
+        .combo-folder-count { font-size: 11px; color: var(--text-dim); }
+
+        /* 조합 카드 (그리드형) */
+        .combo-card { background: var(--bg-surface); border: 1px solid var(--border-dim); display: flex; flex-direction: column; gap: 5px; padding: 10px 10px 10px; min-height: 90px; }
+        .combo-card:hover { border-color: var(--accent-blue); box-shadow: 0 4px 12px var(--shadow-color); }
+        .combo-card.active { border-color: var(--accent-green); background: rgba(34,197,94,0.06); }
+        .combo-header { font-size: 12px; font-weight: 700; font-family: var(--font-ui); color: var(--text-main); line-height: 1.3; word-break: break-all; padding-right: 14px; }
+        .combo-desc { font-size: 10px; font-family: var(--font-code); color: var(--text-dim); line-height: 1.4; word-break: break-all; flex: 1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+        .combo-item-name-edit { display: none; position: absolute; inset: 0; z-index: 10; background: var(--bg-surface); border: 2px solid var(--accent-blue); border-radius: 10px; padding: 8px; }
+        .combo-item-name-edit input { width: 100%; background: transparent; border: none; color: var(--text-main); font-size: 12px; font-family: var(--font-ui); font-weight: 700; outline: none; }
 
         .fav-recent-box { transition: 0.2s; }
         .fav-recent-box.collapsed .box-content { display: none !important; }
@@ -440,12 +469,13 @@
             <div class="panel-content" style="padding-top: 12px;">
                 <div id="sidebar-content-detail" style="display:flex; flex-direction:column; gap:16px;"></div>
 
-                <div id="sidebar-content-combo" style="display:none; flex-direction:column; gap:16px;">
-                    <div style="display:flex; gap:10px; background: var(--bg-surface); padding: 16px; border-radius: 10px; border: 1px solid var(--border-dim);">
-                        <input type="text" id="new-combo-name" placeholder="이름 미입력 시 자동 지정..." style="flex:1; padding:10px; background:var(--input-bg); border:1px solid var(--border-dim); color:var(--text-main); border-radius:6px; font-size:13px; font-family:var(--font-ui);">
-                        <button class="action-btn" onclick="saveNewCombo()" style="background:var(--accent-green); color:#fff; height: auto; padding: 8px 16px; font-size:13px; border:none;">저장</button>
+                <div id="sidebar-content-combo" style="display:none; flex-direction:column; overflow:hidden; flex:1; min-height:0;">
+                    <div class="combo-toolbar">
+                        <div class="combo-breadcrumb" id="combo-breadcrumb"></div>
+                        <button class="action-btn" onclick="saveNewCombo()" style="background:var(--accent-green);color:#fff;border:none;padding:6px 12px;font-size:12px;white-space:nowrap;" title="현재 에디터 상태를 조합으로 저장"><i class="fa-solid fa-floppy-disk"></i> 저장</button>
+                        <button class="action-btn" onclick="createComboFolder()" style="color:var(--accent-blue);border-color:var(--accent-blue);padding:6px 12px;font-size:12px;white-space:nowrap;" title="새 폴더 만들기"><i class="fa-solid fa-folder-plus"></i></button>
                     </div>
-                    <div id="combo-list-container" style="display:flex; flex-direction:column; gap:12px;"></div>
+                    <div class="combo-grid" id="combo-list-container"></div>
                 </div>
             </div>
         </aside>
@@ -792,6 +822,47 @@
 
         let userCombos = {};
         try { userCombos = JSON.parse(localStorage.getItem('pro_prompt_combos_v7_0')) || {}; } catch(e) { userCombos = {}; }
+
+        // ─── 간편 조합 파일시스템 ───
+        // comboFS.items: { [id]: { type:'combo'|'folder', id, title, tags?(combo), children?(folder) } }
+        // comboFS.root: [id, ...]
+        const FS_KEY = 'combo_fs_v2';
+        let comboFS = { items: {}, root: [] };
+        try {
+            const saved = JSON.parse(localStorage.getItem(FS_KEY));
+            if (saved && saved.items && saved.root) comboFS = saved;
+            else {
+                // 기존 userCombos 마이그레이션
+                Object.values(userCombos).forEach(c => {
+                    comboFS.items[c.id] = { type: 'combo', id: c.id, title: c.title, tags: c.tags };
+                    comboFS.root.push(c.id);
+                });
+                saveComboFS();
+            }
+        } catch(e) {}
+
+        function saveComboFS() { localStorage.setItem(FS_KEY, JSON.stringify(comboFS)); }
+
+        let comboNavStack = []; // [] = root, ['folderId'] = inside folder, etc.
+
+        function getCurrentFolderId() { return comboNavStack.length ? comboNavStack[comboNavStack.length - 1] : null; }
+        function getCurrentChildren() {
+            const fid = getCurrentFolderId();
+            return fid ? (comboFS.items[fid]?.children || []) : comboFS.root;
+        }
+        function setCurrentChildren(arr) {
+            const fid = getCurrentFolderId();
+            if (fid) { if (comboFS.items[fid]) comboFS.items[fid].children = arr; }
+            else comboFS.root = arr;
+        }
+        function countChildren(folderId) {
+            const folder = comboFS.items[folderId];
+            if (!folder) return 0;
+            return (folder.children || []).reduce((acc, id) => {
+                const item = comboFS.items[id];
+                return acc + (item ? (item.type === 'folder' ? countChildren(id) + 1 : 1) : 0);
+            }, 0);
+        }
 
         let undoStack = [];
 
@@ -1242,70 +1313,255 @@
             setTimeout(refreshAllTagBtnDisplays, 0);
         }
 
+        function getComboPreview(tags) {
+            const allTags = Object.values(tags).join(', ');
+            return allTags.length > 80 ? allTags.substring(0, 80) + '...' : allTags;
+        }
+
         function renderCombos() {
             const container = document.getElementById('combo-list-container');
-            if(!container) return;
+            if (!container) return;
             container.innerHTML = '';
 
-            Object.keys(userCombos).forEach(comboId => {
-                const combo = userCombos[comboId];
-                const preview = getComboPreview(combo.tags || {});
-                const card = document.createElement('div');
-                card.className = 'combo-card';
-                card.dataset.comboId = comboId;
-                card.innerHTML = `
-                    <div class="combo-header"><span>💾</span> <span>${combo.title}</span></div>
-                    <div class="combo-desc" style="color:var(--text-dim); font-family:var(--font-code); font-size:12px;">${preview}</div>
-                    <button class="btn-combo-del" onclick="deleteCombo('${comboId}', event)" title="이 조합 삭제"><i class="fa-solid fa-trash"></i></button>
-                `;
-                card.onclick = () => applyCombo(combo);
-                container.appendChild(card);
+            // 브레드크럼 렌더
+            const bc = document.getElementById('combo-breadcrumb');
+            if (bc) {
+                bc.innerHTML = '';
+                const addBc = (label, idx) => {
+                    const el = document.createElement('span');
+                    el.className = 'combo-breadcrumb-item' + (idx === comboNavStack.length ? ' current' : '');
+                    el.textContent = label;
+                    if (idx < comboNavStack.length) el.onclick = () => { comboNavStack = comboNavStack.slice(0, idx); renderCombos(); };
+                    bc.appendChild(el);
+                    if (idx < comboNavStack.length) { const sep = document.createElement('span'); sep.className = 'combo-breadcrumb-sep'; sep.textContent = '›'; bc.appendChild(sep); }
+                };
+                addBc('🏠 홈', 0);
+                comboNavStack.forEach((fid, idx) => {
+                    addBc(comboFS.items[fid]?.title || '폴더', idx + 1);
+                });
+            }
+
+            const children = getCurrentChildren();
+            const dropZone = container; // for drag-to-root
+
+            children.forEach(id => {
+                const item = comboFS.items[id];
+                if (!item) return;
+                if (item.type === 'folder') {
+                    const el = createFolderItemEl(item);
+                    container.appendChild(el);
+                } else {
+                    const el = createComboCardEl(item);
+                    container.appendChild(el);
+                }
+            });
+
+            setupGridDropZone(container);
+            updateComboCardStates();
+        }
+
+        function createFolderItemEl(folder) {
+            const el = document.createElement('div');
+            el.className = 'combo-item combo-folder-item';
+            el.dataset.id = folder.id;
+            el.dataset.type = 'folder';
+            const cnt = countChildren(folder.id);
+            el.innerHTML = `<div class="combo-folder-icon">📁</div><div class="combo-folder-name">${folder.title}</div><div class="combo-folder-count">${cnt}개</div>`;
+            el.onclick = () => { comboNavStack.push(folder.id); renderCombos(); };
+            el.addEventListener('dblclick', (e) => { e.stopPropagation(); startInlineRename(el, folder); });
+            setupFsItemDrag(el, folder.id);
+            setupFolderDropTarget(el, folder.id);
+            return el;
+        }
+
+        function createComboCardEl(combo) {
+            const el = document.createElement('div');
+            el.className = 'combo-item combo-card';
+            el.dataset.id = combo.id;
+            el.dataset.type = 'combo';
+            el.dataset.comboId = combo.id;
+            const preview = getComboPreview(combo.tags || {});
+            el.innerHTML = `<div class="combo-header">${combo.title}</div><div class="combo-desc">${preview}</div><button class="btn-combo-del" title="삭제"><i class="fa-solid fa-trash"></i></button>`;
+            el.querySelector('.btn-combo-del').addEventListener('click', (e) => {
+                e.stopPropagation();
+                showConfirm(`[${combo.title}] 삭제할까요?`, () => {
+                    deleteFsItem(combo.id);
+                    renderCombos();
+                    showToast("삭제됨", "info");
+                });
+            });
+            el.onclick = (e) => { if (e.target.closest('.btn-combo-del')) return; applyCombo(combo); };
+            el.addEventListener('dblclick', (e) => { if (e.target.closest('.btn-combo-del')) return; e.stopPropagation(); startInlineRename(el, combo); });
+            setupFsItemDrag(el, combo.id);
+            return el;
+        }
+
+        function startInlineRename(el, item) {
+            const overlay = document.createElement('div');
+            overlay.className = 'combo-item-name-edit';
+            overlay.style.display = 'flex';
+            overlay.style.flexDirection = 'column';
+            overlay.style.justifyContent = 'center';
+            const input = document.createElement('input');
+            input.value = item.title;
+            overlay.appendChild(input);
+            el.appendChild(overlay);
+            input.focus(); input.select();
+            const finish = () => {
+                const v = input.value.trim();
+                if (v && v !== item.title) { item.title = v; saveComboFS(); }
+                overlay.remove();
+                renderCombos();
+            };
+            input.onblur = finish;
+            input.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); finish(); } if (e.key === 'Escape') { overlay.remove(); } };
+        }
+
+        function deleteFsItem(id) {
+            // 모든 폴더에서 id 제거
+            Object.values(comboFS.items).forEach(item => {
+                if (item.type === 'folder' && item.children) item.children = item.children.filter(c => c !== id);
+            });
+            comboFS.root = comboFS.root.filter(c => c !== id);
+            // 재귀 삭제 (폴더라면 자식도 삭제)
+            if (comboFS.items[id]?.type === 'folder') {
+                (comboFS.items[id].children || []).forEach(cid => deleteFsItem(cid));
+            }
+            delete comboFS.items[id];
+            saveComboFS();
+        }
+
+        // ─── FS 드래그앤드롭 ───
+        let _fsDragging = null; // { id }
+
+        function setupFsItemDrag(el, id) {
+            el.draggable = true;
+            el.addEventListener('dragstart', (e) => {
+                _fsDragging = { id };
+                el.classList.add('dnd-dragging-fs');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', id);
+            });
+            el.addEventListener('dragend', () => {
+                el.classList.remove('dnd-dragging-fs');
+                document.querySelectorAll('.combo-item.dnd-over').forEach(e => e.classList.remove('dnd-over'));
+                _fsDragging = null;
             });
         }
 
-        function getComboDefaultTitle() {
-            const count = Object.keys(userCombos).length + 1;
-            return `간편 조합 ${count}`;
+        function setupFolderDropTarget(el, folderId) {
+            el.addEventListener('dragover', (e) => {
+                if (!_fsDragging || _fsDragging.id === folderId) return;
+                // 폴더를 자기 자신 내부 폴더 위로 드롭 방지 (단순 체크)
+                e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+                el.classList.add('dnd-over');
+            });
+            el.addEventListener('dragleave', () => el.classList.remove('dnd-over'));
+            el.addEventListener('drop', (e) => {
+                e.preventDefault(); e.stopPropagation();
+                el.classList.remove('dnd-over');
+                if (!_fsDragging || _fsDragging.id === folderId) return;
+                const dragId = _fsDragging.id;
+                // 현재 위치에서 제거
+                removeFsItemFromParent(dragId);
+                // 대상 폴더에 추가
+                if (!comboFS.items[folderId]) return;
+                if (!comboFS.items[folderId].children) comboFS.items[folderId].children = [];
+                if (!comboFS.items[folderId].children.includes(dragId)) comboFS.items[folderId].children.push(dragId);
+                saveComboFS();
+                renderCombos();
+            });
         }
 
-        function getComboPreview(tags) {
-            const allTags = Object.values(tags).join(', ');
-            return allTags.length > 60 ? allTags.substring(0, 60) + '...' : allTags;
+        function setupGridDropZone(container) {
+            container.addEventListener('dragover', (e) => {
+                if (!_fsDragging) return;
+                e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+                // 드롭 위치 계산 (아이템 사이)
+                const afterEl = getDragAfterElement(container, e.clientX, e.clientY);
+                const draggingEl = container.querySelector('.dnd-dragging-fs');
+                if (!draggingEl) return;
+                if (afterEl == null) container.appendChild(draggingEl);
+                else container.insertBefore(draggingEl, afterEl);
+            });
+            container.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (!_fsDragging) return;
+                const dragId = _fsDragging.id;
+                removeFsItemFromParent(dragId);
+                // 새 순서를 DOM 기준으로 설정
+                const newOrder = [...container.querySelectorAll('.combo-item')].map(el => el.dataset.id).filter(Boolean);
+                setCurrentChildren(newOrder);
+                saveComboFS();
+                renderCombos();
+            });
+        }
+
+        function getDragAfterElement(container, x, y) {
+            const els = [...container.querySelectorAll('.combo-item:not(.dnd-dragging-fs)')];
+            return els.reduce((closest, el) => {
+                const box = el.getBoundingClientRect();
+                const elCenterX = box.left + box.width / 2;
+                const elCenterY = box.top + box.height / 2;
+                // 그리드라 x,y 둘 다 고려
+                const dy = y - elCenterY, dx = x - elCenterX;
+                const dist = dx * dx + dy * dy;
+                const onLeft = x < elCenterX;
+                const aboveRow = y < box.top;
+                if (aboveRow || (Math.abs(dy) < box.height / 2 && onLeft)) {
+                    return dist < closest.dist ? { el, dist } : closest;
+                }
+                return closest;
+            }, { el: null, dist: Infinity }).el;
+        }
+
+        function removeFsItemFromParent(id) {
+            Object.values(comboFS.items).forEach(item => {
+                if (item.type === 'folder' && item.children) item.children = item.children.filter(c => c !== id);
+            });
+            comboFS.root = comboFS.root.filter(c => c !== id);
         }
 
         function saveNewCombo() {
-            const nameInput = document.getElementById('new-combo-name');
-            const title = (nameInput.value.trim()) || getComboDefaultTitle();
-
-            let tagsToSave = {};
-            let hasTags = false;
-
-            for(let i=1; i<=7; i++) {
-                let layerStr = contextStates[currentContext][i-1];
-                if(layerStr && layerStr.trim() !== "") {
-                    tagsToSave[i] = layerStr.trim();
-                    hasTags = true;
-                }
+            let tagsToSave = {}, hasTags = false;
+            for (let i = 1; i <= 7; i++) {
+                const v = contextStates[currentContext][i - 1];
+                if (v && v.trim()) { tagsToSave[i] = v.trim(); hasTags = true; }
             }
+            if (!hasTags) { showToast("현재 탭에 저장할 태그가 없습니다.", "warning"); return; }
 
-            if(!hasTags) { showToast("현재 탭에 저장할 태그가 없습니다.", "warning"); return; }
-
-            const comboId = 'uc_' + Date.now();
-            userCombos[comboId] = { id: comboId, title: title, tags: tagsToSave };
-
-            safeSetStorage('pro_prompt_combos_v7_0', userCombos);
-            nameInput.value = '';
+            const totalCount = Object.values(comboFS.items).filter(i => i.type === 'combo').length + 1;
+            const title = `간편 조합 ${totalCount}`;
+            const id = 'uc_' + Date.now();
+            comboFS.items[id] = { type: 'combo', id, title, tags: tagsToSave };
+            getCurrentChildren().push(id);
+            setCurrentChildren(getCurrentChildren());
+            saveComboFS();
             renderCombos();
-            showToast(`[${title}] 조합이 저장되었습니다!`, "success");
+            showToast(`[${title}] 저장됨 (더블클릭으로 이름 수정)`, "success");
+        }
+
+        function createComboFolder() {
+            const id = 'cf_' + Date.now();
+            const count = Object.values(comboFS.items).filter(i => i.type === 'folder').length + 1;
+            comboFS.items[id] = { type: 'folder', id, title: `폴더 ${count}`, children: [] };
+            getCurrentChildren().push(id);
+            setCurrentChildren(getCurrentChildren());
+            saveComboFS();
+            renderCombos();
+            // 생성 직후 이름 편집
+            setTimeout(() => {
+                const el = document.querySelector(`.combo-folder-item[data-id="${id}"]`);
+                if (el) startInlineRename(el, comboFS.items[id]);
+            }, 50);
         }
 
         function deleteCombo(comboId, event) {
-            event.stopPropagation();
+            if (event) event.stopPropagation();
             showConfirm("이 조합을 삭제할까요?", () => {
-                delete userCombos[comboId];
-                safeSetStorage('pro_prompt_combos_v7_0', userCombos);
+                deleteFsItem(comboId);
                 renderCombos();
-                showToast("조합이 삭제되었습니다.", "info");
+                showToast("삭제됨", "info");
             });
         }
 
@@ -1394,15 +1650,20 @@
         function switchSidebarMode(mode) {
             document.querySelectorAll('.mode-toggle-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`btn-mode-${mode}`).classList.add('active');
+            const panelContent = document.querySelector('#panel-left .panel-content');
 
             if(mode === 'detail') {
                 document.getElementById('sidebar-content-detail').style.display = 'flex';
                 document.getElementById('sidebar-content-combo').style.display = 'none';
                 document.getElementById('sidebar-search-box').style.display = 'block';
+                if (panelContent) { panelContent.style.overflowY = 'auto'; panelContent.style.display = ''; panelContent.style.flexDirection = ''; }
             } else {
                 document.getElementById('sidebar-content-detail').style.display = 'none';
                 document.getElementById('sidebar-content-combo').style.display = 'flex';
                 document.getElementById('sidebar-search-box').style.display = 'none';
+                // combo 모드: panel-content가 flex 컨테이너가 되어 combo-fs가 나머지 공간 채움
+                if (panelContent) { panelContent.style.overflowY = 'hidden'; panelContent.style.display = 'flex'; panelContent.style.flexDirection = 'column'; panelContent.style.padding = '0'; }
+                renderCombos();
             }
         }
 
@@ -1878,22 +2139,23 @@
             updateComboCardStates();
         }
 
-        function updateComboCardStates() {
-            const container = document.getElementById('combo-list-container');
-            if (!container) return;
-            container.querySelectorAll('.combo-card').forEach(card => {
-                const comboId = card.dataset.comboId;
-                if (!comboId || !userCombos[comboId]) return;
-                const combo = userCombos[comboId];
-                const allActive = Object.keys(combo.tags).every(layerId => {
-                    const textarea = document.getElementById(`layer-${layerId}`);
-                    if (!textarea) return false;
-                    return combo.tags[layerId].split(',').map(s => s.trim()).filter(Boolean).every(p => {
-                        const core = p.match(/^\((.+):[\d.]+\)$/) ? p.match(/^\((.+):[\d.]+\)$/)[1] : p;
-                        return getRegexForTag(core).test(textarea.value);
-                    });
+        function isComboActive(combo) {
+            return combo.tags && Object.keys(combo.tags).every(layerId => {
+                const textarea = document.getElementById(`layer-${layerId}`);
+                if (!textarea) return false;
+                return combo.tags[layerId].split(',').map(s => s.trim()).filter(Boolean).every(p => {
+                    const core = p.match(/^\((.+):[\d.]+\)$/) ? p.match(/^\((.+):[\d.]+\)$/)[1] : p;
+                    return getRegexForTag(core).test(textarea.value);
                 });
-                card.classList.toggle('active', allActive);
+            });
+        }
+
+        function updateComboCardStates() {
+            document.querySelectorAll('.combo-card[data-combo-id]').forEach(card => {
+                const comboId = card.dataset.comboId;
+                const item = comboFS.items[comboId] || userCombos[comboId];
+                if (!item) return;
+                card.classList.toggle('active', isComboActive(item));
             });
         }
 
