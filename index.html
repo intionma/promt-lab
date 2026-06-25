@@ -3858,7 +3858,7 @@
                     else if (w < 1.0) chip.classList.add('weight-low');
                 }
 
-                const korLabel = tagData ? tagData.kor : null;
+                const korLabel = tagData ? tagData.kor : (customKorMap[mapKey] || null);
                 const baseLabel = korLabel || mapKey;
                 const weightSuffix = weightMatch ? `(${parseFloat(weightMatch[2]).toFixed(1)})` : '';
                 const displayLabel = weightSuffix ? `${baseLabel}${weightSuffix}` : baseLabel;
@@ -4923,8 +4923,14 @@
         }
 
         function autoFixPrompt() {
+            try {
             if (!contextStates[currentContext]) return;
             const state = contextStates[currentContext];
+            // sync from textareas first to get latest values
+            for (let i = 1; i <= 7; i++) {
+                const ta = document.getElementById(`layer-${i}`);
+                if (ta) state[i - 1] = ta.value;
+            }
             const seen = new Set();
             let totalRemoved = 0, totalFixed = 0;
 
@@ -4989,8 +4995,10 @@
             const msgs = [];
             if (totalFixed > 0) msgs.push(`괄호 ${totalFixed}개 수정`);
             if (totalRemoved > 0) msgs.push(`중복 ${totalRemoved}개 제거`);
+            saveTabsAndStates();
             if (msgs.length > 0) showToast('✅ ' + msgs.join(', ') + ' 완료', 'success');
             else showToast('수정할 항목이 없습니다.', 'info');
+            } catch(e) { console.error('autoFixPrompt error:', e); showToast('오류: ' + e.message, 'error'); }
         }
 
         function copyPrompt(type) {
@@ -5590,10 +5598,7 @@
             const srcText = document.createElement('textarea');
             srcText.readOnly = true;
             srcText.style.cssText = 'resize:none;min-height:130px;max-height:180px;background:rgba(255,255,255,0.04);border:1px solid var(--border-dim);border-radius:6px;padding:10px;font-size:12px;color:var(--text-main);font-family:monospace;line-height:1.6;outline:none;';
-            srcText.value = untranslated.map((tag, i) => {
-                const src = tag.type === 'db' ? '[DB]  ' : '[조합] ';
-                return `${i + 1}. ${src}${tag.t}`;
-            }).join('\n');
+            srcText.value = untranslated.map((tag, i) => `${i + 1}. ${tag.t}`).join('\n');
             stepOneBox.append(stepOneHeader, srcText);
 
             // ── ② 번역 결과 입력
