@@ -1778,6 +1778,313 @@
             showToast(`[${title}] 저장됨 (더블클릭으로 이름 수정)`, "success");
         }
 
+        // ─── 조합 추가 모달 ───
+        let _ccmState = { mode: 'basic', selectedLayer: 'all', selectedTags: new Set(), targetFolderId: null };
+
+        function openComboCreateModal(targetFolderId = null, preselectedTag = null) {
+            document.querySelectorAll('.combo-create-modal-overlay').forEach(e => e.remove());
+            _ccmState = { mode: 'basic', selectedLayer: 'all', selectedTags: new Set(), targetFolderId };
+            if (preselectedTag) _ccmState.selectedTags.add(preselectedTag);
+
+            const overlay = document.createElement('div');
+            overlay.className = 'combo-create-modal-overlay';
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+            const modal = document.createElement('div');
+            modal.className = 'combo-create-modal';
+
+            // Header
+            const header = document.createElement('div');
+            header.className = 'ccm-header';
+            header.innerHTML = `<span class="ccm-title">조합 추가</span>`;
+            const btnBasic = document.createElement('button');
+            btnBasic.className = 'ccm-mode-btn active'; btnBasic.textContent = '기본';
+            const btnAdv = document.createElement('button');
+            btnAdv.className = 'ccm-mode-btn'; btnAdv.textContent = '고급';
+            const btnClose = document.createElement('button');
+            btnClose.className = 'ccm-mode-btn'; btnClose.textContent = '✕';
+            btnClose.onclick = () => overlay.remove();
+            btnBasic.onclick = () => { _ccmState.mode = 'basic'; btnBasic.classList.add('active'); btnAdv.classList.remove('active'); renderCCMBody(); };
+            btnAdv.onclick = () => { _ccmState.mode = 'adv'; btnAdv.classList.add('active'); btnBasic.classList.remove('active'); renderCCMBody(); };
+            header.appendChild(btnBasic); header.appendChild(btnAdv); header.appendChild(btnClose);
+
+            // Body
+            const body = document.createElement('div');
+            body.className = 'ccm-body';
+            body.id = 'ccm-body';
+
+            // Footer
+            const footer = document.createElement('div');
+            footer.className = 'ccm-footer';
+            const btnCancel = document.createElement('button');
+            btnCancel.className = 'action-btn'; btnCancel.style.cssText = 'padding:7px 16px;font-size:13px;'; btnCancel.textContent = '취소';
+            btnCancel.onclick = () => overlay.remove();
+            const btnSave = document.createElement('button');
+            btnSave.className = 'action-btn'; btnSave.style.cssText = 'padding:7px 16px;font-size:13px;background:var(--accent-blue);color:#fff;border:none;'; btnSave.textContent = '저장';
+            btnSave.onclick = () => {
+                const nameInput = document.getElementById('ccm-name-input');
+                const name = (nameInput?.value || '').trim();
+                if (_ccmState.mode === 'basic') {
+                    if (_ccmState.selectedTags.size === 0) { showToast('태그를 선택하세요', 'warning'); return; }
+                    saveComboFromModal(name, _ccmState.selectedTags, _ccmState.targetFolderId, null);
+                } else {
+                    const textarea = document.getElementById('ccm-adv-textarea');
+                    const text = textarea?.value || '';
+                    saveComboFromModal(name, null, _ccmState.targetFolderId, { text });
+                }
+                overlay.remove();
+            };
+            footer.appendChild(btnCancel); footer.appendChild(btnSave);
+
+            modal.appendChild(header); modal.appendChild(body); modal.appendChild(footer);
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+            renderCCMBody(preselectedTag);
+        }
+
+        function renderCCMBody(preselectedTag = null) {
+            const body = document.getElementById('ccm-body');
+            if (!body) return;
+            body.innerHTML = '';
+
+            // Name input
+            const nameLabel = document.createElement('div');
+            nameLabel.style.cssText = 'font-size:12px;color:var(--text-dim);font-family:var(--font-ui);';
+            nameLabel.textContent = '조합 이름:';
+            const nameInput = document.createElement('input');
+            nameInput.className = 'ccm-name-input'; nameInput.id = 'ccm-name-input';
+            nameInput.placeholder = '이름을 입력하세요 (선택)';
+            body.appendChild(nameLabel); body.appendChild(nameInput);
+
+            if (_ccmState.mode === 'basic') {
+                renderCCMTagPicker(body, preselectedTag);
+            } else {
+                renderCCMAdvanced(body);
+            }
+        }
+
+        function renderCCMTagPicker(body, preselectedTag = null) {
+            // Layer filter buttons
+            const filterDiv = document.createElement('div');
+            filterDiv.className = 'ccm-layer-filters';
+            const allBtn = document.createElement('button');
+            allBtn.className = 'ccm-layer-btn' + (_ccmState.selectedLayer === 'all' ? ' active' : '');
+            allBtn.textContent = '전체'; allBtn.style.background = _ccmState.selectedLayer === 'all' ? 'var(--text-dim)' : '';
+            allBtn.onclick = () => { _ccmState.selectedLayer = 'all'; renderCCMBody(); };
+            filterDiv.appendChild(allBtn);
+            layerMeta.forEach(layer => {
+                const btn = document.createElement('button');
+                const isActive = _ccmState.selectedLayer === layer.id;
+                btn.className = 'ccm-layer-btn' + (isActive ? ' active' : '');
+                if (isActive) btn.style.background = layer.color;
+                btn.textContent = `${layer.id}계층`;
+                btn.onclick = () => { _ccmState.selectedLayer = layer.id; renderCCMBody(); };
+                filterDiv.appendChild(btn);
+            });
+            body.appendChild(filterDiv);
+
+            // Tag area
+            const tagArea = document.createElement('div');
+            tagArea.className = 'ccm-tag-area';
+
+            const layersToShow = _ccmState.selectedLayer === 'all' ? layerMeta.map(l => l.id) : [_ccmState.selectedLayer];
+            layersToShow.forEach(lid => {
+                const db = promptDB[lid];
+                if (!db) return;
+                Object.entries(db).forEach(([folderKey, tags]) => {
+                    if (!tags || tags.length === 0) return;
+                    const folderName = folderKey.split('|')[0];
+                    const group = document.createElement('div');
+                    group.className = 'ccm-folder-group';
+                    const lbl = document.createElement('div');
+                    lbl.className = 'ccm-folder-label';
+                    lbl.textContent = `${lid}계층 › ${folderName}`;
+                    const chips = document.createElement('div');
+                    chips.className = 'ccm-tag-chips';
+                    tags.forEach(tagData => {
+                        const chip = document.createElement('div');
+                        chip.className = 'ccm-tag-chip' + (_ccmState.selectedTags.has(tagData.t) ? ' selected' : '');
+                        chip.title = tagData.t;
+                        chip.textContent = tagData.k || tagData.t;
+                        chip.onclick = () => {
+                            if (_ccmState.selectedTags.has(tagData.t)) _ccmState.selectedTags.delete(tagData.t);
+                            else _ccmState.selectedTags.add(tagData.t);
+                            chip.classList.toggle('selected', _ccmState.selectedTags.has(tagData.t));
+                            updateCCMPreview();
+                        };
+                        chips.appendChild(chip);
+                    });
+                    group.appendChild(lbl); group.appendChild(chips);
+                    tagArea.appendChild(group);
+                });
+            });
+            body.appendChild(tagArea);
+
+            // Selected preview
+            const previewLabel = document.createElement('div');
+            previewLabel.style.cssText = 'font-size:12px;color:var(--text-dim);font-family:var(--font-ui);';
+            previewLabel.textContent = '선택된 태그:';
+            const preview = document.createElement('div');
+            preview.className = 'ccm-selected-preview'; preview.id = 'ccm-selected-preview';
+            preview.textContent = [..._ccmState.selectedTags].join(', ') || '(없음)';
+            body.appendChild(previewLabel); body.appendChild(preview);
+        }
+
+        function updateCCMPreview() {
+            const preview = document.getElementById('ccm-selected-preview');
+            if (preview) preview.textContent = [..._ccmState.selectedTags].join(', ') || '(없음)';
+        }
+
+        function renderCCMAdvanced(body) {
+            const textLabel = document.createElement('div');
+            textLabel.style.cssText = 'font-size:12px;color:var(--text-dim);font-family:var(--font-ui);';
+            textLabel.textContent = '직접 입력 (쉼표로 구분):';
+            const textarea = document.createElement('textarea');
+            textarea.className = 'ccm-adv-textarea'; textarea.id = 'ccm-adv-textarea';
+            textarea.placeholder = 'masterpiece, best quality, 1girl, ...';
+            textarea.oninput = () => renderCCMRecognition(textarea.value);
+            body.appendChild(textLabel); body.appendChild(textarea);
+
+            const recogLabel = document.createElement('div');
+            recogLabel.style.cssText = 'font-size:12px;color:var(--text-dim);font-family:var(--font-ui);';
+            recogLabel.textContent = '인식 결과:';
+            const recogList = document.createElement('div');
+            recogList.className = 'ccm-recognition-list'; recogList.id = 'ccm-recog-list';
+            body.appendChild(recogLabel); body.appendChild(recogList);
+        }
+
+        function renderCCMRecognition(text) {
+            const list = document.getElementById('ccm-recog-list');
+            if (!list) return;
+            list.innerHTML = '';
+            const prompts = text.split(',').map(s => s.trim()).filter(Boolean);
+            if (prompts.length === 0) return;
+
+            prompts.forEach(p => {
+                let foundLayer = null, foundFolder = null;
+                for (let lid = 1; lid <= 7; lid++) {
+                    if (!promptDB[lid]) continue;
+                    for (const [fk, tags] of Object.entries(promptDB[lid])) {
+                        if (tags.find(t => t.t === p)) { foundLayer = lid; foundFolder = fk; break; }
+                    }
+                    if (foundLayer) break;
+                }
+                const item = document.createElement('div');
+                item.className = 'ccm-recog-item';
+                if (foundLayer) {
+                    const lm = layerMeta.find(l => l.id === foundLayer);
+                    item.innerHTML = `<span class="ccm-recog-found">✅</span><span><b>${p}</b> — ${foundLayer}계층 › ${foundFolder.split('|')[0]} (DB 있음)</span>`;
+                } else {
+                    item.innerHTML = `<span class="ccm-recog-missing">❓</span><span><b>${p}</b> — DB에 없음</span>`;
+                    // Layer select
+                    const selects = document.createElement('div');
+                    selects.className = 'ccm-recog-selects';
+                    const layerSel = document.createElement('select');
+                    layerSel.className = 'ccm-recog-select';
+                    layerSel.innerHTML = '<option value="">계층 선택</option>' + layerMeta.map(l => `<option value="${l.id}">${l.id}계층: ${l.title}</option>`).join('');
+                    const folderSel = document.createElement('select');
+                    folderSel.className = 'ccm-recog-select';
+                    folderSel.innerHTML = '<option value="">폴더 선택</option>';
+                    layerSel.onchange = () => {
+                        const lid = parseInt(layerSel.value);
+                        folderSel.innerHTML = '<option value="__new__">새 폴더...</option>';
+                        if (promptDB[lid]) {
+                            Object.keys(promptDB[lid]).forEach(fk => {
+                                const opt = document.createElement('option');
+                                opt.value = fk; opt.textContent = fk.split('|')[0];
+                                folderSel.appendChild(opt);
+                            });
+                        }
+                        layerSel.dataset.tagText = p;
+                    };
+                    folderSel.dataset.tagText = p;
+                    selects.appendChild(layerSel); selects.appendChild(folderSel);
+                    item.appendChild(selects);
+                }
+                list.appendChild(item);
+            });
+        }
+
+        function saveComboFromModal(name, selectedTags, targetFolderId, advOptions) {
+            let tagsToSave = {};
+            if (selectedTags && selectedTags.size > 0) {
+                // Group selected tags by layer
+                selectedTags.forEach(tagText => {
+                    for (let lid = 1; lid <= 7; lid++) {
+                        if (!promptDB[lid]) continue;
+                        for (const tags of Object.values(promptDB[lid])) {
+                            if (tags.find(t => t.t === tagText)) {
+                                if (!tagsToSave[lid]) tagsToSave[lid] = tagText;
+                                else tagsToSave[lid] = tagsToSave[lid] + ', ' + tagText;
+                                return;
+                            }
+                        }
+                    }
+                    // unknown tag - put in layer 1 fallback
+                    if (!tagsToSave[1]) tagsToSave[1] = tagText;
+                    else tagsToSave[1] = tagsToSave[1] + ', ' + tagText;
+                });
+            } else if (advOptions) {
+                // Advanced mode: parse text, handle unknown tags
+                const list = document.querySelectorAll('#ccm-recog-list .ccm-recog-item');
+                const prompts = (advOptions.text || '').split(',').map(s => s.trim()).filter(Boolean);
+                prompts.forEach((p, idx) => {
+                    let foundLayer = null;
+                    for (let lid = 1; lid <= 7; lid++) {
+                        if (!promptDB[lid]) continue;
+                        for (const tags of Object.values(promptDB[lid])) {
+                            if (tags.find(t => t.t === p)) { foundLayer = lid; break; }
+                        }
+                        if (foundLayer) break;
+                    }
+                    if (!foundLayer) {
+                        // Check if user assigned a layer/folder via selects
+                        const itemEl = list[idx];
+                        if (itemEl) {
+                            const layerSel = itemEl.querySelector('select:first-of-type');
+                            const folderSel = itemEl.querySelector('select:last-of-type');
+                            const lid = parseInt(layerSel?.value);
+                            const fk = folderSel?.value;
+                            if (lid && fk) {
+                                if (!promptDB[lid]) promptDB[lid] = {};
+                                if (fk === '__new__') {
+                                    const newFk = p + '|자유';
+                                    if (!promptDB[lid][newFk]) promptDB[lid][newFk] = [];
+                                    promptDB[lid][newFk].push({ t: p, k: p, n: '', c: '' });
+                                    foundLayer = lid;
+                                } else {
+                                    if (!promptDB[lid][fk]) promptDB[lid][fk] = [];
+                                    if (!promptDB[lid][fk].find(t => t.t === p)) promptDB[lid][fk].push({ t: p, k: p, n: '', c: '' });
+                                    foundLayer = lid;
+                                }
+                            } else {
+                                foundLayer = 1;
+                            }
+                        } else {
+                            foundLayer = 1;
+                        }
+                    }
+                    if (!tagsToSave[foundLayer]) tagsToSave[foundLayer] = p;
+                    else tagsToSave[foundLayer] = tagsToSave[foundLayer] + ', ' + p;
+                });
+            }
+
+            const totalCount = Object.values(comboFS.items).filter(i => i.type === 'combo').length + 1;
+            const title = name || `간편 조합 ${totalCount}`;
+            const id = 'uc_' + Date.now();
+            comboFS.items[id] = { type: 'combo', id, title, tags: tagsToSave };
+            if (targetFolderId && comboFS.items[targetFolderId]) {
+                if (!comboFS.items[targetFolderId].children) comboFS.items[targetFolderId].children = [];
+                comboFS.items[targetFolderId].children.push(id);
+                _openFolders.add(targetFolderId);
+            } else {
+                comboFS.root.push(id);
+            }
+            saveComboFS();
+            renderCombos();
+            showToast(`[${title}] 저장됨`, 'success');
+        }
+
         function createComboFolder() {
             const id = 'cf_' + Date.now();
             const count = Object.values(comboFS.items).filter(i => i.type === 'folder').length + 1;
