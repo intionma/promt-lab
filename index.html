@@ -269,9 +269,15 @@
         .folder-badge { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; font-size: 11px; font-weight: bold; color: #fff; opacity: 0; transform: scale(0.8); transition: 0.2s; margin-left: 6px; font-family: var(--font-code);}
         .folder-badge.active { opacity: 1; transform: scale(1); }
 
-        .sub-folder-content { padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 5px; background: var(--bg-base); }
+        .sub-folder-content { padding: 8px 12px; display: flex; flex-direction: column; gap: 0; background: var(--bg-base); }
         .sub-folder.collapsed .sub-folder-content { display: none; }
         .sub-folder.collapsed .fa-chevron-down { transform: rotate(-90deg); }
+        .tag-subcat { display: flex; flex-direction: column; gap: 0; }
+        .tag-subcat-header { display: flex; align-items: center; gap: 6px; padding: 6px 2px 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-dim); font-family: var(--font-ui); opacity: 0.8; }
+        .tag-subcat-header::after { content: ''; flex: 1; height: 1px; background: var(--border-dim); opacity: 0.6; }
+        .tag-subcat-tags { display: flex; flex-wrap: wrap; gap: 5px; padding-bottom: 8px; }
+        .tag-subcat:first-child .tag-subcat-header { padding-top: 2px; }
+        .tag-subcat:last-child .tag-subcat-tags { padding-bottom: 2px; }
 
         .tag-btn {
             background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-main);
@@ -631,8 +637,8 @@
             <input id="tip-kr" type="text" placeholder="카우보이 샷">
         </div>
         <div>
-            <label>충돌 그룹</label>
-            <input id="tip-conflict" type="text" placeholder="예: angle">
+            <label>서브카테고리 <span style="opacity:0.5;font-size:10px;">(같은 값끼리 충돌 감지)</span></label>
+            <input id="tip-conflict" type="text" placeholder="예: 구도종류, 앵글">
         </div>
         <div class="tip-row">
             <button class="tip-btn-save" id="tip-save-btn" onclick="saveTagInlinePopup()">저장</button>
@@ -825,7 +831,7 @@
                     </div>
                     <div class="input-group"><label>프롬프트 (EN)</label><input type="text" id="add-en" placeholder="cowboy shot"></div>
                     <div class="input-group"><label>한글 뜻 (KR)</label><input type="text" id="add-kr" placeholder="카우보이 샷"></div>
-                    <div class="input-group"><label>충돌 그룹</label><input type="text" id="add-conflict" placeholder="예: angle"></div>
+                    <div class="input-group"><label>서브카테고리 <span style="opacity:0.5;font-size:10px;">(충돌 그룹)</span></label><input type="text" id="add-conflict" placeholder="예: 구도종류, 앵글"></div>
                     <button class="btn-add-db" onclick="addNewTag()" id="btn-save-tag">추가</button>
                     <button class="action-btn" onclick="resetForm()" style="height: 40px; font-size: 14px; padding: 0 20px;">취소</button>
                     <input type="hidden" id="edit-original-layer"><input type="hidden" id="edit-original-folder"><input type="hidden" id="edit-original-index">
@@ -833,7 +839,7 @@
             </div>
             <div class="db-table-container">
                 <table class="db-table">
-                    <thead><tr><th width="80">계층</th><th width="150">세부 폴더</th><th width="150">프롬프트 (EN)</th><th width="150">한글 뜻 (KR)</th><th width="100">충돌(c)</th><th width="100">액션</th></tr></thead>
+                    <thead><tr><th width="80">계층</th><th width="150">세부 폴더</th><th width="150">프롬프트 (EN)</th><th width="150">한글 뜻 (KR)</th><th width="100">서브카테고리</th><th width="100">액션</th></tr></thead>
                     <tbody id="db-table-body"></tbody>
                 </table>
             </div>
@@ -1709,7 +1715,8 @@
                         const subContent = document.createElement('div');
                         subContent.className = 'sub-folder-content';
 
-                        dbLayer[subLayerRaw].forEach(data => {
+                        // c 필드 기준으로 서브카테고리 그룹핑
+                        const _buildTagBtn = (data) => {
                             const btn = document.createElement('button');
                             btn.className = 'tag-btn'; btn.dataset.layer = i;
                             btn.dataset.tag = data.t;
@@ -1720,14 +1727,12 @@
                             const titleAttr = isMulti ? ` title="${data.t.replace(/"/g,'&quot;')}"` : '';
                             btn.innerHTML = `<span class="tag-kr"${titleAttr}>${displayLabel}</span><span class="tag-en">${data.t}</span>`;
                             if (isMulti) {
-                                // hover tooltip
                                 const tooltip = document.createElement('div');
                                 tooltip.style.cssText = 'display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a1e27;border:1px solid var(--border-dim);color:#94a3b8;font-size:11px;font-family:var(--font-code);padding:6px 10px;border-radius:6px;white-space:pre;z-index:200;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
                                 tooltip.textContent = data.t.split(',').map(s => s.trim()).join('\n');
                                 btn.appendChild(tooltip);
                                 btn.addEventListener('mouseenter', () => { tooltip.style.display = 'block'; });
                                 btn.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
-                                // double-click inline edit for t field
                                 btn.addEventListener('dblclick', (e) => {
                                     e.stopPropagation();
                                     tooltip.style.display = 'none';
@@ -1757,18 +1762,47 @@
                                     setTimeout(() => { document.addEventListener('mousedown', function handler(ev) { if (!editDiv.contains(ev.target)) { editDiv.remove(); document.removeEventListener('mousedown', handler); } }); }, 0);
                                 });
                             }
-
                             const star = document.createElement('i');
                             star.className = `fa-star tag-fav-icon ${favorites.includes(data.t) ? 'fa-solid active' : 'fa-regular'}`;
                             star.onclick = (e) => { e.stopPropagation(); toggleFavorite(data.t); };
                             btn.appendChild(star);
-
                             btn.onclick = () => handleTagToggle(btn, data.t, data.n, i);
                             setupTagDrag(btn, i, subLayerRaw);
-                            subContent.appendChild(btn);
-
                             activeTagsMap[data.t] = { neg: data.n, layer: i, kor: data.k || data.t, c: data.c || "", folderId: folderId, color: subColor };
+                            return btn;
+                        };
+
+                        // c 값 기준 순서 유지하며 그룹핑
+                        const _catOrder = []; const _catMap = {};
+                        dbLayer[subLayerRaw].forEach(data => {
+                            const cat = data.c || '';
+                            if (!_catMap[cat]) { _catMap[cat] = []; _catOrder.push(cat); }
+                            _catMap[cat].push(data);
                         });
+                        const _hasCats = _catOrder.some(c => c !== '');
+                        if (_hasCats) {
+                            _catOrder.forEach(cat => {
+                                const catWrap = document.createElement('div');
+                                catWrap.className = 'tag-subcat';
+                                if (cat) {
+                                    const hdr = document.createElement('div');
+                                    hdr.className = 'tag-subcat-header';
+                                    hdr.textContent = cat;
+                                    catWrap.appendChild(hdr);
+                                }
+                                const tagsRow = document.createElement('div');
+                                tagsRow.className = 'tag-subcat-tags';
+                                _catMap[cat].forEach(data => tagsRow.appendChild(_buildTagBtn(data)));
+                                catWrap.appendChild(tagsRow);
+                                subContent.appendChild(catWrap);
+                            });
+                        } else {
+                            const tagsRow = document.createElement('div');
+                            tagsRow.className = 'tag-subcat-tags';
+                            tagsRow.style.paddingBottom = '0';
+                            dbLayer[subLayerRaw].forEach(data => tagsRow.appendChild(_buildTagBtn(data)));
+                            subContent.appendChild(tagsRow);
+                        }
 
                         subFolder.appendChild(subContent);
                         groupContent.appendChild(subFolder);
@@ -5631,11 +5665,13 @@
             body.style.cssText = 'flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;font-family:var(--font-ui);';
 
             const sections = [
-                { title: '📌 폴더 키 형식', desc: '폴더 키는 <code>폴더명|카테고리</code> 형식입니다. <code>|</code> 구분자가 필수입니다.\n계층 ID: 1=화질/렌더링, 2=구도/피사체, 3=외형/얼굴, 4=의상/악세서리, 5=액션/디테일, 6=배경/환경, 7=조명/카메라' },
-                { title: '1. 특정 폴더에 태그 추가', code: `{"_version": 2, "promptDB": {"1": {"Pony 코어|필수": [{"t": "score_9", "k": "최고 품질", "n": "", "c": ""}]}}}` },
-                { title: '2. 새 폴더 + 태그 추가', code: `{"_version": 2, "promptDB": {"3": {"새폴더명|자유": [{"t": "blonde hair", "k": "금발", "n": "밝은 금발", "c": ""}]}}}` },
+                { title: '📌 데이터 구조 개요', desc: '계층 ID: 1=화질/렌더링 ⭐  2=구도/피사체 📷  3=외형/얼굴 😊  4=의상/악세서리 👕  5=액션/디테일 🏃  6=배경/환경 🏔️  7=조명/이펙트 ⚡\n\n폴더 키 형식: <code>폴더명|권장수</code>  예) <code>카메라 앵글|1개</code>\n태그 오브젝트: <code>{t: 영문태그, k: 한글뜻, n: 네거티브, c: 서브카테고리}</code>' },
+                { title: '🗂️ 서브카테고리 (c 필드)', desc: '<b>c 필드</b>는 두 가지 역할을 합니다:\n① 폴더 내 태그를 카테고리별로 시각적으로 묶어줍니다 (서브카테고리 헤더 표시)\n② 같은 c 값을 가진 태그 중 하나를 활성화하면 나머지는 충돌 경고 표시\n\n예시: c: "앵글종류" → 폴더 안에서 "앵글종류" 섹션으로 묶임 + 중복 선택 시 경고\n비워두면 카테고리 없이 태그만 표시됩니다.' },
+                { title: '1. 서브카테고리 있는 태그 추가', code: `{"_version": 2, "promptDB": {"2": {"카메라 앵글|1개": [{"t": "cowboy_shot", "k": "허벅지 위 컷", "n": "", "c": "앵글종류"}, {"t": "close_up", "k": "클로즈업", "n": "", "c": "앵글종류"}, {"t": "from_above", "k": "위에서 아래", "n": "", "c": "시점방향"}]}}}` },
+                { title: '2. 새 폴더 + 서브카테고리 없는 태그', code: `{"_version": 2, "promptDB": {"3": {"새폴더명|자유": [{"t": "blonde hair", "k": "금발", "n": "dark hair", "c": ""}]}}}` },
                 { title: '3. 간편 조합 추가', code: `{"_version": 2, "comboFS": {"items": {"uc_example1": {"type": "combo", "id": "uc_example1", "title": "내 조합", "tags": {"1": "score_9, score_8_up", "3": "1girl, long hair"}}}, "root": ["uc_example1"]}}` },
                 { title: '4. 에디터 탭 상태 추가', code: `{"_version": 2, "contextTabs": [{"id": "tab_1", "name": "캐릭터"}], "contextStates": {"tab_1": ["score_9, score_8_up", "1girl", "", "", "", "", ""]}}` },
+                { title: '🏗️ 계층별 권장 폴더 구조', desc: '각 계층은 폴더(세부 폴더) → 서브카테고리(c필드) 2단계로 구성합니다.\n예) 2계층 "카메라 앵글|1개" 폴더 내:\n  - c: "앵글종류" → cowboy_shot, close_up, full_body...\n  - c: "시점방향" → from_above, from_below, from_side...\n  - c: "특수시점" → pov, looking_over_shoulder...' },
             ];
 
             sections.forEach(sec => {
