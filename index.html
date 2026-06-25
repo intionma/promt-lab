@@ -539,7 +539,7 @@
 
         const defaultNestedDB = { 1: {}, 2: {}, 3: {}, 4: {}, 5: {}, 6: {}, 7: {} };
 
-        let promptDB = JSON.parse(localStorage.getItem('pro_prompt_db_v7_0')) || defaultNestedDB;
+        let promptDB; try { promptDB = JSON.parse(localStorage.getItem('pro_prompt_db_v7_0')) || defaultNestedDB; } catch(e) { promptDB = defaultNestedDB; }
         let contextStates = { 'common': ["", "", "", "", "", "", ""], 'char1': ["", "", "", "", "", "", ""], 'char2': ["", "", "", "", "", "", ""], 'user_combos': {} };
         let currentContext = 'char1';
         let currentViewMode = 'visual';
@@ -1127,16 +1127,15 @@
             document.getElementById('global-weight-val').innerText = globalWeightCurrent.toFixed(1);
         }
 
-        function getRegexForTag(tag) { return new RegExp(`\\(?\\b${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b(:\\s*\\d*\\.?\\d*)?\\)?`, 'gi'); }
+        function getRegexForTag(tag) { return new RegExp(`\\(?\\b${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b(:\\s*\\d*\\.?\\d*)?\\)?`, 'i'); }
 
         function handleTagToggle(btn, tagText, negText, layerIndex) {
             saveStateToUndoStack();
 
             const textarea = document.getElementById(`layer-${layerIndex}`);
             let content = textarea.value;
-            const regex = getRegexForTag(tagText);
-            if (regex.test(content)) {
-                content = content.replace(regex, '').replace(/,\s*,/g, ',').replace(/^,|,$/g, '').trim();
+            if (getRegexForTag(tagText).test(content)) {
+                content = content.replace(getRegexForTag(tagText), '').replace(/,\s*,+/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').trim();
             } else {
                 let insertText = Math.abs(globalWeightCurrent - 1.0) > 0.01 ? `(${tagText}:${globalWeightCurrent.toFixed(1)})` : tagText;
                 content = content ? `${content}, ${insertText}` : insertText;
@@ -1413,11 +1412,24 @@
         function copyPrompt(type) {
             const txt = document.getElementById(type === 'pos' ? 'final-positive' : 'final-negative').value;
             if(!txt) return;
-            const temp = document.createElement("textarea"); temp.value = txt; document.body.appendChild(temp);
-            temp.select(); document.execCommand("copy"); document.body.removeChild(temp);
             const btn = document.querySelector(`.btn-copy.${type}`);
-            const orig = btn.innerHTML; btn.innerHTML = `<i class="fa-solid fa-check"></i> 복사 완료!`;
-            btn.style.background = "var(--accent-green)"; setTimeout(() => { btn.innerHTML = orig; btn.style.background = ""; }, 2000);
+            const orig = btn.innerHTML;
+            const showSuccess = () => {
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> 복사 완료!`;
+                btn.style.background = "var(--accent-green)";
+                setTimeout(() => { btn.innerHTML = orig; btn.style.background = ""; }, 2000);
+            };
+            if(navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(txt).then(showSuccess).catch(() => {
+                    const temp = document.createElement("textarea"); temp.value = txt;
+                    document.body.appendChild(temp); temp.select(); document.execCommand("copy"); document.body.removeChild(temp);
+                    showSuccess();
+                });
+            } else {
+                const temp = document.createElement("textarea"); temp.value = txt;
+                document.body.appendChild(temp); temp.select(); document.execCommand("copy"); document.body.removeChild(temp);
+                showSuccess();
+            }
         }
 
         function openPresetManager() {
@@ -1527,7 +1539,11 @@
 
         function executeIO() {
             const textarea = document.getElementById('io-textarea');
-            if(currentIOType === 'export') { textarea.select(); document.execCommand("copy"); alert("복사되었습니다."); }
+            if(currentIOType === 'export') {
+                if(navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(textarea.value).then(() => alert("복사되었습니다.")).catch(() => { textarea.select(); document.execCommand("copy"); alert("복사되었습니다."); });
+                } else { textarea.select(); document.execCommand("copy"); alert("복사되었습니다."); }
+            }
             else { try { const importedDB = JSON.parse(textarea.value); if (importedDB && typeof importedDB === 'object' && importedDB[1]) { promptDB = importedDB; safeSetStorage('pro_prompt_db_v7_0', promptDB); initApp(); alert("DB 복구 성공!"); document.getElementById('db-io-modal').style.display='none'; } else { throw new Error("Format"); } } catch (error) { alert("잘못된 코드 형식입니다."); } }
         }
 
