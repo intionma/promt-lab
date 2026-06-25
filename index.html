@@ -461,6 +461,105 @@
             border-top-color: var(--border-dim);
         }
         .prompt-chip:hover .chip-tooltip { display: block; }
+
+        /* ── 모바일 반응형 ── */
+        @media (max-width: 768px) {
+            /* 3패널 → 단일 패널 전환 */
+            .app-container {
+                flex-direction: column;
+                height: auto;
+                min-height: 100dvh;
+                overflow: visible;
+            }
+            .panel {
+                height: auto !important;
+                min-height: 0;
+                overflow: visible;
+                border-right: none !important;
+                border-bottom: 1px solid var(--border-dim);
+                width: 100% !important;
+                display: none; /* JS로 active 패널만 표시 */
+                flex: none !important;
+            }
+            .panel.mobile-active {
+                display: flex;
+                flex-direction: column;
+                min-height: calc(100dvh - 56px); /* 하단 탭바 높이 제외 */
+            }
+            .panel-content {
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                flex: 1;
+            }
+            /* 패널 리사이즈 핸들 숨김 */
+            .panel-resize-handle { display: none !important; }
+            /* 헤더 버튼 축소 */
+            .panel-header { padding: 10px 14px; font-size: 13px; flex-wrap: wrap; gap: 6px; }
+            .header-actions { flex-wrap: wrap; gap: 5px; }
+            .action-btn { padding: 5px 9px !important; font-size: 11px !important; }
+            /* 에디터 패널 텍스트박스 */
+            .layer-textarea { font-size: 12px !important; }
+            /* 결과 박스 */
+            .result-box { font-size: 11px; }
+            /* 태그 버튼 */
+            .tag-btn { min-width: 0; }
+            /* 조합 그리드 */
+            .combo-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important; }
+            /* 모달 전체 너비 */
+            .combo-create-modal, .db-format-guide-overlay > div, .prompt-classify-overlay > div {
+                width: 98vw !important; max-height: 92dvh !important; border-radius: 10px !important;
+            }
+            /* 모달 오버레이 align top */
+            .combo-create-modal-overlay { align-items: flex-end !important; padding-bottom: 0; }
+            .combo-create-modal { border-radius: 14px 14px 0 0 !important; max-height: 88dvh !important; }
+            /* 분류 추가 모달 */
+            .prompt-classify-overlay { align-items: flex-end !important; }
+            /* context tabs */
+            .context-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            /* 결과 패널 선택 영역 */
+            #output-format-toggle { font-size: 11px; }
+            /* DB 관리 텍스트 편집기 */
+            #db-text-editor-box { width: 98vw !important; min-width: unset !important; height: 75dvh !important; }
+        }
+
+        /* 하단 모바일 탭바 */
+        #mobile-tabbar {
+            display: none;
+        }
+        @media (max-width: 768px) {
+            #mobile-tabbar {
+                display: flex;
+                position: fixed;
+                bottom: 0; left: 0; right: 0;
+                height: 56px;
+                background: var(--bg-surface);
+                border-top: 1px solid var(--border-dim);
+                z-index: 9000;
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+            }
+            #mobile-tabbar button {
+                flex: 1;
+                background: none;
+                border: none;
+                color: var(--text-dim);
+                font-size: 10px;
+                font-family: var(--font-ui);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 3px;
+                cursor: pointer;
+                padding: 6px 0;
+                transition: color 0.15s;
+            }
+            #mobile-tabbar button i { font-size: 18px; }
+            #mobile-tabbar button.active {
+                color: var(--accent-blue);
+            }
+            body { padding-bottom: 56px; }
+        }
     </style>
 </head>
 <body data-theme="dark">
@@ -5096,6 +5195,61 @@
                 tabs.scrollLeft = scrollLeft - (e.pageX - tabs.offsetLeft - startX);
             });
         })();
+
+        // ── 모바일 탭 전환 ──────────────────────────────────────────────────
+        (function initMobileNav() {
+            const PANELS = [
+                { id: 'panel-left',  label: '태그',   icon: 'fa-tags' },
+                { id: 'panel-mid',   label: '에디터', icon: 'fa-layer-group' },
+                { id: 'panel-right', label: '결과',   icon: 'fa-terminal' },
+            ];
+            const tabbar = document.getElementById('mobile-tabbar');
+            if (!tabbar) return;
+
+            let currentPanel = 'panel-left';
+
+            function switchMobilePanel(id) {
+                currentPanel = id;
+                PANELS.forEach(p => {
+                    const el = document.getElementById(p.id);
+                    if (!el) return;
+                    if (p.id === id) el.classList.add('mobile-active');
+                    else el.classList.remove('mobile-active');
+                });
+                tabbar.querySelectorAll('button').forEach((btn, i) => {
+                    btn.classList.toggle('active', PANELS[i].id === id);
+                });
+                window.scrollTo(0, 0);
+            }
+
+            PANELS.forEach(p => {
+                const btn = document.createElement('button');
+                btn.innerHTML = `<i class="fa-solid ${p.icon}"></i><span>${p.label}</span>`;
+                if (p.id === currentPanel) btn.classList.add('active');
+                btn.onclick = () => switchMobilePanel(p.id);
+                tabbar.appendChild(btn);
+            });
+
+            // 초기화: 모바일이면 첫 패널 활성화
+            function applyMobileLayout() {
+                if (window.innerWidth <= 768) {
+                    switchMobilePanel(currentPanel);
+                } else {
+                    // 데스크탑: 모든 패널 표시
+                    PANELS.forEach(p => {
+                        const el = document.getElementById(p.id);
+                        if (el) el.classList.remove('mobile-active');
+                    });
+                }
+            }
+
+            applyMobileLayout();
+            window.addEventListener('resize', applyMobileLayout);
+        })();
+        // ────────────────────────────────────────────────────────────────────
     </script>
+
+    <!-- 모바일 하단 탭바 -->
+    <nav id="mobile-tabbar"></nav>
 </body>
 </html>
