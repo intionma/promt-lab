@@ -172,6 +172,39 @@
         .combo-ctx-item.danger:hover { background: rgba(239,68,68,0.08); }
         .combo-ctx-sep { height: 1px; background: var(--border-dim); margin: 4px 0; }
 
+        /* 조합 추가 모달 */
+        .combo-create-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:10000; display:flex; align-items:center; justify-content:center; }
+        .combo-create-modal { background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:14px; width:min(620px,95vw); max-height:80vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
+        .ccm-header { display:flex; align-items:center; gap:8px; padding:16px 20px; border-bottom:1px solid var(--border-dim); flex-shrink:0; }
+        .ccm-title { font-size:15px; font-weight:800; font-family:var(--font-heading); flex:1; }
+        .ccm-mode-btn { padding:5px 12px; border-radius:6px; border:1px solid var(--border-dim); background:transparent; color:var(--text-dim); cursor:pointer; font-size:12px; font-family:var(--font-ui); transition:0.15s; }
+        .ccm-mode-btn.active { background:var(--accent-blue); color:#fff; border-color:var(--accent-blue); }
+        .ccm-body { flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:14px; }
+        .ccm-footer { display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid var(--border-dim); flex-shrink:0; }
+        .ccm-name-input { width:100%; background:var(--bg-base); border:1px solid var(--border-dim); border-radius:8px; padding:8px 12px; color:var(--text-main); font-size:13px; font-family:var(--font-ui); outline:none; box-sizing:border-box; }
+        .ccm-name-input:focus { border-color:var(--accent-blue); }
+        .ccm-layer-filters { display:flex; gap:6px; flex-wrap:wrap; }
+        .ccm-layer-btn { padding:4px 10px; border-radius:20px; border:1px solid var(--border-dim); background:transparent; color:var(--text-dim); cursor:pointer; font-size:11px; font-family:var(--font-ui); transition:0.15s; }
+        .ccm-layer-btn.active { color:#fff; }
+        .ccm-tag-area { display:flex; flex-direction:column; gap:8px; max-height:280px; overflow-y:auto; }
+        .ccm-folder-group { background:var(--bg-base); border-radius:8px; padding:10px; }
+        .ccm-folder-label { font-size:11px; color:var(--text-dim); font-family:var(--font-ui); margin-bottom:6px; }
+        .ccm-tag-chips { display:flex; flex-wrap:wrap; gap:6px; }
+        .ccm-tag-chip { padding:4px 10px; border-radius:20px; border:1px solid var(--border-dim); background:var(--bg-surface); color:var(--text-main); font-size:12px; font-family:var(--font-ui); cursor:pointer; transition:0.15s; user-select:none; }
+        .ccm-tag-chip:hover { border-color:var(--accent-blue); }
+        .ccm-tag-chip.selected { background:var(--accent-blue); color:#fff; border-color:var(--accent-blue); }
+        .ccm-selected-preview { font-size:11px; color:var(--text-dim); font-family:var(--font-code); line-height:1.5; min-height:20px; }
+        .ccm-adv-textarea { width:100%; min-height:80px; background:var(--bg-base); border:1px solid var(--border-dim); border-radius:8px; padding:10px; color:var(--text-main); font-size:12px; font-family:var(--font-code); outline:none; resize:vertical; box-sizing:border-box; }
+        .ccm-adv-textarea:focus { border-color:var(--accent-blue); }
+        .ccm-recognition-list { display:flex; flex-direction:column; gap:6px; }
+        .ccm-recog-item { display:flex; align-items:flex-start; gap:8px; padding:8px; background:var(--bg-base); border-radius:6px; font-size:12px; font-family:var(--font-ui); flex-wrap:wrap; }
+        .ccm-recog-found { color:var(--accent-green); }
+        .ccm-recog-missing { color:var(--accent-danger); }
+        .ccm-recog-selects { display:flex; gap:6px; margin-top:4px; width:100%; flex-wrap:wrap; }
+        .ccm-recog-select { background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:6px; padding:3px 8px; color:var(--text-main); font-size:11px; font-family:var(--font-ui); cursor:pointer; }
+        /* folder drag-hover glow */
+        .combo-folder-header-row.drag-hover { box-shadow: inset 0 0 0 2px var(--accent-blue); border-radius:8px; background: rgba(99,102,241,0.08) !important; }
+
         .fav-recent-box { transition: 0.2s; }
         .fav-recent-box.collapsed .box-content { display: none !important; }
         .fav-recent-box.collapsed .toggle-icon { transform: rotate(-90deg); }
@@ -491,7 +524,7 @@
                     <div class="combo-toolbar">
                         <span style="flex:1;font-size:12px;font-weight:700;color:var(--text-dim);font-family:var(--font-ui);">🏠 간편 조합</span>
                         <button class="action-btn" onclick="collapseAllComboFolders()" style="color:var(--text-dim);border-color:var(--border-dim);padding:5px 10px;font-size:12px;white-space:nowrap;" title="폴더 모두 닫기"><i class="fa-solid fa-folder-minus"></i> 모두 닫기</button>
-                        <button class="action-btn" onclick="saveNewCombo()" style="background:var(--accent-green);color:#fff;border:none;padding:6px 12px;font-size:12px;white-space:nowrap;" title="현재 에디터 상태를 조합으로 저장"><i class="fa-solid fa-floppy-disk"></i> 저장</button>
+                        <button class="action-btn" onclick="openComboCreateModal()" style="background:var(--accent-green);color:#fff;border:none;padding:6px 12px;font-size:12px;white-space:nowrap;" title="새 조합 추가"><i class="fa-solid fa-plus"></i> 조합 추가</button>
                         <button class="action-btn" onclick="createComboFolder()" style="color:var(--accent-blue);border-color:var(--accent-blue);padding:6px 12px;font-size:12px;white-space:nowrap;" title="새 폴더 만들기"><i class="fa-solid fa-folder-plus"></i></button>
                     </div>
                     <div class="combo-grid" id="combo-list-container"></div>
@@ -1135,6 +1168,14 @@
                 prompts.forEach(p => {
                     menuItems.push({ isWeightRow: true, tagText, promptText: p, label: p });
                 });
+                // 간편 조합에 추가 / 프롬프트 복사
+                menuItems.push('sep');
+                menuItems.push({ label: '간편 조합에 추가', icon: 'fa-solid fa-puzzle-piece', action: () => {
+                    openComboCreateModal(null, tagText);
+                }});
+                menuItems.push({ label: '프롬프트 복사', icon: 'fa-solid fa-copy', action: () => {
+                    navigator.clipboard.writeText(tagText).then(() => showToast('복사됨', 'success'));
+                }});
                 if (foundFolder !== null) {
                     menuItems.push('sep');
                     menuItems.push({ label: 'DB에서 태그 수정', icon: 'fa-solid fa-pencil', action: () => {
@@ -1385,6 +1426,16 @@
                 e.preventDefault(); e.stopPropagation();
                 showComboCtxMenu(e, [
                     { icon: 'fa-pen', label: '이름 변경', action: () => { startInlineFolderRename(header, folder); } },
+                    { icon: 'fa-plus', label: '새 조합 추가', action: () => { openComboCreateModal(folder.id); } },
+                    { sep: true },
+                    { icon: 'fa-eraser', label: '폴더 비우기', action: () => {
+                        showConfirm(`[${folder.title}] 안의 항목을 모두 루트로 꺼낼까요?`, () => {
+                            const kids = [...(folder.children || [])];
+                            folder.children = [];
+                            kids.forEach(kid => { if (!comboFS.root.includes(kid)) comboFS.root.push(kid); });
+                            saveComboFS(); renderCombos(); showToast('폴더 비워짐', 'info');
+                        });
+                    }},
                     { sep: true },
                     { icon: 'fa-trash', label: '폴더 삭제', danger: true, action: () => {
                         showConfirm(`[${folder.title}] 폴더와 안의 내용을 모두 삭제할까요?`, () => { deleteFsItem(folder.id); renderCombos(); showToast("폴더 삭제됨", "info"); });
@@ -1407,8 +1458,13 @@
                     children.forEach(cid => {
                         const child = comboFS.items[cid];
                         if (!child) return;
-                        const el = createComboCardEl(child, folder.id);
-                        contents.appendChild(el);
+                        if (child.type === 'folder') {
+                            const el = createFolderBlockEl(child);
+                            contents.appendChild(el);
+                        } else {
+                            const el = createComboCardEl(child, folder.id);
+                            contents.appendChild(el);
+                        }
                     });
                 }
                 setupFolderContentsDropZone(contents, folder.id);
@@ -1456,6 +1512,25 @@
                 const menuItems = [
                     { icon: 'fa-play', label: '적용', action: () => applyCombo(combo) },
                     { icon: 'fa-pen', label: '이름 변경', action: () => startInlineRename(el, combo) },
+                    { icon: 'fa-copy', label: '복사 (현재 에디터에 복사)', action: () => {
+                        const tagStr = Object.values(combo.tags || {}).join(', ');
+                        navigator.clipboard.writeText(tagStr).then(() => showToast('클립보드에 복사됨', 'success'));
+                    }},
+                    { icon: 'fa-clone', label: '복제', action: () => {
+                        const newId = 'uc_' + Date.now();
+                        const newCombo = JSON.parse(JSON.stringify(combo));
+                        newCombo.id = newId;
+                        newCombo.title = combo.title + ' (복사본)';
+                        comboFS.items[newId] = newCombo;
+                        if (parentFolderId && comboFS.items[parentFolderId]) {
+                            comboFS.items[parentFolderId].children.push(newId);
+                        } else {
+                            const idx = comboFS.root.indexOf(combo.id);
+                            if (idx !== -1) comboFS.root.splice(idx + 1, 0, newId);
+                            else comboFS.root.push(newId);
+                        }
+                        saveComboFS(); renderCombos(); showToast('복제됨', 'success');
+                    }},
                 ];
                 if (parentFolderId) {
                     menuItems.push({ sep: true });
@@ -1502,9 +1577,8 @@
         function setupFolderContentsDropZone(contents, folderId) {
             contents.addEventListener('dragover', (e) => {
                 if (!_fsDragging || _fsDragging.id === folderId) return;
-                // 폴더를 폴더 안에 드롭 방지 (폴더 타입이면 스킵)
-                const dragItem = comboFS.items[_fsDragging.id];
-                if (dragItem?.type === 'folder') return;
+                // prevent dropping a folder into itself (ancestor check)
+                if (_isAncestor(_fsDragging.id, folderId)) return;
                 e.preventDefault(); e.stopPropagation();
                 e.dataTransfer.dropEffect = 'move';
                 contents.classList.add('dnd-folder-over');
@@ -1516,8 +1590,7 @@
                 e.preventDefault(); e.stopPropagation();
                 contents.classList.remove('dnd-folder-over');
                 if (!_fsDragging || _fsDragging.id === folderId) return;
-                const dragItem = comboFS.items[_fsDragging.id];
-                if (dragItem?.type === 'folder') return;
+                if (_isAncestor(_fsDragging.id, folderId)) return;
                 const dragId = _fsDragging.id;
                 removeFsItemFromParent(dragId);
                 const folder = comboFS.items[folderId];
@@ -1582,32 +1655,60 @@
             });
         }
 
+        function _isAncestor(ancestorId, descendantId) {
+            // Returns true if ancestorId contains descendantId (directly or indirectly)
+            const item = comboFS.items[ancestorId];
+            if (!item || item.type !== 'folder') return false;
+            const children = item.children || [];
+            for (const cid of children) {
+                if (cid === descendantId) return true;
+                if (_isAncestor(cid, descendantId)) return true;
+            }
+            return false;
+        }
+
         function setupFolderDropTarget(el, folderId) {
-            // contents 영역 drop은 setupFolderContentsDropZone에서 처리
-            // 여기서는 folder block 헤더에 combo(비폴더)를 드롭해 넣는 기능
-            el.addEventListener('dragover', (e) => {
-                if (!_fsDragging || _fsDragging.id === folderId) return;
-                const dragItem = comboFS.items[_fsDragging.id];
-                if (dragItem?.type === 'folder') return; // 폴더를 폴더 안에 못 넣음
-                e.preventDefault(); e.dataTransfer.dropEffect = 'move';
-                el.classList.add('dnd-over');
-            });
-            el.addEventListener('dragleave', (e) => { if (!el.contains(e.relatedTarget)) el.classList.remove('dnd-over'); });
-            el.addEventListener('drop', (e) => {
-                e.preventDefault(); e.stopPropagation();
-                el.classList.remove('dnd-over');
-                if (!_fsDragging || _fsDragging.id === folderId) return;
-                const dragItem = comboFS.items[_fsDragging.id];
-                if (dragItem?.type === 'folder') return;
-                const dragId = _fsDragging.id;
-                removeFsItemFromParent(dragId);
-                if (!comboFS.items[folderId]) return;
-                if (!comboFS.items[folderId].children) comboFS.items[folderId].children = [];
-                if (!comboFS.items[folderId].children.includes(dragId)) comboFS.items[folderId].children.push(dragId);
-                _openFolders.add(folderId);
-                saveComboFS();
-                renderCombos();
-            });
+            // headerRow gets hover-to-open drag logic (for closed folders)
+            const headerRow = el.querySelector('.combo-folder-header-row');
+            let _hoverTimer = null;
+            if (headerRow) {
+                headerRow.addEventListener('dragenter', (e) => {
+                    if (!_fsDragging || _fsDragging.id === folderId) return;
+                    if (_isAncestor(_fsDragging.id, folderId)) return;
+                    headerRow.classList.add('drag-hover');
+                    // auto-open after 500ms
+                    _hoverTimer = setTimeout(() => {
+                        _openFolders.add(folderId);
+                        renderCombos();
+                    }, 500);
+                });
+                headerRow.addEventListener('dragleave', (e) => {
+                    if (!headerRow.contains(e.relatedTarget)) {
+                        headerRow.classList.remove('drag-hover');
+                        clearTimeout(_hoverTimer);
+                    }
+                });
+                headerRow.addEventListener('dragover', (e) => {
+                    if (!_fsDragging || _fsDragging.id === folderId) return;
+                    if (_isAncestor(_fsDragging.id, folderId)) return;
+                    e.preventDefault(); e.stopPropagation();
+                    e.dataTransfer.dropEffect = 'move';
+                });
+                headerRow.addEventListener('drop', (e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    clearTimeout(_hoverTimer);
+                    headerRow.classList.remove('drag-hover');
+                    if (!_fsDragging || _fsDragging.id === folderId) return;
+                    if (_isAncestor(_fsDragging.id, folderId)) return;
+                    const dragId = _fsDragging.id;
+                    removeFsItemFromParent(dragId);
+                    if (!comboFS.items[folderId]) return;
+                    if (!comboFS.items[folderId].children) comboFS.items[folderId].children = [];
+                    if (!comboFS.items[folderId].children.includes(dragId)) comboFS.items[folderId].children.push(dragId);
+                    _openFolders.add(folderId);
+                    saveComboFS(); renderCombos();
+                });
+            }
         }
 
         function setupGridDropZone(container) {
