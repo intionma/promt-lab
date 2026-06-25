@@ -1,0 +1,1603 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRO PROMPT ARCHITECT v8.4 (Responsive & Light/Dark Theme)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        /* 💡 기능 3: 다크/라이트 테마 CSS 변수 설계 */
+        :root {
+            /* 기본 다크 테마 */
+            --bg-base: #0a0c10; --bg-panel: #12151b; --bg-surface: #1a1e27; --border-dim: #2d333b;
+            --text-main: #e2e8f0; --text-dim: #94a3b8; --accent-green: #10b981; --accent-blue: #3b82f6; --accent-danger: #ef4444;
+            --color-l1: #a855f7; --color-l2: #f97316; --color-l3: #ec4899;
+            --color-l4: #06b6d4; --color-l5: #ef4444; --color-l6: #10b981; --color-l7: #eab308;
+            --font-ui: 'Noto Sans KR', sans-serif; --font-heading: 'Pretendard', sans-serif; --font-code: 'JetBrains Mono', monospace;
+            --shadow-color: rgba(0,0,0,0.3);
+            --header-bg: #161a22;
+            --chip-bg: rgba(255,255,255,0.05);
+            --input-bg: #050608;
+            --folder-bg: rgba(255,255,255,0.02);
+            --folder-hover: rgba(255,255,255,0.05);
+        }
+
+        [data-theme="light"] {
+            /* 라이트 테마 */
+            --bg-base: #f1f5f9; --bg-panel: #ffffff; --bg-surface: #f8fafc; --border-dim: #cbd5e1;
+            --text-main: #0f172a; --text-dim: #64748b;
+            --shadow-color: rgba(0,0,0,0.05);
+            --header-bg: #f8fafc;
+            --chip-bg: #ffffff;
+            --input-bg: #ffffff;
+            --folder-bg: #f8fafc;
+            --folder-hover: #f1f5f9;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+
+        body, html {
+            height: 100%; width: 100%; background-color: var(--bg-base); color: var(--text-main);
+            font-family: var(--font-ui); overflow-y: hidden; overflow-x: auto;
+            letter-spacing: -0.2px; transition: background-color 0.3s, color 0.3s;
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--text-dim); border-radius: 4px; opacity: 0.5;}
+
+        /* 💡 기능 1: 100% 반응형 레이아웃 설계 */
+        .app-container {
+            display: grid;
+            height: 100vh;
+            /* 모바일/태블릿 기본: 최소 폭 제한 유지, 가로 스크롤 발생 */
+            grid-template-columns: minmax(320px, 1.2fr) minmax(400px, 2fr) minmax(350px, 1.5fr);
+            min-width: 1070px;
+        }
+
+        /* 랩탑 이상 (1200px ~) */
+        @media (min-width: 1200px) {
+            .app-container { grid-template-columns: minmax(360px, 1.2fr) minmax(500px, 2fr) minmax(420px, 1.5fr); min-width: auto; }
+        }
+
+        /* 데스크탑 와이드 (1600px ~) */
+        @media (min-width: 1600px) {
+            .app-container { grid-template-columns: minmax(400px, 1fr) minmax(600px, 2fr) minmax(750px, 2fr); }
+            .right-panel-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+            .full-width-section { grid-column: 1 / -1; }
+        }
+
+        /* 울트라 와이드 (1920px ~) */
+        @media (min-width: 1920px) {
+            .app-container { grid-template-columns: minmax(450px, 1fr) minmax(700px, 2fr) minmax(900px, 2fr); }
+        }
+
+        .panel { display: flex; flex-direction: column; border-right: 1px solid var(--border-dim); background-color: var(--bg-panel); height: 100vh; overflow: hidden; transition: 0.3s; }
+        .panel:last-child { border-right: none; }
+
+        .panel-header {
+            padding: 16px 20px; border-bottom: 1px solid var(--border-dim); font-size: 15px; font-weight: 800;
+            display: flex; justify-content: space-between; align-items: center; background-color: var(--header-bg); flex-shrink: 0;
+            font-family: var(--font-heading); transition: 0.3s;
+        }
+        .header-actions { display: flex; gap: 8px; align-items: center; }
+        .action-btn { background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-main); padding: 8px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 700; transition: 0.2s; font-family: var(--font-ui); white-space: nowrap;}
+        .action-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+
+        .panel-content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+        .right-panel-wrapper { display: flex; flex-direction: column; gap: 20px; }
+        .pos-section, .neg-section { display: flex; flex-direction: column; gap: 20px; }
+
+        .sidebar-tools { display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; margin-bottom: 10px; }
+        .mode-toggle-group { display: flex; background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 8px; padding: 4px; }
+        .mode-toggle-btn { flex: 1; background: transparent; border: none; color: var(--text-dim); padding: 8px; border-radius: 6px; font-weight: 700; cursor: pointer; transition: 0.2s; font-family: var(--font-ui); font-size: 13px; }
+        .mode-toggle-btn.active { background: var(--accent-blue); color: #fff; }
+
+        .search-box { position: relative; width: 100%; }
+        .search-box input { width: 100%; background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-main); padding: 12px 12px 12px 38px; border-radius: 8px; font-family: var(--font-ui); font-size: 13px; transition: 0.3s;}
+        .search-box input:focus { border-color: var(--accent-blue); }
+        .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-dim); font-size: 14px;}
+
+        .combo-card { background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 10px; padding: 16px; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; gap: 8px; position: relative; }
+        .combo-card:hover { border-color: var(--accent-blue); transform: translateY(-2px); box-shadow: 0 5px 15px var(--shadow-color); }
+        .combo-header { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; color: var(--text-main); font-family: var(--font-heading); padding-right: 30px; }
+        .combo-desc { font-size: 13px; color: var(--text-dim); line-height: 1.4; }
+        .btn-combo-del { position: absolute; right: 12px; top: 12px; background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 14px; padding: 4px; transition: 0.2s; }
+        .btn-combo-del:hover { color: var(--accent-danger); transform: scale(1.1); }
+
+        .fav-recent-box { transition: 0.2s; }
+        .fav-recent-box.collapsed .box-content { display: none !important; }
+        .fav-recent-box.collapsed .toggle-icon { transform: rotate(-90deg); }
+        .fav-recent-box:not(.collapsed) .box-header { border-radius: 8px 8px 0 0 !important; border-bottom: 1px solid var(--border-dim); }
+
+        .layer-group { background: var(--bg-surface); border-radius: 10px; border: 1px solid var(--border-dim); overflow: hidden; flex-shrink: 0; transition: 0.3s;}
+        .layer-title-bar { padding: 16px 18px; font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 8px; background: var(--folder-bg); border-bottom: 1px solid var(--border-dim); font-family: var(--font-heading); }
+        .layer-indicator { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 6px currentColor; flex-shrink: 0; }
+        .layer-badge { display: inline-flex; align-items: center; justify-content: center; height: 20px; min-width: 20px; padding: 0 6px; border-radius: 10px; font-size: 11px; font-weight: bold; color: #fff; margin-left: auto; font-family: var(--font-code); background: var(--text-dim);}
+
+        .sub-folder { border-bottom: 1px solid var(--border-dim); }
+        .sub-folder:last-child { border-bottom: none; }
+        .sub-folder-header { padding: 12px 16px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; background: var(--folder-bg); border-left: 4px solid transparent; }
+        .sub-folder-header:hover { background: var(--folder-hover); }
+        .folder-meta { display: flex; align-items: center; gap: 10px; }
+        .folder-recommend { font-size: 11px; background: var(--border-dim); padding: 2px 6px; border-radius: 4px; opacity: 0.8; font-weight: 500; color: var(--text-main);}
+        .folder-badge { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; font-size: 11px; font-weight: bold; color: #fff; opacity: 0; transform: scale(0.8); transition: 0.2s; margin-left: 6px; font-family: var(--font-code);}
+        .folder-badge.active { opacity: 1; transform: scale(1); }
+
+        .sub-folder-content { padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 8px; background: var(--bg-base); }
+        .sub-folder.collapsed .sub-folder-content { display: none; }
+        .sub-folder.collapsed .fa-chevron-down { transform: rotate(-90deg); }
+
+        .tag-btn {
+            background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-main);
+            padding: 10px 14px; border-radius: 8px; font-family: var(--font-ui); cursor: pointer; transition: all 0.2s;
+            display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; width: 100%; position: relative; overflow: hidden;
+        }
+        .tag-btn:hover { border-color: var(--text-dim); }
+        .tag-kr { font-size: 14px; font-weight: 700; color: inherit; line-height: 1.3; z-index: 2; position: relative; padding-right: 20px;}
+        .tag-en { font-size: 12px; font-family: var(--font-code); color: var(--text-dim); word-break: break-all; z-index: 2; position: relative; padding-right: 20px;}
+        .tag-btn.active { background: var(--folder-hover); }
+        .tag-btn.active .tag-en { opacity: 0.9; }
+
+        .tag-fav-icon { position: absolute; right: 10px; top: 10px; color: var(--border-dim); transition: 0.2s; font-size: 14px; z-index: 3; padding: 4px; }
+        .tag-fav-icon:hover { color: #eab308; transform: scale(1.2); }
+        .tag-fav-icon.active { color: #eab308; }
+
+        .tag-btn.mini { width: auto; padding: 8px 12px; flex-direction: row; align-items: center; gap: 8px; min-height: unset; }
+        .tag-btn.mini .tag-kr { font-size: 13px; padding-right: 0; white-space: nowrap; }
+        .tag-btn.mini .tag-fav-icon { position: static; padding: 0; font-size: 13px;}
+
+        .context-tabs { display: flex; background: var(--bg-surface); border-bottom: 1px solid var(--border-dim); padding: 10px 24px 0; gap: 8px; align-items: flex-end;}
+        .context-tab { padding: 12px 18px; font-size: 14px; font-weight: 800; font-family: var(--font-heading); color: var(--text-dim); cursor: pointer; border-radius: 8px 8px 0 0; border: 1px solid transparent; border-bottom: none; transition: 0.2s; background: var(--folder-bg); display: flex; align-items: center; gap: 8px; white-space: nowrap;}
+        .context-tab:hover { color: var(--text-main); }
+        .context-tab.active { color: var(--text-main); background: var(--bg-base); border-color: var(--border-dim); border-top-color: var(--accent-blue); }
+        .tab-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--accent-blue); color: #fff; border-radius: 10px; padding: 0 6px; font-size: 11px; font-weight: bold; height: 18px; min-width: 18px; font-family: var(--font-code);}
+
+        .view-toggle { display: flex; align-items: center; background: var(--bg-panel); border: 1px solid var(--border-dim); border-radius: 6px; padding: 4px; }
+        .view-btn { padding: 4px 12px; font-size: 12px; font-weight: 700; color: var(--text-dim); cursor: pointer; border-radius: 4px; border: none; background: none; transition: 0.2s; }
+        .view-btn.active { background: var(--accent-blue); color: #fff; }
+
+        .editor-section { flex-shrink: 0; background-color: var(--bg-base); border: 1px solid var(--border-dim); border-radius: 10px; display: flex; flex-direction: column; position: relative; transition:0.3s;}
+        .editor-header { padding: 12px 18px; font-size: 14px; color: var(--text-main); background-color: var(--bg-surface); border-bottom: 1px solid var(--border-dim); display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-family: var(--font-heading); border-radius: 10px 10px 0 0;}
+        .editor-header-left { display: flex; align-items: center; gap: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .conflict-badge { display: none; background: rgba(234, 179, 8, 0.1); border: 1px solid #eab308; color: #eab308; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 10px; flex-shrink: 0; }
+        .editor-tools { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        .editor-tools button.clear-btn { background: none; border: 1px solid var(--border-dim); color: var(--text-dim); cursor: pointer; font-size: 12px; padding: 4px 10px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-family: var(--font-ui);}
+        .editor-tools button.clear-btn:hover { color: var(--accent-danger); border-color: var(--accent-danger); }
+
+        .fixed-weight-toolbar { display: none; background: rgba(59, 130, 246, 0.1); border: 1px solid var(--accent-blue); border-radius: 4px; padding: 2px; gap: 2px; align-items: center; margin-right: 8px; z-index: 100; }
+        .fixed-weight-toolbar button { background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-main); padding: 2px 8px; font-size: 12px; font-weight: bold; font-family: var(--font-code); cursor: pointer; border-radius: 2px; }
+        .fixed-weight-toolbar button:hover { background: var(--accent-blue); color:#fff;}
+        .fixed-weight-toolbar button.reset-btn { background: var(--border-dim); border-color: var(--border-dim); font-family: var(--font-ui);}
+
+        .editor-body { position: relative; width: 100%; min-height: 80px; padding: 16px; }
+        textarea.layer-input { width: 100%; height: 70px; background-color: transparent; border: none; color: var(--text-main); font-family: var(--font-code); font-size: 14px; resize: vertical; line-height: 1.6; display: none; }
+
+        .chip-container { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; align-items: center; }
+        .prompt-chip {
+            display: inline-flex; align-items: center; background: var(--chip-bg); border: 1px solid var(--border-dim);
+            border-radius: 16px; padding: 6px 14px; font-family: var(--font-code); font-size: 13px; font-weight: 500; color: var(--text-main);
+            cursor: pointer; transition: 0.2s; word-break: break-all; min-height: 28px; user-select: none;
+        }
+        .prompt-chip:hover { border-color: var(--text-dim); }
+        .prompt-chip.selected { background: rgba(59, 130, 246, 0.1) !important; border-color: var(--accent-blue) !important; color: var(--text-main) !important; }
+        .prompt-chip.weight-high { font-weight: 700; border-color:var(--accent-danger);}
+        .prompt-chip.weight-low { opacity: 0.7; }
+        .chip-delete { margin-left: 8px; color: var(--text-dim); cursor: pointer; font-size: 12px; padding: 2px; }
+        .chip-delete:hover { color: var(--accent-danger); }
+        .chip-edit-input { background: transparent; border: none; color: var(--text-main); font-family: var(--font-code); font-size: 13px; outline: none; width: 100%; text-align: center; }
+        .chip-add-input { background: transparent; border: none; color: var(--text-dim); font-family: var(--font-code); font-size: 13px; outline: none; width: 130px; padding: 4px; }
+        .chip-add-input:focus { color: var(--text-main); }
+
+        .prompt-chip.drag-over {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px var(--accent-blue) !important;
+            z-index: 10;
+        }
+
+        .editor-body.mode-text .layer-input { display: block; }
+        .editor-body.mode-text .chip-container { display: none; }
+        .editor-body.mode-visual .layer-input { display: none; }
+        .editor-body.mode-visual .chip-container { display: flex; }
+
+        .control-group { background-color: var(--bg-surface); padding: 16px; border-radius: 10px; border: 1px solid var(--border-dim); flex-shrink: 0; }
+        .weight-controller { display: flex; align-items: center; justify-content: space-between; background-color: var(--bg-base); border: 1px solid var(--border-dim); border-radius: 6px; padding: 6px; }
+        .weight-btn { background-color: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border-dim); border-radius: 4px; width: 44px; height: 44px; font-size: 22px; font-weight: bold; cursor: pointer; font-family: var(--font-code); transition:0.2s;}
+        .weight-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue);}
+        .weight-display { font-size: 18px; font-weight: 700; color: var(--text-main); width: 70px; text-align: center; font-family: var(--font-code); }
+
+        .result-box-container { display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+        .result-label { font-size: 14px; font-weight: 800; font-family: var(--font-heading); display: flex; justify-content: space-between; align-items: center;}
+
+        .result-textarea { width: 100%; min-height: 100px; background-color: var(--input-bg); border: 1px solid var(--border-dim); border-radius: 8px; padding: 16px; color: var(--text-main); font-family: var(--font-code); font-size: 14px; line-height: 1.6; resize: vertical; transition:0.3s;}
+        .preview-box { background-color: var(--folder-bg); border: 1px dashed var(--border-dim); border-radius: 8px; padding: 16px; color: var(--text-dim); font-size: 14px; line-height: 1.6; min-height: 60px; }
+
+        .copy-btn-group { display: flex; gap: 12px; margin-top: auto; flex-shrink: 0; }
+        .btn-copy { flex: 1; color: #fff; border: none; padding: 14px; border-radius: 8px; font-size: 14px; font-weight: 800; font-family: var(--font-heading); cursor: pointer; transition: 0.2s;}
+        .btn-copy:hover { filter: brightness(1.1); }
+        .btn-copy.pos { background-color: var(--accent-blue); } .btn-copy.neg { background-color: var(--text-dim); }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-content { background: var(--bg-panel); border: 1px solid var(--border-dim); width: 850px; max-height: 90vh; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 20px 50px var(--shadow-color); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-dim); display: flex; justify-content: space-between; align-items: center; font-family: var(--font-heading);}
+        .modal-title { font-size: 18px; font-weight: 800; color: var(--text-main); }
+
+        .preset-table-container { flex: 1; overflow-y: auto; padding: 24px; }
+        table.preset-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+        table.preset-table th { background: var(--bg-surface); padding: 14px; color: var(--text-dim); border-bottom: 1px solid var(--border-dim); font-weight: 700; position: sticky; top:0; z-index:2;}
+        table.preset-table td { padding: 14px; border-bottom: 1px solid var(--border-dim); vertical-align: middle; color:var(--text-main);}
+        .btn-preset-action { padding: 8px 12px; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 13px; color: #fff; margin-right: 6px; }
+        .btn-preset-load { background: var(--accent-green); } .btn-preset-edit { background: #eab308; } .btn-preset-del { background: var(--accent-danger); }
+        .preset-group-title { padding: 20px 14px 8px; font-weight: 800; color: var(--text-main); background: var(--bg-panel); border-bottom: 2px solid var(--border-dim); }
+
+        .db-add-form-container { background: var(--bg-surface); border-bottom: 1px solid var(--border-dim); padding-bottom: 24px; flex-shrink: 0; }
+        .db-layer-tabs { display: flex; gap: 6px; padding: 24px 24px 0; border-bottom: 1px solid var(--border-dim); flex-wrap: wrap;}
+        .db-layer-btn { background: transparent; border: none; color: var(--text-dim); padding: 12px 18px; cursor: pointer; font-weight: 800; font-family: var(--font-heading); border-bottom: 3px solid transparent; white-space: nowrap; font-size:14px;}
+        .db-layer-btn.active { color: var(--text-main); border-bottom-color: var(--accent-blue); }
+        .db-folder-chips { display: flex; flex-wrap: wrap; gap: 10px; padding: 18px 24px; background: var(--bg-base); }
+        .db-folder-chip { background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-main); padding: 8px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; white-space: nowrap; font-weight: 600;}
+        .db-folder-chip:hover { border-color: var(--accent-blue); }
+        .db-add-form { display: grid; grid-template-columns: repeat(4, 1fr) auto auto; gap: 12px; align-items: end; padding: 0 24px; margin-top: 18px; }
+        .db-add-form .input-group { display: flex; flex-direction: column; gap: 6px; }
+        .db-add-form label { font-size: 13px; font-weight: 700; color: var(--text-dim); }
+        .db-add-form input { padding: 10px; background: var(--input-bg); border: 1px solid var(--border-dim); color: var(--text-main); border-radius: 6px; font-size: 14px; font-family: var(--font-ui); }
+        .btn-add-db { background: var(--accent-blue); color: #fff; border: none; padding: 0 20px; border-radius: 6px; cursor: pointer; font-weight: 800; font-family: var(--font-heading); height: 40px; white-space: nowrap; min-width: max-content;}
+
+        .db-table-container { flex: 1; overflow-y: auto; padding: 24px; }
+        table.db-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+        table.db-table th { background: var(--bg-surface); padding: 14px; color: var(--text-dim); position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--border-dim); font-weight: 700;}
+        table.db-table td { padding: 12px 14px; border-bottom: 1px solid var(--border-dim); vertical-align: middle; color:var(--text-main);}
+        .btn-edit-tb { background: #eab308; color: #fff; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-right: 6px; font-weight: 700; white-space: nowrap;}
+        .btn-delete-tb { background: var(--accent-danger); color: #fff; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; white-space: nowrap;}
+
+        .io-textarea { width: 100%; height: 300px; background: var(--input-bg); border: 1px solid var(--border-dim); color: var(--text-main); font-family: var(--font-code); padding: 18px; border-radius: 10px; resize: none; margin-top: 18px; font-size:14px; line-height: 1.5;}
+    </style>
+</head>
+<body data-theme="dark">
+
+    <div class="app-container">
+        <aside class="panel">
+            <div class="panel-header">
+                <span><i class="fa-solid fa-tags"></i> 프롬프트 랩</span>
+                <div class="header-actions">
+                    <button class="action-btn" onclick="openDBManager()" style="color:var(--accent-blue); border-color:var(--accent-blue);"><i class="fa-solid fa-database"></i> DB 관리</button>
+                    <button class="action-btn" onclick="openIOModal('export')" title="내보내기"><i class="fa-solid fa-copy"></i></button>
+                    <button class="action-btn" onclick="openIOModal('import')" title="불러오기"><i class="fa-solid fa-paste"></i></button>
+                </div>
+            </div>
+
+            <div class="panel-content">
+                <div class="sidebar-tools">
+                    <div class="mode-toggle-group">
+                        <button class="mode-toggle-btn active" id="btn-mode-detail" onclick="switchSidebarMode('detail')"><i class="fa-solid fa-list-ul"></i> 상세 태그</button>
+                        <button class="mode-toggle-btn" id="btn-mode-combo" onclick="switchSidebarMode('combo')" style="color:var(--accent-green)"><i class="fa-solid fa-puzzle-piece"></i> 간편 조합</button>
+                    </div>
+
+                    <div class="search-box" id="sidebar-search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="tag-search" placeholder="태그 영문/한글 검색..." oninput="filterTags()">
+                    </div>
+                </div>
+
+                <div id="sidebar-content-detail" style="display:flex; flex-direction:column; gap:16px;"></div>
+
+                <div id="sidebar-content-combo" style="display:none; flex-direction:column; gap:16px;">
+                    <div style="display:flex; gap:10px; background: var(--bg-surface); padding: 16px; border-radius: 10px; border: 1px solid var(--border-dim);">
+                        <input type="text" id="new-combo-name" placeholder="현재 탭을 새 조합으로 저장..." style="flex:1; padding:10px; background:var(--input-bg); border:1px solid var(--border-dim); color:var(--text-main); border-radius:6px; font-size:13px; font-family:var(--font-ui);">
+                        <button class="action-btn" onclick="saveNewCombo()" style="background:var(--accent-green); color:#fff; height: auto; padding: 8px 16px; font-size:13px; border:none;">저장</button>
+                    </div>
+                    <div id="combo-list-container" style="display:flex; flex-direction:column; gap:12px;"></div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="panel" style="background-color: var(--bg-base);">
+            <div class="context-tabs">
+                <div class="context-tab active" onclick="switchContext('common', this)">
+                    <i class="fa-solid fa-globe"></i> 공통 / 환경 <span class="tab-badge" id="tab-badge-common" style="display:none;">0</span>
+                </div>
+                <div class="context-tab" onclick="switchContext('char1', this)">
+                    <i class="fa-solid fa-user"></i> 캐릭터 1 <span class="tab-badge" id="tab-badge-char1" style="display:none;">0</span>
+                </div>
+                <div class="context-tab" onclick="switchContext('char2', this)">
+                    <i class="fa-solid fa-user-group"></i> 캐릭터 2 <span class="tab-badge" id="tab-badge-char2" style="display:none;">0</span>
+                </div>
+                <button class="action-btn" style="margin-left: auto; margin-bottom: 6px; color: var(--accent-danger); border-color: var(--border-dim);" onclick="clearCurrentContext()" title="현재 탭 지우기">
+                    <i class="fa-solid fa-trash"></i> 탭 비우기
+                </button>
+            </div>
+
+            <div class="panel-header" style="background-color: var(--bg-base); border-bottom-color: var(--border-dim);">
+                <span><i class="fa-solid fa-layer-group"></i> <span id="current-context-title">공통 / 환경</span> 에디터</span>
+                <div class="view-toggle">
+                    <button class="view-btn active" id="btn-view-visual" onclick="switchViewMode('visual')">🎨 캡슐 뷰</button>
+                    <button class="view-btn" id="btn-view-text" onclick="switchViewMode('text')">📝 텍스트 뷰</button>
+                </div>
+            </div>
+
+            <div class="panel-content" id="editor-content">
+                </div>
+        </main>
+
+        <section class="panel">
+            <div class="panel-header">
+                <span><i class="fa-solid fa-terminal"></i> 조합 및 결과</span>
+                <div class="header-actions">
+                    <button class="action-btn" id="btn-undo" onclick="performUndo()" style="color:var(--text-main); opacity:0.5; cursor:not-allowed;" title="되돌리기 (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i> 되돌리기</button>
+                    <button class="action-btn" onclick="openPresetManager()" style="color:var(--accent-green); border-color:var(--border-dim);"><i class="fa-solid fa-floppy-disk"></i> 프리셋 관리</button>
+                    <button class="action-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i class="fa-solid fa-sun"></i></button>
+                </div>
+            </div>
+
+            <div class="panel-content right-panel-wrapper">
+                <div class="control-group full-width-section">
+                    <div class="control-header" style="margin-bottom: 10px; color:var(--text-dim); font-size:14px; font-weight:700;"><span>클릭 가중치 제어</span></div>
+                    <div class="weight-controller">
+                        <button class="weight-btn" onclick="adjustGlobalWeight(-0.1)">-</button>
+                        <div class="weight-display" id="global-weight-val">1.0</div>
+                        <button class="weight-btn" onclick="adjustGlobalWeight(0.1)">+</button>
+                    </div>
+                </div>
+
+                <div class="pos-section">
+                    <div class="result-box-container">
+                        <div class="result-label">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span style="color:var(--accent-blue);">통합 긍정 프롬프트</span>
+                                <select id="output-format-toggle" onchange="updateMasterOutput()" style="background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-dim); border-radius:6px; font-size:12px; padding:4px 8px; outline:none; font-family:var(--font-ui); cursor:pointer;">
+                                    <option value="labeled">구분자 포함</option>
+                                    <option value="comma">순수 쉼표</option>
+                                </select>
+                                <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-dim); cursor:pointer;">
+                                    <input type="checkbox" id="break-toggle" onchange="updateMasterOutput()"> BREAK 삽입
+                                </label>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <span id="pos-count" style="color:var(--text-dim); font-weight:bold; font-family:var(--font-code); transition: color 0.3s; cursor:help; font-size: 15px;">0</span>
+                                <span id="token-count" style="color:var(--text-dim); font-weight:bold; font-family:var(--font-code); transition: color 0.3s; font-size: 13px;">약 0토큰</span>
+                            </div>
+                        </div>
+                        <textarea class="result-textarea" id="final-positive" readonly></textarea>
+                        <div id="syntax-warning" style="display:none; color:var(--accent-danger); font-size:13px; margin-top:6px; font-weight:bold;">
+                            <i class="fa-solid fa-triangle-exclamation"></i> 문법 경고: <span id="syntax-warning-text"></span>
+                        </div>
+                    </div>
+
+                    <div class="result-box-container">
+                        <div class="result-label"><span style="color: var(--text-dim);"><i class="fa-solid fa-language"></i> 실시간 한글 번역 (긍정)</span></div>
+                        <div class="preview-box" id="korean-preview">태그의 한글 뜻이 표시됩니다.</div>
+                    </div>
+                </div>
+
+                <div class="neg-section">
+                    <div class="result-box-container">
+                        <div class="result-label"><span style="color:var(--accent-danger);">부정 프롬프트 (Pony V6)</span></div>
+                        <textarea class="result-textarea neg" id="final-negative" readonly></textarea>
+                    </div>
+
+                    <div class="result-box-container">
+                        <div class="result-label"><span style="color: var(--text-dim);"><i class="fa-solid fa-language"></i> 실시간 한글 번역 (부정)</span></div>
+                        <div class="preview-box" id="negative-korean-preview">부정 프롬프트의 한글 뜻이 표시됩니다.</div>
+                    </div>
+
+                    <div class="result-box-container">
+                        <div class="result-label"><span style="color: var(--text-dim);"><i class="fa-solid fa-pen-to-square"></i> 생성 세팅 메모</span></div>
+                        <textarea class="result-textarea" id="generation-memo" placeholder="시드, 샘플러, CFG 등 생성 관련 세팅을 메모하세요 (프리셋과 연동됩니다)..." style="background-color: var(--folder-bg);"></textarea>
+                    </div>
+                </div>
+
+                <div class="copy-btn-group full-width-section">
+                    <button class="btn-copy pos" onclick="copyPrompt('pos')"><i class="fa-solid fa-copy"></i> 긍정 복사</button>
+                    <button class="btn-copy neg" onclick="copyPrompt('neg')"><i class="fa-solid fa-copy"></i> 부정 복사</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="modal-overlay" id="preset-manager-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title"><i class="fa-solid fa-server"></i> 프리셋 통합 관리소</span>
+                <button class="action-btn" onclick="document.getElementById('preset-manager-modal').style.display='none'"><i class="fa-solid fa-xmark"></i> 닫기</button>
+            </div>
+
+            <div style="padding: 24px 24px 0; display: flex; gap: 12px;">
+                <input type="text" id="new-preset-name" placeholder="현재 탭 상태를 새 프리셋으로 저장 (예: 오피스룩)" style="flex:1; padding: 12px; background: var(--input-bg); border: 1px solid var(--border-dim); color: var(--text-main); border-radius: 8px; font-family: var(--font-ui); font-size: 14px;">
+                <button class="action-btn" onclick="saveNewPreset()" style="background: var(--accent-green); color:#fff; border:none; font-size: 14px; padding: 8px 24px;">새로 저장</button>
+            </div>
+
+            <div class="preset-table-container">
+                <table class="preset-table">
+                    <thead>
+                        <tr><th width="300">프리셋 이름 (클릭하여 수정)</th><th width="150">액션</th></tr>
+                    </thead>
+                    <tbody id="preset-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="db-manager-modal">
+        <div class="modal-content" style="width: 900px;">
+            <div class="modal-header">
+                <span class="modal-title"><i class="fa-solid fa-database"></i> 마스터 DB 관리</span>
+                <button class="action-btn" onclick="document.getElementById('db-manager-modal').style.display='none'"><i class="fa-solid fa-xmark"></i> 닫기</button>
+            </div>
+            <div class="db-add-form-container">
+                <div class="db-layer-tabs" id="db-layer-tabs"></div>
+                <div class="db-folder-chips" id="db-folder-chips"><span style="color:var(--text-dim); font-size:13px;">위에서 계층 선택 시 폴더가 표시됩니다.</span></div>
+                <div class="db-add-form">
+                    <div class="input-group">
+                        <label>대상 폴더 (자동입력 or 직접작성)</label>
+                        <input type="text" id="add-folder" list="folder-options" placeholder="예: 2_새폴더">
+                        <datalist id="folder-options"></datalist>
+                    </div>
+                    <div class="input-group"><label>프롬프트 (EN)</label><input type="text" id="add-en" placeholder="cowboy shot"></div>
+                    <div class="input-group"><label>한글 뜻 (KR)</label><input type="text" id="add-kr" placeholder="카우보이 샷"></div>
+                    <div class="input-group"><label>충돌 그룹</label><input type="text" id="add-conflict" placeholder="예: angle"></div>
+                    <button class="btn-add-db" onclick="addNewTag()" id="btn-save-tag">추가</button>
+                    <button class="action-btn" onclick="resetForm()" style="height: 40px; font-size: 14px; padding: 0 20px;">취소</button>
+                    <input type="hidden" id="edit-original-layer"><input type="hidden" id="edit-original-folder"><input type="hidden" id="edit-original-index">
+                </div>
+            </div>
+            <div class="db-table-container">
+                <table class="db-table">
+                    <thead><tr><th width="80">계층</th><th width="150">세부 폴더</th><th width="150">프롬프트 (EN)</th><th width="150">한글 뜻 (KR)</th><th width="100">충돌(c)</th><th width="100">액션</th></tr></thead>
+                    <tbody id="db-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="db-io-modal">
+        <div class="modal-content" style="width: 700px;">
+            <div class="modal-header">
+                <span class="modal-title" id="io-modal-title"></span>
+                <button class="action-btn" onclick="document.getElementById('db-io-modal').style.display='none'"><i class="fa-solid fa-xmark"></i> 닫기</button>
+            </div>
+            <div style="padding: 24px;">
+                <p id="io-desc" style="font-size: 15px; color: var(--text-dim); line-height: 1.6;"></p>
+                <textarea class="io-textarea" id="io-textarea"></textarea>
+                <div style="display: flex; gap: 15px; margin-top: 24px;">
+                    <button class="btn-add-db" style="flex: 1; border:none;" id="io-action-btn" onclick="executeIO()"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 💡 기능 3: 테마 토글 로직
+        function toggleTheme() {
+            const body = document.body;
+            const btn = document.getElementById('btn-theme-toggle');
+            if(body.getAttribute('data-theme') === 'dark') {
+                body.setAttribute('data-theme', 'light');
+                btn.innerHTML = '<i class="fa-solid fa-moon"></i>';
+                localStorage.setItem('pro_prompt_theme', 'light');
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                btn.innerHTML = '<i class="fa-solid fa-sun"></i>';
+                localStorage.setItem('pro_prompt_theme', 'dark');
+            }
+        }
+
+        // 초기 테마 로드
+        (function initTheme() {
+            const savedTheme = localStorage.getItem('pro_prompt_theme') || 'dark';
+            document.body.setAttribute('data-theme', savedTheme);
+            window.addEventListener('DOMContentLoaded', () => {
+                const btn = document.getElementById('btn-theme-toggle');
+                if(btn) btn.innerHTML = savedTheme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+            });
+        })();
+
+        function safeSetStorage(key, data) {
+            try { localStorage.setItem(key, JSON.stringify(data)); }
+            catch(e) { console.error("Storage Error:", e); alert("브라우저 저장 공간 부족 또는 시크릿 모드입니다."); }
+        }
+
+        const layerMeta = [
+            { id: 1, title: "1. 화질 및 렌더링 (Quality)", color: "var(--color-l1)", rgb: "var(--rgb-l1)", hue: 270 },
+            { id: 2, title: "2. 구도 및 피사체 (Framing)", color: "var(--color-l2)", rgb: "var(--rgb-l2)", hue: 25 },
+            { id: 3, title: "3. 외형 및 얼굴 (Face & Body)", color: "var(--color-l3)", rgb: "var(--rgb-l3)", hue: 330 },
+            { id: 4, title: "4. 의상 & 악세서리 (Apparel)", color: "var(--color-l4)", rgb: "var(--rgb-l4)", hue: 190 },
+            { id: 5, title: "5. 액션 및 디테일 (NSFW)", color: "var(--color-l5)", rgb: "var(--rgb-l5)", hue: 0 },
+            { id: 6, title: "6. 배경 및 환경 (Background)", color: "var(--color-l6)", rgb: "var(--rgb-l6)", hue: 150 },
+            { id: 7, title: "7. 조명 및 이펙트 (Lighting)", color: "var(--color-l7)", rgb: "var(--rgb-l7)", hue: 45 }
+        ];
+
+        let baseNegative = "score_6, score_5, score_4, worst quality, low quality, bad anatomy, missing fingers, extra digits, text, watermark, signature, blurry, 3d, cartoon, anime, illustration";
+
+        const negKorMap = {
+            "score_9": "최고 품질 (score 9)", "score_8_up": "고품질 (score 8+)", "score_7_up": "우수 품질 (score 7+)", "score_6_up": "보통 품질 (score 6+)",
+            "masterpiece": "초고퀄리티(마스터피스)", "best quality": "베스트 퀄리티", "highres": "고해상도", "highly detailed": "극강의 디테일",
+            "score_6": "낮은 품질(score 6)", "score_5": "최하 품질(score 5)", "score_4": "버려진 이미지(score 4)",
+            "worst quality": "최악 품질", "low quality": "저품질", "normal quality": "일반 품질",
+            "bad anatomy": "잘못된 인체구조", "bad hands": "기형적인 손", "text": "글자",
+            "error": "에러", "missing fingers": "손가락 누락", "extra digit": "추가 손가락",
+            "extra digits": "추가 손가락들", "fewer digits": "부족한 손가락",
+            "cropped": "잘린 이미지", "jpeg artifacts": "JPEG 열화", "signature": "서명",
+            "watermark": "워터마크", "username": "유저네임", "blurry": "흐릿함",
+            "source_realistic": "실사풍", "photorealistic": "사진같은 리얼리즘",
+            "3d": "3D", "cartoon": "카툰", "anime": "애니", "illustration": "일러스트",
+            "multiple girls": "다수의 소녀", "boys": "소년들", "1girl": "1명(여성)", "solo": "단독",
+            "outdoors": "야외", "indoors": "실내", "flat background": "단조로운 배경",
+            "simple background": "단순한 배경", "detailed background": "복잡한 배경",
+            "colorful": "다채로운", "darkness": "어둠", "static": "정적인", "dry": "건조함",
+            "matte": "무광", "clean": "깨끗함", "shaved": "제모됨", "hairy": "털이 많은",
+            "tight": "조이는", "standing": "서있는", "crossed legs": "다리 꼬기",
+            "buttoned": "단추 채운", "opaque": "불투명한", "dry clothes": "건조한 옷",
+            "formal": "정장", "modest": "조신한", "pants": "바지", "skirt": "치마",
+            "dress": "드레스", "smile": "미소", "serious": "심각한", "blank": "멍한",
+            "wide eyes": "크게 뜬 눈", "front view": "정면", "close-up": "클로즈업",
+            "flat lighting": "단조로운 조명", "smooth": "매끄러운"
+        };
+
+        const defaultNestedDB = { 1: {}, 2: {}, 3: {}, 4: {}, 5: {}, 6: {}, 7: {} };
+
+        let promptDB = JSON.parse(localStorage.getItem('pro_prompt_db_v7_0')) || defaultNestedDB;
+        let contextStates = { 'common': ["", "", "", "", "", "", ""], 'char1': ["", "", "", "", "", "", ""], 'char2': ["", "", "", "", "", "", ""], 'user_combos': {} };
+        let currentContext = 'char1';
+        let currentViewMode = 'visual';
+        let activeTagsMap = {};
+        let globalWeightCurrent = 1.0;
+
+        let userPresets = {};
+        try { userPresets = JSON.parse(localStorage.getItem('pro_prompt_presets_v7_0')) || {}; } catch(e) { userPresets = {}; }
+        let presets = { ...userPresets };
+
+        let favorites = [];
+        try { favorites = JSON.parse(localStorage.getItem('pro_prompt_favs_v7_0')) || []; } catch(e) { favorites = []; }
+        let recents = [];
+
+        let userCombos = {};
+        try { userCombos = JSON.parse(localStorage.getItem('pro_prompt_combos_v7_0')) || {}; } catch(e) { userCombos = {}; }
+
+        let undoStack = [];
+
+        function saveStateToUndoStack() {
+            const curStateStr = JSON.stringify(contextStates);
+            if (undoStack.length > 0 && JSON.stringify(undoStack[undoStack.length - 1]) === curStateStr) { return; }
+            undoStack.push(JSON.parse(curStateStr));
+            if(undoStack.length > 30) undoStack.shift();
+            updateUndoButton();
+        }
+
+        function performUndo() {
+            if(undoStack.length === 0) return;
+            contextStates = undoStack.pop();
+            loadContextState();
+            updateUndoButton();
+        }
+
+        function updateUndoButton() {
+            const btn = document.getElementById('btn-undo');
+            if(!btn) return;
+            if(undoStack.length > 0) {
+                btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+            } else {
+                btn.style.opacity = '0.5'; btn.style.cursor = 'not-allowed';
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                const activeElement = document.activeElement;
+                if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) { return; }
+                e.preventDefault();
+                performUndo();
+            }
+        });
+
+        document.addEventListener('mousedown', (e) => {
+            if(!e.target.closest('.fixed-weight-toolbar') && !e.target.closest('.prompt-chip') && !e.target.closest('.layer-input')) {
+                document.querySelectorAll('.fixed-weight-toolbar').forEach(tb => tb.style.display = 'none');
+                document.querySelectorAll('.prompt-chip').forEach(c => c.classList.remove('selected'));
+            }
+        });
+
+        let inputDebounceTimers = {};
+        function handleManualInput(layerIndex) {
+            const textarea = document.getElementById(`layer-${layerIndex}`);
+            contextStates[currentContext][layerIndex-1] = textarea.value;
+
+            clearTimeout(inputDebounceTimers[layerIndex]);
+            inputDebounceTimers[layerIndex] = setTimeout(() => {
+                syncFromManualInput(layerIndex);
+            }, 300);
+        }
+
+        function initApp() {
+            const sidebarDetail = document.getElementById('sidebar-content-detail');
+            const editor = document.getElementById('editor-content');
+
+            sidebarDetail.innerHTML = ''; editor.innerHTML = ''; activeTagsMap = {};
+
+            sidebarDetail.innerHTML = `
+                <div id="fav-recent-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                    <div class="fav-recent-box collapsed" style="border: 1px solid rgba(234, 179, 8, 0.3); border-radius: 10px; background: var(--bg-surface); align-self: start;">
+                        <div class="box-header" onclick="this.parentElement.classList.toggle('collapsed')" style="padding: 12px 16px; background: rgba(234, 179, 8, 0.1); color: #eab308; font-weight: 800; font-size: 14px; font-family: var(--font-heading); cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-radius: 10px;">
+                            <span><i class="fa-solid fa-star"></i> 즐겨찾기</span>
+                            <i class="fa-solid fa-chevron-down toggle-icon" style="transition: 0.2s;"></i>
+                        </div>
+                        <div class="box-content" id="fav-container" style="padding: 16px; display: flex; flex-wrap: wrap; gap: 8px;"></div>
+                    </div>
+                    <div class="fav-recent-box collapsed" style="border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; background: var(--bg-surface); align-self: start;">
+                        <div class="box-header" onclick="this.parentElement.classList.toggle('collapsed')" style="padding: 12px 16px; background: rgba(16, 185, 129, 0.1); color: #10b981; font-weight: 800; font-size: 14px; font-family: var(--font-heading); cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-radius: 10px;">
+                            <span><i class="fa-solid fa-clock-rotate-left"></i> 최근 사용</span>
+                            <i class="fa-solid fa-chevron-down toggle-icon" style="transition: 0.2s;"></i>
+                        </div>
+                        <div class="box-content" id="recent-container" style="padding: 16px; display: flex; flex-wrap: wrap; gap: 8px;"></div>
+                    </div>
+                </div>
+            `;
+
+            layerMeta.forEach((layer) => {
+                const i = layer.id;
+                const group = document.createElement('div');
+                group.className = 'layer-group';
+
+                group.innerHTML = `
+                    <div class="layer-title-bar">
+                        <div class="layer-indicator" style="background-color: ${layer.color};"></div>
+                        <span style="color: ${layer.color}">${layer.title}</span>
+                        <span class="layer-badge" id="layer-badge-${i}" style="display:none; background-color: ${layer.color};">0</span>
+                    </div>`;
+
+                const dbLayer = promptDB[i];
+                if(dbLayer) {
+                    let folderIndex = 0;
+                    Object.keys(dbLayer).forEach(subLayerRaw => {
+                        const [subLayerName, recommendText] = subLayerRaw.split('|');
+                        const recommendHtml = recommendText ? `<div class="folder-recommend">권장: ${recommendText}</div>` : '';
+                        const folderId = `badge-${i}-${subLayerName.replace(/\s+/g, '')}`;
+
+                        let subHue = layer.hue + (folderIndex * 15);
+                        let subColor = `hsl(${subHue}, 70%, 65%)`;
+                        folderIndex++;
+
+                        const subFolder = document.createElement('div');
+                        subFolder.className = 'sub-folder collapsed';
+                        subFolder.innerHTML = `<div class="sub-folder-header" style="border-left-color: ${subColor};" onclick="this.parentElement.classList.toggle('collapsed')"><div class="folder-meta"><span style="color:${subColor}">${subLayerName}</span><span class="folder-badge" id="${folderId}" style="background-color: ${subColor};">0</span>${recommendHtml}</div><i class="fa-solid fa-chevron-down"></i></div>`;
+
+                        const subContent = document.createElement('div');
+                        subContent.className = 'sub-folder-content';
+
+                        dbLayer[subLayerRaw].forEach(data => {
+                            const btn = document.createElement('button');
+                            btn.className = 'tag-btn'; btn.dataset.layer = i;
+                            btn.dataset.tag = data.t;
+                            btn.innerHTML = `<span class="tag-kr">${data.k || data.t}</span><span class="tag-en">${data.t}</span>`;
+
+                            const star = document.createElement('i');
+                            star.className = `fa-star tag-fav-icon ${favorites.includes(data.t) ? 'fa-solid active' : 'fa-regular'}`;
+                            star.onclick = (e) => { e.stopPropagation(); toggleFavorite(data.t); };
+                            btn.appendChild(star);
+
+                            btn.onclick = () => handleTagToggle(btn, data.t, data.n, i);
+                            subContent.appendChild(btn);
+
+                            activeTagsMap[data.t] = { neg: data.n, layer: i, kor: data.k || data.t, c: data.c || "", folderId: folderId, color: subColor };
+                        });
+
+                        subFolder.appendChild(subContent);
+                        group.appendChild(subFolder);
+                    });
+                }
+                sidebarDetail.appendChild(group);
+
+                const section = document.createElement('div');
+                section.className = 'editor-section';
+                section.id = `editor-section-${i}`;
+
+                section.innerHTML = `
+                    <div class="editor-header">
+                        <div class="editor-header-left">
+                            <div class="layer-indicator" style="background-color: ${layer.color};"></div>
+                            <span>${layer.title}</span>
+                            <span class="conflict-badge" id="conflict-badge-${i}">⚠️ 충돌 감지</span>
+                        </div>
+                        <div class="editor-tools">
+                            <div class="fixed-weight-toolbar" id="toolbar-${i}">
+                                <button onclick="applyFixedToolbar(${i}, 'down')">-0.1</button>
+                                <button onclick="applyFixedToolbar(${i}, 'up')">+0.1</button>
+                                <button class="reset-btn" onclick="applyFixedToolbar(${i}, 'reset')" title="리셋"><i class="fa-solid fa-rotate-left"></i></button>
+                            </div>
+                            <button class="clear-btn" onclick="clearLayer(${i})">비우기</button>
+                        </div>
+                    </div>
+                    <div class="editor-body mode-visual" id="editor-body-${i}">
+                        <div class="chip-container" id="chip-container-${i}"></div>
+                        <textarea class="layer-input" id="layer-${i}"
+                            placeholder="텍스트를 자유롭게 입력하세요. 쉼표(,)로 구분됩니다."
+                            oninput="handleManualInput(${i})"
+                            onfocus="document.getElementById('editor-section-${i}').classList.add('focus-${i}')"
+                            onblur="document.getElementById('editor-section-${i}').classList.remove('focus-${i}'); renderChips(${i})"
+                            onmouseup="handleSelectionTextMode(event, this, ${i})"
+                            onkeydown="handleHotkey(event, this, ${i})"></textarea>
+                    </div>
+                `;
+                editor.appendChild(section);
+            });
+
+            renderFavorites();
+            renderRecents();
+            renderCombos();
+
+            loadContextState();
+            switchViewMode('visual');
+        }
+
+        function renderCombos() {
+            const container = document.getElementById('combo-list-container');
+            if(!container) return;
+            container.innerHTML = '';
+
+            Object.keys(userCombos).forEach(comboId => {
+                const combo = userCombos[comboId];
+                const card = document.createElement('div');
+                card.className = 'combo-card';
+                card.innerHTML = `
+                    <div class="combo-header"><span>💾 </span> <span>${combo.title}</span></div>
+                    <div class="combo-desc">${combo.desc}</div>
+                    <button class="btn-combo-del" onclick="deleteCombo('${comboId}', event)" title="이 조합 삭제"><i class="fa-solid fa-trash"></i></button>
+                `;
+                card.onclick = () => applyCombo(combo);
+                container.appendChild(card);
+            });
+        }
+
+        function saveNewCombo() {
+            const nameInput = document.getElementById('new-combo-name');
+            const title = nameInput.value.trim();
+            if(!title) { alert("저장할 조합의 이름을 입력해주세요."); return; }
+
+            let tagsToSave = {};
+            let hasTags = false;
+
+            for(let i=1; i<=7; i++) {
+                let layerStr = contextStates[currentContext][i-1];
+                if(layerStr && layerStr.trim() !== "") {
+                    tagsToSave[i] = layerStr.trim();
+                    hasTags = true;
+                }
+            }
+
+            if(!hasTags) { alert("현재 탭에 저장할 태그가 하나도 없습니다."); return; }
+
+            const comboId = 'uc_' + Date.now();
+            userCombos[comboId] = { id: comboId, title: title, desc: "저장된 커스텀 조합", tags: tagsToSave };
+
+            safeSetStorage('pro_prompt_combos_v7_0', userCombos);
+            nameInput.value = '';
+            renderCombos();
+            alert(`[${title}] 조합이 저장되었습니다!`);
+        }
+
+        function deleteCombo(comboId, event) {
+            event.stopPropagation();
+            if(confirm("이 사용자 조합을 정말 삭제하시겠습니까?")) {
+                delete userCombos[comboId];
+                safeSetStorage('pro_prompt_combos_v7_0', userCombos);
+                renderCombos();
+            }
+        }
+
+        function toggleFavorite(tagText) {
+            if(favorites.includes(tagText)) {
+                favorites = favorites.filter(t => t !== tagText);
+            } else {
+                favorites.push(tagText);
+            }
+            safeSetStorage('pro_prompt_favs_v7_0', favorites);
+
+            document.querySelectorAll(`.tag-btn[data-tag="${tagText.replace(/"/g, '&quot;')}"] .tag-fav-icon`).forEach(icon => {
+                icon.className = `fa-star tag-fav-icon ${favorites.includes(tagText) ? 'fa-solid active' : 'fa-regular'}`;
+            });
+            renderFavorites();
+        }
+
+        function createTagBtnClone(tagText, isMini = false) {
+            const data = activeTagsMap[tagText];
+            if(!data) return null;
+            const btn = document.createElement('button');
+            btn.className = 'tag-btn';
+            if(isMini) btn.classList.add('mini');
+            btn.dataset.layer = data.layer;
+            btn.dataset.tag = tagText;
+
+            const displayKor = data.kor ? data.kor : tagText;
+            if (isMini) {
+                btn.innerHTML = `<span class="tag-kr">${displayKor}</span>`;
+            } else {
+                btn.innerHTML = `<span class="tag-kr">${data.kor}</span><span class="tag-en">${tagText}</span>`;
+            }
+
+            const star = document.createElement('i');
+            star.className = `fa-star tag-fav-icon ${favorites.includes(tagText) ? 'fa-solid active' : 'fa-regular'}`;
+            star.onclick = (e) => { e.stopPropagation(); toggleFavorite(tagText); };
+            btn.appendChild(star);
+
+            btn.onclick = () => handleTagToggle(btn, tagText, data.neg, data.layer);
+
+            const textarea = document.getElementById(`layer-${data.layer}`);
+            if(textarea && getRegexForTag(tagText).test(textarea.value)) {
+                btn.classList.add('active');
+                btn.style.borderColor = data.color;
+                btn.style.boxShadow = `0 0 10px ${data.color}80`;
+                btn.style.color = data.color;
+            }
+            return btn;
+        }
+
+        function renderFavorites() {
+            const container = document.getElementById('fav-container');
+            if(!container) return;
+            container.innerHTML = '';
+            if(favorites.length === 0) {
+                container.innerHTML = '<span style="color:var(--text-dim); font-size:13px;">⭐ 별 아이콘을 눌러 추가하세요.</span>';
+                return;
+            }
+            favorites.forEach(t => {
+                const btn = createTagBtnClone(t, true);
+                if(btn) container.appendChild(btn);
+            });
+        }
+
+        function addRecent(tagText) {
+            recents = recents.filter(t => t !== tagText);
+            recents.unshift(tagText);
+            if(recents.length > 10) recents.pop();
+            renderRecents();
+        }
+
+        function renderRecents() {
+            const container = document.getElementById('recent-container');
+            if(!container) return;
+            container.innerHTML = '';
+            if(recents.length === 0) {
+                container.innerHTML = '<span style="color:var(--text-dim); font-size:13px;">🕘 선택한 태그가 기록됩니다.</span>';
+                return;
+            }
+            recents.forEach(t => {
+                const btn = createTagBtnClone(t, true);
+                if(btn) container.appendChild(btn);
+            });
+        }
+
+        function switchSidebarMode(mode) {
+            document.querySelectorAll('.mode-toggle-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-mode-${mode}`).classList.add('active');
+
+            if(mode === 'detail') {
+                document.getElementById('sidebar-content-detail').style.display = 'flex';
+                document.getElementById('sidebar-content-combo').style.display = 'none';
+                document.getElementById('sidebar-search-box').style.display = 'block';
+            } else {
+                document.getElementById('sidebar-content-detail').style.display = 'none';
+                document.getElementById('sidebar-content-combo').style.display = 'flex';
+                document.getElementById('sidebar-search-box').style.display = 'none';
+            }
+        }
+
+        function filterTags() {
+            const term = document.getElementById('tag-search').value.toLowerCase().replace(/\s+/g, '');
+            document.querySelectorAll('.sub-folder').forEach(folder => {
+                let hasVisible = false;
+                folder.querySelectorAll('.tag-btn').forEach(btn => {
+                    const txtEn = btn.querySelector('.tag-en').innerText.toLowerCase().replace(/\s+/g, '');
+                    const txtKr = btn.querySelector('.tag-kr').innerText.toLowerCase().replace(/\s+/g, '');
+                    if(txtEn.includes(term) || txtKr.includes(term)) { btn.style.display = ''; hasVisible = true; }
+                    else { btn.style.display = 'none'; }
+                });
+                folder.style.display = hasVisible ? '' : 'none';
+                if(term && hasVisible) folder.classList.remove('collapsed');
+                if(!term) folder.classList.add('collapsed');
+            });
+
+            ['fav-container', 'recent-container'].forEach(id => {
+                let container = document.getElementById(id);
+                if(container) {
+                    container.querySelectorAll('.tag-btn').forEach(btn => {
+                        const tagKrEl = btn.querySelector('.tag-kr');
+                        const tagEnEl = btn.querySelector('.tag-en');
+                        const txtEn = tagEnEl ? tagEnEl.innerText.toLowerCase().replace(/\s+/g, '') : '';
+                        const txtKr = tagKrEl ? tagKrEl.innerText.toLowerCase().replace(/\s+/g, '') : '';
+                        if(txtEn.includes(term) || txtKr.includes(term)) btn.style.display = '';
+                        else btn.style.display = 'none';
+                    });
+                }
+            });
+        }
+
+        function applyCombo(combo) {
+            saveStateToUndoStack();
+
+            Object.keys(combo.tags).forEach(layerId => {
+                let textarea = document.getElementById(`layer-${layerId}`);
+                let currentTags = textarea.value.split(',').map(s=>s.trim()).filter(s=>s.length>0);
+                let newTags = combo.tags[layerId].split(',').map(s=>s.trim());
+
+                newTags.forEach(nt => {
+                    let coreNew = nt.match(/^\((.+):(\d+\.?\d*)\)$/) ? nt.match(/^\((.+):(\d+\.?\d*)\)$/)[1] : nt;
+                    let exists = currentTags.some(ct => getRegexForTag(coreNew).test(ct));
+                    if(!exists) currentTags.push(nt);
+                });
+
+                textarea.value = currentTags.join(', ');
+                syncFromManualInput(layerId);
+            });
+            alert(`[${combo.title}] 조합이 현재 탭에 적용되었습니다!`);
+        }
+
+        function switchContext(contextName, btnElement) {
+            for(let i=1; i<=7; i++) { contextStates[currentContext][i-1] = document.getElementById(`layer-${i}`).value; }
+            document.querySelectorAll('.context-tab').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+            const titleMap = { 'common': '공통 / 환경', 'char1': '캐릭터 1', 'char2': '캐릭터 2' };
+            document.getElementById('current-context-title').innerText = titleMap[contextName];
+            currentContext = contextName;
+            loadContextState();
+        }
+
+        function loadContextState() {
+            for(let i=1; i<=7; i++) {
+                document.getElementById(`layer-${i}`).value = contextStates[currentContext][i-1];
+                syncFromManualInput(i);
+            }
+        }
+
+        function clearCurrentContext() {
+            if(confirm(`현재 활성화된 [${document.getElementById('current-context-title').innerText}] 탭의 모든 프롬프트를 비우시겠습니까?`)) {
+                saveStateToUndoStack();
+                for(let i=1; i<=7; i++) {
+                    document.getElementById(`layer-${i}`).value = "";
+                    contextStates[currentContext][i-1] = "";
+                    syncFromManualInput(i);
+                }
+            }
+        }
+
+        function switchViewMode(mode) {
+            currentViewMode = mode;
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            if(mode === 'visual') document.getElementById('btn-view-visual').classList.add('active');
+            else document.getElementById('btn-view-text').classList.add('active');
+            for(let i=1; i<=7; i++) {
+                const body = document.getElementById(`editor-body-${i}`);
+                body.className = `editor-body mode-${mode}`;
+                if(mode === 'visual') renderChips(i);
+            }
+        }
+
+        function renderChips(layerIndex) {
+            if(currentViewMode !== 'visual') return;
+            const textarea = document.getElementById(`layer-${layerIndex}`);
+            const container = document.getElementById('chip-container-' + layerIndex);
+            container.innerHTML = '';
+
+            let tags = textarea.value.split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+            container.addEventListener('dragover', (e) => e.preventDefault());
+            container.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if(e.target === container) {
+                    const sourceLayer = parseInt(e.dataTransfer.getData('sourceLayer'));
+                    if (sourceLayer !== layerIndex) return;
+                    const sourceIndex = parseInt(e.dataTransfer.getData('sourceIndex'));
+
+                    saveStateToUndoStack();
+
+                    const draggedTag = tags[sourceIndex];
+                    tags.splice(sourceIndex, 1);
+                    tags.push(draggedTag);
+                    textarea.value = tags.join(', ');
+                    syncFromManualInput(layerIndex);
+                }
+            });
+
+            tags.forEach((tag, idx) => {
+                const chip = document.createElement('div');
+                chip.className = 'prompt-chip';
+                chip.draggable = true;
+
+                let coreTag = tag.replace(/^[()\[\]]+/g, '').replace(/[:0-9.()\[\]]+$/g, '').trim();
+                if(activeTagsMap[coreTag]) {
+                    chip.style.borderColor = activeTagsMap[coreTag].color;
+                    chip.style.color = activeTagsMap[coreTag].color;
+                }
+
+                const weightMatch = tag.match(/^\((.+):(\d+\.?\d*)\)$/);
+                if(weightMatch) {
+                    let w = parseFloat(weightMatch[2]);
+                    if(w > 1.0) chip.classList.add('weight-high');
+                    else if(w < 1.0) chip.classList.add('weight-low');
+                }
+
+                chip.innerText = tag;
+
+                chip.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('sourceIndex', idx);
+                    e.dataTransfer.setData('sourceLayer', layerIndex);
+                    setTimeout(() => chip.style.opacity = '0.4', 0);
+                });
+
+                chip.addEventListener('dragend', () => chip.style.opacity = '1');
+
+                chip.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    chip.classList.add('drag-over');
+                });
+
+                chip.addEventListener('dragleave', () => chip.classList.remove('drag-over'));
+
+                chip.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    chip.classList.remove('drag-over');
+
+                    const sourceLayer = parseInt(e.dataTransfer.getData('sourceLayer'));
+                    if (sourceLayer !== layerIndex) return;
+
+                    const sourceIndex = parseInt(e.dataTransfer.getData('sourceIndex'));
+                    if (sourceIndex === idx) return;
+
+                    saveStateToUndoStack();
+
+                    const draggedTag = tags[sourceIndex];
+                    tags.splice(sourceIndex, 1);
+                    tags.splice(idx, 0, draggedTag);
+
+                    textarea.value = tags.join(', ');
+                    syncFromManualInput(layerIndex);
+                });
+
+                chip.onclick = (e) => {
+                    document.querySelectorAll('.prompt-chip').forEach(c => c.classList.remove('selected'));
+                    chip.classList.add('selected');
+                    const toolbar = document.getElementById('toolbar-' + layerIndex);
+                    toolbar.style.display = 'flex';
+                    toolbar.dataset.activeTextarea = 'layer-' + layerIndex;
+                    toolbar.dataset.activeChipIndex = idx;
+                };
+
+                chip.ondblclick = (e) => {
+                    e.stopPropagation();
+                    chip.draggable = false;
+                    document.getElementById('toolbar-' + layerIndex).style.display = 'none';
+                    chip.innerHTML = '';
+                    const editInput = document.createElement('input');
+                    editInput.type = 'text'; editInput.value = tag; editInput.className = 'chip-edit-input';
+                    editInput.style.width = Math.max(50, tag.length * 8) + 'px';
+                    chip.appendChild(editInput); editInput.focus();
+
+                    const finishEdit = () => {
+                        const newVal = editInput.value.trim();
+                        if(newVal !== tag) saveStateToUndoStack();
+
+                        if(newVal) tags[idx] = newVal; else tags.splice(idx, 1);
+                        textarea.value = tags.join(', ');
+                        syncFromManualInput(layerIndex);
+                    };
+                    editInput.onblur = finishEdit; editInput.onkeydown = (e2) => { if(e2.key === 'Enter') finishEdit(); };
+                };
+
+                const delBtn = document.createElement('i');
+                delBtn.className = 'fa-solid fa-xmark chip-delete';
+                delBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    saveStateToUndoStack();
+                    tags.splice(idx, 1); textarea.value = tags.join(', '); syncFromManualInput(layerIndex);
+                };
+                chip.appendChild(delBtn); container.appendChild(chip);
+            });
+
+            const input = document.createElement('input');
+            input.className = 'chip-add-input'; input.placeholder = "+ 태그 추가...";
+            const addTag = () => {
+                let val = input.value.trim();
+                if(val) {
+                    saveStateToUndoStack();
+                    tags.push(val); textarea.value = tags.join(', '); syncFromManualInput(layerIndex);
+                    setTimeout(() => {
+                        const newContainer = document.getElementById('chip-container-' + layerIndex);
+                        if(newContainer) {
+                            const newInputs = newContainer.getElementsByClassName('chip-add-input');
+                            if(newInputs.length > 0) newInputs[0].focus();
+                        }
+                    }, 0);
+                }
+            };
+            input.onblur = addTag;
+            input.onkeydown = (e) => { if(e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(); } };
+            container.appendChild(input);
+        }
+
+        function adjustGlobalWeight(delta) {
+            saveStateToUndoStack();
+            globalWeightCurrent += delta;
+            if (globalWeightCurrent < 0.1) globalWeightCurrent = 0.1;
+            if (globalWeightCurrent > 2.0) globalWeightCurrent = 2.0;
+            document.getElementById('global-weight-val').innerText = globalWeightCurrent.toFixed(1);
+        }
+
+        function getRegexForTag(tag) { return new RegExp(`\\(?\\b${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b(:\\s*\\d*\\.?\\d*)?\\)?`, 'gi'); }
+
+        function handleTagToggle(btn, tagText, negText, layerIndex) {
+            saveStateToUndoStack();
+
+            const textarea = document.getElementById(`layer-${layerIndex}`);
+            let content = textarea.value;
+            const regex = getRegexForTag(tagText);
+            if (regex.test(content)) {
+                content = content.replace(regex, '').replace(/,\s*,/g, ',').replace(/^,|,$/g, '').trim();
+            } else {
+                let insertText = Math.abs(globalWeightCurrent - 1.0) > 0.01 ? `(${tagText}:${globalWeightCurrent.toFixed(1)})` : tagText;
+                content = content ? `${content}, ${insertText}` : insertText;
+                addRecent(tagText);
+            }
+            textarea.value = content.split(',').map(s=>s.trim()).filter(s=>s.length>0).join(', ');
+            contextStates[currentContext][layerIndex-1] = textarea.value;
+            syncFromManualInput(layerIndex);
+        }
+
+        function syncFromManualInput(layerIndex) {
+            const textarea = document.getElementById(`layer-${layerIndex}`);
+            contextStates[currentContext][layerIndex-1] = textarea.value;
+
+            Object.keys(activeTagsMap).forEach(tagText => {
+                if(activeTagsMap[tagText].layer === layerIndex) {
+                    const isActive = getRegexForTag(tagText).test(textarea.value);
+                    const tagData = activeTagsMap[tagText];
+
+                    document.querySelectorAll(`.tag-btn[data-tag="${tagText.replace(/"/g, '\\"')}"]`).forEach(btn => {
+                        btn.classList.toggle('active', isActive);
+                        if(isActive) {
+                            btn.style.borderColor = tagData.color;
+                            btn.style.boxShadow = `0 0 10px ${tagData.color}80`;
+                            btn.style.color = tagData.color;
+                        } else {
+                            btn.style.borderColor = ''; btn.style.boxShadow = ''; btn.style.color = '';
+                        }
+                    });
+                }
+            });
+            checkConflicts(layerIndex);
+            if(currentViewMode === 'visual') renderChips(layerIndex);
+            updateMasterOutput();
+        }
+
+        function clearLayer(layerIndex) {
+            const textarea = document.getElementById('layer-' + layerIndex);
+            if(textarea.value.trim() !== "") {
+                saveStateToUndoStack();
+                textarea.value = "";
+                syncFromManualInput(layerIndex);
+            }
+        }
+
+        function checkConflicts(layerIndex) {
+            const badge = document.getElementById('conflict-badge-' + layerIndex);
+            let activeGroups = {}; let hasConflict = false; let conflictMsg = "";
+            Object.keys(activeTagsMap).forEach(tagText => {
+                const tagData = activeTagsMap[tagText];
+                const isBtnActive = document.querySelector(`.tag-btn[data-tag="${tagText.replace(/"/g, '\\"')}"]`)?.classList.contains('active');
+                if (tagData.layer === layerIndex && isBtnActive && tagData.c !== "") {
+                    if (activeGroups[tagData.c]) { hasConflict = true; conflictMsg = `⚠️ [${tagData.c}] 충돌`; } else { activeGroups[tagData.c] = true; }
+                }
+            });
+            if (hasConflict) { badge.style.display = 'inline-block'; badge.innerText = conflictMsg; } else { badge.style.display = 'none'; }
+        }
+
+        function handleSelectionTextMode(e, textarea, layerIndex) {
+            if(currentViewMode !== 'text') return;
+            let pos = textarea.selectionStart; let text = textarea.value;
+            let s = text.lastIndexOf(',', pos - 1); s = s === -1 ? 0 : s + 1;
+            let e_idx = text.indexOf(',', pos); e_idx = e_idx === -1 ? text.length : e_idx;
+            while(text[s] === ' ' && s < e_idx) s++; while(text[e_idx-1] === ' ' && e_idx > s) e_idx--;
+            if (s < e_idx) {
+                textarea.setSelectionRange(s, e_idx); const selected = text.substring(s, e_idx).trim();
+                const toolbar = document.getElementById('toolbar-' + layerIndex);
+                if (selected !== "") { toolbar.style.display = 'flex'; toolbar.dataset.activeTextarea = 'layer-' + layerIndex; } else { toolbar.style.display = 'none'; }
+            }
+        }
+
+        function applyFixedToolbar(layerIndex, action) {
+            saveStateToUndoStack();
+
+            const toolbar = document.getElementById('toolbar-' + layerIndex);
+            const textareaId = toolbar.dataset.activeTextarea; if(!textareaId) return;
+            const textarea = document.getElementById(textareaId);
+            let tags = textarea.value.split(',').map(s=>s.trim()).filter(s=>s.length>0);
+
+            if(currentViewMode === 'visual') {
+                let idx = toolbar.dataset.activeChipIndex; if(idx === undefined || !tags[idx]) return;
+                let selected = tags[idx];
+                let weightMatch = selected.match(/^\((.+):(\d+\.?\d*)\)$/);
+                let coreTag = weightMatch ? weightMatch[1] : selected.replace(/^[()]+|[()]+$/g, '');
+                if (action === 'reset') { tags[idx] = coreTag; }
+                else {
+                    let w = weightMatch ? parseFloat(weightMatch[2]) : 1.0;
+                    if(action === 'up') w += 0.1; if(action === 'down') w -= 0.1;
+                    tags[idx] = Math.abs(w - 1.0) < 0.01 ? coreTag : `(${coreTag}:${w.toFixed(1)})`;
+                }
+                textarea.value = tags.join(', '); syncFromManualInput(layerIndex);
+            }
+            else {
+                const start = textarea.selectionStart; const end = textarea.selectionEnd;
+                let text = textarea.value; const selected = text.substring(start, end);
+                let newText = selected; const weightMatch = selected.match(/^\((.+):(\d+\.?\d*)\)$/);
+                let coreTag = weightMatch ? weightMatch[1] : selected.replace(/^[()]+|[()]+$/g, '');
+                if (action === 'reset') { newText = coreTag; }
+                else {
+                    let w = weightMatch ? parseFloat(weightMatch[2]) : 1.0;
+                    if(action === 'up') w += 0.1; if(action === 'down') w -= 0.1;
+                    newText = Math.abs(w - 1.0) < 0.01 ? coreTag : `(${coreTag}:${w.toFixed(1)})`;
+                }
+                textarea.value = text.substring(0, start) + newText + text.substring(end);
+                textarea.setSelectionRange(start, start + newText.length); textarea.focus();
+                syncFromManualInput(layerIndex);
+            }
+        }
+
+        function handleHotkey(e, textarea, layerIndex) {
+            if (e.ctrlKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+                e.preventDefault(); document.getElementById('toolbar-' + layerIndex).dataset.activeTextarea = 'layer-' + layerIndex;
+                applyFixedToolbar(layerIndex, e.key === 'ArrowUp' ? 'up' : 'down');
+            }
+        }
+
+        function updateFolderBadges() {
+            let folderCounts = {}; let layerCounts = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0};
+            document.querySelectorAll('.folder-badge').forEach(b => { b.innerText = '0'; b.classList.remove('active'); });
+            Object.keys(activeTagsMap).forEach(tagText => {
+                const isBtnActive = document.querySelector(`.tag-btn[data-tag="${tagText.replace(/"/g, '\\"')}"]`)?.classList.contains('active');
+                if(isBtnActive) {
+                    const fId = activeTagsMap[tagText].folderId; folderCounts[fId] = (folderCounts[fId] || 0) + 1;
+                    layerCounts[activeTagsMap[tagText].layer]++;
+                }
+            });
+            Object.keys(folderCounts).forEach(fId => {
+                const badge = document.getElementById(fId);
+                if(badge) { badge.innerText = folderCounts[fId]; badge.classList.add('active'); }
+            });
+            for(let i=1; i<=7; i++) {
+                let lBadge = document.getElementById('layer-badge-' + i);
+                if(lBadge) { if(layerCounts[i] > 0) { lBadge.innerText = layerCounts[i]; lBadge.style.display = 'inline-flex'; } else { lBadge.style.display = 'none'; } }
+            }
+        }
+
+        function updateMasterOutput() {
+            let commonStr = contextStates['common'].filter(s=>s.trim()!=="").join(", ");
+            let char1Str = contextStates['char1'].filter(s=>s.trim()!=="").join(", ");
+            let char2Str = contextStates['char2'].filter(s=>s.trim()!=="").join(", ");
+
+            const outputFormat = document.getElementById('output-format-toggle') ? document.getElementById('output-format-toggle').value : 'labeled';
+            const useBreak = document.getElementById('break-toggle') && document.getElementById('break-toggle').checked;
+
+            let finalOutput = "";
+            let validBlocks = [];
+            if(commonStr) validBlocks.push({ label: 'Common/Bg', content: commonStr });
+            if(char1Str) validBlocks.push({ label: 'Char 1', content: char1Str });
+            if(char2Str) validBlocks.push({ label: 'Char 2', content: char2Str });
+
+            if (outputFormat === 'labeled') {
+                finalOutput = validBlocks.map(b => `[${b.label}]\n${b.content}`).join(useBreak ? "\n\nBREAK\n\n" : "\n\n");
+            } else {
+                finalOutput = validBlocks.map(b => b.content).join(useBreak ? ", BREAK, " : ", ");
+            }
+            document.getElementById('final-positive').value = finalOutput.trim() || "";
+
+            const approxTokens = finalOutput.split(/[\s,()|:]+/).filter(w => w.length > 0).length + (finalOutput.match(/,/g) || []).length;
+            const tokenCountEl = document.getElementById('token-count');
+            if (tokenCountEl) {
+                tokenCountEl.innerText = `약 ${approxTokens}토큰`;
+                if (approxTokens > 150) {
+                    tokenCountEl.style.color = 'var(--accent-danger)';
+                } else if (approxTokens > 75) {
+                    tokenCountEl.style.color = '#eab308';
+                } else {
+                    tokenCountEl.style.color = 'var(--text-dim)';
+                }
+            }
+
+            let syntaxErrors = [];
+            let openP = (finalOutput.match(/\(/g) || []).length;
+            let closeP = (finalOutput.match(/\)/g) || []).length;
+            if (openP !== closeP) {
+                syntaxErrors.push("괄호 짝 불일치");
+            }
+            if (/\([^)]+:[^0-9.]+\)/.test(finalOutput)) {
+                syntaxErrors.push("가중치 숫자 오류");
+            }
+            const syntaxWarnEl = document.getElementById('syntax-warning');
+            const syntaxWarnText = document.getElementById('syntax-warning-text');
+            if (syntaxWarnEl && syntaxWarnText) {
+                if (syntaxErrors.length > 0) {
+                    syntaxWarnEl.style.display = 'block';
+                    syntaxWarnText.innerText = syntaxErrors.join(", ");
+                } else {
+                    syntaxWarnEl.style.display = 'none';
+                }
+            }
+
+            const previewBox = document.getElementById('korean-preview');
+            let currentTabRaw = contextStates[currentContext].filter(s=>s.trim()!=="").join(", ");
+            if (currentTabRaw.length === 0) {
+                previewBox.innerText = `현재 탭에 등록된 태그가 없습니다.`;
+            } else {
+                previewBox.innerHTML = currentTabRaw.split(',').map(tag => {
+                    let cleanTag = tag.trim();
+
+                    if(cleanTag.startsWith('{') && cleanTag.endsWith('}')) {
+                        let inner = cleanTag.slice(1, -1).replace(/\|/g, '/');
+                        return `<strong style="color:#eab308; font-weight:700;">랜덤: ${inner}</strong>`;
+                    }
+                    if(cleanTag.startsWith('__') && cleanTag.endsWith('__')) {
+                        let inner = cleanTag.slice(2, -2);
+                        return `<strong style="color:#eab308; font-weight:700;">와일드카드: ${inner}</strong>`;
+                    }
+
+                    let core = cleanTag.replace(/^[()\[\]]+/g, '').replace(/[:0-9.()\[\]]+$/g, '').trim();
+                    let kor = (activeTagsMap[core] && activeTagsMap[core].kor) ? activeTagsMap[core].kor : (negKorMap[core.toLowerCase()] || core);
+
+                    return `<strong style="color:var(--text-main); font-weight:700;">${kor}</strong> <span style="color:var(--accent-blue); font-family:var(--font-code); font-size:11px; opacity:0.8;">${cleanTag}</span>`;
+                }).join(' <span style="color:var(--text-dim);">/</span> ');
+            }
+
+            const styleToNegMap = {
+                "source_anime": ["anime", "illustration"],
+                "source_cartoon": ["cartoon"],
+                "3d": ["3d"],
+                "octane render": ["3d"]
+            };
+
+            let allPosTagsStr = [commonStr, char1Str, char2Str].join(", ").toLowerCase();
+            let negsToRemove = new Set();
+            Object.keys(styleToNegMap).forEach(styleTag => {
+                if (allPosTagsStr.includes(styleTag)) {
+                    styleToNegMap[styleTag].forEach(n => negsToRemove.add(n));
+                }
+            });
+
+            let dynamicBaseNegative = baseNegative.split(',').map(s => s.trim()).filter(n => !negsToRemove.has(n)).join(', ');
+
+            let activeNegatives = new Set();
+            Object.keys(activeTagsMap).forEach(tag => {
+                const isUsed = contextStates['common'].some(layer => getRegexForTag(tag).test(layer)) || contextStates['char1'].some(layer => getRegexForTag(tag).test(layer)) || contextStates['char2'].some(layer => getRegexForTag(tag).test(layer));
+                if(isUsed && activeTagsMap[tag].neg.trim() !== "") { activeTagsMap[tag].neg.split(',').forEach(n => { if(n.trim()) activeNegatives.add(n.trim()); }); }
+            });
+            const negArray = Array.from(activeNegatives);
+            let finalNegOutput = negArray.length > 0 ? (dynamicBaseNegative ? dynamicBaseNegative + ", " : "") + negArray.join(", ") : dynamicBaseNegative;
+            document.getElementById('final-negative').value = finalNegOutput;
+
+            const negPreviewBox = document.getElementById('negative-korean-preview');
+            if (negPreviewBox) {
+                if (finalNegOutput.length === 0) {
+                    negPreviewBox.innerText = `부정 프롬프트가 없습니다.`;
+                } else {
+                    negPreviewBox.innerHTML = finalNegOutput.split(',').map(tag => {
+                        let cleanTag = tag.trim();
+                        let core = cleanTag.replace(/^[()\[\]]+/g, '').replace(/[:0-9.()\[\]]+$/g, '').trim();
+                        let kor = (activeTagsMap[core] && activeTagsMap[core].k) ? activeTagsMap[core].k : (negKorMap[core.toLowerCase()] || core);
+
+                        return `<strong style="color:var(--text-main); font-weight:700;">${kor}</strong> <span style="color:var(--accent-blue); font-family:var(--font-code); font-size:11px; opacity:0.8;">${cleanTag}</span>`;
+                    }).join(' <span style="color:var(--text-dim);">/</span> ');
+                }
+            }
+
+            ['common', 'char1', 'char2'].forEach(ctx => {
+                let tagCount = 0;
+                contextStates[ctx].forEach(layerStr => { let t = layerStr.split(',').map(s=>s.trim()).filter(s=>s.length>0); tagCount += t.length; });
+                const badge = document.getElementById('tab-badge-' + ctx);
+                if (badge) { if(tagCount > 0) { badge.style.display = 'inline-flex'; badge.innerText = tagCount; } else { badge.style.display = 'none'; } }
+            });
+
+            let totalTagCount = 0;
+            ['common', 'char1', 'char2'].forEach(ctx => { let str = contextStates[ctx].filter(s=>s.trim()!=="").join(","); if(str.trim()) totalTagCount += str.split(',').length; });
+
+            const posCount = document.getElementById('pos-count');
+            if (posCount) {
+                posCount.innerText = totalTagCount;
+            }
+
+            updateFolderBadges();
+        }
+
+        function copyPrompt(type) {
+            const txt = document.getElementById(type === 'pos' ? 'final-positive' : 'final-negative').value;
+            if(!txt) return;
+            const temp = document.createElement("textarea"); temp.value = txt; document.body.appendChild(temp);
+            temp.select(); document.execCommand("copy"); document.body.removeChild(temp);
+            const btn = document.querySelector(`.btn-copy.${type}`);
+            const orig = btn.innerHTML; btn.innerHTML = `<i class="fa-solid fa-check"></i> 복사 완료!`;
+            btn.style.background = "var(--accent-green)"; setTimeout(() => { btn.innerHTML = orig; btn.style.background = ""; }, 2000);
+        }
+
+        function openPresetManager() {
+            renderPresetManagerTable();
+            document.getElementById('preset-manager-modal').style.display = 'flex';
+        }
+
+        function saveNewPreset() {
+            let name = document.getElementById('new-preset-name').value.trim();
+            if(!name) { alert("저장할 프리셋 이름을 입력해주세요."); return; }
+
+            let iconStr = "";
+            let c = contextStates['common'].join('').trim().length > 0;
+            let c1 = contextStates['char1'].join('').trim().length > 0;
+            let c2 = contextStates['char2'].join('').trim().length > 0;
+
+            if(c || c1 || c2) {
+                iconStr += "[";
+                if(c) iconStr += "🌐";
+                if(c1) iconStr += "👩";
+                if(c2) iconStr += "👱‍♀️";
+                iconStr += "] ";
+            }
+
+            const finalName = iconStr + name;
+            const memoVal = document.getElementById('generation-memo') ? document.getElementById('generation-memo').value : "";
+
+            userPresets[finalName] = {
+                states: JSON.parse(JSON.stringify(contextStates)),
+                memo: memoVal
+            };
+
+            presets = { ...userPresets };
+            safeSetStorage('pro_prompt_presets_v7_0', userPresets);
+
+            document.getElementById('new-preset-name').value = '';
+            renderPresetManagerTable();
+        }
+
+        function renderPresetManagerTable() {
+            const tbody = document.getElementById('preset-table-body');
+            let htmlStr = `<tr><td colspan="2" class="preset-group-title" style="margin-top:10px;">💾 내 프리셋</td></tr>`;
+            if(Object.keys(userPresets).length === 0) {
+                htmlStr += `<tr><td colspan="2" style="color:var(--text-dim);">저장된 프리셋이 없습니다.</td></tr>`;
+            } else {
+                Object.keys(userPresets).forEach(name => {
+                    htmlStr += `
+                        <tr>
+                            <td style="font-weight:700; cursor:pointer;" onclick="renamePreset('${name.replace(/'/g, "\\'")}')" title="클릭하여 이름 수정">${name}</td>
+                            <td>
+                                <button class="btn-preset-action btn-preset-load" onclick="loadPresetFromManager('${name.replace(/'/g, "\\'")}')">✅ 적용</button>
+                                <button class="btn-preset-action btn-preset-del" onclick="deletePresetFromManager('${name.replace(/'/g, "\\'")}')">🗑️ 삭제</button>
+                            </td>
+                        </tr>`;
+                });
+            }
+            tbody.innerHTML = htmlStr;
+        }
+
+        function loadPresetFromManager(name) {
+            saveStateToUndoStack();
+
+            const savedData = presets[name];
+
+            if(Array.isArray(savedData)) {
+                contextStates = { 'common': ["", "", "", "", "", "", ""], 'char1': [...savedData], 'char2': ["", "", "", "", "", "", ""] };
+                if(document.getElementById('generation-memo')) document.getElementById('generation-memo').value = "";
+            } else if (savedData.states) {
+                contextStates = JSON.parse(JSON.stringify(savedData.states));
+                if(document.getElementById('generation-memo')) document.getElementById('generation-memo').value = savedData.memo || "";
+            } else {
+                contextStates = JSON.parse(JSON.stringify(savedData));
+                if(document.getElementById('generation-memo')) document.getElementById('generation-memo').value = "";
+            }
+
+            loadContextState();
+            document.getElementById('preset-manager-modal').style.display = 'none';
+        }
+
+        function deletePresetFromManager(name) {
+            if(confirm(`[${name}] 프리셋을 삭제하시겠습니까?`)) {
+                delete userPresets[name];
+                presets = { ...userPresets };
+                safeSetStorage('pro_prompt_presets_v7_0', userPresets);
+                renderPresetManagerTable();
+            }
+        }
+
+        function renamePreset(oldName) {
+            const newName = prompt(`새로운 이름을 입력하세요. (기존: ${oldName})`, oldName);
+            if(newName && newName.trim() !== "" && newName !== oldName) {
+                userPresets[newName.trim()] = userPresets[oldName];
+                delete userPresets[oldName];
+                presets = { ...userPresets };
+                safeSetStorage('pro_prompt_presets_v7_0', userPresets);
+                renderPresetManagerTable();
+            }
+        }
+
+        let currentIOType = '';
+        function openIOModal(type) {
+            currentIOType = type; const modal = document.getElementById('db-io-modal'); const title = document.getElementById('io-modal-title'); const desc = document.getElementById('io-desc'); const textarea = document.getElementById('io-textarea'); const btn = document.getElementById('io-action-btn');
+            if(type === 'export') { title.innerHTML = '<i class="fa-solid fa-copy"></i> 클립보드로 DB 내보내기'; desc.innerText = "현재 구축된 전체 마스터 DB의 코드가 생성되었습니다. 복사하여 보관하세요."; textarea.value = JSON.stringify(promptDB); textarea.readOnly = true; btn.innerText = "전체 코드 복사하기"; btn.style.backgroundColor = "var(--accent-blue)"; }
+            else { title.innerHTML = '<i class="fa-solid fa-paste"></i> 클립보드에서 DB 복구하기'; desc.innerText = "백업해둔 DB 텍스트 코드를 아래 빈칸에 붙여넣기 하세요."; textarea.value = ""; textarea.readOnly = false; btn.innerText = "붙여넣은 코드로 복구 실행"; btn.style.backgroundColor = "var(--accent-green)"; }
+            modal.style.display = 'flex';
+        }
+
+        function executeIO() {
+            const textarea = document.getElementById('io-textarea');
+            if(currentIOType === 'export') { textarea.select(); document.execCommand("copy"); alert("복사되었습니다."); }
+            else { try { const importedDB = JSON.parse(textarea.value); if (importedDB && typeof importedDB === 'object' && importedDB[1]) { promptDB = importedDB; safeSetStorage('pro_prompt_db_v7_0', promptDB); initApp(); alert("DB 복구 성공!"); document.getElementById('db-io-modal').style.display='none'; } else { throw new Error("Format"); } } catch (error) { alert("잘못된 코드 형식입니다."); } }
+        }
+
+        function openDBManager() { renderDBTable(); renderDBLayerTabs(); document.getElementById('db-manager-modal').style.display = 'flex'; }
+
+        function renderDBLayerTabs() {
+            const tabsContainer = document.getElementById('db-layer-tabs'); const chipsContainer = document.getElementById('db-folder-chips'); tabsContainer.innerHTML = '';
+            for(let i=1; i<=7; i++) {
+                const btn = document.createElement('button'); btn.className = 'db-layer-btn'; btn.innerText = `${i}계층`;
+                btn.onclick = () => {
+                    document.querySelectorAll('.db-layer-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderDBFolderChips(i);
+                    document.getElementById('add-folder').value = i + "_";
+                };
+                tabsContainer.appendChild(btn);
+            }
+            tabsContainer.firstChild.click();
+        }
+
+        function renderDBFolderChips(layerId) {
+            const chipsContainer = document.getElementById('db-folder-chips'); chipsContainer.innerHTML = '';
+            if(promptDB[layerId]) {
+                let htmlStr = '';
+                Object.keys(promptDB[layerId]).forEach(folder => {
+                    htmlStr += `<div class="db-folder-chip" onclick="document.getElementById('add-folder').value = '${layerId}_${folder.split('|')[0]}'; document.querySelectorAll('.db-folder-chip').forEach(c => c.style.borderColor = 'var(--border-dim)'); this.style.borderColor = 'var(--accent-blue)';">${folder.split('|')[0]}</div>`;
+                });
+                chipsContainer.innerHTML = htmlStr;
+            }
+        }
+
+        function renderDBTable() {
+            const tbody = document.getElementById('db-table-body');
+            let htmlStr = '';
+            for(let i=1; i<=7; i++) {
+                if(promptDB[i]) {
+                    Object.keys(promptDB[i]).forEach(folderName => {
+                        promptDB[i][folderName].forEach((data, index) => {
+                            htmlStr += `<tr><td>${i}계층</td><td>${folderName.split('|')[0]}</td><td style="font-family:var(--font-code); color:var(--accent-blue); font-weight:bold;">${data.t}</td><td>${data.k||''}</td><td><span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px;">${data.c||''}</span></td><td><button class="btn-edit-tb" onclick="editTagSetup(${i}, '${folderName.replace(/'/g, "\\'")}', ${index})">수정</button><button class="btn-delete-tb" onclick="deleteTag(${i}, '${folderName.replace(/'/g, "\\'")}', ${index})">삭제</button></td></tr>`;
+                        });
+                    });
+                }
+            }
+            tbody.innerHTML = htmlStr;
+        }
+
+        function editTagSetup(layerId, folderName, index) { const data = promptDB[layerId][folderName][index]; document.getElementById('add-folder').value = `${layerId}_${folderName.split('|')[0]}`; document.getElementById('add-en').value = data.t; document.getElementById('add-kr').value = data.k || ""; document.getElementById('add-conflict').value = data.c || ""; document.getElementById('edit-original-layer').value = layerId; document.getElementById('edit-original-folder').value = folderName; document.getElementById('edit-original-index').value = index; const btn = document.getElementById('btn-save-tag'); btn.innerText = "수정 완료"; btn.style.backgroundColor = "#eab308"; }
+        function resetForm() { document.getElementById('add-folder').value = ''; document.getElementById('add-en').value = ''; document.getElementById('add-kr').value = ''; document.getElementById('add-conflict').value = ''; document.getElementById('edit-original-layer').value = ''; document.getElementById('btn-save-tag').innerText = "추가"; document.getElementById('btn-save-tag').style.backgroundColor = "var(--accent-blue)"; }
+
+        function addNewTag() {
+            const folderInput = document.getElementById('add-folder').value.trim(); const t = document.getElementById('add-en').value.trim(); const k = document.getElementById('add-kr').value.trim(); const c = document.getElementById('add-conflict').value.trim();
+            if(!folderInput || !t) { alert("필수항목 누락!"); return; } const layerMatch = folderInput.match(/^(\d)/); if(!layerMatch || parseInt(layerMatch[1]) < 1 || parseInt(layerMatch[1]) > 7) { alert("폴더는 숫자로 시작해야 합니다. (예: 2_앵글)"); return; }
+            const layerId = parseInt(layerMatch[1]); const actualFolder = folderInput.substring(1).replace(/^[_\s]+/, '') + "|자유"; const origLayer = document.getElementById('edit-original-layer').value;
+
+            if(origLayer) { const oLayer = parseInt(origLayer); const oFolder = document.getElementById('edit-original-folder').value; const oIndex = parseInt(document.getElementById('edit-original-index').value); promptDB[oLayer][oFolder].splice(oIndex, 1); if(promptDB[oLayer][oFolder].length === 0) delete promptDB[oLayer][oFolder]; }
+            if(!promptDB[layerId]) promptDB[layerId] = {}; let targetFolder = null; Object.keys(promptDB[layerId]).forEach(existingFolder => { if(existingFolder.split('|')[0] === actualFolder.split('|')[0]) targetFolder = existingFolder; }); if(!targetFolder) targetFolder = actualFolder; if(!promptDB[layerId][targetFolder]) promptDB[layerId][targetFolder] = [];
+            promptDB[layerId][targetFolder].push({ t, n: "", k, c });
+            safeSetStorage('pro_prompt_db_v7_0', promptDB);
+            renderDBTable(); renderDBLayerTabs(); initApp(); resetForm();
+        }
+        function deleteTag(layerId, folderName, index) {
+            if(confirm("이 태그를 삭제하시겠습니까?")) {
+                promptDB[layerId][folderName].splice(index, 1);
+                if(promptDB[layerId][folderName].length === 0) delete promptDB[layerId][folderName];
+                safeSetStorage('pro_prompt_db_v7_0', promptDB);
+                renderDBTable(); initApp();
+            }
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
