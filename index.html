@@ -711,6 +711,7 @@
                     <span id="db-text-status" style="font-size:13px; color:var(--text-dim);"></span>
                     <button class="action-btn" onclick="formatDBText()" style="color:var(--accent-blue); border-color:var(--accent-blue);"><i class="fa-solid fa-indent"></i> 정렬</button>
                     <button class="action-btn" onclick="saveDBText()" style="background:var(--accent-green); color:#fff; border:none;"><i class="fa-solid fa-floppy-disk"></i> 저장 적용</button>
+                    <button class="action-btn" onclick="hardResetAll()" style="background:var(--accent-danger); color:#fff; border:none;"><i class="fa-solid fa-trash-can"></i> 완전 리셋</button>
                     <button class="action-btn" onclick="document.getElementById('db-text-editor-modal').style.display='none'"><i class="fa-solid fa-xmark"></i> 닫기</button>
                 </div>
             </div>
@@ -3556,6 +3557,29 @@
             } catch(e) {
                 showToast("저장 실패: JSON 형식을 확인해주세요. (" + e.message + ")", "error");
             }
+        }
+
+        function hardResetAll() {
+            showConfirm('⚠️ 정말로 완전 리셋하시겠습니까?\n태그 DB, 간편 조합, 에디터 내용, 가중치, 즐겨찾기가 모두 삭제됩니다.', () => {
+                showConfirm('🚨 마지막 경고입니다. 모든 데이터가 영구 삭제됩니다. 정말 리셋하시겠습니까?', () => {
+                    // 모든 관련 localStorage 키 삭제
+                    const keys = [
+                        'pro_prompt_db_v7_0',
+                        'combo_fs_v2',
+                        'context_tabs_v1',
+                        'context_states_v1',
+                        'tag_default_weights_v1',
+                        'pro_prompt_favs_v7_0',
+                        'pro_prompt_recents_v7_0',
+                        'pro_prompt_presets_v7_0',
+                        'pro_prompt_combos_v7_0',
+                        'panel_widths_v1',
+                    ];
+                    keys.forEach(k => localStorage.removeItem(k));
+                    showToast('완전 리셋 완료. 페이지를 새로고침합니다...', 'info', 1500);
+                    setTimeout(() => location.reload(), 1600);
+                });
+            });
         }
 
         // ===== 인라인 태그 편집/추가 팝업 =====
