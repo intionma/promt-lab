@@ -527,40 +527,40 @@
 
         /* ── 모바일 반응형 ── */
         @media (max-width: 768px) {
-            /* html/body를 고정 높이 컨테이너로 */
-            html, body {
-                height: 100%;
-                max-height: 100%;
-                overflow: hidden;
-                padding-bottom: 0 !important;
-            }
+            /* ── 기본 레이아웃 ── */
+            html { height: 100%; }
             body {
+                height: 100%;
+                overflow: hidden;
                 display: flex;
                 flex-direction: column;
+                padding-bottom: 56px; /* tabbar 높이 */
             }
-            /* 앱 컨테이너: 남은 공간 채우기 */
             .app-container {
-                flex-direction: column;
                 flex: 1;
+                flex-direction: column;
                 min-height: 0;
-                overflow: hidden;
                 height: auto !important;
+                overflow: hidden;
             }
-            /* 모든 패널 숨김 */
+
+            /* ── 패널 처리: 기본 숨김, active만 표시 ── */
             .panel {
                 display: none !important;
                 border-right: none !important;
-                flex: none !important;
-                width: 100% !important;
             }
-            /* 활성 패널만 표시 — 높이는 JS에서 px 단위로 직접 지정 */
             .panel.mobile-active {
                 display: flex !important;
                 flex-direction: column !important;
+                width: 100vw !important;
+                min-width: 0 !important;   /* panel-mid inline min-width 무력화 */
+                max-width: 100vw !important;
+                /* JS 없이 CSS만으로 높이 결정 */
+                height: calc(100vh - 56px) !important;
+                height: calc(100dvh - 56px) !important; /* dvh: 모바일 브라우저 크롬 제외 */
                 overflow: hidden !important;
-                width: 100% !important;
+                flex: none !important;
             }
-            /* 스크롤 영역 */
             .panel.mobile-active .panel-content {
                 flex: 1 !important;
                 min-height: 0 !important;
@@ -568,34 +568,30 @@
                 -webkit-overflow-scrolling: touch !important;
                 overscroll-behavior: contain;
             }
-            /* textarea는 내용만큼 늘어나고 자체 스크롤 없앰 (부모가 스크롤) */
             .panel.mobile-active textarea {
                 overflow: hidden !important;
                 resize: none !important;
                 min-height: 80px;
                 height: auto !important;
             }
-            /* 콤보 그리드 스크롤 */
             .panel.mobile-active #sidebar-content-combo {
                 flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column;
             }
             .panel.mobile-active .combo-grid {
                 flex: 1; overflow-y: scroll !important; -webkit-overflow-scrolling: touch !important;
             }
-            /* 패널 리사이즈 핸들 숨김 */
+
+            /* ── 기타 UI 축소 ── */
             .panel-resize-handle { display: none !important; }
-            /* 헤더 버튼 축소 */
             .panel-header { padding: 10px 12px; font-size: 13px; flex-wrap: wrap; gap: 6px; }
             .header-actions { flex-wrap: wrap; gap: 5px; }
             .action-btn { padding: 5px 8px !important; font-size: 11px !important; }
-            /* 조합 그리드 컬럼 */
             .combo-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important; }
-            /* 모달 */
             .combo-create-modal-overlay { align-items: flex-end !important; }
-            .combo-create-modal { width: 100vw !important; border-radius: 14px 14px 0 0 !important; max-height: 88vh !important; }
+            .combo-create-modal { width: 100vw !important; border-radius: 20px 20px 0 0 !important; max-height: 88vh !important; }
             .prompt-classify-overlay { align-items: flex-end !important; }
-            .prompt-classify-overlay > div { width: 100vw !important; border-radius: 14px 14px 0 0 !important; max-height: 88vh !important; }
-            /* context tabs */
+            .prompt-classify-overlay > div { width: 100vw !important; border-radius: 20px 20px 0 0 !important; max-height: 88vh !important; }
+            .modal-content { width: 96vw !important; min-width: 0 !important; }
             .context-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
             #output-format-toggle { font-size: 11px; }
             #db-text-editor-box { width: 98vw !important; min-width: unset !important; height: 70vh !important; }
@@ -5827,13 +5823,74 @@
             body.style.cssText = 'flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;font-family:var(--font-ui);';
 
             const sections = [
-                { title: '📌 데이터 구조 개요', desc: '계층 ID: 1=화질/렌더링 ⭐  2=구도/피사체 📷  3=외형/얼굴 😊  4=의상/악세서리 👕  5=액션/디테일 🏃  6=배경/환경 🏔️  7=조명/이펙트 ⚡\n\n폴더 키 형식: <code>폴더명|권장수</code>  예) <code>카메라 앵글|1개</code>\n태그 오브젝트: <code>{t: 영문태그, k: 한글뜻, n: 네거티브, c: 서브카테고리}</code>' },
-                { title: '🗂️ 서브카테고리 (c 필드)', desc: '<b>c 필드</b>는 두 가지 역할을 합니다:\n① 폴더 내 태그를 카테고리별로 시각적으로 묶어줍니다 (서브카테고리 헤더 표시)\n② 같은 c 값을 가진 태그 중 하나를 활성화하면 나머지는 충돌 경고 표시\n\n예시: c: "앵글종류" → 폴더 안에서 "앵글종류" 섹션으로 묶임 + 중복 선택 시 경고\n비워두면 카테고리 없이 태그만 표시됩니다.' },
-                { title: '1. 서브카테고리 있는 태그 추가', code: `{"_version": 2, "promptDB": {"2": {"카메라 앵글|1개": [{"t": "cowboy_shot", "k": "허벅지 위 컷", "n": "", "c": "앵글종류"}, {"t": "close_up", "k": "클로즈업", "n": "", "c": "앵글종류"}, {"t": "from_above", "k": "위에서 아래", "n": "", "c": "시점방향"}]}}}` },
-                { title: '2. 새 폴더 + 서브카테고리 없는 태그', code: `{"_version": 2, "promptDB": {"3": {"새폴더명|자유": [{"t": "blonde hair", "k": "금발", "n": "dark hair", "c": ""}]}}}` },
-                { title: '3. 간편 조합 추가', code: `{"_version": 2, "comboFS": {"items": {"uc_example1": {"type": "combo", "id": "uc_example1", "title": "내 조합", "tags": {"1": "score_9, score_8_up", "3": "1girl, long hair"}}}, "root": ["uc_example1"]}}` },
-                { title: '4. 에디터 탭 상태 추가', code: `{"_version": 2, "contextTabs": [{"id": "tab_1", "name": "캐릭터"}], "contextStates": {"tab_1": ["score_9, score_8_up", "1girl", "", "", "", "", ""]}}` },
-                { title: '🏗️ 계층별 권장 폴더 구조', desc: '각 계층은 폴더(세부 폴더) → 서브카테고리(c필드) 2단계로 구성합니다.\n예) 2계층 "카메라 앵글|1개" 폴더 내:\n  - c: "앵글종류" → cowboy_shot, close_up, full_body...\n  - c: "시점방향" → from_above, from_below, from_side...\n  - c: "특수시점" → pov, looking_over_shoulder...' },
+                {
+                    title: '📐 전체 데이터 구조',
+                    desc: [
+                        '<b>계층 (7개)</b>: 1=화질/렌더링 ⭐ · 2=구도/피사체 📷 · 3=외형/얼굴 😊 · 4=의상/악세서리 👕 · 5=액션/디테일 🏃 · 6=배경/환경 🏔️ · 7=조명/이펙트 ⚡',
+                        '<b>폴더 키 형식</b>: <code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;">폴더명|권장수</code>  예) <code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;">카메라 앵글|1개</code>',
+                        '<b>태그 오브젝트</b>: <code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;">{ t, k, n, c }</code>',
+                        '  └ <b>t</b>: 영문 프롬프트 (실제 출력값, 다중이면 쉼표 구분)',
+                        '  └ <b>k</b>: 한글 이름 (태그 버튼에 표시)',
+                        '  └ <b>n</b>: 네거티브 프롬프트 (이 태그 활성 시 자동 추가)',
+                        '  └ <b>c</b>: 서브카테고리 (아래 설명 참고)',
+                    ].join('\n')
+                },
+                {
+                    title: '🗂️ 서브카테고리 (c 필드) — 핵심',
+                    desc: [
+                        '<b>역할 ①</b> — 시각적 그룹핑: 같은 c값 태그끼리 폴더 안에서 카테고리 헤더 + 구분선으로 묶임',
+                        '<b>역할 ②</b> — 충돌 감지: 같은 c값 태그를 동시에 활성화하면 ⚠️ 경고 표시 (상호 배타적 처리)',
+                        '',
+                        '예) 카메라 앵글 폴더 내:',
+                        '  ─ 앵글종류 ────────────────',
+                        '  [허벅지 위 컷] [클로즈업] [전신 샷]  ← c: "앵글종류"',
+                        '  ─ 시점방향 ────────────────',
+                        '  [정면] [뒷모습] [측면]               ← c: "시점방향"',
+                        '',
+                        '💡 c를 비워두면 헤더 없이 태그만 나열 (기본값)',
+                        '💡 폴더 우클릭 → "새 서브카테고리 만들기" 로 GUI에서 직접 생성/관리 가능',
+                    ].join('\n')
+                },
+                {
+                    title: '1. 서브카테고리 있는 태그 추가',
+                    desc: '📂 2계층 > 카메라 앵글 폴더에 두 서브카테고리로 태그 추가',
+                    code: '{"_version": 2, "promptDB": {"2": {"카메라 앵글|1개": [{"t": "cowboy_shot", "k": "허벅지 위 컷", "n": "", "c": "앵글종류"}, {"t": "close_up", "k": "클로즈업", "n": "", "c": "앵글종류"}, {"t": "full_body", "k": "전신 샷", "n": "", "c": "앵글종류"}, {"t": "from_above", "k": "위에서 아래", "n": "", "c": "시점방향"}, {"t": "from_below", "k": "아래에서 위", "n": "", "c": "시점방향"}]}}}'
+                },
+                {
+                    title: '2. 새 폴더 + 태그 추가 (서브카테고리 없음)',
+                    desc: '📂 3계층에 새 폴더 "헤어 컬러" 생성 후 태그 추가 (c 비움)',
+                    code: '{"_version": 2, "promptDB": {"3": {"헤어 컬러|1개": [{"t": "blonde hair", "k": "금발", "n": "dark hair", "c": ""}, {"t": "black hair", "k": "검은 머리", "n": "blonde hair", "c": ""}]}}}'
+                },
+                {
+                    title: '3. 다중 프롬프트 태그 (Multi-prompt)',
+                    desc: '쉼표 포함 t값 → 태그 선택 시 여러 토큰이 한꺼번에 추가됨. 태그 버튼에는 k(한글명)가 표시되고 hover 시 전체 목록 툴팁 표시.',
+                    code: '{"_version": 2, "promptDB": {"1": {"Pony 코어|필수": [{"t": "score_9, score_8_up, score_7_up", "k": "Pony 최고 품질 베이스", "n": "score_4, score_3, score_2", "c": "품질점수"}]}}}'
+                },
+                {
+                    title: '4. 간편 조합 추가',
+                    desc: '📦 폴더 없이 루트에 조합 추가. tags 객체 키는 계층 번호(문자열).',
+                    code: '{"_version": 2, "comboFS": {"items": {"uc_example1": {"type": "combo", "id": "uc_example1", "title": "내 조합 이름", "tags": {"1": "score_9, score_8_up", "2": "1girl", "3": "long hair, blue eyes"}}}, "root": ["uc_example1"]}}'
+                },
+                {
+                    title: '5. 폴더 안에 조합 추가',
+                    desc: '📁 폴더를 만들고 그 안에 조합 넣기. root에는 폴더 ID만 포함.',
+                    code: '{"_version": 2, "comboFS": {"items": {"folder_1": {"type": "folder", "id": "folder_1", "title": "캐릭터 프리셋", "children": ["combo_1"]}, "combo_1": {"type": "combo", "id": "combo_1", "title": "기본 소녀", "tags": {"1": "score_9", "3": "1girl, long hair"}}}, "root": ["folder_1"]}}'
+                },
+                {
+                    title: '6. 에디터 탭 + 상태 추가',
+                    desc: '📝 contextStates 배열은 7개 문자열 (계층 1~7 순서).',
+                    code: '{"_version": 2, "contextTabs": [{"id": "tab_1", "name": "캐릭터A"}], "contextStates": {"tab_1": ["score_9, score_8_up", "1girl, cowboy_shot", "long hair, blue eyes", "school uniform", "", "classroom", ""]}}'
+                },
+                {
+                    title: '💡 병합(+) vs 전체 복구 차이',
+                    desc: [
+                        '<b>전체 복구</b>: 기존 데이터를 모두 지우고 붙여넣은 코드로 교체',
+                        '<b>병합 추가</b>: 기존 데이터에 새 항목만 추가. 충돌 항목은 확인 창에서 선택 처리',
+                        '',
+                        '→ AI가 생성한 태그 묶음을 추가할 때는 <b>병합 추가</b> 권장',
+                        '→ 전체 백업 복원 시 <b>전체 복구</b> 사용',
+                    ].join('\n')
+                },
             ];
 
             sections.forEach(sec => {
@@ -6372,18 +6429,6 @@
 
             let currentPanel = 'panel-left';
 
-            function setPanelHeight() {
-                if (window.innerWidth > 768) return;
-                const tbH = tabbar.offsetHeight || 56;
-                const h = window.innerHeight - tbH;
-                PANELS.forEach(p => {
-                    const el = document.getElementById(p.id);
-                    if (el && el.classList.contains('mobile-active')) {
-                        el.style.height = h + 'px';
-                    }
-                });
-            }
-
             function switchMobilePanel(id) {
                 currentPanel = id;
                 PANELS.forEach(p => {
@@ -6391,6 +6436,7 @@
                     if (!el) return;
                     if (p.id === id) {
                         el.classList.add('mobile-active');
+                        el.style.height = ''; // CSS calc()에 맡김
                     } else {
                         el.classList.remove('mobile-active');
                         el.style.height = '';
@@ -6399,8 +6445,6 @@
                 tabbar.querySelectorAll('button').forEach((btn, i) => {
                     btn.classList.toggle('active', PANELS[i].id === id);
                 });
-                setPanelHeight();
-                // 스크롤 맨 위로
                 const activePanel = document.getElementById(id);
                 if (activePanel) {
                     const pc = activePanel.querySelector('.panel-content');
@@ -6430,10 +6474,10 @@
             }
 
             applyMobileLayout();
-            window.addEventListener('resize', () => { applyMobileLayout(); setPanelHeight(); });
+            window.addEventListener('resize', () => { applyMobileLayout(); });
             // visualViewport 대응 (키보드 올라올 때 높이 재계산)
             if (window.visualViewport) {
-                window.visualViewport.addEventListener('resize', setPanelHeight);
+                // visualViewport resize handled by CSS calc(100dvh)
             }
         })();
         // ────────────────────────────────────────────────────────────────────
