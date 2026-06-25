@@ -1103,6 +1103,7 @@
             const addTag = () => {
                 let val = input.value.trim();
                 if(val) {
+                    input.value = '';
                     saveStateToUndoStack();
                     tags.push(val); textarea.value = tags.join(', '); syncFromManualInput(layerIndex);
                     setTimeout(() => {
