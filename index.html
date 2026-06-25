@@ -3477,7 +3477,16 @@
 
         function openDBTextEditor() {
             const textarea = document.getElementById('db-text-area');
-            textarea.value = JSON.stringify(promptDB, null, 2);
+            const all = {
+                _version: 2,
+                promptDB,
+                comboFS,
+                contextTabs,
+                contextStates,
+                tagDefaultWeights,
+                favorites,
+            };
+            textarea.value = JSON.stringify(all, null, 2);
             textarea.style.borderColor = 'var(--border-dim)';
             document.getElementById('db-text-status').innerText = '';
             document.getElementById('db-text-editor-modal').style.display = 'flex';
@@ -3516,14 +3525,36 @@
             const raw = textarea.value.trim();
             try {
                 const parsed = raw === '' ? {} : JSON.parse(raw);
-                if(!parsed || typeof parsed !== 'object') throw new Error('구조 오류');
-                promptDB = parsed;
-                safeSetStorage('pro_prompt_db_v7_0', promptDB);
+                if (!parsed || typeof parsed !== 'object') throw new Error('구조 오류');
+
+                if (parsed._version === 2) {
+                    // 전체 데이터 형식
+                    if (parsed.promptDB) { promptDB = parsed.promptDB; safeSetStorage('pro_prompt_db_v7_0', promptDB); }
+                    if (parsed.comboFS?.root) { comboFS = parsed.comboFS; saveComboFS(); }
+                    if (parsed.contextTabs?.length > 0) {
+                        contextTabs.length = 0;
+                        parsed.contextTabs.forEach(t => contextTabs.push(t));
+                        Object.keys(contextStates).forEach(k => delete contextStates[k]);
+                        Object.assign(contextStates, parsed.contextStates || {});
+                        contextTabs.forEach(t => { if (!contextStates[t.id]) contextStates[t.id] = ["","","","","","",""]; });
+                        currentContext = contextTabs[0].id;
+                        saveTabsAndStates();
+                    }
+                    if (parsed.tagDefaultWeights) { Object.keys(tagDefaultWeights).forEach(k => delete tagDefaultWeights[k]); Object.assign(tagDefaultWeights, parsed.tagDefaultWeights); saveTagDefaultWeights(); }
+                    if (parsed.favorites && Array.isArray(parsed.favorites)) { favorites.length = 0; parsed.favorites.forEach(f => favorites.push(f)); safeSetStorage('pro_prompt_favs_v7_0', favorites); }
+                } else if (parsed[1] !== undefined) {
+                    // 구형: promptDB만
+                    promptDB = parsed;
+                    safeSetStorage('pro_prompt_db_v7_0', promptDB);
+                } else {
+                    throw new Error('알 수 없는 형식');
+                }
+
                 initApp();
                 document.getElementById('db-text-editor-modal').style.display = 'none';
-                showToast("DB가 저장 및 적용되었습니다!", "success");
+                showToast("저장 및 적용 완료!", "success");
             } catch(e) {
-                showToast("저장 실패: JSON 형식을 확인해주세요.", "error");
+                showToast("저장 실패: JSON 형식을 확인해주세요. (" + e.message + ")", "error");
             }
         }
 
