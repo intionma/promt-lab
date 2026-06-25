@@ -1328,7 +1328,8 @@
                 chip.className = 'prompt-chip';
                 chip.draggable = true;
 
-                let coreTag = tag.replace(/^[()\[\]]+/g, '').replace(/[:0-9.()\[\]]+$/g, '').trim();
+                const _wm = tag.match(/^\((.+):(\d+\.?\d*)\)$/);
+                let coreTag = _wm ? _wm[1] : tag.replace(/^[()\[\]]+|[()\[\]]+$/g, '').trim();
                 if(activeTagsMap[coreTag]) {
                     chip.style.borderColor = activeTagsMap[coreTag].color;
                     chip.style.color = activeTagsMap[coreTag].color;
@@ -1704,7 +1705,7 @@
                     }
 
                     const wm = cleanTag.match(/^\((.+):(\d+\.?\d*)\)$/);
-                    let core = wm ? wm[1] : cleanTag.replace(/^[()\[\]]+/g, '').replace(/[:0-9.()\[\]]+$/g, '').trim();
+                    let core = wm ? wm[1] : cleanTag.replace(/^[()\[\]]+|[()\[\]]+$/g, '').trim();
                     let weight = wm ? `(${parseFloat(wm[2]).toFixed(1)})` : '';
                     let kor = (activeTagsMap[core] && activeTagsMap[core].kor) ? activeTagsMap[core].kor : (negKorMap[core.toLowerCase()] || core);
 
@@ -1746,7 +1747,7 @@
                     negPreviewBox.innerHTML = finalNegOutput.split(',').map(tag => {
                         let cleanTag = tag.trim();
                         const wm = cleanTag.match(/^\((.+):(\d+\.?\d*)\)$/);
-                        let core = wm ? wm[1] : cleanTag.replace(/^[()\[\]]+/g, '').replace(/[:0-9.()\[\]]+$/g, '').trim();
+                        let core = wm ? wm[1] : cleanTag.replace(/^[()\[\]]+|[()\[\]]+$/g, '').trim();
                         let weight = wm ? `(${parseFloat(wm[2]).toFixed(1)})` : '';
                         let kor = (activeTagsMap[core] && activeTagsMap[core].kor) ? activeTagsMap[core].kor : (negKorMap[core.toLowerCase()] || core);
 
