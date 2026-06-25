@@ -24,6 +24,8 @@
             --input-bg: #050608;
             --folder-bg: rgba(255,255,255,0.02);
             --folder-hover: rgba(255,255,255,0.05);
+            --glass-bg: rgba(18,21,27,0.82);
+            --glass-border: rgba(255,255,255,0.1);
         }
 
         [data-theme="light"] {
@@ -36,6 +38,8 @@
             --input-bg: #ffffff;
             --folder-bg: #f8fafc;
             --folder-hover: #f1f5f9;
+            --glass-bg: rgba(248,250,252,0.88);
+            --glass-border: rgba(0,0,0,0.1);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
@@ -178,8 +182,8 @@
         .combo-ctx-sep { height: 1px; background: var(--border-dim); margin: 4px 0; }
 
         /* 조합 추가 모달 */
-        .combo-create-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:10000; display:flex; align-items:center; justify-content:center; }
-        .combo-create-modal { background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:14px; width:min(620px,95vw); max-height:80vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
+        .combo-create-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.55); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:10000; display:flex; align-items:center; justify-content:center; }
+        .combo-create-modal { background:var(--glass-bg); backdrop-filter:blur(24px) saturate(160%); -webkit-backdrop-filter:blur(24px) saturate(160%); border:1px solid var(--glass-border); border-radius:14px; width:min(620px,95vw); max-height:80vh; display:flex; flex-direction:column; box-shadow:0 24px 64px rgba(0,0,0,0.55); }
         .ccm-header { display:flex; align-items:center; gap:8px; padding:16px 20px; border-bottom:1px solid var(--border-dim); flex-shrink:0; }
         .ccm-title { font-size:15px; font-weight:800; font-family:var(--font-heading); flex:1; }
         .ccm-mode-btn { padding:5px 12px; border-radius:6px; border:1px solid var(--border-dim); background:transparent; color:var(--text-dim); cursor:pointer; font-size:12px; font-family:var(--font-ui); transition:0.15s; }
@@ -396,8 +400,8 @@
         .btn-copy:hover { filter: brightness(1.1); }
         .btn-copy.pos { background-color: var(--accent-blue); } .btn-copy.neg { background-color: var(--text-dim); }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 2000; }
-        .modal-content { background: var(--bg-panel); border: 1px solid var(--border-dim); width: 850px; max-height: 90vh; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 20px 50px var(--shadow-color); }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-content { background: var(--glass-bg); backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%); border: 1px solid var(--glass-border); width: 850px; max-height: 90vh; border-radius: 14px; display: flex; flex-direction: column; box-shadow: 0 24px 64px rgba(0,0,0,0.55); }
         .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-dim); display: flex; justify-content: space-between; align-items: center; font-family: var(--font-heading);}
         .modal-title { font-size: 18px; font-weight: 800; color: var(--text-main); }
 
@@ -721,7 +725,7 @@
                                 <span style="color:var(--accent-blue);">통합 긍정 프롬프트</span>
                                 <select id="output-format-toggle" onchange="updateMasterOutput()" style="background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-dim); border-radius:6px; font-size:11px; padding:3px 6px; outline:none; font-family:var(--font-ui); cursor:pointer;">
                                     <option value="labeled">구분자 포함</option>
-                                    <option value="comma">순수 쉼표</option>
+                                    <option value="comma" selected>순수 쉼표</option>
                                 </select>
                                 <label style="display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-dim); cursor:pointer;">
                                     <input type="checkbox" id="break-toggle" onchange="updateMasterOutput()"> BREAK
@@ -960,13 +964,13 @@
         }
 
         const layerMeta = [
-            { id: 1, title: "1. 화질 및 렌더링 (Quality)", color: "var(--color-l1)", rgb: "var(--rgb-l1)", hue: 270 },
-            { id: 2, title: "2. 구도 및 피사체 (Framing)", color: "var(--color-l2)", rgb: "var(--rgb-l2)", hue: 25 },
-            { id: 3, title: "3. 외형 및 얼굴 (Face & Body)", color: "var(--color-l3)", rgb: "var(--rgb-l3)", hue: 330 },
-            { id: 4, title: "4. 의상 & 악세서리 (Apparel)", color: "var(--color-l4)", rgb: "var(--rgb-l4)", hue: 190 },
-            { id: 5, title: "5. 액션 및 디테일 (Action)", color: "var(--color-l5)", rgb: "var(--rgb-l5)", hue: 0 },
-            { id: 6, title: "6. 배경 및 환경 (Background)", color: "var(--color-l6)", rgb: "var(--rgb-l6)", hue: 150 },
-            { id: 7, title: "7. 조명 및 이펙트 (Lighting)", color: "var(--color-l7)", rgb: "var(--rgb-l7)", hue: 45 }
+            { id: 1, title: "1. 화질 및 렌더링 (Quality)",    icon: "fa-star",          color: "var(--color-l1)", rgb: "var(--rgb-l1)", hue: 270 },
+            { id: 2, title: "2. 구도 및 피사체 (Framing)",    icon: "fa-camera-retro",  color: "var(--color-l2)", rgb: "var(--rgb-l2)", hue: 25 },
+            { id: 3, title: "3. 외형 및 얼굴 (Face & Body)",  icon: "fa-face-smile",    color: "var(--color-l3)", rgb: "var(--rgb-l3)", hue: 330 },
+            { id: 4, title: "4. 의상 & 악세서리 (Apparel)",   icon: "fa-shirt",         color: "var(--color-l4)", rgb: "var(--rgb-l4)", hue: 190 },
+            { id: 5, title: "5. 액션 및 디테일 (Action)",     icon: "fa-person-running",color: "var(--color-l5)", rgb: "var(--rgb-l5)", hue: 0 },
+            { id: 6, title: "6. 배경 및 환경 (Background)",   icon: "fa-mountain-sun",  color: "var(--color-l6)", rgb: "var(--rgb-l6)", hue: 150 },
+            { id: 7, title: "7. 조명 및 이펙트 (Lighting)",   icon: "fa-bolt",          color: "var(--color-l7)", rgb: "var(--rgb-l7)", hue: 45 }
         ];
 
         let baseNegative = "score_6, score_5, score_4, worst quality, low quality, bad anatomy, missing fingers, extra digits, text, watermark, signature, blurry, 3d, cartoon, anime, illustration";
@@ -1666,6 +1670,7 @@
                 group.innerHTML = `
                     <div class="layer-title-bar" onmousedown="if(event.button===2)event.stopPropagation()" onclick="this.closest('.layer-group').classList.toggle('collapsed')">
                         <div class="layer-indicator" style="background-color: ${layer.color};"></div>
+                        <i class="fa-solid ${layer.icon}" style="color:${layer.color};font-size:13px;flex-shrink:0;"></i>
                         <span style="color: ${layer.color}">${layer.title}</span>
                         <span class="layer-badge" id="layer-badge-${i}" style="display:none; background-color: ${layer.color};">0</span>
                         <i class="fa-solid fa-chevron-down layer-title-chevron"></i>
@@ -1772,6 +1777,7 @@
                         <div class="editor-header-left">
                             <i class="fa-solid fa-chevron-down editor-header-chevron"></i>
                             <div class="layer-indicator" style="background-color: ${layer.color};"></div>
+                            <i class="fa-solid ${layer.icon}" style="color:${layer.color};font-size:12px;flex-shrink:0;"></i>
                             <span>${layer.title}</span>
                             <span class="conflict-badge" id="conflict-badge-${i}">⚠️ 충돌 감지</span>
                         </div>
@@ -1881,16 +1887,14 @@
                     { icon: 'fa-plus', label: '새 조합 추가', action: () => { openComboCreateModal(folder.id); } },
                     { sep: true },
                     { icon: 'fa-eraser', label: '폴더 비우기', action: () => {
-                        showConfirm(`[${folder.title}] 안의 항목을 모두 루트로 꺼낼까요?`, () => {
-                            const kids = [...(folder.children || [])];
-                            folder.children = [];
-                            kids.forEach(kid => { if (!comboFS.root.includes(kid)) comboFS.root.push(kid); });
-                            saveComboFS(); renderCombos(); showToast('폴더 비워짐', 'info');
-                        });
+                        const kids = [...(folder.children || [])];
+                        folder.children = [];
+                        kids.forEach(kid => { if (!comboFS.root.includes(kid)) comboFS.root.push(kid); });
+                        saveComboFS(); renderCombos(); showToast('폴더 비워짐', 'info');
                     }},
                     { sep: true },
                     { icon: 'fa-trash', label: '폴더 삭제', danger: true, action: () => {
-                        showConfirm(`[${folder.title}] 폴더와 안의 내용을 모두 삭제할까요?`, () => { deleteFsItem(folder.id); renderCombos(); showToast("폴더 삭제됨", "info"); });
+                        deleteFsItem(folder.id); renderCombos(); showToast("폴더 삭제됨", "info");
                     }},
                 ]);
             });
@@ -1995,7 +1999,7 @@
                 }
                 menuItems.push({ sep: true });
                 menuItems.push({ icon: 'fa-trash', label: '조합 삭제', danger: true, action: () => {
-                    showConfirm(`[${combo.title}] 삭제할까요?`, () => { deleteFsItem(combo.id); renderCombos(); showToast("삭제됨", "info"); });
+                    deleteFsItem(combo.id); renderCombos(); showToast("삭제됨", "info");
                 }});
                 showComboCtxMenu(e, menuItems);
             });
@@ -4985,7 +4989,7 @@
             const overlay = document.createElement('div');
             overlay.className = 'conflict-resolve-overlay combo-create-modal-overlay';
             const modal = document.createElement('div');
-            modal.style.cssText = 'background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:14px;width:min(600px,95vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;';
+            modal.style.cssText = 'background:var(--glass-bg);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);border:1px solid var(--glass-border);border-radius:14px;width:min(600px,95vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.55);overflow:hidden;';
             const hdr = document.createElement('div');
             hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-dim);flex-shrink:0;';
             hdr.innerHTML = `<span style="font-size:15px;font-weight:800;font-family:var(--font-heading);">⚠️ 충돌 항목 (${conflicts.length}개) — ${addedCount}개 추가됨</span>`;
@@ -5178,13 +5182,11 @@
             renderDBTable(); renderDBLayerTabs(); initApp(); resetForm();
         }
         function deleteTag(layerId, folderName, index) {
-            showConfirm("이 태그를 삭제할까요?", () => {
-                promptDB[layerId][folderName].splice(index, 1);
-                if(promptDB[layerId][folderName].length === 0) delete promptDB[layerId][folderName];
-                safeSetStorage('pro_prompt_db_v7_0', promptDB);
-                renderDBTable(); initApp();
-                showToast("태그가 삭제되었습니다.", "info");
-            });
+            promptDB[layerId][folderName].splice(index, 1);
+            if(promptDB[layerId][folderName].length === 0) delete promptDB[layerId][folderName];
+            safeSetStorage('pro_prompt_db_v7_0', promptDB);
+            renderDBTable(); initApp();
+            showToast("태그가 삭제되었습니다.", "info");
         }
 
         // ─── 한국어 번역 세션 모달 ─────────────────────────────────────────────────
@@ -5211,7 +5213,7 @@
             overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:3000;display:flex;align-items:center;justify-content:center;';
 
             const modal = document.createElement('div');
-            modal.style.cssText = 'background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:12px;padding:24px;width:min(700px,95vw);max-height:90vh;display:flex;flex-direction:column;gap:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);';
+            modal.style.cssText = 'background:var(--glass-bg);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);border:1px solid var(--glass-border);border-radius:14px;padding:24px;width:min(700px,95vw);max-height:90vh;display:flex;flex-direction:column;gap:16px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.55);';
 
             const titleRow = document.createElement('div');
             titleRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;';
@@ -5317,7 +5319,7 @@
             document.addEventListener('keydown', _pcEscHandler);
             overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); document.removeEventListener('keydown', _pcEscHandler); } };
             const modal = document.createElement('div');
-            modal.style.cssText = 'background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:14px;width:min(680px,96vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;';
+            modal.style.cssText = 'background:var(--glass-bg);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);border:1px solid var(--glass-border);border-radius:14px;width:min(680px,96vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.55);overflow:hidden;';
 
             // Header
             const hdr = document.createElement('div');
@@ -5588,7 +5590,7 @@
             document.addEventListener('keydown', _dbgEscHandler);
             overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); document.removeEventListener('keydown', _dbgEscHandler); } };
             const modal = document.createElement('div');
-            modal.style.cssText = 'background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:14px;width:min(700px,95vw);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;';
+            modal.style.cssText = 'background:var(--glass-bg);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);border:1px solid var(--glass-border);border-radius:14px;width:min(700px,95vw);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.55);overflow:hidden;';
             const hdr = document.createElement('div');
             hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-dim);flex-shrink:0;';
             hdr.innerHTML = '<span style="font-size:15px;font-weight:800;font-family:var(--font-heading);">ⓘ DB 입력 형식 가이드</span>';
