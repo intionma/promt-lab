@@ -24,11 +24,11 @@
             --input-bg: #050608;
             --folder-bg: rgba(255,255,255,0.02);
             --folder-hover: rgba(255,255,255,0.05);
-            --glass-bg: rgba(255,255,255,0.06);
+            --glass-bg: rgba(255,255,255,0.03);
             --glass-border: rgba(255,255,255,0.18);
             --glass-highlight: rgba(255,255,255,0.45);
             --glass-shadow: rgba(0,0,0,0.5);
-            --overlay-bg: rgba(0,0,0,0.25);
+            --overlay-bg: rgba(0,0,0,0.12);
         }
 
         [data-theme="light"] {
@@ -41,11 +41,11 @@
             --input-bg: #ffffff;
             --folder-bg: #f8fafc;
             --folder-hover: #f1f5f9;
-            --glass-bg: rgba(255,255,255,0.14);
+            --glass-bg: rgba(255,255,255,0.08);
             --glass-border: rgba(255,255,255,0.55);
             --glass-highlight: rgba(255,255,255,0.85);
             --glass-shadow: rgba(0,0,0,0.2);
-            --overlay-bg: rgba(0,0,0,0.18);
+            --overlay-bg: rgba(0,0,0,0.12);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
@@ -485,7 +485,7 @@
 
         /* 토스트 알림 */
         #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
-        .toast { background: rgba(255,255,255,0.07); backdrop-filter: blur(60px) saturate(200%) brightness(1.1); -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.1); border: 1px solid rgba(255,255,255,0.12); border-top: 1px solid rgba(255,255,255,0.5); border-left: 1px solid rgba(255,255,255,0.14); color: var(--text-main); padding: 14px 20px; border-radius: 16px; font-size: 14px; font-weight: 600; font-family: var(--font-ui); box-shadow: 0 0 0 0.5px rgba(255,255,255,0.06), 0 16px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.15); display: flex; align-items: center; gap: 10px; min-width: 260px; max-width: 360px; pointer-events: all; opacity: 0; transform: translateX(30px); transition: opacity 0.35s, transform 0.35s; }
+        .toast { background: rgba(255,255,255,0.04); backdrop-filter: blur(60px) saturate(200%) brightness(1.1); -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.1); border: 1px solid rgba(255,255,255,0.12); border-top: 1px solid rgba(255,255,255,0.5); border-left: 1px solid rgba(255,255,255,0.14); color: var(--text-main); padding: 14px 20px; border-radius: 16px; font-size: 14px; font-weight: 600; font-family: var(--font-ui); box-shadow: 0 0 0 0.5px rgba(255,255,255,0.06), 0 16px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.15); display: flex; align-items: center; gap: 10px; min-width: 260px; max-width: 360px; pointer-events: all; opacity: 0; transform: translateX(30px); transition: opacity 0.35s, transform 0.35s; }
         [data-theme="light"] .toast { background: rgba(255,255,255,0.15); backdrop-filter: blur(60px) saturate(200%) brightness(1.05); -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.05); border: 1px solid rgba(255,255,255,0.5); border-top: 1px solid rgba(255,255,255,0.9); box-shadow: 0 16px 48px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04); color: var(--text-main); }
         .toast.show { opacity: 1; transform: translateX(0); }
         .toast.success { border-left: 4px solid var(--accent-green); }
@@ -1579,23 +1579,38 @@
                     showCtxMenu(e.clientX, e.clientY, items);
 
                 } else if (subFolderHeader) {
-                    // 폴더 헤더 우클릭 → 해당 폴더에 직접 추가
+                    // 폴더 헤더 우클릭 → 해당 폴더에 직접 추가 + 서브카테고리 관리
                     const subFolder = subFolderHeader.closest('.sub-folder');
                     const layerGroup = subFolder?.closest('.layer-group');
                     const layerBadge = layerGroup?.querySelector('[id^="layer-badge-"]');
                     const layerId = layerBadge ? parseInt(layerBadge.id.replace('layer-badge-', '')) : null;
-                    // 폴더 이름은 sub-folder-header의 첫 span 텍스트
                     const folderNameText = subFolderHeader.querySelector('span')?.textContent?.trim();
                     if (!layerId || !folderNameText) return;
-                    // DB에서 실제 폴더 키 찾기
                     const actualFolder = promptDB[layerId] ? Object.keys(promptDB[layerId]).find(k => k.split('|')[0] === folderNameText) || (folderNameText + '|자유') : (folderNameText + '|자유');
 
-                    showCtxMenu(e.clientX, e.clientY, [
-                        { label: `📂 "${folderNameText}" 에 태그 추가`, isHeader: true },
+                    // 현재 폴더의 서브카테고리 목록
+                    const folderTags = promptDB[layerId]?.[actualFolder] || [];
+                    const existingCats = [...new Set(folderTags.map(t => t.c || '').filter(c => c !== ''))];
+
+                    const menuItems = [
+                        { label: `📂 "${folderNameText}"`, isHeader: true },
                         { label: '이 폴더에 태그 추가', icon: 'fa-solid fa-plus', action: () => {
                             openTagInlinePopup(anchorEl, { mode: 'add', layerId, folderName: actualFolder, folderLabel: `${layerId}. ${folderNameText}` });
                         }},
-                    ]);
+                        'sep',
+                        { label: '새 서브카테고리 만들기', icon: 'fa-solid fa-folder-plus', action: () => {
+                            _openSubcatDialog(layerId, actualFolder, folderNameText, null);
+                        }},
+                    ];
+                    if (existingCats.length > 0) {
+                        menuItems.push({ label: '서브카테고리 이름 변경', icon: 'fa-solid fa-pen', action: () => {
+                            _openSubcatRenameDialog(layerId, actualFolder, existingCats);
+                        }});
+                        menuItems.push({ label: '서브카테고리 삭제', icon: 'fa-solid fa-trash', danger: true, action: () => {
+                            _openSubcatDeleteDialog(layerId, actualFolder, existingCats);
+                        }});
+                    }
+                    showCtxMenu(e.clientX, e.clientY, menuItems);
                 }
             } else if (dbTagBtn) {
                 e.preventDefault();
@@ -5678,6 +5693,120 @@
         }
         // ──────────────────────────────────────────────────────────────────────
 
+
+        // ─── 서브카테고리 관리 함수 ──────────────────────────────────────────────
+        function _subcatDialog(title, inputLabel, defaultVal, onConfirm) {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;background:var(--overlay-bg);z-index:99999;display:flex;align-items:center;justify-content:center;';
+            const box = document.createElement('div');
+            box.style.cssText = 'background:var(--glass-bg);backdrop-filter:blur(60px) saturate(200%) brightness(1.08);-webkit-backdrop-filter:blur(60px) saturate(200%) brightness(1.08);border:1px solid rgba(255,255,255,0.12);border-top:1px solid var(--glass-highlight);border-radius:16px;padding:20px;width:min(340px,90vw);display:flex;flex-direction:column;gap:12px;box-shadow:0 0 0 0.5px rgba(255,255,255,0.08),0 24px 60px rgba(0,0,0,0.5),inset 0 1px 0 var(--glass-highlight);';
+            box.innerHTML = `<div style="font-size:14px;font-weight:800;font-family:var(--font-heading);">${title}</div>
+                <label style="font-size:12px;color:var(--text-dim);">${inputLabel}</label>`;
+            const inp = document.createElement('input');
+            inp.value = defaultVal || '';
+            inp.style.cssText = 'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-main);border-radius:8px;padding:8px 12px;font-size:13px;font-family:var(--font-ui);outline:none;width:100%;';
+            inp.placeholder = '예: 앵글종류, 시점방향';
+            const btnRow = document.createElement('div');
+            btnRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = '취소';
+            cancelBtn.style.cssText = 'background:transparent;border:1px solid var(--border-dim);color:var(--text-dim);border-radius:8px;padding:7px 16px;font-size:13px;cursor:pointer;';
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = '확인';
+            confirmBtn.style.cssText = 'background:var(--accent-blue);border:none;color:#fff;border-radius:8px;padding:7px 16px;font-size:13px;cursor:pointer;font-weight:700;';
+            cancelBtn.onclick = () => overlay.remove();
+            confirmBtn.onclick = () => { const v = inp.value.trim(); if (!v) return; overlay.remove(); onConfirm(v); };
+            inp.onkeydown = (ev) => { if (ev.key === 'Enter') confirmBtn.onclick(); if (ev.key === 'Escape') overlay.remove(); };
+            btnRow.appendChild(cancelBtn); btnRow.appendChild(confirmBtn);
+            box.appendChild(inp); box.appendChild(btnRow);
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+            setTimeout(() => inp.focus(), 50);
+        }
+
+        function _openSubcatDialog(layerId, folderKey, folderName, catName) {
+            // 새 서브카테고리 생성: 폴더 내 c값이 없는 태그들을 이 카테고리로 묶거나, 새 태그를 해당 카테고리로 추가할 수 있음
+            _subcatDialog(
+                `📂 "${folderName}" — 새 서브카테고리`,
+                '서브카테고리 이름 (c 필드에 저장됨)',
+                catName || '',
+                (newCat) => {
+                    // 이 카테고리 이름으로 빈 태그 그룹 자리를 만들기 위해 안내 토스트만 보여줌
+                    // (실제 태그는 태그 추가 시 c 필드에 이 값을 입력해야 함)
+                    showToast(`서브카테고리 "${newCat}" 생성됨 — 태그 추가 시 서브카테고리 필드에 "${newCat}" 입력`, 'success');
+                    // 자동으로 태그 추가 팝업 열기
+                    const anchorEl = document.querySelector(`.sub-folder[data-folder-key="${CSS.escape(folderKey)}"] .sub-folder-header`) || document.body;
+                    openTagInlinePopup(anchorEl, { mode: 'add', layerId, folderName: folderKey, folderLabel: folderName, defaultCat: newCat });
+                }
+            );
+        }
+
+        function _openSubcatRenameDialog(layerId, folderKey, cats) {
+            // 여러 카테고리가 있으면 먼저 선택하게
+            if (cats.length === 1) {
+                _subcatDialog(`서브카테고리 이름 변경`, `"${cats[0]}" → 새 이름`, cats[0], (newName) => {
+                    _renameSubcat(layerId, folderKey, cats[0], newName);
+                });
+                return;
+            }
+            // 카테고리 선택 먼저
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;background:var(--overlay-bg);z-index:99999;display:flex;align-items:center;justify-content:center;';
+            const box = document.createElement('div');
+            box.style.cssText = 'background:var(--glass-bg);backdrop-filter:blur(60px) saturate(200%) brightness(1.08);-webkit-backdrop-filter:blur(60px) saturate(200%) brightness(1.08);border:1px solid rgba(255,255,255,0.12);border-top:1px solid var(--glass-highlight);border-radius:16px;padding:20px;width:min(300px,90vw);display:flex;flex-direction:column;gap:8px;box-shadow:0 0 0 0.5px rgba(255,255,255,0.08),0 24px 60px rgba(0,0,0,0.5),inset 0 1px 0 var(--glass-highlight);';
+            box.innerHTML = '<div style="font-size:14px;font-weight:800;font-family:var(--font-heading);margin-bottom:4px;">어떤 서브카테고리를 변경할까요?</div>';
+            cats.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.textContent = cat;
+                btn.style.cssText = 'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-main);border-radius:8px;padding:8px 12px;text-align:left;cursor:pointer;font-size:13px;';
+                btn.onmouseover = () => btn.style.background = 'rgba(255,255,255,0.12)';
+                btn.onmouseout = () => btn.style.background = 'rgba(255,255,255,0.06)';
+                btn.onclick = () => { overlay.remove(); _subcatDialog(`이름 변경`, `"${cat}" → 새 이름`, cat, (n) => _renameSubcat(layerId, folderKey, cat, n)); };
+                box.appendChild(btn);
+            });
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = '취소'; cancelBtn.style.cssText = 'background:transparent;border:1px solid var(--border-dim);color:var(--text-dim);border-radius:8px;padding:7px;font-size:12px;cursor:pointer;margin-top:4px;';
+            cancelBtn.onclick = () => overlay.remove();
+            box.appendChild(cancelBtn); overlay.appendChild(box); document.body.appendChild(overlay);
+        }
+
+        function _renameSubcat(layerId, folderKey, oldName, newName) {
+            const tags = promptDB[layerId]?.[folderKey];
+            if (!tags) return;
+            tags.forEach(t => { if (t.c === oldName) t.c = newName; });
+            safeSetStorage('pro_prompt_db_v7_0', promptDB);
+            initApp();
+            showToast(`"${oldName}" → "${newName}" 변경됨`, 'success');
+        }
+
+        function _openSubcatDeleteDialog(layerId, folderKey, cats) {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;background:var(--overlay-bg);z-index:99999;display:flex;align-items:center;justify-content:center;';
+            const box = document.createElement('div');
+            box.style.cssText = 'background:var(--glass-bg);backdrop-filter:blur(60px) saturate(200%) brightness(1.08);-webkit-backdrop-filter:blur(60px) saturate(200%) brightness(1.08);border:1px solid rgba(255,255,255,0.12);border-top:1px solid var(--glass-highlight);border-radius:16px;padding:20px;width:min(300px,90vw);display:flex;flex-direction:column;gap:8px;box-shadow:0 0 0 0.5px rgba(255,255,255,0.08),0 24px 60px rgba(0,0,0,0.5),inset 0 1px 0 var(--glass-highlight);';
+            box.innerHTML = '<div style="font-size:14px;font-weight:800;font-family:var(--font-heading);margin-bottom:4px;">삭제할 서브카테고리 선택</div><div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">태그는 삭제되지 않고 카테고리 분류만 제거됩니다.</div>';
+            cats.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.textContent = `🗑 ${cat}`;
+                btn.style.cssText = 'background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:var(--accent-danger);border-radius:8px;padding:8px 12px;text-align:left;cursor:pointer;font-size:13px;';
+                btn.onclick = () => { overlay.remove(); _deleteSubcat(layerId, folderKey, cat); };
+                box.appendChild(btn);
+            });
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = '취소'; cancelBtn.style.cssText = 'background:transparent;border:1px solid var(--border-dim);color:var(--text-dim);border-radius:8px;padding:7px;font-size:12px;cursor:pointer;margin-top:4px;';
+            cancelBtn.onclick = () => overlay.remove();
+            box.appendChild(cancelBtn); overlay.appendChild(box); document.body.appendChild(overlay);
+        }
+
+        function _deleteSubcat(layerId, folderKey, catName) {
+            const tags = promptDB[layerId]?.[folderKey];
+            if (!tags) return;
+            tags.forEach(t => { if (t.c === catName) t.c = ''; });
+            safeSetStorage('pro_prompt_db_v7_0', promptDB);
+            initApp();
+            showToast(`"${catName}" 서브카테고리 제거됨 (태그는 유지)`, 'info');
+        }
+
         function openDBFormatGuide() {
             document.querySelectorAll('.db-format-guide-overlay').forEach(e => e.remove());
             const overlay = document.createElement('div');
@@ -5709,16 +5838,31 @@
 
             sections.forEach(sec => {
                 const div = document.createElement('div');
-                div.style.cssText = 'background:var(--bg-base);border-radius:8px;padding:12px;border:1px solid var(--border-dim);';
-                let inner = `<div style="font-size:13px;font-weight:700;color:var(--text-main);margin-bottom:6px;">${sec.title}</div>`;
-                if (sec.desc) inner += `<div style="font-size:12px;color:var(--text-dim);line-height:1.6;white-space:pre-wrap;margin-bottom:6px;">${sec.desc}</div>`;
-                if (sec.code) {
-                    inner += `<div style="position:relative;">
-                        <pre style="background:var(--input-bg);border:1px solid var(--border-dim);border-radius:6px;padding:10px;font-size:11px;font-family:var(--font-code);color:var(--accent-blue);overflow-x:auto;white-space:pre-wrap;word-break:break-all;">${sec.code.replace(/</g,'&lt;')}</pre>
-                        <button onclick="navigator.clipboard.writeText(${JSON.stringify(sec.code)}).then(()=>showToast('복사됨','success'))" style="position:absolute;top:6px;right:6px;background:var(--bg-surface);border:1px solid var(--border-dim);color:var(--text-dim);border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;">복사</button>
-                    </div>`;
+                div.style.cssText = 'background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;border:1px solid rgba(255,255,255,0.08);';
+                const titleEl = document.createElement('div');
+                titleEl.style.cssText = 'font-size:13px;font-weight:700;color:var(--text-main);margin-bottom:8px;font-family:var(--font-heading);';
+                titleEl.textContent = sec.title;
+                div.appendChild(titleEl);
+                if (sec.desc) {
+                    const descEl = document.createElement('div');
+                    descEl.style.cssText = 'font-size:12px;color:var(--text-dim);line-height:1.7;white-space:pre-wrap;margin-bottom:8px;';
+                    descEl.innerHTML = sec.desc;
+                    div.appendChild(descEl);
                 }
-                div.innerHTML = inner;
+                if (sec.code) {
+                    const codeWrap = document.createElement('div');
+                    codeWrap.style.cssText = 'position:relative;';
+                    const pre = document.createElement('pre');
+                    pre.style.cssText = 'background:var(--input-bg);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 70px 10px 10px;font-size:11px;font-family:var(--font-code);color:var(--accent-blue);overflow-x:auto;white-space:pre-wrap;word-break:break-all;';
+                    pre.textContent = sec.code;
+                    const copyBtn = document.createElement('button');
+                    copyBtn.textContent = '복사';
+                    copyBtn.style.cssText = 'position:absolute;top:6px;right:6px;background:var(--bg-surface);border:1px solid var(--border-dim);color:var(--text-dim);border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;';
+                    copyBtn.onclick = () => navigator.clipboard.writeText(sec.code).then(() => showToast('복사됨', 'success'));
+                    codeWrap.appendChild(pre);
+                    codeWrap.appendChild(copyBtn);
+                    div.appendChild(codeWrap);
+                }
                 body.appendChild(div);
             });
 
@@ -5843,7 +5987,7 @@
             document.getElementById('tip-folder-label').textContent = state.folderLabel || '';
             document.getElementById('tip-en').value = state.en || '';
             document.getElementById('tip-kr').value = state.kr || '';
-            document.getElementById('tip-conflict').value = state.conflict || '';
+            document.getElementById('tip-conflict').value = state.conflict || state.defaultCat || '';
             const newFolderRow = document.getElementById('tip-new-folder-row');
             document.getElementById('tip-folder-name').value = '';
             newFolderRow.style.display = state.newFolder ? 'block' : 'none';
