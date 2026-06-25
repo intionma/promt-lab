@@ -501,7 +501,7 @@
                     <button class="action-btn" onclick="openDBManager()" style="color:var(--accent-blue); border-color:var(--accent-blue);"><i class="fa-solid fa-database"></i> DB 관리</button>
                     <button class="action-btn" onclick="openDBTextEditor()" title="텍스트로 DB 편집" style="color:var(--accent-green); border-color:var(--accent-green);"><i class="fa-solid fa-code"></i></button>
                     <button class="action-btn" onclick="openIOModal('export')" title="내보내기"><i class="fa-solid fa-copy"></i></button>
-                    <button class="action-btn" onclick="openIOModal('import')" title="불러오기"><i class="fa-solid fa-paste"></i></button>
+                    <button class="action-btn" onclick="openIOModal('import')" title="복구/추가"><i class="fa-solid fa-paste"></i> 복구/추가</button>
                 </div>
             </div>
 
@@ -710,6 +710,7 @@
                 <span class="modal-title"><i class="fa-solid fa-code"></i> DB 텍스트 편집기</span>
                 <div style="display:flex; gap:8px; align-items:center;">
                     <span id="db-text-status" style="font-size:13px; color:var(--text-dim);"></span>
+                    <button class="action-btn" onclick="openDBFormatGuide()" title="입력 형식 가이드" style="color:var(--text-dim); border-color:var(--border-dim);"><i class="fa-solid fa-circle-info"></i> ⓘ</button>
                     <button class="action-btn" onclick="formatDBText()" style="color:var(--accent-blue); border-color:var(--accent-blue);"><i class="fa-solid fa-indent"></i> 정렬</button>
                     <button class="action-btn" onclick="saveDBText()" style="background:var(--accent-green); color:#fff; border:none;"><i class="fa-solid fa-floppy-disk"></i> 저장 적용</button>
                     <button class="action-btn" onclick="hardResetAll()" style="background:var(--accent-danger); color:#fff; border:none;"><i class="fa-solid fa-trash-can"></i> 완전 리셋</button>
@@ -1364,7 +1365,49 @@
                             btn.className = 'tag-btn'; btn.dataset.layer = i;
                             btn.dataset.tag = data.t;
                             btn.dataset.folderKey = subLayerRaw;
-                            btn.innerHTML = `<span class="tag-kr">${data.k || data.t}</span><span class="tag-en">${data.t}</span>`;
+                            const isMulti = data.t.includes(',');
+                            const firstPrompt = data.t.split(',')[0].trim();
+                            const displayLabel = data.k || (isMulti ? firstPrompt : data.t);
+                            const titleAttr = isMulti ? ` title="${data.t.replace(/"/g,'&quot;')}"` : '';
+                            btn.innerHTML = `<span class="tag-kr"${titleAttr}>${displayLabel}</span><span class="tag-en">${data.t}</span>`;
+                            if (isMulti) {
+                                // hover tooltip
+                                const tooltip = document.createElement('div');
+                                tooltip.style.cssText = 'display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a1e27;border:1px solid var(--border-dim);color:#94a3b8;font-size:11px;font-family:var(--font-code);padding:6px 10px;border-radius:6px;white-space:pre;z-index:200;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+                                tooltip.textContent = data.t.split(',').map(s => s.trim()).join('\n');
+                                btn.appendChild(tooltip);
+                                btn.addEventListener('mouseenter', () => { tooltip.style.display = 'block'; });
+                                btn.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+                                // double-click inline edit for t field
+                                btn.addEventListener('dblclick', (e) => {
+                                    e.stopPropagation();
+                                    tooltip.style.display = 'none';
+                                    const rect = btn.getBoundingClientRect();
+                                    const editDiv = document.createElement('div');
+                                    editDiv.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.bottom+4}px;z-index:99999;background:var(--bg-surface);border:1px solid var(--accent-blue);border-radius:8px;padding:8px;display:flex;gap:6px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,0.4);`;
+                                    const inp = document.createElement('input');
+                                    inp.value = data.t;
+                                    inp.style.cssText = 'background:var(--bg-base);border:1px solid var(--border-dim);color:var(--text-main);border-radius:6px;padding:4px 8px;font-size:12px;font-family:var(--font-code);outline:none;width:200px;';
+                                    const saveBtn2 = document.createElement('button');
+                                    saveBtn2.textContent = '저장';
+                                    saveBtn2.style.cssText = 'background:var(--accent-blue);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;';
+                                    const finish2 = () => {
+                                        const nv = inp.value.trim();
+                                        if (nv && nv !== data.t) {
+                                            data.t = nv;
+                                            safeSetStorage('pro_prompt_db_v7_0', promptDB);
+                                            initApp();
+                                        }
+                                        editDiv.remove();
+                                    };
+                                    saveBtn2.onclick = finish2;
+                                    inp.onkeydown = (ev) => { if (ev.key === 'Enter') finish2(); if (ev.key === 'Escape') editDiv.remove(); };
+                                    editDiv.appendChild(inp); editDiv.appendChild(saveBtn2);
+                                    document.body.appendChild(editDiv);
+                                    inp.focus(); inp.select();
+                                    setTimeout(() => { document.addEventListener('mousedown', function handler(ev) { if (!editDiv.contains(ev.target)) { editDiv.remove(); document.removeEventListener('mousedown', handler); } }); }, 0);
+                                });
+                            }
 
                             const star = document.createElement('i');
                             star.className = `fa-star tag-fav-icon ${favorites.includes(data.t) ? 'fa-solid active' : 'fa-regular'}`;
@@ -1713,6 +1756,7 @@
         function setupFsItemDrag(el, id) {
             el.draggable = true;
             el.addEventListener('dragstart', (e) => {
+                e.stopPropagation(); // Bug 3 fix: prevent parent folder from also starting drag
                 _fsDragging = { id };
                 el.classList.add('dnd-dragging-fs');
                 e.dataTransfer.effectAllowed = 'move';
@@ -1787,19 +1831,32 @@
                 // 폴더 contents 위에 있으면 무시 (setupFolderContentsDropZone가 처리)
                 if (e.target.closest('.combo-folder-contents')) return;
                 e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+                // Bug 1 & 2 fix: even if item is from a folder, allow drop on container
                 const afterEl = getDragAfterElement(container, e.clientX, e.clientY);
                 const draggingEl = container.querySelector(':scope > .dnd-dragging-fs');
-                if (!draggingEl) return;
+                if (!draggingEl) {
+                    // Item being dragged from inside a folder — show indicator
+                    container.style.outline = '2px dashed var(--accent-blue)';
+                    return;
+                }
+                container.style.outline = '';
                 if (afterEl == null) container.appendChild(draggingEl);
                 else container.insertBefore(draggingEl, afterEl);
             });
+            container.addEventListener('dragleave', (e) => {
+                if (!container.contains(e.relatedTarget)) container.style.outline = '';
+            });
             container.addEventListener('drop', (e) => {
                 e.preventDefault();
+                container.style.outline = '';
                 if (!_fsDragging) return;
                 const dragId = _fsDragging.id;
+                // Bug 1 & 2: remove from any parent (folder or root), then add to root
                 removeFsItemFromParent(dragId);
                 // 새 순서를 DOM 기준으로 설정
                 const newOrder = [...container.querySelectorAll(':scope > .combo-item, :scope > .combo-folder-block')].map(el => el.dataset.id).filter(Boolean);
+                // If dragged item not in DOM (came from inside a folder), add to end
+                if (!newOrder.includes(dragId)) newOrder.push(dragId);
                 comboFS.root = newOrder;
                 saveComboFS();
                 renderCombos();
@@ -2147,6 +2204,7 @@
             if (prompts.length === 0) { if (statsEl) statsEl.textContent = ''; return; }
 
             const byLayer = {};
+            const fuzzyItems = [];
             const unknownItems = [];
 
             prompts.forEach(raw => {
@@ -2157,56 +2215,119 @@
                     if (!byLayer[found.lid]) byLayer[found.lid] = [];
                     byLayer[found.lid].push({ raw, clean: cleanP, folder: found.fk.split('|')[0] });
                 } else {
-                    unknownItems.push({ raw, clean: cleanP });
+                    const fuzzy = _fuzzyFindLayer(cleanP);
+                    if (fuzzy) {
+                        fuzzyItems.push({ raw, clean: cleanP, fuzzyLid: fuzzy.lid, fuzzyFk: fuzzy.fk, score: fuzzy.score });
+                    } else {
+                        unknownItems.push({ raw, clean: cleanP });
+                    }
                 }
             });
 
             const total = prompts.length;
-            const matched = total - unknownItems.length;
-            if (statsEl) statsEl.textContent = `총 ${total}개 · 인식 ${matched}개 · 미인식 ${unknownItems.length}개`;
+            const matched = total - fuzzyItems.length - unknownItems.length;
+            if (statsEl) statsEl.textContent = `총 ${total}개 · 인식 ${matched}개 · 유사 ${fuzzyItems.length}개 · 미인식 ${unknownItems.length}개`;
 
-            // Grouped by layer
-            layerMeta.forEach(lm => {
-                const items = byLayer[lm.id];
-                if (!items || items.length === 0) return;
-                const group = document.createElement('div');
-                group.style.cssText = 'background:var(--bg-base);border-radius:8px;overflow:hidden;border:1px solid var(--border-dim);';
-                const ghdr = document.createElement('div');
-                ghdr.style.cssText = `display:flex;align-items:center;gap:6px;padding:6px 10px;background:hsla(${lm.hue},70%,55%,0.1);border-bottom:1px solid var(--border-dim);font-size:11px;font-weight:700;`;
-                ghdr.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:${lm.color};display:inline-block;flex-shrink:0;"></span><span style="color:${lm.color};">${lm.id}계층</span><span style="color:var(--text-dim);font-weight:400;">${items.map(i => i.clean).join(', ')}</span>`;
-                group.appendChild(ghdr);
-                list.appendChild(group);
-            });
+            // Section 1: ✅ DB에서 인식됨
+            if (Object.keys(byLayer).length > 0) {
+                const secHdr = document.createElement('div');
+                secHdr.style.cssText = 'font-size:11px;font-weight:700;color:var(--accent-green);margin-top:4px;margin-bottom:2px;';
+                secHdr.textContent = '✅ DB에서 인식됨';
+                list.appendChild(secHdr);
+                layerMeta.forEach(lm => {
+                    const items = byLayer[lm.id];
+                    if (!items || items.length === 0) return;
+                    const group = document.createElement('div');
+                    group.style.cssText = 'background:var(--bg-base);border-radius:8px;overflow:hidden;border:1px solid var(--border-dim);';
+                    const ghdr = document.createElement('div');
+                    ghdr.style.cssText = `display:flex;align-items:center;gap:6px;padding:6px 10px;background:hsla(${lm.hue},70%,55%,0.1);border-bottom:1px solid var(--border-dim);font-size:11px;font-weight:700;`;
+                    ghdr.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:${lm.color};display:inline-block;flex-shrink:0;"></span><span style="color:${lm.color};">${lm.id}계층</span><span style="color:var(--text-dim);font-weight:400;">${items.map(i => i.clean).join(', ')}</span>`;
+                    group.appendChild(ghdr);
+                    list.appendChild(group);
+                });
+            }
 
-            // Unknown items (need manual layer assignment)
-            unknownItems.forEach(it => {
-                const item = document.createElement('div');
-                item.className = 'ccm-recog-item';
-                item.dataset.cleanPrompt = it.clean;
-                item.innerHTML = `<span class="ccm-recog-missing">❓</span><span style="font-family:var(--font-code);font-size:11px;">${it.clean}</span>`;
-                const selects = document.createElement('div');
-                selects.className = 'ccm-recog-selects';
-                const layerSel = document.createElement('select');
-                layerSel.className = 'ccm-recog-select';
-                layerSel.innerHTML = '<option value="">계층 선택</option>' + layerMeta.map(l => `<option value="${l.id}">${l.id}계층: ${l.title}</option>`).join('');
-                const folderSel = document.createElement('select');
-                folderSel.className = 'ccm-recog-select';
-                folderSel.innerHTML = '<option value="">폴더 선택</option>';
-                layerSel.onchange = () => {
-                    const lid = parseInt(layerSel.value);
+            // Section 2: 🔶 유사 항목
+            if (fuzzyItems.length > 0) {
+                const secHdr = document.createElement('div');
+                secHdr.style.cssText = 'font-size:11px;font-weight:700;color:#f97316;margin-top:8px;margin-bottom:2px;';
+                secHdr.textContent = '🔶 유사 항목 (추정 계층)';
+                list.appendChild(secHdr);
+                fuzzyItems.forEach(it => {
+                    const item = document.createElement('div');
+                    item.className = 'ccm-recog-item';
+                    item.dataset.cleanPrompt = it.clean;
+                    item.dataset.isFuzzy = '1';
+                    item.innerHTML = `<span>🔶</span><span style="font-family:var(--font-code);font-size:11px;">${it.clean}</span><span style="font-size:10px;color:var(--text-dim);">(추정)</span>`;
+                    const selects = document.createElement('div');
+                    selects.className = 'ccm-recog-selects';
+                    const layerSel = document.createElement('select');
+                    layerSel.className = 'ccm-recog-select';
+                    layerSel.innerHTML = '<option value="">계층 선택</option>' + layerMeta.map(l => `<option value="${l.id}" ${l.id === it.fuzzyLid ? 'selected' : ''}>${l.id}계층: ${l.title}${l.id === it.fuzzyLid ? ' (추정)' : ''}</option>`).join('');
+                    const folderSel = document.createElement('select');
+                    folderSel.className = 'ccm-recog-select';
+                    // Pre-fill folders for fuzzy layer
                     folderSel.innerHTML = '<option value="__new__">새 폴더...</option>';
-                    if (lid && promptDB[lid]) {
-                        Object.keys(promptDB[lid]).forEach(fk => {
+                    if (it.fuzzyLid && promptDB[it.fuzzyLid]) {
+                        Object.keys(promptDB[it.fuzzyLid]).forEach(fk => {
                             const opt = document.createElement('option');
                             opt.value = fk; opt.textContent = fk.split('|')[0];
+                            if (fk === it.fuzzyFk) opt.selected = true;
                             folderSel.appendChild(opt);
                         });
                     }
-                };
-                selects.appendChild(layerSel); selects.appendChild(folderSel);
-                item.appendChild(selects);
-                list.appendChild(item);
-            });
+                    layerSel.onchange = () => {
+                        const lid = parseInt(layerSel.value);
+                        folderSel.innerHTML = '<option value="__new__">새 폴더...</option>';
+                        if (lid && promptDB[lid]) {
+                            Object.keys(promptDB[lid]).forEach(fk => {
+                                const opt = document.createElement('option');
+                                opt.value = fk; opt.textContent = fk.split('|')[0];
+                                folderSel.appendChild(opt);
+                            });
+                        }
+                    };
+                    selects.appendChild(layerSel); selects.appendChild(folderSel);
+                    item.appendChild(selects);
+                    list.appendChild(item);
+                });
+            }
+
+            // Section 3: ❓ 미감지 항목
+            if (unknownItems.length > 0) {
+                const secHdr = document.createElement('div');
+                secHdr.style.cssText = 'font-size:11px;font-weight:700;color:var(--text-dim);margin-top:8px;margin-bottom:2px;';
+                secHdr.textContent = '❓ 미감지 항목';
+                list.appendChild(secHdr);
+                unknownItems.forEach(it => {
+                    const item = document.createElement('div');
+                    item.className = 'ccm-recog-item';
+                    item.dataset.cleanPrompt = it.clean;
+                    item.innerHTML = `<span class="ccm-recog-missing">❓</span><span style="font-family:var(--font-code);font-size:11px;">${it.clean}</span>`;
+                    const selects = document.createElement('div');
+                    selects.className = 'ccm-recog-selects';
+                    const layerSel = document.createElement('select');
+                    layerSel.className = 'ccm-recog-select';
+                    layerSel.innerHTML = '<option value="">계층 선택</option>' + layerMeta.map(l => `<option value="${l.id}">${l.id}계층: ${l.title}</option>`).join('');
+                    const folderSel = document.createElement('select');
+                    folderSel.className = 'ccm-recog-select';
+                    folderSel.innerHTML = '<option value="">폴더 선택</option>';
+                    layerSel.onchange = () => {
+                        const lid = parseInt(layerSel.value);
+                        folderSel.innerHTML = '<option value="__new__">새 폴더...</option>';
+                        if (lid && promptDB[lid]) {
+                            Object.keys(promptDB[lid]).forEach(fk => {
+                                const opt = document.createElement('option');
+                                opt.value = fk; opt.textContent = fk.split('|')[0];
+                                folderSel.appendChild(opt);
+                            });
+                        }
+                    };
+                    selects.appendChild(layerSel); selects.appendChild(folderSel);
+                    item.appendChild(selects);
+                    list.appendChild(item);
+                });
+            }
         }
 
         function _ccmApplyToEditor(text, overlay) {
@@ -2224,7 +2345,7 @@
                 // unknown without manual layer selection are skipped
             });
 
-            // Also collect unknown items with manually assigned layers
+            // Also collect items with manually assigned layers (fuzzy or unknown)
             document.querySelectorAll('#ccm-recog-list .ccm-recog-item[data-clean-prompt]').forEach(itemEl => {
                 const clean = itemEl.dataset.cleanPrompt;
                 const layerSel = itemEl.querySelector('select');
@@ -2237,6 +2358,7 @@
             });
 
             let appliedCount = 0;
+            if (!_ccmState.appliedPrompts) _ccmState.appliedPrompts = new Set();
             layerMeta.forEach(lm => {
                 const items = byLayer[lm.id];
                 if (!items || items.length === 0) return;
@@ -2246,11 +2368,31 @@
                 ta.value = ta.value ? ta.value.trimEnd().replace(/,\s*$/, '') + ', ' + toAdd : toAdd;
                 syncFromManualInput(lm.id);
                 appliedCount += items.length;
+                items.forEach(r => _ccmState.appliedPrompts.add(r.replace(/^\(+|\)+$/g, '').replace(/:\d*\.?\d+$/, '').trim()));
             });
 
             _refreshAllTagBtnStates();
-            overlay.remove();
-            showToast(`${appliedCount}개 프롬프트 에디터에 적용됨`, 'success');
+            // Do NOT close overlay — modal stays open
+
+            // Update applied item icons in recognition list
+            document.querySelectorAll('#ccm-recog-list .ccm-recog-item[data-clean-prompt]').forEach(itemEl => {
+                const clean = itemEl.dataset.cleanPrompt;
+                if (_ccmState.appliedPrompts.has(clean)) {
+                    const iconEl = itemEl.querySelector('span:first-child');
+                    if (iconEl) iconEl.textContent = '✅';
+                    const selects = itemEl.querySelectorAll('select');
+                    selects.forEach(s => s.disabled = true);
+                }
+            });
+
+            // Update apply button
+            const applyBtn = document.getElementById('ccm-btn-apply-editor');
+            if (applyBtn) {
+                applyBtn.innerHTML = `<i class="fa-solid fa-check"></i> 에디터에 적용됨 (${_ccmState.appliedPrompts.size}개)`;
+                applyBtn.style.background = 'var(--accent-green)';
+            }
+
+            showToast(`에디터에 ${appliedCount}개 태그 적용됨`, 'success');
         }
 
         function saveComboFromModal(name, selectedTags, targetFolderId, advOptions) {
@@ -3529,15 +3671,164 @@
                     if (el) el.onchange = updateExportPreview;
                 });
             } else {
-                title.innerHTML = '<i class="fa-solid fa-paste"></i> 데이터 복구하기';
-                desc.innerText = "백업해둔 코드(전체 또는 구형 태그DB)를 붙여넣기 하세요. 선택한 항목만 덮어씁니다.";
+                title.innerHTML = '<i class="fa-solid fa-paste"></i> 복구/추가';
+                desc.innerHTML = `백업해둔 코드를 붙여넣기 하세요.<br>
+                    <div style="display:flex;gap:8px;margin-top:10px;">
+                        <button id="io-mode-restore" onclick="setImportMode('restore')" style="flex:1;padding:8px;border-radius:8px;border:2px solid var(--accent-blue);background:var(--accent-blue);color:#fff;font-weight:700;font-family:var(--font-ui);cursor:pointer;font-size:13px;">📦 전체 복구</button>
+                        <button id="io-mode-merge" onclick="setImportMode('merge')" style="flex:1;padding:8px;border-radius:8px;border:2px solid var(--border-dim);background:transparent;color:var(--text-dim);font-weight:700;font-family:var(--font-ui);cursor:pointer;font-size:13px;">➕ 병합 추가</button>
+                    </div>
+                    <div id="io-mode-desc" style="font-size:12px;color:var(--text-dim);margin-top:8px;">모든 데이터를 붙여넣은 코드로 교체합니다.</div>`;
                 if (exportOpts) exportOpts.style.display = 'none';
                 textarea.value = "";
                 textarea.readOnly = false;
-                btn.innerText = "붙여넣은 코드로 복구 실행";
+                window._importMode = 'restore';
+                btn.innerText = "복구 실행";
                 btn.style.backgroundColor = "var(--accent-green)";
             }
             modal.style.display = 'flex';
+        }
+
+        function setImportMode(mode) {
+            window._importMode = mode;
+            const restoreBtn = document.getElementById('io-mode-restore');
+            const mergeBtn = document.getElementById('io-mode-merge');
+            const descEl = document.getElementById('io-mode-desc');
+            const actionBtn = document.getElementById('io-action-btn');
+            if (mode === 'restore') {
+                if (restoreBtn) { restoreBtn.style.background='var(--accent-blue)'; restoreBtn.style.color='#fff'; restoreBtn.style.borderColor='var(--accent-blue)'; }
+                if (mergeBtn) { mergeBtn.style.background='transparent'; mergeBtn.style.color='var(--text-dim)'; mergeBtn.style.borderColor='var(--border-dim)'; }
+                if (descEl) descEl.textContent='모든 데이터를 붙여넣은 코드로 교체합니다.';
+                if (actionBtn) actionBtn.innerText = '복구 실행';
+            } else {
+                if (mergeBtn) { mergeBtn.style.background='var(--accent-blue)'; mergeBtn.style.color='#fff'; mergeBtn.style.borderColor='var(--accent-blue)'; }
+                if (restoreBtn) { restoreBtn.style.background='transparent'; restoreBtn.style.color='var(--text-dim)'; restoreBtn.style.borderColor='var(--border-dim)'; }
+                if (descEl) descEl.textContent='기존 데이터에 새 항목을 추가합니다. 충돌 항목은 확인 후 처리합니다.';
+                if (actionBtn) actionBtn.innerText = '병합 실행';
+            }
+        }
+
+        function _mergeImportData(parsed) {
+            let addedCount = 0;
+            const conflicts = [];
+
+            // Merge promptDB
+            if (parsed.promptDB) {
+                for (let lid = 1; lid <= 7; lid++) {
+                    if (!parsed.promptDB[lid]) continue;
+                    if (!promptDB[lid]) promptDB[lid] = {};
+                    for (const [fk, tags] of Object.entries(parsed.promptDB[lid])) {
+                        if (!promptDB[lid][fk]) promptDB[lid][fk] = [];
+                        for (const newTag of tags) {
+                            const existing = promptDB[lid][fk].find(t => t.t === newTag.t);
+                            if (!existing) {
+                                promptDB[lid][fk].push(newTag);
+                                addedCount++;
+                            } else if (JSON.stringify(existing) !== JSON.stringify(newTag)) {
+                                conflicts.push({ lid, fk, existing, newTag });
+                            }
+                        }
+                    }
+                }
+                safeSetStorage('pro_prompt_db_v7_0', promptDB);
+            }
+
+            // Merge comboFS
+            if (parsed.comboFS?.items) {
+                for (const [id, item] of Object.entries(parsed.comboFS.items)) {
+                    if (!comboFS.items[id]) {
+                        comboFS.items[id] = item;
+                        addedCount++;
+                    }
+                }
+                // Add new root items
+                if (parsed.comboFS.root) {
+                    for (const id of parsed.comboFS.root) {
+                        if (!comboFS.root.includes(id) && comboFS.items[id]) comboFS.root.push(id);
+                    }
+                }
+                saveComboFS();
+            }
+
+            initApp();
+            document.getElementById('db-io-modal').style.display = 'none';
+
+            if (conflicts.length > 0) {
+                _showConflictModal(conflicts, addedCount);
+            } else {
+                showToast(`${addedCount}개 항목 추가됨`, 'success');
+            }
+        }
+
+        function _showConflictModal(conflicts, addedCount) {
+            document.querySelectorAll('.conflict-resolve-overlay').forEach(e => e.remove());
+            const overlay = document.createElement('div');
+            overlay.className = 'conflict-resolve-overlay combo-create-modal-overlay';
+            const modal = document.createElement('div');
+            modal.style.cssText = 'background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:14px;width:min(600px,95vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;';
+            const hdr = document.createElement('div');
+            hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-dim);flex-shrink:0;';
+            hdr.innerHTML = `<span style="font-size:15px;font-weight:800;font-family:var(--font-heading);">⚠️ 충돌 항목 (${conflicts.length}개) — ${addedCount}개 추가됨</span>`;
+            const body = document.createElement('div');
+            body.style.cssText = 'flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;';
+            const footer = document.createElement('div');
+            footer.style.cssText = 'display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--border-dim);flex-shrink:0;';
+
+            const pendingDecisions = conflicts.map(c => ({ conflict: c, decision: null }));
+
+            conflicts.forEach((c, idx) => {
+                const row = document.createElement('div');
+                row.style.cssText = 'background:var(--bg-base);border-radius:8px;padding:10px;border:1px solid var(--border-dim);';
+                row.innerHTML = `<div style="font-size:11px;color:var(--text-dim);">${c.lid}계층 › ${c.fk.split('|')[0]}</div>
+                    <div style="font-size:12px;margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;">
+                        <span style="color:var(--text-dim);">기존: <code style="font-family:var(--font-code);color:var(--text-main);">${c.existing.t} / ${c.existing.k||''}</code></span>
+                        <span style="color:var(--accent-blue);">→ 변경: <code style="font-family:var(--font-code);">${c.newTag.t} / ${c.newTag.k||''}</code></span>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-top:8px;">
+                        <button data-idx="${idx}" data-action="approve" style="padding:4px 12px;border-radius:6px;border:none;background:var(--accent-green);color:#fff;font-size:12px;cursor:pointer;font-weight:700;">승인</button>
+                        <button data-idx="${idx}" data-action="reject" style="padding:4px 12px;border-radius:6px;border:none;background:var(--bg-surface);border:1px solid var(--border-dim);color:var(--text-dim);font-size:12px;cursor:pointer;">거부</button>
+                    </div>`;
+                row.querySelectorAll('button').forEach(btn => {
+                    btn.onclick = () => {
+                        const i = parseInt(btn.dataset.idx);
+                        const action = btn.dataset.action;
+                        pendingDecisions[i].decision = action;
+                        row.style.opacity = '0.5';
+                        if (action === 'approve') {
+                            const { c: conflict } = { c: conflicts[i] };
+                            const arr = promptDB[conflict.lid][conflict.fk];
+                            const ei = arr.findIndex(t => t.t === conflict.existing.t);
+                            if (ei !== -1) { arr[ei] = conflict.newTag; safeSetStorage('pro_prompt_db_v7_0', promptDB); initApp(); }
+                            btn.textContent = '✅ 승인됨';
+                        } else { btn.textContent = '❌ 거부됨'; }
+                    };
+                });
+                body.appendChild(row);
+            });
+
+            const approveAllBtn = document.createElement('button');
+            approveAllBtn.textContent = '모두 승인';
+            approveAllBtn.style.cssText = 'padding:7px 16px;border-radius:8px;border:none;background:var(--accent-green);color:#fff;font-size:13px;font-weight:700;cursor:pointer;';
+            approveAllBtn.onclick = () => {
+                conflicts.forEach((c) => {
+                    const arr = promptDB[c.lid][c.fk];
+                    const ei = arr.findIndex(t => t.t === c.existing.t);
+                    if (ei !== -1) arr[ei] = c.newTag;
+                });
+                safeSetStorage('pro_prompt_db_v7_0', promptDB); initApp();
+                overlay.remove(); showToast('모든 충돌 승인됨', 'success');
+            };
+            const rejectAllBtn = document.createElement('button');
+            rejectAllBtn.textContent = '모두 거부';
+            rejectAllBtn.style.cssText = 'padding:7px 16px;border-radius:8px;border:1px solid var(--border-dim);background:transparent;color:var(--text-dim);font-size:13px;font-weight:700;cursor:pointer;';
+            rejectAllBtn.onclick = () => { overlay.remove(); showToast('모든 충돌 거부됨', 'info'); };
+            const doneBtn = document.createElement('button');
+            doneBtn.textContent = '완료';
+            doneBtn.style.cssText = 'padding:7px 16px;border-radius:8px;border:none;background:var(--accent-blue);color:#fff;font-size:13px;font-weight:700;cursor:pointer;';
+            doneBtn.onclick = () => overlay.remove();
+            footer.appendChild(approveAllBtn); footer.appendChild(rejectAllBtn); footer.appendChild(doneBtn);
+            modal.appendChild(hdr); modal.appendChild(body); modal.appendChild(footer);
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
         }
 
         function executeIO() {
@@ -3552,6 +3843,12 @@
                 try {
                     const parsed = JSON.parse(textarea.value);
                     if (!parsed || typeof parsed !== 'object') throw new Error("Format");
+
+                    // Merge mode
+                    if (window._importMode === 'merge') {
+                        _mergeImportData(parsed);
+                        return;
+                    }
 
                     // 신형 (v2): 전체 데이터
                     if (parsed._version === 2) {
@@ -3667,6 +3964,51 @@
                 renderDBTable(); initApp();
                 showToast("태그가 삭제되었습니다.", "info");
             });
+        }
+
+        function openDBFormatGuide() {
+            document.querySelectorAll('.db-format-guide-overlay').forEach(e => e.remove());
+            const overlay = document.createElement('div');
+            overlay.className = 'db-format-guide-overlay combo-create-modal-overlay';
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+            const modal = document.createElement('div');
+            modal.style.cssText = 'background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:14px;width:min(700px,95vw);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;';
+            const hdr = document.createElement('div');
+            hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-dim);flex-shrink:0;';
+            hdr.innerHTML = '<span style="font-size:15px;font-weight:800;font-family:var(--font-heading);">ⓘ DB 입력 형식 가이드</span>';
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'action-btn'; closeBtn.textContent = '✕ 닫기';
+            closeBtn.onclick = () => overlay.remove();
+            hdr.appendChild(closeBtn);
+            const body = document.createElement('div');
+            body.style.cssText = 'flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;font-family:var(--font-ui);';
+
+            const sections = [
+                { title: '📌 폴더 키 형식', desc: '폴더 키는 <code>폴더명|카테고리</code> 형식입니다. <code>|</code> 구분자가 필수입니다.\n계층 ID: 1=화질/렌더링, 2=구도/피사체, 3=외형/얼굴, 4=의상/악세서리, 5=액션/디테일, 6=배경/환경, 7=조명/카메라' },
+                { title: '1. 특정 폴더에 태그 추가', code: `{"_version": 2, "promptDB": {"1": {"Pony 코어|필수": [{"t": "score_9", "k": "최고 품질", "n": "", "c": ""}]}}}` },
+                { title: '2. 새 폴더 + 태그 추가', code: `{"_version": 2, "promptDB": {"3": {"새폴더명|자유": [{"t": "blonde hair", "k": "금발", "n": "밝은 금발", "c": ""}]}}}` },
+                { title: '3. 간편 조합 추가', code: `{"_version": 2, "comboFS": {"items": {"uc_example1": {"type": "combo", "id": "uc_example1", "title": "내 조합", "tags": {"1": "score_9, score_8_up", "3": "1girl, long hair"}}}, "root": ["uc_example1"]}}` },
+                { title: '4. 에디터 탭 상태 추가', code: `{"_version": 2, "contextTabs": [{"id": "tab_1", "name": "캐릭터"}], "contextStates": {"tab_1": ["score_9, score_8_up", "1girl", "", "", "", "", ""]}}` },
+            ];
+
+            sections.forEach(sec => {
+                const div = document.createElement('div');
+                div.style.cssText = 'background:var(--bg-base);border-radius:8px;padding:12px;border:1px solid var(--border-dim);';
+                let inner = `<div style="font-size:13px;font-weight:700;color:var(--text-main);margin-bottom:6px;">${sec.title}</div>`;
+                if (sec.desc) inner += `<div style="font-size:12px;color:var(--text-dim);line-height:1.6;white-space:pre-wrap;margin-bottom:6px;">${sec.desc}</div>`;
+                if (sec.code) {
+                    inner += `<div style="position:relative;">
+                        <pre style="background:var(--input-bg);border:1px solid var(--border-dim);border-radius:6px;padding:10px;font-size:11px;font-family:var(--font-code);color:var(--accent-blue);overflow-x:auto;white-space:pre-wrap;word-break:break-all;">${sec.code.replace(/</g,'&lt;')}</pre>
+                        <button onclick="navigator.clipboard.writeText(${JSON.stringify(sec.code)}).then(()=>showToast('복사됨','success'))" style="position:absolute;top:6px;right:6px;background:var(--bg-surface);border:1px solid var(--border-dim);color:var(--text-dim);border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;">복사</button>
+                    </div>`;
+                }
+                div.innerHTML = inner;
+                body.appendChild(div);
+            });
+
+            modal.appendChild(hdr); modal.appendChild(body);
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
         }
 
         function openDBTextEditor() {
