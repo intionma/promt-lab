@@ -823,11 +823,21 @@
         let globalWeightCurrent = 1.0;
         let tagDefaultWeights = JSON.parse(localStorage.getItem('tag_default_weights_v1') || '{}');
         function saveTagDefaultWeights() { localStorage.setItem('tag_default_weights_v1', JSON.stringify(tagDefaultWeights)); }
-        function getTagWeight(promptText) { return tagDefaultWeights[promptText] ?? 1.0; }
-        function setTagWeight(promptText, w) {
+        // tagText: 전체 태그 문자열 (e.g. "1girl, 1boy"), promptText: 개별 프롬프트 (e.g. "1girl")
+        // 단일 프롬프트 태그는 tagText===promptText라 키가 "1girl:::1girl" 형태로 저장됨
+        function _weightKey(tagText, promptText) { return tagText + ':::' + promptText; }
+        function getTagWeight(tagText, promptText) {
+            const newKey = _weightKey(tagText, promptText);
+            if (tagDefaultWeights[newKey] !== undefined) return tagDefaultWeights[newKey];
+            // 구 형식 마이그레이션 (promptText만으로 저장된 경우)
+            if (tagDefaultWeights[promptText] !== undefined) return tagDefaultWeights[promptText];
+            return 1.0;
+        }
+        function setTagWeight(tagText, promptText, w) {
             w = Math.round(Math.max(0.1, Math.min(3.0, w)) * 10) / 10;
-            if (Math.abs(w - 1.0) < 0.01) delete tagDefaultWeights[promptText];
-            else tagDefaultWeights[promptText] = w;
+            const key = _weightKey(tagText, promptText);
+            if (Math.abs(w - 1.0) < 0.01) delete tagDefaultWeights[key];
+            else tagDefaultWeights[key] = w;
             saveTagDefaultWeights();
         }
 
@@ -939,19 +949,19 @@
                     label.title = item.promptText;
                     const valEl = document.createElement('span');
                     valEl.className = 'ctx-weight-val';
-                    valEl.textContent = getTagWeight(item.promptText).toFixed(1);
+                    valEl.textContent = getTagWeight(item.tagText, item.promptText).toFixed(1);
                     const mkBtn = (txt, cls, delta) => {
                         const b = document.createElement('button');
                         b.className = 'ctx-weight-btn' + (cls ? ' ' + cls : '');
                         b.textContent = txt;
                         b.addEventListener('click', (e) => {
                             e.stopPropagation();
-                            let cur = getTagWeight(item.promptText);
+                            let cur = getTagWeight(item.tagText, item.promptText);
                             if (delta === 0) cur = 1.0;
                             else cur += delta;
-                            setTagWeight(item.promptText, cur);
-                            valEl.textContent = getTagWeight(item.promptText).toFixed(1);
-                            updateTagBtnDisplay(item.promptText);
+                            setTagWeight(item.tagText, item.promptText, cur);
+                            valEl.textContent = getTagWeight(item.tagText, item.promptText).toFixed(1);
+                            updateTagBtnDisplay(item.tagText, item.promptText);
                         });
                         return b;
                     };
@@ -1123,7 +1133,7 @@
                     { label: '기본 가중치 설정', isHeader: true },
                 ];
                 prompts.forEach(p => {
-                    menuItems.push({ isWeightRow: true, promptText: p, label: p });
+                    menuItems.push({ isWeightRow: true, tagText, promptText: p, label: p });
                 });
                 if (foundFolder !== null) {
                     menuItems.push('sep');
@@ -2112,20 +2122,18 @@
             if (!krEl) return;
             const data = activeTagsMap[tagText];
             const baseKr = data ? data.kor : tagText;
-            const baseEn = tagText; // original raw tag text
 
             if (prompts.length === 1) {
-                const w = getTagWeight(prompts[0]);
+                const w = getTagWeight(tagText, prompts[0]);
                 const wStr = Math.abs(w - 1.0) < 0.01 ? '' : `(${w.toFixed(1)})`;
-                // show weight on both kr and en
                 krEl.textContent = wStr ? `${baseKr}${wStr}` : baseKr;
-                if (enEl) enEl.textContent = wStr ? `${prompts[0]}${wStr}` : baseEn;
+                if (enEl) enEl.textContent = wStr ? `${prompts[0]}${wStr}` : tagText;
             } else {
                 // multi-prompt: kr stays clean, en shows per-prompt weights
                 krEl.textContent = baseKr;
                 if (enEl) {
                     const parts = prompts.map(p => {
-                        const pw = getTagWeight(p);
+                        const pw = getTagWeight(tagText, p);
                         return Math.abs(pw - 1.0) < 0.01 ? p : `${p}(${pw.toFixed(1)})`;
                     });
                     enEl.textContent = parts.join(', ');
@@ -2133,11 +2141,11 @@
             }
         }
 
-        function updateTagBtnDisplay(promptText) {
+        function updateTagBtnDisplay(tagText, promptText) {
+            // tagText가 주어지면 해당 태그 버튼만, 아니면 모든 버튼
             document.querySelectorAll('.tag-btn').forEach(btn => {
-                const tagText = btn.dataset.tag || '';
-                const prompts = tagText.split(',').map(s => s.trim()).filter(Boolean);
-                if (!prompts.includes(promptText)) return;
+                const t = btn.dataset.tag || '';
+                if (tagText && t !== tagText) return;
                 _applyTagBtnWeightDisplay(btn);
             });
         }
@@ -2155,10 +2163,10 @@
 
         function getRegexForTag(tag) { return new RegExp(`\\(?\\b${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b(:\\s*\\d*\\.?\\d*)?\\)?`, 'i'); }
 
-        // 다중 프롬포트 태그의 활성 여부: 구성 프롬포트 중 하나라도 텍스트에 있으면 활성
+        // 다중 프롬포트 태그의 활성 여부: 모든 프롬포트가 텍스트에 있어야 활성
         function isTagActive(tagText, content) {
             const prompts = tagText.split(',').map(s => s.trim()).filter(Boolean);
-            return prompts.some(p => getRegexForTag(p).test(content));
+            return prompts.every(p => getRegexForTag(p).test(content));
         }
 
         // 다중 프롬포트 태그 전체 제거: 각 구성 프롬포트를 개별 제거
@@ -2183,13 +2191,13 @@
                 const prompts = tagText.split(',').map(s => s.trim()).filter(Boolean);
                 let insertText;
                 if (prompts.length === 1) {
-                    const pw = getTagWeight(prompts[0]);
+                    const pw = getTagWeight(tagText, prompts[0]);
                     const w = Math.abs(globalWeightCurrent - 1.0) > 0.01 ? globalWeightCurrent : pw;
                     insertText = Math.abs(w - 1.0) > 0.01 ? `(${tagText}:${w.toFixed(1)})` : tagText;
                 } else {
                     // multi-prompt: each prompt gets its own default weight if set
                     const parts = prompts.map(p => {
-                        const pw = getTagWeight(p);
+                        const pw = getTagWeight(tagText, p);
                         const w = Math.abs(globalWeightCurrent - 1.0) > 0.01 ? globalWeightCurrent : pw;
                         return Math.abs(w - 1.0) > 0.01 ? `(${p}:${w.toFixed(1)})` : p;
                     });
