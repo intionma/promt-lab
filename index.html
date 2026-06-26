@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.2 &nbsp;·&nbsp; 2026-06-26 — 토글 그룹 노드 검색 필터</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.3 &nbsp;·&nbsp; 2026-06-26 — 고급: 노드 즐겨찾기 + 수치 직접 편집</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -1184,6 +1184,16 @@
                                 </div>
                             </details>
                         </div>
+
+                        <!-- 고급: 노드 수치 직접 편집 (즐겨찾기) -->
+                        <div style="border-top:1px dashed var(--border-dim); padding-top:10px;">
+                            <label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:6px;">고급 — 노드 수치 직접 편집 (steps·cfg·denoise·강도 등)</label>
+                            <div style="display:flex; gap:6px; margin-bottom:8px;">
+                                <select id="comfy-fav-add-select" class="comfy-num" style="flex:1;"></select>
+                                <button class="action-btn" onclick="comfyAddFavNode()" style="color:#eab308; border-color:#eab308;"><i class="fa-solid fa-star"></i> 즐겨찾기 추가</button>
+                            </div>
+                            <div id="comfy-fav-nodes" style="display:flex; flex-direction:column; gap:8px;"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -1384,6 +1394,8 @@
                     target: _comfyTarget,
                     connectedOnce: _comfyConnectedOnce,
                     groups: _comfyGroups,
+                    nodeFaves: _comfyNodeFaves,
+                    overrides: _comfyOverrides,
                 }));
             } catch (e) {}
         }
@@ -1421,10 +1433,13 @@
                 if (s.wfRandSeed !== undefined) document.getElementById('comfy-wf-randseed').checked = s.wfRandSeed;
                 if (s.wfInjectMode) document.getElementById('comfy-wf-injectmode').value = s.wfInjectMode;
                 if (Array.isArray(s.groups)) _comfyGroups = s.groups;
+                if (Array.isArray(s.nodeFaves)) _comfyNodeFaves = s.nodeFaves;
+                if (s.overrides && typeof s.overrides === 'object') _comfyOverrides = s.overrides;
                 comfySetWfMode(s.wfMode || 'basic');
                 comfySetTarget(s.target || 'both');
                 if ((s.wfMode === 'custom') && s.wfJson) comfyAnalyzeWorkflow(true);
                 comfyRenderGroups();
+                comfyRenderFavNodes();
             } catch (e) {}
             if (!document.getElementById('comfy-url').value) document.getElementById('comfy-url').value = 'http://127.0.0.1:8188';
             document.getElementById('comfy-modal').style.display = 'flex';
@@ -1523,8 +1538,105 @@
                     nodeList.appendChild(lbl);
                 });
             }
+            // 고급 편집용 노드 선택 드롭다운 채우기
+            const favSel = document.getElementById('comfy-fav-add-select');
+            if (favSel) {
+                favSel.innerHTML = '';
+                ids.forEach(id => {
+                    const title = wf[id]._meta?.title ? ` · ${wf[id]._meta.title}` : '';
+                    const o = document.createElement('option');
+                    o.value = id;
+                    o.textContent = `#${id} · ${wf[id].class_type}${title}`;
+                    favSel.appendChild(o);
+                });
+            }
             comfyRenderGroups();
+            comfyRenderFavNodes();
             _comfySaveSettings();
+        }
+
+        // ── 고급: 노드 수치 직접 편집 ──────────────────────────────────
+        let _comfyNodeFaves = [];      // [nodeId]
+        let _comfyOverrides = {};      // { nodeId: { inputName: value } }
+
+        function comfyAddFavNode() {
+            const id = document.getElementById('comfy-fav-add-select').value;
+            if (!id) return;
+            if (!_comfyNodeFaves.includes(id)) _comfyNodeFaves.push(id);
+            comfyRenderFavNodes();
+            _comfySaveSettings();
+        }
+
+        function comfyRemoveFavNode(id) {
+            _comfyNodeFaves = _comfyNodeFaves.filter(x => x !== id);
+            comfyRenderFavNodes();
+            _comfySaveSettings();
+        }
+
+        function _comfySetOverride(id, key, value) {
+            if (!_comfyOverrides[id]) _comfyOverrides[id] = {};
+            _comfyOverrides[id][key] = value;
+            _comfySaveSettings();
+        }
+
+        function comfyRenderFavNodes() {
+            const wrap = document.getElementById('comfy-fav-nodes');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+            if (!_comfyNodeFaves.length) {
+                wrap.innerHTML = '<span style="font-size:11px; color:var(--text-dim);">즐겨찾기한 노드가 없습니다. 위에서 노드를 골라 추가하면 수치를 편집할 수 있어요.</span>';
+                return;
+            }
+            _comfyNodeFaves.forEach(id => {
+                const node = _comfyCustomWF && _comfyCustomWF[id];
+                if (!node) return; // 현재 워크플로우에 없는 노드는 스킵
+                const card = document.createElement('div');
+                card.style.cssText = 'border:1px solid var(--border-dim); border-radius:8px; padding:10px; background:var(--bg-base);';
+                const title = node._meta?.title ? ` · ${node._meta.title}` : '';
+                const head = document.createElement('div');
+                head.style.cssText = 'display:flex; align-items:center; gap:8px; margin-bottom:8px;';
+                head.innerHTML = `<span style="flex:1; font-size:12px; font-weight:700;"><span style="font-family:var(--font-code); color:var(--text-dim);">#${id}</span> <span style="color:var(--accent-blue);">${node.class_type}</span>${title}</span>`;
+                const rm = document.createElement('button');
+                rm.innerHTML = '<i class="fa-solid fa-star"></i> 해제';
+                rm.style.cssText = 'background:rgba(234,179,8,0.15); border:1px solid rgba(234,179,8,0.4); color:#eab308; border-radius:6px; padding:3px 9px; font-size:11px; cursor:pointer;';
+                rm.onclick = () => comfyRemoveFavNode(id);
+                head.appendChild(rm);
+                card.appendChild(head);
+
+                const grid = document.createElement('div');
+                grid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px;';
+                let editable = 0;
+                for (const key in node.inputs) {
+                    const v = node.inputs[key];
+                    if (Array.isArray(v)) continue;          // 링크 입력은 편집 불가
+                    if (typeof v === 'object' && v !== null) continue;
+                    editable++;
+                    const cur = (_comfyOverrides[id] && _comfyOverrides[id][key] !== undefined) ? _comfyOverrides[id][key] : v;
+                    const field = document.createElement('div');
+                    const lab = `<label style="font-size:10px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:3px;">${key}</label>`;
+                    if (typeof v === 'boolean') {
+                        field.innerHTML = lab;
+                        const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!cur;
+                        cb.onchange = () => _comfySetOverride(id, key, cb.checked);
+                        field.appendChild(cb);
+                    } else if (typeof v === 'number') {
+                        field.innerHTML = lab;
+                        const inp = document.createElement('input'); inp.type = 'number'; inp.value = cur; inp.className = 'comfy-num';
+                        inp.step = Number.isInteger(v) ? '1' : 'any';
+                        inp.oninput = () => _comfySetOverride(id, key, inp.value === '' ? v : Number(inp.value));
+                        field.appendChild(inp);
+                    } else {
+                        field.innerHTML = lab;
+                        const inp = document.createElement('input'); inp.type = 'text'; inp.value = cur; inp.className = 'comfy-num';
+                        inp.oninput = () => _comfySetOverride(id, key, inp.value);
+                        field.appendChild(inp);
+                    }
+                    grid.appendChild(field);
+                }
+                if (!editable) grid.innerHTML = '<span style="font-size:11px; color:var(--text-dim);">편집 가능한 수치 입력이 없는 노드입니다 (모두 다른 노드와 연결됨).</span>';
+                card.appendChild(grid);
+                wrap.appendChild(card);
+            });
         }
 
         // ── 노드 토글 그룹 ────────────────────────────────────────────
@@ -1722,6 +1834,15 @@
             if (_comfyTarget !== 'pos') {
                 if (!negId) { showToast('부정 프롬프트 노드를 선택하세요.', 'error'); return null; }
                 inject(negId, neg);
+            }
+
+            // 고급: 노드 수치 오버라이드 적용 (링크 입력은 보호)
+            for (const id in _comfyOverrides) {
+                if (!wf[id]) continue;
+                for (const key in _comfyOverrides[id]) {
+                    if (Array.isArray(wf[id].inputs[key])) continue;
+                    wf[id].inputs[key] = _comfyOverrides[id][key];
+                }
             }
 
             // 시드 랜덤 (옵션) — seed / noise_seed 필드를 가진 모든 노드
