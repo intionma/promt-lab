@@ -5,9 +5,12 @@
 
 import { PrevizScene }                    from './previz-scene.js';
 import { initPartClickHandler, initHUD } from './previz-ui.js';
+import { CalloutManager }                from './previz-callouts.js';
+import { ensurePrevizTagsInDB }          from './previz-sync.js';
 
 // ── 전역 씬 인스턴스 ──────────────────────────────────────────────
 let _scene = null;
+let _callouts = null;
 let _tagWatchInterval = null;
 let _lastTagSnapshot = '';
 
@@ -174,6 +177,11 @@ export async function openPreviz() {
         await _scene.init();
         initPartClickHandler(_scene);
         initHUD(_scene);
+
+        // Callout 오버레이 초기화
+        ensurePrevizTagsInDB();
+        _callouts = new CalloutManager(canvasWrap, _scene.camera, _scene.THREE);
+        _scene.onFrameTick = () => _callouts.update();
     } else {
         _scene.resize();
         initHUD(_scene);
@@ -191,6 +199,8 @@ export async function openPreviz() {
 
 export function closePreviz() {
     stopTagWatch();
+    _callouts?.dispose();
+    _callouts = null;
 
     const container = document.getElementById('previz-container');
     if (container) container.style.display = 'none';

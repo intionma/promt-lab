@@ -716,6 +716,7 @@ export class PrevizScene {
         });
         this._weather?.update();
         this.renderer.render(this.scene, this.camera);
+        this.onFrameTick?.();
     }
 
     resize() {

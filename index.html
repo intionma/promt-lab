@@ -1371,9 +1371,15 @@
         }
         let currentViewMode = 'visual';
         let activeTagsMap = {};
-        window.__getActiveTagsMap = () => activeTagsMap;
-        window.__getContextStates = () => contextStates;
-        window.__getCurrentContext = () => currentContext;
+        window.__getActiveTagsMap    = () => activeTagsMap;
+        window.__getContextStates    = () => contextStates;
+        window.__getCurrentContext   = () => currentContext;
+        window.__getPromptDB         = () => promptDB;
+        window.__savePromptDB        = () => { safeSetStorage('pro_prompt_db_v7_0', promptDB); initApp(); };
+        window.__handleTagToggle     = (btn, tagText, negText, layerIndex) => handleTagToggle(btn, tagText, negText, layerIndex);
+        window.__syncFromManualInput = (layerIndex) => syncFromManualInput(layerIndex);
+        window.__removeTagFromContent = (tagText, content) => removeTagFromContent(tagText, content);
+        window.__isTagActive         = (tagText, content) => isTagActive(tagText, content);
         let globalWeightCurrent = 1.0;
         let tagDefaultWeights = JSON.parse(localStorage.getItem('tag_default_weights_v1') || '{}');
         function saveTagDefaultWeights() { localStorage.setItem('tag_default_weights_v1', JSON.stringify(tagDefaultWeights)); }
