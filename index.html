@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.12 &nbsp;·&nbsp; 2026-06-26 — 라이트박스 드래그/스와이프로 이전·다음</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.13 &nbsp;·&nbsp; 2026-06-26 — 미리보기 크기 슬라이더 · 정사각 크롭 보정 · 갤러리 드래그</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -970,7 +970,11 @@
                             <span id="comfy-inline-status-pos" style="font-size:11px; color:var(--text-dim); min-width:72px; text-align:right;"></span>
                             <button class="action-btn" onclick="comfyInterrupt()" style="color:var(--accent-danger); border-color:var(--border-dim); padding:3px 8px; font-size:11px;" title="중단"><i class="fa-solid fa-stop"></i></button>
                         </div>
-                        <div id="comfy-inline-thumbs-pos" class="lb-group" style="display:flex; flex-wrap:wrap; gap:10px; max-height:540px; overflow-y:auto; align-content:flex-start; padding:4px; border-radius:8px;"></div>
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                            <span style="font-size:10px; color:var(--text-dim); flex-shrink:0;"><i class="fa-solid fa-up-right-and-down-left-from-center"></i> 미리보기 크기</span>
+                            <input type="range" id="preview-size-slider" min="120" max="640" step="20" oninput="setPreviewSize(this.value)" style="flex:1; accent-color:#38bdf8;">
+                        </div>
+                        <div id="comfy-inline-thumbs-pos" class="lb-group" style="display:flex; flex-wrap:wrap; gap:10px; max-height:600px; overflow-y:auto; align-content:flex-start; padding:4px; border-radius:8px;"></div>
                     </div>
                 </div>
 
@@ -2416,6 +2420,19 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return { show: !!p.enabled, label: p.label || '' };
         }
 
+        // 미리보기 썸네일 크기 (CSS 변수 --lb-h, 전체 미리보기에 적용)
+        function setPreviewSize(v) {
+            document.documentElement.style.setProperty('--lb-h', v + 'px');
+            try { localStorage.setItem('preview_thumb_h', v); } catch (e) {}
+        }
+        (function () {
+            let v = null;
+            try { v = localStorage.getItem('preview_thumb_h'); } catch (e) {}
+            if (v) document.documentElement.style.setProperty('--lb-h', v + 'px');
+            const sl = document.getElementById('preview-size-slider');
+            if (sl) sl.value = v || 320;
+        })();
+
         // ── 풀스크린 이미지 뷰어 (드래그/스와이프로 이전·다음) ──
         let _lbUrls = [], _lbIdx = 0;
 
@@ -2506,7 +2523,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display:flex; flex-direction:column; gap:3px; align-items:center;';
             const im = document.createElement('img'); im.src = url;
-            im.style.cssText = `max-height:${maxH}px; max-width:100%; width:auto; height:auto; border-radius:8px; border:1px solid var(--border-dim); cursor:zoom-in; display:block;`;
+            // 가로/세로 모두 같은 박스로 제한 → 정사각 얼굴 크롭이 과도하게 커지지 않음. 슬라이더(--lb-h)로 조절
+            im.style.cssText = `max-height:var(--lb-h, ${maxH}px); max-width:var(--lb-h, ${maxH}px); width:auto; height:auto; border-radius:8px; border:1px solid var(--border-dim); cursor:zoom-in; display:block;`;
             im.onclick = () => openLightboxFromEl(im);
             wrap.appendChild(im);
             if (caption) {
