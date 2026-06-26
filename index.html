@@ -57,6 +57,31 @@
             font-family: var(--font-ui); overflow-y: hidden; overflow-x: auto;
             letter-spacing: -0.2px; transition: background-color 0.3s, color 0.3s;
         }
+        body { display: flex; flex-direction: column; }
+
+        /* ── 전역 상단바 (앱 최상단 가로 전체) ── */
+        #global-topbar {
+            flex-shrink: 0; display: flex; align-items: center; gap: 14px;
+            height: 50px; padding: 0 16px;
+            background: var(--bg-panel); border-bottom: 1px solid var(--border-dim);
+            overflow-x: auto; overflow-y: hidden; white-space: nowrap; z-index: 50;
+        }
+        #global-topbar::-webkit-scrollbar { height: 0; }
+        .gt-brand { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-heading); font-weight: 800; font-size: 15px; color: var(--text-main); flex-shrink: 0; position: relative; cursor: default; }
+        .gt-brand > i { color: var(--accent-blue); }
+        .gt-group { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        .gt-divider { width: 1px; height: 22px; background: var(--border-dim); flex-shrink: 0; }
+        .gt-spacer { flex: 1; min-width: 8px; }
+        .gt-btn {
+            display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+            background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-main);
+            padding: 6px 11px; border-radius: 8px; font-size: 12px; font-weight: 700;
+            cursor: pointer; font-family: var(--font-ui); white-space: nowrap; transition: 0.15s;
+        }
+        .gt-btn i { font-size: 13px; color: var(--gc, var(--text-main)); }
+        .gt-btn:hover { border-color: var(--gc, var(--accent-blue)); background: color-mix(in srgb, var(--gc, var(--accent-blue)) 12%, transparent); }
+        .gt-btn .gt-label { font-size: 12px; }
+        @media (max-width: 1100px) { .gt-btn .gt-label { display: none; } }
 
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -65,7 +90,8 @@
         /* 💡 기능 1: 100% 반응형 레이아웃 설계 */
         .app-container {
             display: flex;
-            height: 100vh;
+            flex: 1;
+            min-height: 0;
             overflow: hidden;
         }
         .app-container > .panel {
@@ -105,7 +131,7 @@
         .editor-header-chevron { transition: transform 0.2s; margin-right: 4px; font-size: 11px; opacity: 0.6; cursor: pointer; }
         .editor-section.collapsed .editor-header-chevron { transform: rotate(-90deg); }
 
-        .panel { display: flex; flex-direction: column; border-right: 1px solid var(--border-dim); background-color: var(--bg-panel); height: 100vh; overflow: hidden; transition: 0.3s; }
+        .panel { display: flex; flex-direction: column; border-right: 1px solid var(--border-dim); background-color: var(--bg-panel); height: 100%; overflow: hidden; transition: 0.3s; }
         .panel:last-child { border-right: none; }
 
         .panel-header {
@@ -118,7 +144,7 @@
         .action-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
         .app-title-wrap { position: relative; display: inline-flex; align-items: center; gap: 6px; cursor: default; }
         .app-version-tooltip { position: absolute; top: calc(100% + 8px); left: 0; background: var(--glass-bg); backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%); border: 1px solid var(--glass-border); border-radius: 8px; padding: 8px 14px; font-size: 11px; font-weight: 500; color: var(--text-dim); white-space: nowrap; box-shadow: 0 8px 24px rgba(0,0,0,0.4); pointer-events: none; opacity: 0; transform: translateY(-4px); transition: opacity 0.18s, transform 0.18s; z-index: 9999; font-family: var(--font-code); }
-        .app-title-wrap:hover .app-version-tooltip { opacity: 1; transform: translateY(0); }
+        .app-title-wrap:hover .app-version-tooltip, .gt-brand:hover .app-version-tooltip { opacity: 1; transform: translateY(0); }
 
         .panel-content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
         .right-panel-wrapper { display: flex; flex-direction: column; gap: 14px; }
@@ -648,9 +674,9 @@
                 width: 100vw !important;
                 min-width: 0 !important;   /* panel-mid inline min-width 무력화 */
                 max-width: 100vw !important;
-                /* JS 없이 CSS만으로 높이 결정 */
-                height: calc(100vh - 56px) !important;
-                height: calc(100dvh - 56px) !important; /* dvh: 모바일 브라우저 크롬 제외 */
+                /* JS 없이 CSS만으로 높이 결정 (상단바 46px + 하단탭 56px 제외) */
+                height: calc(100vh - 56px - 46px) !important;
+                height: calc(100dvh - 56px - 46px) !important; /* dvh: 모바일 브라우저 크롬 제외 */
                 overflow: hidden !important;
                 flex: none !important;
             }
@@ -679,6 +705,9 @@
             .panel-header { padding: 10px 12px; font-size: 13px; flex-wrap: wrap; gap: 6px; }
             .header-actions { flex-wrap: wrap; gap: 5px; }
             .action-btn { padding: 5px 8px !important; font-size: 11px !important; }
+            #global-topbar { height: 46px; gap: 8px; padding: 0 10px; }
+            .gt-brand { font-size: 13px; }
+            .gt-btn { padding: 5px 8px; }
             .combo-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important; }
             .combo-create-modal-overlay { align-items: flex-end !important; }
             .combo-create-modal { width: 100vw !important; border-radius: 20px 20px 0 0 !important; max-height: 88vh !important; }
@@ -775,25 +804,36 @@
         </div>
     </div>
 
+    <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
+    <header id="global-topbar">
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v8.0 &nbsp;·&nbsp; 2026-06-25 15:07</span></span>
+        <div class="gt-divider"></div>
+        <div class="gt-group">
+            <button class="gt-btn" style="--gc:#a78bfa;" onclick="openPromptClassifyModal()" title="프롬프트 붙여넣기 → 자동 분류 → DB 추가"><i class="fa-solid fa-wand-magic-sparkles"></i><span class="gt-label">자동 분류</span></button>
+            <button class="gt-btn" style="--gc:#ec4899;" onclick="openDBAuditModal()" title="DB 검사 — Pony/Danbooru 사전 기준 계층 검증 + 중복 감지"><i class="fa-solid fa-clipboard-check"></i><span class="gt-label">DB 검사</span></button>
+            <button class="gt-btn" style="--gc:#f97316;" onclick="openTranslationSessionModal()" title="한국어 번역 세션 — 미번역 태그 일괄 번역"><i class="fa-solid fa-language"></i><span class="gt-label">번역</span></button>
+            <button class="gt-btn" style="--gc:var(--accent-blue);" onclick="openDBManager()" title="DB 관리"><i class="fa-solid fa-database"></i><span class="gt-label">DB 관리</span></button>
+            <button class="gt-btn" style="--gc:var(--accent-green);" onclick="openDBTextEditor()" title="텍스트로 DB 편집"><i class="fa-solid fa-code"></i><span class="gt-label">코드 편집</span></button>
+        </div>
+        <div class="gt-divider"></div>
+        <div class="gt-group">
+            <button class="gt-btn" style="--gc:#22c55e;" onclick="reorganizeTagsByDB()" title="레이어 재배치 — 에디터 태그를 올바른 계층으로"><i class="fa-solid fa-shuffle"></i><span class="gt-label">재배치</span></button>
+            <button class="gt-btn" style="--gc:#f59e0b;" onclick="openDedupHelper()" title="중복 감지 — 현재 에디터 내 중복 프롬프트"><i class="fa-solid fa-clone"></i><span class="gt-label">중복 감지</span></button>
+            <button class="gt-btn" style="--gc:#38bdf8;" onclick="window.__previzOpen && window.__previzOpen()" title="Prompt Preview Studio"><i class="fa-solid fa-camera-movie"></i><span class="gt-label">미리보기</span></button>
+        </div>
+        <div class="gt-spacer"></div>
+        <div class="gt-group">
+            <button class="gt-btn" onclick="openIOModal('export')" title="내보내기"><i class="fa-solid fa-copy"></i><span class="gt-label">내보내기</span></button>
+            <button class="gt-btn" onclick="openIOModal('import')" title="복구/추가"><i class="fa-solid fa-paste"></i><span class="gt-label">불러오기</span></button>
+            <div class="gt-divider"></div>
+            <button class="gt-btn" style="--gc:var(--accent-green);" onclick="openPresetManager()" title="프리셋 관리"><i class="fa-solid fa-floppy-disk"></i></button>
+            <button class="gt-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i class="fa-solid fa-sun"></i></button>
+        </div>
+    </header>
+
     <div class="app-container" id="app-container">
         <aside class="panel mobile-active" id="panel-left">
-            <div class="panel-header">
-                <span class="app-title-wrap"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v8.0 &nbsp;·&nbsp; 2026-06-25 15:07</span></span>
-                <div class="header-actions">
-                    <button class="action-btn" onclick="openPromptClassifyModal()" title="프롬프트 붙여넣기 → 자동 분류 → DB 추가" style="color:var(--accent-purple,#a78bfa); border-color:var(--accent-purple,#a78bfa);"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
-                    <button class="action-btn" onclick="openDBAuditModal()" title="DB 검사 — Pony/Danbooru 사전 기준 계층 검증 + 중복 감지" style="color:#ec4899; border-color:#ec4899;"><i class="fa-solid fa-clipboard-check"></i></button>
-                    <button class="action-btn" onclick="openTranslationSessionModal()" title="한국어 번역 세션 — 미번역 태그 일괄 번역" style="color:#f97316; border-color:#f97316;"><i class="fa-solid fa-language"></i></button>
-                    <button class="action-btn" onclick="openDBManager()" title="DB 관리" style="color:var(--accent-blue); border-color:var(--accent-blue);"><i class="fa-solid fa-database"></i></button>
-                    <button class="action-btn" onclick="openDBTextEditor()" title="텍스트로 DB 편집" style="color:var(--accent-green); border-color:var(--accent-green);"><i class="fa-solid fa-code"></i></button>
-                    <button class="action-btn" onclick="reorganizeTagsByDB()" title="레이어 재배치 — 에디터 태그를 올바른 계층으로" style="color:#22c55e; border-color:#22c55e;"><i class="fa-solid fa-shuffle"></i></button>
-                    <button class="action-btn" onclick="openDedupHelper()" title="중복 감지 — 현재 에디터 내 중복 프롬프트" style="color:#f59e0b; border-color:#f59e0b;"><i class="fa-solid fa-clone"></i></button>
-                    <button class="action-btn" onclick="window.__previzOpen && window.__previzOpen()" title="Prompt Preview Studio" style="color:#38bdf8; border-color:#38bdf8;"><i class="fa-solid fa-camera-movie"></i></button>
-                    <button class="action-btn" onclick="openIOModal('export')" title="내보내기"><i class="fa-solid fa-copy"></i></button>
-                    <button class="action-btn" onclick="openIOModal('import')" title="복구/추가"><i class="fa-solid fa-paste"></i></button>
-                </div>
-            </div>
-
-            <div style="flex-shrink:0; padding: 10px 14px 0; display:flex; flex-direction:column; gap:10px;">
+            <div style="flex-shrink:0; padding: 12px 14px 0; display:flex; flex-direction:column; gap:10px;">
                 <div class="sidebar-tools" style="margin-bottom:0;">
                     <div class="mode-toggle-group">
                         <button class="mode-toggle-btn active" id="btn-mode-detail" onclick="switchSidebarMode('detail')"><i class="fa-solid fa-list-ul"></i> 상세 태그</button>
@@ -854,8 +894,6 @@
                 <span><i class="fa-solid fa-terminal"></i> 결과</span>
                 <div class="header-actions">
                     <button class="action-btn" id="btn-undo" onclick="performUndo()" style="color:var(--text-main); opacity:0.5; cursor:not-allowed;" title="되돌리기 (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i></button>
-                    <button class="action-btn" onclick="openPresetManager()" title="프리셋 관리" style="color:var(--accent-green); border-color:var(--border-dim);"><i class="fa-solid fa-floppy-disk"></i></button>
-                    <button class="action-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i class="fa-solid fa-sun"></i></button>
                 </div>
             </div>
 
