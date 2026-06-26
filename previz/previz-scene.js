@@ -83,57 +83,67 @@ const TAG_MAP = {
 export const PART = { HEAD:0, TORSO:1, L_ARM:2, R_ARM:3, L_LEG:4, R_LEG:5, HAIR:6, OUTFIT:7 };
 export const PART_NAME = ['머리','몸통','왼팔','오른팔','왼다리','오른다리','머리카락','의상'];
 
-// ── 스켈레톤 계산 ─────────────────────────────────────────────────
+// ── 스켈레톤 계산 (VRM 비율 기준) ────────────────────────────────
+// 참조: VRoid Studio 표준 비율
+//   머리 1/6.8 · 다리 56% · 허리=어깨의 42% · 눈이 얼굴의 30%
 function buildSkeleton(state) {
     const H  = 2.0 * state.body.height;
     const CS = state.body.chest;
 
-    // 애니 비율: 다리 53%, 상체 30%, 머리 17%
-    const footY      = 0;
-    const ankleY     = H * 0.042;
-    const kneeY      = H * 0.272;
-    const hipY       = H * 0.530;
-    const waistY     = H * 0.618;
-    const bustY      = H * 0.718;
-    const shoulderY  = H * 0.790;
-    const neckBotY   = H * 0.828;
-    const neckTopY   = H * 0.860;
-    const chinY      = H * 0.878;
-    const noseY      = H * 0.912;
-    const eyeY       = H * 0.932;
-    const browY      = H * 0.952;
-    const headTopY   = H * 1.000;
-    const headCenterY= (chinY + headTopY) * 0.5;
+    // ── Y 관절 위치 (발 = 0) ──
+    const footY       = 0;
+    const ankleY      = H * 0.038;   // 발목
+    const kneeY       = H * 0.268;   // 무릎
+    const hipY        = H * 0.558;   // 골반 (다리 56%)
+    const waistY      = H * 0.638;   // 허리
+    const underbustY  = H * 0.688;   // 언더버스트
+    const bustY       = H * 0.730;   // 가슴
+    const shoulderY   = H * 0.800;   // 어깨
+    const neckBotY    = H * 0.833;   // 목 아래
+    const neckTopY    = H * 0.862;   // 목 위
+    const chinY       = H * 0.878;   // 턱
+    const mouthY      = H * 0.898;   // 입
+    const noseY       = H * 0.916;   // 코
+    const eyeY        = H * 0.936;   // 눈 (얼굴 중간 아래)
+    const browY       = H * 0.956;   // 눈썹
+    const foreheadY   = H * 0.972;   // 이마
+    const headTopY    = H * 1.000;   // 머리 꼭대기
+    const headCenterY = (chinY + headTopY) * 0.5;
 
-    // 너비 (반경)
-    const shoulderW = 0.162;
-    const bustW     = 0.092 * Math.sqrt(CS);
-    const bustDepth = 0.058 * CS;
-    const waistW    = 0.052;
-    const waistD    = 0.046;
-    const hipW      = 0.112;
-    const hipD      = 0.098;
-    const thighW    = 0.054;
-    const kneeW     = 0.036;
-    const calfW     = 0.042;
-    const ankleW    = 0.026;
-    const upperArmW = 0.035;
-    const foreArmW  = 0.028;
-    const wristW    = 0.020;
-    const headW     = 0.178;
-    const headH     = (headTopY - chinY) * 0.56;
-    const headD     = 0.158;
-    const neckW     = 0.040;
-    const neckD     = 0.036;
+    // ── 너비/깊이 (반경) — VRM 기준으로 슬림하게 ──
+    const shoulderW  = 0.152;                      // 어깨
+    const bustW      = 0.082 * Math.sqrt(CS);      // 가슴 폭
+    const bustDepth  = 0.052 * CS;                 // 가슴 깊이
+    const waistW     = 0.044;                      // 허리 (어깨의 ~42%)
+    const waistD     = 0.038;
+    const hipW       = 0.105;                      // 골반
+    const hipD       = 0.090;
+    const thighW     = 0.046;                      // 허벅지 (얇게)
+    const kneeW      = 0.030;
+    const calfW      = 0.034;
+    const ankleW     = 0.020;
+    const upperArmW  = 0.030;                      // 팔 (얇게)
+    const foreArmW   = 0.024;
+    const wristW     = 0.017;
+    // 머리: 얼굴 역삼각형 (VRoid 특징)
+    const headW      = 0.168;                      // 가로 반경
+    const headH      = (headTopY - chinY) * 0.54;  // 세로 반경
+    const headD      = 0.148;                      // 앞뒤 반경
+    const neckW      = 0.034;
+    const neckD      = 0.030;
+    // 눈 크기 (얼굴 폭의 ~22%)
+    const eyeRx      = headW * 0.21;
+    const eyeRy      = headH * 0.22;              // VRoid 큰 눈
 
     return {
         H, CS,
-        footY, ankleY, kneeY, hipY, waistY, bustY,
-        shoulderY, neckBotY, neckTopY, chinY, noseY, eyeY, browY, headTopY, headCenterY,
+        footY, ankleY, kneeY, hipY, waistY, underbustY, bustY,
+        shoulderY, neckBotY, neckTopY, chinY, mouthY, noseY, eyeY, browY, foreheadY, headTopY, headCenterY,
         shoulderW, bustW, bustDepth, waistW, waistD, hipW, hipD,
         thighW, kneeW, calfW, ankleW,
         upperArmW, foreArmW, wristW,
         headW, headH, headD, neckW, neckD,
+        eyeRx, eyeRy,
     };
 }
 
@@ -405,18 +415,17 @@ export class PrevizScene {
         const THREE = this.THREE;
         const mat   = this._getSkinMat();
 
-        // 몸통: 골반 → 어깨 (앞뒤 납작하게 scale.z)
+        // VRM 몸통 비율: 골반→허리(잘록)→언더버스트→가슴→어깨
         const torsoSecs = [
-            { y: sk.hipY,      rx: sk.hipW,      rz: sk.hipD },
-            { y: sk.hipY*1.02, rx: sk.hipW*1.05, rz: sk.hipD*1.02 },
-            { y: sk.waistY*0.92, rx: sk.waistW*1.08, rz: sk.waistD*1.04 },
-            { y: sk.waistY,    rx: sk.waistW,    rz: sk.waistD },
-            { y: (sk.waistY+sk.bustY)*0.5, rx: (sk.waistW+sk.bustW)*0.5, rz: (sk.waistD+sk.bustDepth)*0.5 },
-            { y: sk.bustY,     rx: sk.bustW,     rz: sk.bustDepth },
-            { y: sk.bustY+(sk.shoulderY-sk.bustY)*0.4, rx: sk.bustW*0.95, rz: sk.bustDepth*0.78 },
-            { y: sk.bustY+(sk.shoulderY-sk.bustY)*0.75, rx: sk.shoulderW*0.88, rz: sk.bustDepth*0.62 },
-            { y: sk.shoulderY, rx: sk.shoulderW, rz: sk.bustDepth*0.52 },
-            { y: sk.neckBotY,  rx: sk.neckW*1.4, rz: sk.neckD*1.3 },
+            { y: sk.hipY,                               rx: sk.hipW*1.02, rz: sk.hipD*0.96 },
+            { y: sk.hipY + (sk.waistY-sk.hipY)*0.35,    rx: sk.hipW*0.90, rz: sk.hipD*0.85 },
+            { y: sk.waistY,                             rx: sk.waistW,    rz: sk.waistD },
+            { y: sk.underbustY,                         rx: sk.waistW*1.12, rz: sk.waistD*1.10 },
+            { y: sk.bustY,                              rx: sk.bustW,     rz: sk.bustDepth },
+            { y: sk.bustY+(sk.shoulderY-sk.bustY)*0.42, rx: sk.bustW*0.90, rz: sk.bustDepth*0.74 },
+            { y: sk.bustY+(sk.shoulderY-sk.bustY)*0.78, rx: sk.shoulderW*0.90, rz: sk.bustDepth*0.58 },
+            { y: sk.shoulderY,                          rx: sk.shoulderW, rz: sk.bustDepth*0.48 },
+            { y: sk.neckBotY,                           rx: sk.neckW*1.5, rz: sk.neckD*1.35 },
         ];
         const torsoGeo = buildTubeMesh(torsoSecs, THREE, 16);
         const torsoMesh = new THREE.Mesh(torsoGeo, mat);
@@ -580,16 +589,25 @@ export class PrevizScene {
         });
     }
 
-    // ── 머리 ──────────────────────────────────────────────────────
+    // ── 머리 (VRM 역삼각형 얼굴형) ──────────────────────────────
     _buildHead(sk, state) {
         const THREE = this.THREE;
         const mat   = this._getSkinMat();
 
-        // 두상 타원체
-        const headGeo  = new THREE.SphereGeometry(sk.headW, 28, 22);
+        // 두상: 이마~턱 역삼각형 (VRoid 특징)
+        // 상단은 둥글고, 하단(턱)은 좁고 뾰족하게
+        const headSecs = [
+            { y: sk.chinY,      rx: sk.headW*0.45, rz: sk.headD*0.50 },  // 턱
+            { y: sk.mouthY,     rx: sk.headW*0.62, rz: sk.headD*0.66 },
+            { y: sk.noseY,      rx: sk.headW*0.80, rz: sk.headD*0.82 },
+            { y: sk.eyeY,       rx: sk.headW*0.95, rz: sk.headD*0.92 },
+            { y: sk.browY,      rx: sk.headW*1.00, rz: sk.headD*0.98 },  // 최대 폭 (관자놀이)
+            { y: sk.foreheadY,  rx: sk.headW*0.98, rz: sk.headD*0.96 },
+            { y: sk.headCenterY + (sk.headTopY-sk.headCenterY)*0.5, rx: sk.headW*0.90, rz: sk.headD*0.88 },
+            { y: sk.headTopY,   rx: sk.headW*0.55, rz: sk.headD*0.52 },  // 정수리 좁아짐
+        ];
+        const headGeo  = buildTubeMesh(headSecs, THREE, 20);
         const headMesh = new THREE.Mesh(headGeo, mat);
-        headMesh.scale.set(1, sk.headH / sk.headW, sk.headD / sk.headW);
-        headMesh.position.set(0, sk.headCenterY, 0);
         headMesh.castShadow = true;
         headMesh.userData.partId = PART.HEAD;
         this._charGroup.add(headMesh);
@@ -599,95 +617,233 @@ export class PrevizScene {
         this._buildFace(sk, state);
     }
 
-    // ── 얼굴 (눈, 눈썹, 코, 입) — 애니 스타일 ────────────────────
+    // ── 얼굴 — VRM 스타일 캔버스 텍스처 ──────────────────────────
+    // 캔버스에 눈/코/입을 그려서 얼굴 평면에 매핑
     _buildFace(sk, state) {
-        const THREE   = this.THREE;
-        const faceZ   = sk.headD * 0.94;   // 얼굴 앞면 Z
+        const THREE = this.THREE;
+        const faceZ = sk.headD * 0.96;
 
-        // 눈 (좌우)
-        const eyeW  = sk.headW * 0.20;
-        const eyeH  = sk.headW * 0.13;
+        // ── 눈 (캔버스 텍스처) ──
+        const eyeColor = '#' + state.eye.color.toString(16).padStart(6, '0');
+        const ex_off   = sk.headW * 0.36;
+        const ey       = sk.eyeY;
 
         [-1, 1].forEach(side => {
-            const ex = side * sk.headW * 0.38;
-            const ey = sk.eyeY;
-            const ez = faceZ;
+            const ex = side * ex_off;
+            const tex = this._makeEyeTexture(eyeColor, side < 0);
+            const eyeMat = new THREE.MeshBasicMaterial({ map:tex, transparent:true, alphaTest:0.02, depthWrite:false });
 
-            // 홍채 (타원 디스크)
-            const irisGeo  = new THREE.CircleGeometry(eyeW*0.88, 20);
-            const irisMat  = this._getEyeMat(state.eye.color);
-            const irisMesh = new THREE.Mesh(irisGeo, irisMat);
-            irisMesh.scale.set(1, eyeH/eyeW, 1);
-            irisMesh.position.set(ex, ey, ez + 0.002);
-            irisMesh.userData.partId = PART.HEAD;
-            this._charGroup.add(irisMesh);
-            this._track(PART.HEAD, irisMesh);
+            // 눈 판 (타원형으로 scale)
+            const eyeGeo  = new THREE.PlaneGeometry(sk.eyeRx*2.2, sk.eyeRy*2.2);
+            const eyeMesh = new THREE.Mesh(eyeGeo, eyeMat);
+            eyeMesh.position.set(ex, ey, faceZ + 0.001);
+            eyeMesh.userData.partId = PART.HEAD;
+            this._charGroup.add(eyeMesh);
+            this._track(PART.HEAD, eyeMesh);
 
-            // 동공 (검정 작은 원)
-            const pupilGeo  = new THREE.CircleGeometry(eyeW*0.42, 16);
-            const pupilMat  = new THREE.MeshBasicMaterial({ color:0x040408 });
-            const pupilMesh = new THREE.Mesh(pupilGeo, pupilMat);
-            pupilMesh.scale.set(1, eyeH/eyeW, 1);
-            pupilMesh.position.set(ex, ey, ez + 0.004);
-            this._charGroup.add(pupilMesh);
-            this._track(PART.HEAD, pupilMesh);
-
-            // 눈 하이라이트
-            const hlGeo  = new THREE.CircleGeometry(eyeW*0.22, 8);
-            const hlMat  = new THREE.MeshBasicMaterial({ color:0xffffff });
-            const hlMesh = new THREE.Mesh(hlGeo, hlMat);
-            hlMesh.position.set(ex - eyeW*0.28, ey + eyeH*0.25, ez + 0.006);
-            this._charGroup.add(hlMesh);
-            this._track(PART.HEAD, hlMesh);
-
-            // 속눈썹 위 (두꺼운 호)
-            const lashMat = new THREE.MeshBasicMaterial({ color:0x080818 });
-            const lashGeo = new THREE.PlaneGeometry(eyeW*2.1, eyeH*0.28);
-            const lashMesh = new THREE.Mesh(lashGeo, lashMat);
-            lashMesh.position.set(ex, ey + eyeH*0.60, ez + 0.004);
-            this._charGroup.add(lashMesh);
-            this._track(PART.HEAD, lashMesh);
-
-            // 눈썹
-            const browMat  = new THREE.MeshBasicMaterial({ color:0x0a0a18 });
-            const browGeo  = new THREE.PlaneGeometry(eyeW*1.9, eyeH*0.17);
+            // 눈썹 (얇은 플레인)
+            const browTex = this._makeBrowTexture(side < 0);
+            const browMat = new THREE.MeshBasicMaterial({ map:browTex, transparent:true, alphaTest:0.05, depthWrite:false });
+            const browGeo = new THREE.PlaneGeometry(sk.eyeRx*2.1, sk.eyeRy*0.55);
             const browMesh = new THREE.Mesh(browGeo, browMat);
-            browMesh.rotation.z = side * (-0.12);
-            browMesh.position.set(ex, sk.browY, ez + 0.002);
+            browMesh.position.set(ex, sk.browY, faceZ + 0.001);
             this._charGroup.add(browMesh);
             this._track(PART.HEAD, browMesh);
         });
 
-        // 코 (미니멀)
-        const noseMat = new THREE.MeshPhongMaterial({ color:0xe0b898, shininess:5 });
-        const noseGeo = new THREE.SphereGeometry(sk.headW*0.048, 6, 5);
+        // ── 코 (VRoid: 아주 미니멀, 콧날 라인만) ──
+        const noseTex = this._makeNoseTexture();
+        const noseMat = new THREE.MeshBasicMaterial({ map:noseTex, transparent:true, alphaTest:0.05, depthWrite:false });
+        const noseGeo = new THREE.PlaneGeometry(sk.headW*0.28, sk.headW*0.18);
         const noseMesh = new THREE.Mesh(noseGeo, noseMat);
-        noseMesh.scale.set(1, 0.5, 0.8);
-        noseMesh.position.set(0, sk.noseY, faceZ * 1.02);
+        noseMesh.position.set(0, sk.noseY, faceZ + 0.001);
         this._charGroup.add(noseMesh);
         this._track(PART.HEAD, noseMesh);
 
-        // 입
-        const mouthW   = sk.headW * 0.24;
-        const mouthY   = (sk.noseY + sk.chinY) * 0.47;
-        const mouthMat = new THREE.MeshPhongMaterial({ color:0xd8788a, shininess:40, specular:0x553333 });
+        // ── 입 (VRoid: 작고 귀엽게) ──
+        const mouthTex = this._makeMouthTexture();
+        const mouthMat = new THREE.MeshBasicMaterial({ map:mouthTex, transparent:true, alphaTest:0.05, depthWrite:false });
+        const mouthGeo = new THREE.PlaneGeometry(sk.headW*0.30, sk.headW*0.13);
+        const mouthMesh = new THREE.Mesh(mouthGeo, mouthMat);
+        mouthMesh.position.set(0, sk.mouthY, faceZ + 0.001);
+        this._charGroup.add(mouthMesh);
+        this._track(PART.HEAD, mouthMesh);
 
-        // 윗입술 (작은 원뿔형 볼록)
-        const upLipGeo  = new THREE.CapsuleGeometry ?
-            new THREE.PlaneGeometry(mouthW*2, sk.headW*0.055) :
-            new THREE.PlaneGeometry(mouthW*2, sk.headW*0.055);
-        const upLipMesh = new THREE.Mesh(upLipGeo, mouthMat);
-        upLipMesh.position.set(0, mouthY + sk.headW*0.025, faceZ + 0.003);
-        this._charGroup.add(upLipMesh);
-        this._track(PART.HEAD, upLipMesh);
+        // ── 볼 홍조 ──
+        [-1, 1].forEach(side => {
+            const blushTex = this._makeBlushTexture();
+            const blushMat = new THREE.MeshBasicMaterial({ map:blushTex, transparent:true, opacity:0.55, depthWrite:false });
+            const blushGeo = new THREE.PlaneGeometry(sk.headW*0.38, sk.headW*0.20);
+            const blushMesh = new THREE.Mesh(blushGeo, blushMat);
+            blushMesh.position.set(side * sk.headW*0.55, sk.eyeY - sk.eyeRy*1.6, faceZ*0.92);
+            this._charGroup.add(blushMesh);
+            this._track(PART.HEAD, blushMesh);
+        });
+    }
 
-        // 아랫입술
-        const lowLipMat = new THREE.MeshPhongMaterial({ color:0xcc6878, shininess:55 });
-        const lowLipGeo = new THREE.PlaneGeometry(mouthW*1.6, sk.headW*0.050);
-        const lowLipMesh = new THREE.Mesh(lowLipGeo, lowLipMat);
-        lowLipMesh.position.set(0, mouthY - sk.headW*0.028, faceZ + 0.003);
-        this._charGroup.add(lowLipMesh);
-        this._track(PART.HEAD, lowLipMesh);
+    // ── 캔버스 텍스처 생성 헬퍼 ──────────────────────────────────
+    _makeEyeTexture(irisColor, isLeft) {
+        const THREE = this.THREE;
+        const W = 128, H = 80;
+        const c = document.createElement('canvas'); c.width=W; c.height=H;
+        const ctx = c.getContext('2d');
+
+        // 눈 흰자 (클리핑 경로)
+        ctx.clearRect(0, 0, W, H);
+        ctx.save();
+        // 아몬드형 클리핑
+        ctx.beginPath();
+        ctx.ellipse(W/2, H*0.52, W*0.46, H*0.40, 0, 0, Math.PI*2);
+        ctx.clip();
+
+        // 흰자
+        ctx.fillStyle = '#f8f4f0';
+        ctx.fillRect(0, 0, W, H);
+
+        // 홍채
+        const grad = ctx.createRadialGradient(W/2, H*0.52, 0, W/2, H*0.52, W*0.28);
+        grad.addColorStop(0, irisColor);
+        grad.addColorStop(0.5, irisColor);
+        grad.addColorStop(1, this._darkenHex(irisColor, 0.55));
+        ctx.beginPath();
+        ctx.ellipse(W/2, H*0.52, W*0.28, H*0.33, 0, 0, Math.PI*2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // 동공
+        ctx.beginPath();
+        ctx.ellipse(W/2, H*0.52, W*0.12, H*0.16, 0, 0, Math.PI*2);
+        ctx.fillStyle = '#06060e';
+        ctx.fill();
+
+        // 하이라이트
+        ctx.beginPath();
+        ctx.ellipse(W*0.36, H*0.36, W*0.08, H*0.10, -0.3, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(255,255,255,0.88)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(W*0.62, H*0.44, W*0.04, H*0.05, 0, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.fill();
+
+        ctx.restore();
+
+        // 속눈썹 위 (두꺼운 곡선)
+        ctx.beginPath();
+        ctx.moveTo(W*0.06, H*0.30);
+        ctx.bezierCurveTo(W*0.25, H*0.08, W*0.75, H*0.08, W*0.94, H*0.28);
+        ctx.lineWidth = H*0.14;
+        ctx.strokeStyle = '#0d0d1a';
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        // 속눈썹 끝 (꼬리)
+        ctx.beginPath();
+        ctx.moveTo(W*0.94, H*0.28);
+        ctx.lineTo(W*(isLeft ? 1.05 : -0.05), H*0.18);
+        ctx.lineWidth = H*0.07;
+        ctx.strokeStyle = '#0d0d1a';
+        ctx.stroke();
+
+        // 아래 속눈썹 (얇게)
+        ctx.beginPath();
+        ctx.moveTo(W*0.15, H*0.80);
+        ctx.bezierCurveTo(W*0.35, H*0.90, W*0.65, H*0.90, W*0.85, H*0.80);
+        ctx.lineWidth = H*0.04;
+        ctx.strokeStyle = '#1a1a2e';
+        ctx.stroke();
+
+        const tex = new THREE.CanvasTexture(c);
+        return tex;
+    }
+
+    _makeBrowTexture(isLeft) {
+        const THREE = this.THREE;
+        const W = 96, H = 32;
+        const c = document.createElement('canvas'); c.width=W; c.height=H;
+        const ctx = c.getContext('2d');
+        ctx.clearRect(0, 0, W, H);
+
+        const tilt = isLeft ? 0.12 : -0.12;
+        ctx.save();
+        ctx.translate(W/2, H/2);
+        ctx.rotate(tilt);
+        ctx.translate(-W/2, -H/2);
+
+        ctx.beginPath();
+        ctx.moveTo(W*0.08, H*0.70);
+        ctx.bezierCurveTo(W*0.28, H*0.18, W*0.72, H*0.15, W*0.92, H*0.55);
+        ctx.lineWidth = H*0.44;
+        ctx.strokeStyle = '#191924';
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        ctx.restore();
+        return new THREE.CanvasTexture(c);
+    }
+
+    _makeNoseTexture() {
+        const THREE = this.THREE;
+        const W = 48, H = 32;
+        const c = document.createElement('canvas'); c.width=W; c.height=H;
+        const ctx = c.getContext('2d');
+        ctx.clearRect(0, 0, W, H);
+
+        // 콧날 끝 (VRoid: 두 개의 작은 호)
+        [-1, 1].forEach(side => {
+            ctx.beginPath();
+            ctx.arc(W/2 + side*W*0.18, H*0.62, W*0.10, 0.2, Math.PI-0.2);
+            ctx.strokeStyle = 'rgba(160,100,80,0.55)';
+            ctx.lineWidth = 1.8;
+            ctx.stroke();
+        });
+        return new THREE.CanvasTexture(c);
+    }
+
+    _makeMouthTexture() {
+        const THREE = this.THREE;
+        const W = 64, H = 32;
+        const c = document.createElement('canvas'); c.width=W; c.height=H;
+        const ctx = c.getContext('2d');
+        ctx.clearRect(0, 0, W, H);
+
+        // 입꼬리 (미소)
+        ctx.beginPath();
+        ctx.moveTo(W*0.18, H*0.38);
+        ctx.bezierCurveTo(W*0.38, H*0.60, W*0.62, H*0.60, W*0.82, H*0.38);
+        ctx.strokeStyle = '#c06070';
+        ctx.lineWidth = 2.2;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        // 아랫입술 라인
+        ctx.beginPath();
+        ctx.moveTo(W*0.28, H*0.55);
+        ctx.bezierCurveTo(W*0.40, H*0.75, W*0.60, H*0.75, W*0.72, H*0.55);
+        ctx.strokeStyle = 'rgba(180,80,100,0.50)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        return new THREE.CanvasTexture(c);
+    }
+
+    _makeBlushTexture() {
+        const THREE = this.THREE;
+        const W = 64, H = 32;
+        const c = document.createElement('canvas'); c.width=W; c.height=H;
+        const ctx = c.getContext('2d');
+        ctx.clearRect(0, 0, W, H);
+        const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W/2);
+        grad.addColorStop(0, 'rgba(255,140,160,0.65)');
+        grad.addColorStop(1, 'rgba(255,140,160,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+        return new THREE.CanvasTexture(c);
+    }
+
+    _darkenHex(hex, factor) {
+        const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+        return '#' + [r*factor|0, g*factor|0, b*factor|0].map(v=>v.toString(16).padStart(2,'0')).join('');
     }
 
     // ── 머리카락 ──────────────────────────────────────────────────

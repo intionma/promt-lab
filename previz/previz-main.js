@@ -115,30 +115,32 @@ export async function openPreviz() {
         container.id = 'previz-container';
         container.style.cssText = [
             'position:fixed', 'inset:0', 'z-index:10000',
-            'background:#020c14', 'display:flex',
+            'background:#13161c', 'display:flex',
             'flex-direction:column', 'overflow:hidden',
         ].join(';');
 
-        // 헤더 바
+        // 헤더 바 (Blender/VRoid 스타일)
         const header = document.createElement('div');
         header.style.cssText = [
             'display:flex', 'align-items:center', 'justify-content:space-between',
-            'padding:10px 16px', 'background:rgba(0,20,35,0.85)',
-            'border-bottom:1px solid rgba(0,234,255,0.15)',
-            'flex-shrink:0', 'font-family:monospace',
+            'padding:8px 14px', 'background:#1e2228',
+            'border-bottom:1px solid #2e333d',
+            'flex-shrink:0', 'font-family:system-ui,sans-serif',
         ].join(';');
         header.innerHTML = `
-            <span style="color:#00eaff;font-size:13px;letter-spacing:2px;font-weight:700;">
-                ◈ HOLOGRAM PREVIZ
-            </span>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span style="color:#e8e8ec;font-size:13px;font-weight:600;letter-spacing:0.5px;">
+                    🎬 Prompt Preview Studio
+                </span>
+                <span style="color:#555b66;font-size:11px;">실시간 3D 프리뷰</span>
+            </div>
             <div style="display:flex;gap:8px;align-items:center;">
-                <span id="previz-tag-count" style="color:rgba(0,234,255,0.5);font-size:11px;"></span>
+                <span id="previz-tag-count" style="color:#7a8494;font-size:11px;background:#252930;padding:3px 9px;border-radius:4px;"></span>
                 <button id="previz-close-btn" style="
-                    background:transparent;border:1px solid rgba(0,234,255,0.3);
-                    color:#00eaff;border-radius:6px;padding:5px 14px;
-                    font-size:12px;cursor:pointer;font-family:monospace;
-                    letter-spacing:1px;
-                ">✕ 닫기</button>
+                    background:#2a2f38;border:1px solid #3a414d;
+                    color:#c8cdd6;border-radius:5px;padding:5px 14px;
+                    font-size:12px;cursor:pointer;font-family:inherit;
+                " onmouseover="this.style.background='#343b47'" onmouseout="this.style.background='#2a2f38'">✕ 닫기</button>
             </div>
         `;
         container.appendChild(header);
@@ -153,13 +155,13 @@ export async function openPreviz() {
         const readout = document.createElement('div');
         readout.id = 'previz-readout';
         readout.style.cssText = [
-            'padding:8px 16px', 'background:rgba(0,10,20,0.9)',
-            'border-top:1px solid rgba(0,234,255,0.1)',
-            'font-family:monospace', 'font-size:11px',
-            'color:rgba(0,234,255,0.6)', 'line-height:1.5',
-            'max-height:60px', 'overflow:hidden', 'flex-shrink:0',
+            'padding:7px 14px', 'background:#181b21',
+            'border-top:1px solid #262b34',
+            'font-family:system-ui,sans-serif', 'font-size:11px',
+            'color:#6b7585', 'line-height:1.5',
+            'max-height:48px', 'overflow:hidden', 'flex-shrink:0',
         ].join(';');
-        readout.textContent = '— 태그 없음 —';
+        readout.textContent = '— 태그를 선택하면 캐릭터가 업데이트됩니다 —';
         container.appendChild(readout);
 
         document.body.appendChild(container);
