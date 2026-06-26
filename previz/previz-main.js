@@ -3,8 +3,8 @@
  * P0: 뷰 전환 + 태그 브릿지 + sceneState 스켈레톤
  */
 
-import { PrevizScene }      from './previz-scene.js';
-import { initPartClickHandler } from './previz-ui.js';
+import { PrevizScene }                    from './previz-scene.js';
+import { initPartClickHandler, initHUD } from './previz-ui.js';
 
 // ── 전역 씬 인스턴스 ──────────────────────────────────────────────
 let _scene = null;
@@ -173,8 +173,10 @@ export async function openPreviz() {
         _scene = new PrevizScene(canvasWrap);
         await _scene.init();
         initPartClickHandler(_scene);
+        initHUD(_scene);
     } else {
         _scene.resize();
+        initHUD(_scene);
     }
 
     // 현재 태그로 즉시 반영
