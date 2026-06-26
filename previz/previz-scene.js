@@ -72,18 +72,18 @@ const POSE_PRESETS = {
     stand:        { lUpperArm:[0,0,-1.18], rUpperArm:[0,0,1.18] },
     standing:     { lUpperArm:[0,0,-1.18], rUpperArm:[0,0,1.18] },
     arms_up:      { lUpperArm:[0,0,1.4],   rUpperArm:[0,0,-1.4] },
-    hands_on_hips:{ lUpperArm:[0,0,-1.0],  rUpperArm:[0,0,1.0], lLowerArm:[0,-1.5,0], rLowerArm:[0,1.5,0] },
-    crossed_arms: { lUpperArm:[0,0,-1.35], rUpperArm:[0,0,1.35], lLowerArm:[0,-1.9,0], rLowerArm:[0,1.9,0] },
+    hands_on_hips:{ lUpperArm:[0.25,0,-0.78], rUpperArm:[0.25,0,0.78], lLowerArm:[0,-2.15,0], rLowerArm:[0,2.15,0] },
+    crossed_arms: { lUpperArm:[-0.28,0,-1.12], rUpperArm:[-0.28,0,1.12], lLowerArm:[0,-2.45,0], rLowerArm:[0,2.45,0] },
     peace_sign:   { lUpperArm:[0,0,-1.15], rUpperArm:[0,0,-1.35], rLowerArm:[0,-0.3,0] },
     sit:          { lUpperArm:[0,0,-1.0],  rUpperArm:[0,0,1.0], lUpperLeg:[-1.5,0,0.05], rUpperLeg:[-1.5,0,-0.05], lLowerLeg:[1.6,0,0], rLowerLeg:[1.6,0,0] },
     sitting:      { lUpperArm:[0,0,-1.0],  rUpperArm:[0,0,1.0], lUpperLeg:[-1.5,0,0.05], rUpperLeg:[-1.5,0,-0.05], lLowerLeg:[1.6,0,0], rLowerLeg:[1.6,0,0] },
-    lying_on_back:{ lUpperArm:[0,0,-1.3],  rUpperArm:[0,0,1.3], _rootRotX:-1.5708, _rootY:0.05 },
+    lying_on_back:{ lUpperArm:[0,0,-1.25], rUpperArm:[0,0,1.25], _rootRotX:-1.05, _rootY:0.55 },
     lean:         { lUpperArm:[0,0,-1.15], rUpperArm:[0,0,1.15], _rootRotZ:0.08 },
     leaning_forward:{ lUpperArm:[0,0,-1.1], rUpperArm:[0,0,1.1], _rootRotX:0.32 },
     squatting:    { lUpperArm:[0,0,-1.05], rUpperArm:[0,0,1.05], lUpperLeg:[-1.7,0,0.12], rUpperLeg:[-1.7,0,-0.12], lLowerLeg:[2.2,0,0], rLowerLeg:[2.2,0,0], _rootY:-0.5 },
     kneeling:     { lUpperArm:[0,0,-1.05], rUpperArm:[0,0,1.05], lUpperLeg:[-1.35,0,0.06], rUpperLeg:[-1.35,0,-0.06], lLowerLeg:[2.7,0,0], rLowerLeg:[2.7,0,0], _rootY:-0.42 },
-    walking:      { lUpperArm:[0.32,0,-1.18], rUpperArm:[-0.32,0,1.18], lUpperLeg:[-0.38,0,0], rUpperLeg:[0.38,0,0], lLowerLeg:[0.5,0,0] },
-    arms_behind_head:{ lUpperArm:[0,0,0.55], rUpperArm:[0,0,-0.55], lLowerArm:[0,-2.6,0], rLowerArm:[0,2.6,0] },
+    walking:      { lUpperArm:[0.55,0,-1.05], rUpperArm:[-0.55,0,1.05], lUpperLeg:[-0.5,0,0], rUpperLeg:[0.5,0,0], lLowerLeg:[0.55,0,0] },
+    arms_behind_head:{ lUpperArm:[-0.15,0,1.05], rUpperArm:[-0.15,0,-1.05], lLowerArm:[0,2.7,0], rLowerArm:[0,-2.7,0] },
     hand_on_own_cheek:{ lUpperArm:[0,0,-1.18], rUpperArm:[0,0,0.45], rLowerArm:[0,2.2,0] },
     waving:       { lUpperArm:[0,0,-1.18], rUpperArm:[0,0,-2.2], rLowerArm:[0,-0.5,0] },
 };
@@ -149,19 +149,19 @@ const TAG_MAP = {
 // 외부 에셋 없이 Three.js 프리미티브로 만들어 휴머노이드 본에 부착.
 // def: { bone, build, pos:[x,y,z](본 로컬), rot?, tint?('hair'|'outfit'), dark? }
 const PROP_DEFS = {
-    glasses:       { bone:'head', build:'glasses',    pos:[0,0.05,0.072] },
-    sunglasses:    { bone:'head', build:'glasses',    pos:[0,0.05,0.072], dark:true },
-    cat_ears:      { bone:'head', build:'catEars',    pos:[0,0.17,0],   tint:'hair' },
-    dog_ears:      { bone:'head', build:'dogEars',    pos:[0,0.13,0.01],tint:'hair' },
-    hat:           { bone:'head', build:'hat',        pos:[0,0.17,0] },
-    hair_ribbon:   { bone:'head', build:'ribbon',     pos:[0.075,0.14,0], tint:'hair' },
-    headphones:    { bone:'head', build:'headphones', pos:[0,0.09,0] },
-    choker:        { bone:'neck', build:'choker',     pos:[0,0.01,0] },
-    collar:        { bone:'neck', build:'choker',     pos:[0,0.01,0] },
-    ponytail:      { bone:'head', build:'ponytail',   pos:[0,0.04,-0.06], tint:'hair' },
-    twintails:     { bone:'head', build:'twintails',  pos:[0,0.04,0],     tint:'hair' },
-    skirt:         { bone:'hips', build:'skirt',      pos:[0,0.0,0],   tint:'outfit' },
-    pleated_skirt: { bone:'hips', build:'skirt',      pos:[0,0.0,0],   tint:'outfit', pleated:true },
+    glasses:       { bone:'head', build:'glasses',    pos:[0,0.03,0.085] },
+    sunglasses:    { bone:'head', build:'glasses',    pos:[0,0.03,0.085], dark:true },
+    cat_ears:      { bone:'head', build:'catEars',    pos:[0,0.19,0.0],  tint:'hair' },
+    dog_ears:      { bone:'head', build:'dogEars',    pos:[0,0.15,0.03], tint:'hair' },
+    hat:           { bone:'head', build:'hat',        pos:[0,0.18,0] },
+    hair_ribbon:   { bone:'head', build:'ribbon',     pos:[0.09,0.14,0.02], tint:'hair' },
+    headphones:    { bone:'head', build:'headphones', pos:[0,0.08,0] },
+    choker:        { bone:'neck', build:'choker',     pos:[0,0.02,0.01] },
+    collar:        { bone:'neck', build:'choker',     pos:[0,0.02,0.01] },
+    ponytail:      { bone:'head', build:'ponytail',   pos:[0,0.0,-0.085], tint:'hair' },
+    twintails:     { bone:'head', build:'twintails',  pos:[0,0.02,0],     tint:'hair' },
+    skirt:         { bone:'hips', build:'skirt',      pos:[0,-0.05,0],  tint:'outfit' },
+    pleated_skirt: { bone:'hips', build:'skirt',      pos:[0,-0.05,0],  tint:'outfit', pleated:true },
 };
 
 const PROP_BUILDERS = {
@@ -201,8 +201,8 @@ const PROP_BUILDERS = {
     hat(THREE) {
         const g = new THREE.Group();
         const mat = new THREE.MeshStandardMaterial({ color:0x33384a, roughness:0.7 });
-        const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.10,0.105,0.05,20), mat);
-        const brim  = new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.14,0.008,20), mat); brim.position.y = -0.025;
+        const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.085,0.09,0.05,20), mat);
+        const brim  = new THREE.Mesh(new THREE.CylinderGeometry(0.125,0.125,0.008,20), mat); brim.position.y = -0.025;
         g.add(crown, brim); return g;
     },
     ribbon(THREE) {
@@ -568,13 +568,21 @@ export class PrevizScene {
                 const bone = this.vrm.humanoid.getRawBoneNode?.(def.bone)
                           || this.vrm.humanoid.getNormalizedBoneNode?.(def.bone);
                 if (!bone) return;
+                // VRM 본은 로컬축이 회전돼 있음(예: head 로컬+Y=월드+Z).
+                // 본 월드회전을 상쇄한 '월드정렬 마운트'에 소품을 달아 직관적 좌표(y=위, z=앞) 사용.
+                bone.updateWorldMatrix(true, false);
+                const wq = new THREE.Quaternion(); bone.getWorldQuaternion(wq);
+                const inv = wq.clone().invert();
+                const mount = new THREE.Group();
+                mount.quaternion.copy(inv);
+                mount.position.copy(new THREE.Vector3(...(def.pos || [0,0,0])).applyQuaternion(inv));
                 const obj = PROP_BUILDERS[def.build](THREE, def);
-                obj.position.set(...(def.pos || [0,0,0]));
                 if (def.rot) obj.rotation.set(...def.rot);
-                obj.userData.tint = def.tint || null;
-                obj.traverse(m => { if (m.isMesh) m.frustumCulled = false; });
-                bone.add(obj);
-                this._props[k] = obj;
+                mount.add(obj);
+                mount.userData.tint = def.tint || null;
+                mount.traverse(m => { if (m.isMesh) m.frustumCulled = false; });
+                bone.add(mount);
+                this._props[k] = mount;
             }
             this._tintProp(k);
         });
