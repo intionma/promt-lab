@@ -3,7 +3,8 @@
  * P0: 뷰 전환 + 태그 브릿지 + sceneState 스켈레톤
  */
 
-import { PrevizScene } from './previz-scene.js';
+import { PrevizScene }      from './previz-scene.js';
+import { initPartClickHandler } from './previz-ui.js';
 
 // ── 전역 씬 인스턴스 ──────────────────────────────────────────────
 let _scene = null;
@@ -39,15 +40,37 @@ function makeDefaultSceneState() {
 
 // ── 태그 읽기 헬퍼 ────────────────────────────────────────────────
 export function getActiveTags() {
-    const map = (window.__getActiveTagsMap && window.__getActiveTagsMap()) || {};
-    const tags = Object.keys(map).map(token => ({
-        token,
-        kor: map[token]?.kor || token,
-        layer: map[token]?.layer,
-        neg: map[token]?.neg || false,
-        color: map[token]?.color || '',
-    }));
-    return tags.filter(t => !t.neg);
+    const states  = window.__getContextStates  && window.__getContextStates();
+    const ctx     = window.__getCurrentContext && window.__getCurrentContext();
+    const metaMap = window.__getActiveTagsMap  && window.__getActiveTagsMap();
+    if (!states || !ctx) return [];
+
+    const layerTexts = states[ctx] || [];
+    const seen = new Set();
+    const tags = [];
+
+    layerTexts.forEach((layerText, li) => {
+        if (!layerText) return;
+        layerText.split(',').forEach(raw => {
+            // 가중치 괄호 및 공백 제거
+            const clean = raw.trim()
+                .replace(/^\(+|\)+$/g, '')
+                .replace(/:[0-9.]+$/,  '')
+                .trim();
+            if (!clean || seen.has(clean)) return;
+            seen.add(clean);
+
+            const meta = metaMap?.[clean];
+            tags.push({
+                token: clean,
+                kor:   meta?.kor   || clean,
+                layer: li + 1,
+                color: meta?.color || '',
+            });
+        });
+    });
+
+    return tags;
 }
 
 // ── 태그 변경 감지 ────────────────────────────────────────────────
@@ -72,7 +95,7 @@ function stopTagWatch() {
 }
 
 // ── 뷰 전환 ──────────────────────────────────────────────────────
-export function openPreviz() {
+export async function openPreviz() {
     // 기존 패널 숨김
     ['panel-left', 'panel-mid', 'panel-right',
      'resize-handle-1', 'resize-handle-2'].forEach(id => {
@@ -148,7 +171,8 @@ export function openPreviz() {
     const canvasWrap = document.getElementById('previz-canvas-wrap');
     if (!_scene) {
         _scene = new PrevizScene(canvasWrap);
-        _scene.init();
+        await _scene.init();
+        initPartClickHandler(_scene);
     } else {
         _scene.resize();
     }
