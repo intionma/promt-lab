@@ -802,13 +802,13 @@
                         <textarea class="result-textarea" id="final-positive" readonly></textarea>
                         <div id="syntax-warning" style="display:none; margin-top:4px;">
                             <div style="display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;">
-                                <span style="color:var(--accent-danger);font-size:12px;font-weight:bold;flex:1;"><i class="fa-solid fa-triangle-exclamation"></i> 문법 경고: <span id="syntax-warning-text"></span></span>
+                                <span style="color:var(--accent-danger);font-size:12px;font-weight:bold;flex:1;min-width:0;word-break:break-word;overflow-wrap:anywhere;"><i class="fa-solid fa-triangle-exclamation"></i> 문법 경고: <span id="syntax-warning-text"></span></span>
                                 <button id="btn-auto-fix" onclick="autoFixPrompt()" style="flex-shrink:0;font-size:11px;padding:2px 10px;background:var(--accent-danger);color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:var(--font-ui);font-weight:700;white-space:nowrap;"><i class="fa-solid fa-wand-magic-sparkles"></i> 자동 수정</button>
                             </div>
                         </div>
                         <div id="duplicate-warning" style="display:none; margin-top:4px;">
                             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                                <span style="color:#eab308;font-size:12px;font-weight:bold;flex:1;"><i class="fa-solid fa-copy"></i> 중복 토큰: <span id="duplicate-warning-text"></span></span>
+                                <span style="color:#eab308;font-size:12px;font-weight:bold;flex:1;min-width:0;word-break:break-word;overflow-wrap:anywhere;"><i class="fa-solid fa-copy"></i> 중복 토큰: <span id="duplicate-warning-text"></span></span>
                                 <button onclick="autoFixPrompt()" style="flex-shrink:0;font-size:11px;padding:2px 10px;background:#eab308;color:#000;border:none;border-radius:5px;cursor:pointer;font-family:var(--font-ui);font-weight:700;white-space:nowrap;"><i class="fa-solid fa-wand-magic-sparkles"></i> 자동 수정</button>
                             </div>
                         </div>
@@ -5397,7 +5397,7 @@
                 if (ta) state[i - 1] = ta.value;
             }
             const seen = new Set();
-            let totalRemoved = 0, totalFixed = 0;
+            let totalRemoved = 0, totalFixed = 0, totalWeight = 0;
 
             for (let i = 0; i < 7; i++) {
                 if (!state[i]) continue;
@@ -5425,6 +5425,15 @@
                     return s;
                 };
                 text = fixBrackets(text);
+
+                // 1-2) 가중치 숫자 오류 수정: (토큰:잘못된값) → 토큰 (괄호/가중치 제거)
+                const fixWeights = (s) => s.replace(/\(([^():,]+):([^)]*)\)/g, (m, body, w) => {
+                    const ww = (w || '').trim();
+                    if (/^\d*\.?\d+$/.test(ww) && ww !== '' && ww !== '.') return m; // 유효 가중치는 유지
+                    totalWeight++;
+                    return body.trim();
+                });
+                text = fixWeights(text);
 
                 // 2) 중복 토큰 제거 (전체 계층 통틀어 seen Set 공유)
                 const tokens = text.split(',');
@@ -5459,6 +5468,7 @@
 
             const msgs = [];
             if (totalFixed > 0) msgs.push(`괄호 ${totalFixed}개 수정`);
+            if (totalWeight > 0) msgs.push(`가중치 ${totalWeight}개 정리`);
             if (totalRemoved > 0) msgs.push(`중복 ${totalRemoved}개 제거`);
             saveTabsAndStates();
             if (msgs.length > 0) showToast('✅ ' + msgs.join(', ') + ' 완료', 'success');
