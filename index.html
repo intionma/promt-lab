@@ -4987,22 +4987,22 @@
             const parts = [];  // 완성된 <p> 블록들
             const mkP = s => s?.trim() ? `<p style="margin:0 0 10px 0;line-height:1.9;">${s}</p>` : '';
 
-            // 명사구 배열을 하나의 흐르는 문장으로 직조.
-            // closers: 마지막 단어를 받아 종결구를 반환하는 함수들(랜덤 선택).
+            // 명사구 배열 → 하나의 절(clause). tails는 마지막 단어를 받아
+            // 연결어미(~며/~고/~채 …) 또는 종결구를 반환하는 함수들(랜덤).
             // linker: 2개일 때 앞 구절 뒤 연결어(기본 '에 ').
-            function weave(nps, closers, linker) {
+            function clause(nps, tails, linker) {
                 nps = (nps || []).filter(Boolean);
                 if (!nps.length) return '';
                 const last = nps[nps.length - 1];
                 let head = '';
                 if (nps.length === 2) head = nps[0] + (linker || '에 ');
                 else if (nps.length >= 3) head = nps.slice(0, -1).join(', ') + ', ';
-                return head + pick(...closers)(last);
+                return head + pick(...tails)(last);
             }
 
             // ══════════════════════════════════════════
-            // BLOCK A  무대 — 배경·시간·날씨 + 조명·카메라·이펙트
-            // (배경과 연출을 한 흐름으로 엮어 도입부를 만든다)
+            // 문단 1  무대 — 배경·시간·날씨 + 조명·카메라·이펙트
+            // 절들을 연결어미로 잇고 마지막에 한 번만 맺는다 (소설체).
             // ══════════════════════════════════════════
             {
                 const place = andJoin([...G.inOut, ...G.bgType, ...G.bgPlace, ...G.furniture]);
@@ -5011,185 +5011,104 @@
                 const fxNP  = [andJoin(G.lighting), andJoin(G.camera)].filter(Boolean).join(', ');
                 const ptcl  = andJoin(G.particles);
 
-                let s = '';
-                if (envNP && fxNP) {
-                    s = pick(
-                        `${envNP}${op(L(envNP))} 배경으로, ${fxNP}${ip(L(fxNP))} 장면 전체를 감쌉니다.`,
-                        `${fxNP} 아래 ${envNP}${ip(L(envNP))} 펼쳐집니다.`,
-                        `${envNP}${op(L(envNP))} 무대로 ${fxNP}${ip(L(fxNP))} 분위기를 완성합니다.`
-                    );
-                } else if (envNP) {
-                    s = pick(
-                        `${envNP}${op(L(envNP))} 배경으로 한 장면입니다.`,
-                        `${envNP} 속 한 장면이 담겨 있습니다.`,
-                        `무대는 ${envNP}입니다.`
-                    );
-                } else if (fxNP) {
-                    s = pick(
-                        `${fxNP}${ip(L(fxNP))} 장면 전체를 감쌉니다.`,
-                        `${fxNP}${op(L(fxNP))} 살려 분위기를 잡은 연출입니다.`
-                    );
-                }
-                if (s) parts.push(mkP(s));
+                const frags = [];
+                if (envNP)  frags.push(`${envNP}${op(L(envNP))} 배경으로`);
+                if (ptcl)   frags.push(`${ptcl}${gp(L(ptcl))} 함께`);
+                if (fxNP)   frags.push(`${fxNP}${ip(L(fxNP))} ${pick('은은히','부드럽게','깊게')} 감도는 가운데`);
 
-                if (ptcl) parts.push(mkP(pick(
-                    `여기에 ${ptcl}${ip(L(ptcl))} 더해져 생동감을 불어넣습니다.`,
-                    `${ptcl}${ip(L(ptcl))} 화면을 가득 채우며 분위기를 살립니다.`
-                )));
+                if (frags.length) {
+                    const ender = pick(
+                        '한 장면이 고요히 펼쳐집니다.',
+                        '한 폭의 그림 같은 풍경이 자리합니다.',
+                        '분위기 있는 무대가 완성됩니다.'
+                    );
+                    parts.push(mkP(frags.join(' ') + ' ' + ender));
+                }
             }
 
             // ══════════════════════════════════════════
-            // BLOCK C+D  인물 등장 · 외형
-            // (여러 부위를 한 문장에 직조해 끊김을 줄인다)
+            // 문단 2  인물 — 등장·외형·표정·체형·의상·포즈
+            // 인물을 주제로 삼고 묘사 절을 줄줄이 이어 한 문장으로 맺는다.
             // ══════════════════════════════════════════
             {
-                const person = andJoin([...G.gender, ...G.nationality]);
+                // 국적은 수식어로 앞에: "한국인 소녀" (← "소녀와 한국인" 방지)
+                const natStr = andJoin(G.nationality), genStr = andJoin(G.gender);
+                const person = [natStr, genStr].filter(Boolean).join(' ');
                 const ang    = andJoin(G.angle);
 
-                // (1) 등장 — 인물·앵글
-                if (person || ang) {
-                    let s = '';
-                    if (person && ang) {
-                        s = pick(
-                            `${ang}${rp(L(ang))} 담아낸 ${person}의 모습입니다.`,
-                            `${person}${op(L(person))} ${ang}${rp(L(ang))} 포착했습니다.`,
-                            `${person}${ip(L(person))} ${ang}${rp(L(ang))} 화면에 담겼습니다.`
-                        );
-                    } else if (person) {
-                        s = pick(
-                            `화면의 주인공은 ${person}입니다.`,
-                            `${person}${ip(L(person))} 등장합니다.`
-                        );
-                    } else {
-                        s = pick(
-                            `${ang}${rp(L(ang))} 담아낸 장면입니다.`,
-                            `${ang} 구도로 포착했습니다.`
-                        );
-                    }
-                    parts.push(mkP(s));
-                }
+                // 묘사 절(연결어미로 끝남) 수집
+                const cls = [];
 
-                // (2) 헤어·눈·얼굴 → 한 문장
+                // 외형: 헤어·눈·얼굴
                 const hairNP  = joinHair([andJoin(G.hairColor), andJoin(G.hairLen), andJoin(G.hairStyle)]);
                 const lookNPs = [hairNP, andJoin(G.eyeColor), andJoin(G.faceDetail)].filter(Boolean);
-                if (lookNPs.length) {
-                    parts.push(mkP(weave(lookNPs, [
-                        w => `${w}${ip(L(w))} 가장 먼저 시선을 끕니다.`,
-                        w => `${w}${ip(L(w))} 어우러진 모습입니다.`,
-                        w => `${w}${ip(L(w))} 인상적으로 다가옵니다.`
-                    ])));
-                }
+                if (lookNPs.length) cls.push(clause(lookNPs, [
+                    w => `${w}${ip(L(w))} 시선을 끌고`,
+                    w => `${w}${ip(L(w))} 어우러지며`,
+                    w => `${w}${ip(L(w))} 또렷이 빛나고`
+                ]));
 
-                // (3) 표정·시선 → 한 문장
-                const moodNPs = [andJoin(G.exp), andJoin(G.gaze)].filter(Boolean);
-                if (moodNPs.length) {
-                    parts.push(mkP(weave(moodNPs, [
-                        w => `${w}${ip(L(w))} 인물의 분위기를 살립니다.`,
-                        w => `${w}${ip(L(w))} 자연스럽게 묻어납니다.`
-                    ])));
-                }
+                // 표정·시선
+                const moodNP = andJoin([...G.exp, ...G.gaze]);
+                if (moodNP) cls.push(pick(
+                    `${moodNP}${op(L(moodNP))} 머금은 채`,
+                    `${moodNP}${rp(L(moodNP))} 분위기를 더하며`
+                ));
 
-                // (4) 체형·가슴·피부·신체 디테일 → 한 문장
+                // 체형·가슴·피부·신체
                 const physNPs = [
                     [andJoin(G.bodySize), andJoin(G.chest)].filter(Boolean).join(' '),
                     andJoin(G.skin), andJoin(G.bodyDetail)
                 ].filter(Boolean);
-                if (physNPs.length) {
-                    parts.push(mkP(weave(physNPs, [
-                        w => `${w}${ip(L(w))} 인물의 매력을 더합니다.`,
-                        w => `${w}${op(L(w))} 갖춘 인물입니다.`,
-                        w => `${w}${ip(L(w))} 돋보입니다.`
-                    ])));
-                }
+                if (physNPs.length) cls.push(clause(physNPs, [
+                    w => `${w}${op(L(w))} 지니고`,
+                    w => `${w}${ip(L(w))} 조화를 이루며`
+                ]));
 
-                // (5) 메이크업
+                // 의상
+                const topBot  = andJoin([...G.clothes, ...G.bottoms]);
+                const legShoe = andJoin([...G.legwear, ...G.footwear]);
+                if (topBot && legShoe) cls.push(`${topBot}에 ${legShoe}${op(L(legShoe))} 갖춰 입고`);
+                else if (topBot)       cls.push(pick(`${topBot}${op(L(topBot))} 차려입고`, `${topBot} 차림으로`));
+                else if (legShoe)      cls.push(`${legShoe}${op(L(legShoe))} 신고`);
+
+                // 악세서리·메이크업
+                const accNP  = andJoin([...G.accessory, ...G.jewelry]);
                 const mkupNP = andJoin(G.makeup);
-                if (mkupNP) {
+                if (accNP)  cls.push(`${accNP}${rp(L(accNP))} 포인트를 더한 채`);
+                if (mkupNP) cls.push(`${mkupNP}${rp(L(mkupNP))} 멋을 낸 채`);
+
+                // 포즈·제스처
+                const poseNP = andJoin([...G.pose, ...G.gesture]);
+                if (poseNP) cls.push(`${poseNP}${op(L(poseNP))} 취한 채`);
+
+                // 주제어(인물) + 앵글
+                let subject = '';
+                if (person) subject = ang ? `${ang}${rp(L(ang))} 담긴 ${person}${ep(L(person))}` : `${person}${ep(L(person))}`;
+                else if (cls.length || ang) subject = ang ? `${ang}${rp(L(ang))} 담긴 인물은` : '화면 속 인물은';
+
+                // 마무리 종결구 (화풍·색감 반영)
+                const stStr = andJoin(G.style), ctStr = andJoin(G.colorTone);
+                const stylePre = (stStr || ctStr)
+                    ? `${ctStr ? ctStr + ' 색감과 ' : ''}${stStr ? stStr + ' 화풍 속에서 ' : ''}`
+                    : '';
+                const finisher = pick(
+                    `${stylePre}고운 자태를 드러냅니다.`,
+                    `${stylePre}한 폭의 그림 같은 모습을 완성합니다.`,
+                    `${stylePre}보는 이의 시선을 사로잡습니다.`
+                );
+
+                if (subject || cls.length) {
+                    const body = [subject, ...cls].filter(Boolean).join(' ');
+                    parts.push(mkP((body ? body + ' ' : '') + finisher));
+                } else if (stStr || ctStr) {
+                    // 인물 없이 화풍/색감만
                     parts.push(mkP(pick(
-                        `${mkupNP}${rp(L(mkupNP))} 포인트를 줬습니다.`,
-                        `메이크업으로 ${mkupNP}${op(L(mkupNP))} 더했습니다.`
+                        `${stStr || ctStr} 분위기의 이미지입니다.`,
+                        `전체적으로 ${ctStr || stStr}이 인상적인 한 컷입니다.`.replace('이 인', ip(L(ctStr||stStr))+' 인')
                     )));
                 }
-            }
 
-            // ══════════════════════════════════════════
-            // BLOCK E  의상 · 악세서리
-            // ══════════════════════════════════════════
-            {
-                const cl = G.clothes, bt = G.bottoms, lw = G.legwear, fw = G.footwear;
-                const ac = G.accessory, jw = G.jewelry;
-
-                const topBot  = [...cl, ...bt];
-                const legShoe = [...lw, ...fw];
-                const accAll  = [...ac, ...jw];
-
-                if (topBot.length || legShoe.length) {
-                    const tbStr = andJoin(topBot);
-                    const lsStr = andJoin(legShoe);
-                    let s = '';
-                    if (tbStr && lsStr) {
-                        s = pick(
-                            `${tbStr}에 ${lsStr}을 더한 스타일링입니다.`.replace('을 더', op(L(lsStr))+' 더'),
-                            `${tbStr}${op(L(tbStr))} 착용하고 ${lsStr}${rp(L(lsStr))} 마무리했습니다.`,
-                            `${tbStr}${gp(L(tbStr))} ${lsStr}의 조합으로 연출했습니다.`
-                        );
-                    } else if (tbStr) {
-                        s = pick(
-                            `${tbStr}${op(L(tbStr))} 착용하고 있습니다.`,
-                            `${tbStr} 차림입니다.`,
-                            `${tbStr}${rp(L(tbStr))} 스타일링했습니다.`
-                        );
-                    } else {
-                        s = `${lsStr}${op(L(lsStr))} 착용하고 있습니다.`;
-                    }
-                    parts.push(mkP(s));
-                }
-
-                if (accAll.length) {
-                    const as = andJoin(accAll);
-                    parts.push(mkP(pick(
-                        `${as}${rp(L(as))} 포인트를 더했습니다.`,
-                        `${as}이 스타일을 마무리합니다.`.replace('이 스', ip(L(as))+' 스'),
-                        `악세서리로 ${as}을 선택해 개성을 살렸습니다.`.replace('을 선', op(L(as))+' 선')
-                    )));
-                }
-            }
-
-            // ══════════════════════════════════════════
-            // BLOCK F  포즈 · 제스처
-            // ══════════════════════════════════════════
-            {
-                const pose = G.pose, gest = G.gesture;
-                if (pose.length || gest.length) {
-                    const all = andJoin([...pose, ...gest]);
-                    parts.push(mkP(pick(
-                        `${all}${op(L(all))}취하고 있습니다.`,
-                        `${all}의 포즈로 자신감을 드러내고 있습니다.`,
-                        `${all}으로 당당한 모습을 연출하고 있습니다.`.replace('으로', rp(L(all)))
-                    )));
-                }
-            }
-
-            // ══════════════════════════════════════════
-            // BLOCK G  화풍 · 색감 · 수위
-            // ══════════════════════════════════════════
-            {
-                const st = G.style, ct = G.colorTone;
-                if (st.length || ct.length) {
-                    const stStr = andJoin(st), ctStr = andJoin(ct);
-                    let s = '';
-                    if (stStr && ctStr) {
-                        s = pick(
-                            `${stStr} 화풍에 ${ctStr}의 색감이 어우러진 이미지입니다.`,
-                            `${ctStr} 톤의 ${stStr} 스타일로 표현되었습니다.`
-                        );
-                    } else if (stStr) {
-                        s = pick(`${stStr} 화풍의 이미지입니다.`, `${stStr} 스타일로 표현되었습니다.`);
-                    } else {
-                        s = `${ctStr}의 색감이 특징적입니다.`;
-                    }
-                    parts.push(mkP(s));
-                }
                 if (G.rating.length) {
                     parts.push(mkP(`<span style="color:var(--text-dim);font-size:12px;">✦ 수위: ${andJoin(G.rating)}</span>`));
                 }
