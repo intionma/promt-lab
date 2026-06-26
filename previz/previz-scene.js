@@ -624,22 +624,56 @@ export class PrevizScene {
         const el = this.renderer.domElement;
         const o  = this._orbit;
 
+        // 우클릭 컨텍스트 메뉴 억제
+        el.addEventListener('contextmenu', e => e.preventDefault());
+
         el.addEventListener('mousedown', e => {
-            o.dragging = true; o.lastX = e.clientX; o.lastY = e.clientY;
-            o._sx = e.clientX; o._sy = e.clientY;
+            if (e.button === 0) {
+                // 좌클릭: 좌표만 기록 (드래그 없음 — 클릭 판정용)
+                o._sx = e.clientX; o._sy = e.clientY;
+                o._lbDown = true;
+            } else if (e.button === 2) {
+                // 우클릭: 회전
+                o.dragging = true; o._mode = 'rotate';
+                o.lastX = e.clientX; o.lastY = e.clientY;
+            } else if (e.button === 1) {
+                // 가운데 버튼: 팬
+                o.dragging = true; o._mode = 'pan';
+                o.lastX = e.clientX; o.lastY = e.clientY;
+                e.preventDefault();
+            }
         });
         el.addEventListener('mousemove', e => {
             if (!o.dragging) return;
             const dx = e.clientX-o.lastX, dy = e.clientY-o.lastY;
             o.lastX = e.clientX; o.lastY = e.clientY;
-            o.theta -= dx*0.008;
-            o.phi = Math.max(0.06, Math.min(Math.PI*0.62, o.phi+dy*0.006));
-            this._updateCameraPos();
+            if (o._mode === 'rotate') {
+                o.theta -= dx*0.008;
+                o.phi = Math.max(0.06, Math.min(Math.PI*0.62, o.phi+dy*0.006));
+                this._updateCameraPos();
+            } else if (o._mode === 'pan') {
+                // 팬: 카메라 right/up 벡터 기준으로 lookAt 오프셋 이동
+                const scale = o.radius * 0.0012;
+                const right = new this.THREE.Vector3();
+                const up    = new this.THREE.Vector3(0, 1, 0);
+                right.crossVectors(
+                    new this.THREE.Vector3().subVectors(this.camera.position, new this.THREE.Vector3(0, 0.58, 0)).normalize(),
+                    up
+                ).normalize();
+                o._panX = (o._panX||0) - dx*scale;
+                o._panY = (o._panY||0) + dy*scale;
+                this._updateCameraPos();
+            }
         });
         window.addEventListener('mouseup', e => {
-            if (o.dragging && Math.abs(e.clientX-o._sx)+Math.abs(e.clientY-o._sy) < 5)
-                this._handleClick(e);
-            o.dragging = false;
+            if (e.button === 0 && o._lbDown) {
+                o._lbDown = false;
+                if (Math.abs(e.clientX-o._sx)+Math.abs(e.clientY-o._sy) < 5)
+                    this._handleClick(e);
+            } else {
+                o.dragging = false;
+                o._mode = null;
+            }
         });
         el.addEventListener('wheel', e => {
             o.radius = Math.max(1.2, Math.min(10, o.radius+e.deltaY*0.005));
@@ -681,6 +715,18 @@ export class PrevizScene {
         });
     }
 
+    // PART ID → callout id 매핑
+    static _PART_TO_CALLOUT = {
+        [0]: 'face',   // HEAD
+        [1]: 'upper',  // TORSO
+        [2]: 'pose',   // L_ARM
+        [3]: 'pose',   // R_ARM
+        [4]: 'lower',  // L_LEG
+        [5]: 'lower',  // R_LEG
+        [6]: 'hair',   // HAIR
+        [7]: 'upper',  // OUTFIT
+    };
+
     _handleClick(e) {
         if (!this._raycaster) return;
         const THREE = this.THREE;
@@ -693,19 +739,36 @@ export class PrevizScene {
         const hits = this._raycaster.intersectObjects(Object.values(this._parts));
         if (hits.length > 0) {
             const partId = hits[0].object.userData.partId;
+            // 기존 핸들러 (파트 클릭 패널)
             if (typeof window.__previzOnPartClick === 'function')
                 window.__previzOnPartClick(partId, PART_NAME[partId], this.state, this);
+            // Callout 패널 자동 오픈
+            const calloutId = PrevizScene._PART_TO_CALLOUT[partId];
+            if (calloutId && typeof window.__previzOpenCallout === 'function')
+                window.__previzOpenCallout(calloutId);
         }
     }
 
     _updateCameraPos() {
-        const o = this._orbit, ty = 0.58;
+        const o = this._orbit;
+        const baseY = 0.58;
+        const px = o._panX || 0;
+        const py = o._panY || 0;
+
+        // 카메라 로컬 right 벡터 (팬 방향 계산)
+        const sinT = Math.sin(o.theta), cosT = Math.cos(o.theta);
+        const rightX = cosT, rightZ = -sinT;
+
+        const targetX = px * rightX;
+        const targetY = baseY + py;
+        const targetZ = px * rightZ;
+
         this.camera.position.set(
-            o.radius*Math.sin(o.phi)*Math.sin(o.theta),
-            o.radius*Math.cos(o.phi)+ty,
-            o.radius*Math.sin(o.phi)*Math.cos(o.theta),
+            o.radius*Math.sin(o.phi)*Math.sin(o.theta) + targetX,
+            o.radius*Math.cos(o.phi) + targetY,
+            o.radius*Math.sin(o.phi)*Math.cos(o.theta) + targetZ,
         );
-        this.camera.lookAt(0, ty, 0);
+        this.camera.lookAt(targetX, targetY, targetZ);
     }
 
     _loop() {

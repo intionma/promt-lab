@@ -207,6 +207,13 @@ export class CalloutManager {
         });
     }
 
+    // 인물 좌클릭 시 해당 callout ID로 패널 직접 오픈
+    openById(id) {
+        const def = CALLOUT_DEFS.find(d => d.id === id);
+        const entry = this._boxes[id];
+        if (def && entry) showCalloutPanel(def, entry.el);
+    }
+
     dispose() {
         this._svg?.remove();
         Object.values(this._boxes).forEach(({ el }) => el.remove());

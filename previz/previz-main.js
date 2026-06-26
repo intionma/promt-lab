@@ -182,6 +182,11 @@ export async function openPreviz() {
         ensurePrevizTagsInDB();
         _callouts = new CalloutManager(canvasWrap, _scene.camera, _scene.THREE);
         _scene.onFrameTick = () => _callouts.update();
+
+        // 좌클릭 → Callout 패널 자동 오픈 브릿지
+        window.__previzOpenCallout = (calloutId) => {
+            _callouts?.openById(calloutId);
+        };
     } else {
         _scene.resize();
         initHUD(_scene);
