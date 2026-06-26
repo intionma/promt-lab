@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.7 &nbsp;·&nbsp; 2026-06-26 — 대기열 팝업 확대 애니메이션</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.8 &nbsp;·&nbsp; 2026-06-26 — 라이트박스 이미지 클릭으로 닫기</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -1315,7 +1315,7 @@
     <!-- ── 이미지 라이트박스 (풀스크린 뷰어) ── -->
     <div id="img-lightbox" style="display:none; position:fixed; inset:0; z-index:100010; background:rgba(0,0,0,0.92); align-items:center; justify-content:center;">
         <button onclick="closeLightbox()" title="닫기 (Esc)" style="position:absolute; top:16px; right:18px; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:20px; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
-        <img id="img-lightbox-img" src="" style="max-width:96vw; max-height:94vh; border-radius:8px; object-fit:contain;">
+        <img id="img-lightbox-img" src="" onclick="closeLightbox()" title="클릭하면 닫기" style="max-width:96vw; max-height:94vh; border-radius:8px; object-fit:contain; cursor:zoom-out;">
     </div>
 
     <!-- ── ComfyUI 전송 대기열 (우측 하단 플로팅) ── -->
