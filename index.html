@@ -24,10 +24,11 @@
             --input-bg: #050608;
             --folder-bg: rgba(255,255,255,0.02);
             --folder-hover: rgba(255,255,255,0.05);
-            --glass-bg: rgba(255,255,255,0.03);
-            --glass-border: rgba(255,255,255,0.18);
-            --glass-highlight: rgba(255,255,255,0.45);
+            --glass-bg: rgba(22,30,48,0.42);
+            --glass-border: rgba(255,255,255,0.22);
+            --glass-highlight: rgba(255,255,255,0.55);
             --glass-shadow: rgba(0,0,0,0.5);
+            --glass-tint: rgba(120,170,255,0.06);
             --overlay-bg: rgba(0,0,0,0.12);
         }
 
@@ -41,10 +42,11 @@
             --input-bg: #ffffff;
             --folder-bg: #f8fafc;
             --folder-hover: #f1f5f9;
-            --glass-bg: rgba(255,255,255,0.08);
-            --glass-border: rgba(255,255,255,0.55);
-            --glass-highlight: rgba(255,255,255,0.85);
+            --glass-bg: rgba(255,255,255,0.55);
+            --glass-border: rgba(255,255,255,0.65);
+            --glass-highlight: rgba(255,255,255,0.95);
             --glass-shadow: rgba(0,0,0,0.2);
+            --glass-tint: rgba(255,255,255,0.10);
             --overlay-bg: rgba(0,0,0,0.12);
         }
 
@@ -468,6 +470,66 @@
                 inset 1px 0 0 rgba(255,255,255,0.06),
                 inset -1px 0 0 rgba(255,255,255,0.04);
         }
+        /* ===================== Apple-style Liquid Glass ===================== */
+        /* 모든 창(모달/팝업/컨텍스트 메뉴)에 굴절 림 + 스페큘러 광택 + 깊이감 */
+        .modal-content,
+        .combo-create-modal,
+        #ctx-menu,
+        #tag-inline-popup,
+        .liquid-glass {
+            position: relative;
+            isolation: isolate;
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.01) 42%, var(--glass-tint)),
+                var(--glass-bg);
+            backdrop-filter: blur(44px) saturate(200%) brightness(1.08) contrast(1.02);
+            -webkit-backdrop-filter: blur(44px) saturate(200%) brightness(1.08) contrast(1.02);
+            border: 1px solid rgba(255,255,255,0.10);
+            box-shadow:
+                0 0 0 0.5px rgba(255,255,255,0.12),
+                0 28px 70px rgba(0,0,0,0.55),
+                0 8px 22px rgba(0,0,0,0.32),
+                inset 0 1px 0 var(--glass-highlight),
+                inset 0 0 0 1px rgba(255,255,255,0.05),
+                inset 0 -16px 38px rgba(120,160,255,0.05),
+                inset 1px 0 0 rgba(255,255,255,0.07),
+                inset -1px 0 0 rgba(255,255,255,0.05);
+        }
+        /* 상단 스페큘러 하이라이트 + 대각 광택 시트 (콘텐츠 위 은은하게) */
+        .modal-content::after,
+        .combo-create-modal::after,
+        #ctx-menu::after,
+        #tag-inline-popup::after,
+        .liquid-glass::after {
+            content: '';
+            position: absolute; inset: 0; border-radius: inherit;
+            pointer-events: none; z-index: 60;
+            background:
+                radial-gradient(135% 75% at 12% -12%, rgba(255,255,255,0.40), rgba(255,255,255,0) 46%),
+                linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0) 14%);
+            mix-blend-mode: screen;
+            opacity: 0.55;
+        }
+        /* 하단/측면 굴절 엣지 (유리 두께감) */
+        .modal-content::before,
+        .combo-create-modal::before,
+        #ctx-menu::before,
+        #tag-inline-popup::before,
+        .liquid-glass::before {
+            content: '';
+            position: absolute; inset: 0; border-radius: inherit;
+            pointer-events: none; z-index: 0;
+            box-shadow:
+                inset 0 -1.5px 1px rgba(0,0,0,0.22),
+                inset 0 -22px 30px rgba(0,0,0,0.10);
+        }
+        [data-theme="light"] .modal-content::after,
+        [data-theme="light"] .combo-create-modal::after,
+        [data-theme="light"] .liquid-glass::after { opacity: 0.7; }
+        @media (prefers-reduced-motion: no-preference) {
+            .modal-content, .combo-create-modal { transition: box-shadow 0.3s ease; }
+        }
+
         .modal-header { padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; font-family: var(--font-heading); background: rgba(255,255,255,0.03); border-radius: 22px 22px 0 0; }
         .modal-title { font-size: 18px; font-weight: 800; color: var(--text-main); }
 
