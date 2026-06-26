@@ -42,29 +42,32 @@ export function showCalloutPanel(def, anchorEl) {
     _panel = document.createElement('div');
     _panel.id = 'previz-part-panel';
 
-    // 애니메이션 시작 상태
+    // 글라스 디자인 패널
     _panel.style.cssText = [
-        'position:absolute', 'top:60px', 'right:16px', 'width:260px',
-        'background:rgba(2,12,26,0.96)',
-        'border:1px solid rgba(0,234,255,0.30)',
-        'border-radius:12px', 'padding:0',
-        'font-family:monospace', 'color:#00eaff', 'z-index:300',
-        'backdrop-filter:blur(10px)',
-        'box-shadow:0 0 30px rgba(0,234,255,0.10)',
+        'position:absolute', 'top:60px', 'right:16px', 'width:268px',
+        'background:rgba(18,22,32,0.82)',
+        'border:1px solid rgba(255,255,255,0.12)',
+        'border-radius:14px', 'padding:0',
+        'font-family:system-ui,sans-serif', 'color:#d8dde8', 'z-index:300',
+        'backdrop-filter:blur(18px) saturate(1.4)',
+        '-webkit-backdrop-filter:blur(18px) saturate(1.4)',
+        'box-shadow:0 8px 32px rgba(0,0,0,0.55),0 1px 0 rgba(255,255,255,0.08) inset',
         'overflow:hidden',
-        'opacity:0', 'transform:translateX(16px)',
-        'transition:opacity 0.22s ease,transform 0.22s ease',
+        'opacity:0', 'transform:translateX(18px)',
+        'transition:opacity 0.20s ease,transform 0.20s ease',
     ].join(';');
 
     // ── 헤더 (탭 전환) ──
     const header = document.createElement('div');
-    header.style.cssText = 'display:flex;align-items:center;border-bottom:1px solid rgba(0,234,255,0.15);';
+    header.style.cssText = 'display:flex;align-items:center;border-bottom:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);';
 
     const tabTag   = makeTab(`${def.icon} 태그`, true);
     const tabParam = makeTab('⚙ 파라미터', false);
     const closeBtn = document.createElement('button');
     closeBtn.textContent = '✕';
-    closeBtn.style.cssText = 'margin-left:auto;background:transparent;border:none;color:rgba(0,234,255,0.4);font-size:14px;cursor:pointer;padding:8px 12px;';
+    closeBtn.style.cssText = 'margin-left:auto;background:transparent;border:none;color:rgba(200,210,230,0.4);font-size:13px;cursor:pointer;padding:8px 12px;transition:color 0.15s;';
+    closeBtn.onmouseover = () => closeBtn.style.color = 'rgba(255,255,255,0.8)';
+    closeBtn.onmouseout  = () => closeBtn.style.color = 'rgba(200,210,230,0.4)';
     closeBtn.onclick = removePanel;
 
     header.appendChild(tabTag);
@@ -74,7 +77,7 @@ export function showCalloutPanel(def, anchorEl) {
 
     // ── 탭 컨텐츠 영역 ──
     const body = document.createElement('div');
-    body.style.cssText = 'max-height:420px;overflow-y:auto;padding:12px 14px;';
+    body.style.cssText = 'max-height:420px;overflow-y:auto;padding:12px 14px;color:#d0d8ea;';
     _panel.appendChild(body);
 
     // 태그 탭
@@ -87,10 +90,10 @@ export function showCalloutPanel(def, anchorEl) {
     function switchTab(toTag) {
         body.innerHTML = '';
         body.appendChild(toTag ? tagPane : paramPane);
-        tabTag.style.background   = toTag ? 'rgba(0,234,255,0.14)' : 'transparent';
-        tabTag.style.color        = toTag ? '#00eaff' : 'rgba(0,234,255,0.40)';
-        tabParam.style.background = !toTag ? 'rgba(0,234,255,0.14)' : 'transparent';
-        tabParam.style.color      = !toTag ? '#00eaff' : 'rgba(0,234,255,0.40)';
+        tabTag.style.background   = toTag ? 'rgba(120,180,255,0.12)' : 'transparent';
+        tabTag.style.color        = toTag ? '#a8c8ff' : 'rgba(180,190,210,0.45)';
+        tabParam.style.background = !toTag ? 'rgba(120,180,255,0.12)' : 'transparent';
+        tabParam.style.color      = !toTag ? '#a8c8ff' : 'rgba(180,190,210,0.45)';
     }
     tabTag.onclick   = () => switchTab(true);
     tabParam.onclick = () => switchTab(false);
@@ -109,10 +112,10 @@ function makeTab(label, active) {
     btn.textContent = label;
     btn.style.cssText = [
         'flex:1', 'padding:10px 8px', 'border:none',
-        'background:' + (active ? 'rgba(0,234,255,0.14)' : 'transparent'),
-        'color:' + (active ? '#00eaff' : 'rgba(0,234,255,0.40)'),
-        'font-family:monospace', 'font-size:11px', 'cursor:pointer',
-        'letter-spacing:0.5px', 'transition:background 0.15s,color 0.15s',
+        'background:' + (active ? 'rgba(120,180,255,0.12)' : 'transparent'),
+        'color:' + (active ? '#a8c8ff' : 'rgba(180,190,210,0.45)'),
+        'font-family:system-ui,sans-serif', 'font-size:11px', 'cursor:pointer',
+        'letter-spacing:0.3px', 'transition:background 0.15s,color 0.15s',
     ].join(';');
     return btn;
 }
@@ -143,7 +146,7 @@ function buildTagPane(def) {
             folderDiv.style.cssText = 'margin-bottom:10px;';
 
             const folderLabel = document.createElement('div');
-            folderLabel.style.cssText = 'font-size:9px;color:rgba(0,234,255,0.38);margin-bottom:6px;letter-spacing:1.5px;';
+            folderLabel.style.cssText = 'font-size:9px;color:rgba(160,180,220,0.50);margin-bottom:6px;letter-spacing:1.5px;';
             folderLabel.textContent = folderName.toUpperCase();
             folderDiv.appendChild(folderLabel);
 
@@ -186,7 +189,7 @@ function buildTagPane(def) {
 
     if (rendered === 0) {
         const note = document.createElement('div');
-        note.style.cssText = 'font-size:11px;color:rgba(0,234,255,0.35);padding:8px 0;';
+        note.style.cssText = 'font-size:11px;color:rgba(180,190,210,0.40);padding:8px 0;';
         note.textContent = '관련 태그가 없습니다.';
         pane.appendChild(note);
     }
@@ -195,14 +198,14 @@ function buildTagPane(def) {
 }
 
 function buildChipStyle(active, color) {
-    const c = color || '#00eaff';
+    const c = color || '#7ab4ff';
     return [
         'display:flex', 'flex-direction:column', 'align-items:center',
         'padding:4px 8px', 'border-radius:7px', 'cursor:pointer',
-        'border:1px solid ' + (active ? c : 'rgba(0,234,255,0.18)'),
-        'background:' + (active ? `${c}22` : 'rgba(255,255,255,0.03)'),
-        'color:' + (active ? c : 'rgba(0,234,255,0.55)'),
-        'font-family:monospace',
+        'border:1px solid ' + (active ? c : 'rgba(255,255,255,0.12)'),
+        'background:' + (active ? `rgba(100,160,255,0.18)` : 'rgba(255,255,255,0.05)'),
+        'color:' + (active ? '#c0d8ff' : 'rgba(180,195,220,0.65)'),
+        'font-family:system-ui,sans-serif',
         'transition:border-color 0.15s,background 0.15s,color 0.15s',
         'min-width:52px', 'text-align:center',
     ].join(';');
@@ -227,7 +230,7 @@ function buildParamPane(def) {
 
         if (ctrl.label) {
             const lbl = document.createElement('div');
-            lbl.style.cssText = 'font-size:9px;color:rgba(0,234,255,0.42);margin-bottom:6px;letter-spacing:1.5px;';
+            lbl.style.cssText = 'font-size:9px;color:rgba(160,180,220,0.55);margin-bottom:6px;letter-spacing:1.5px;';
             lbl.textContent = ctrl.label.toUpperCase();
             wrap.appendChild(lbl);
         }
@@ -308,9 +311,9 @@ function appendSlider(wrap, ctrl, state) {
     row.style.cssText = 'display:flex;align-items:center;gap:8px;';
     const inp = document.createElement('input');
     inp.type='range'; inp.min=ctrl.min; inp.max=ctrl.max; inp.step=ctrl.step; inp.value=cur;
-    inp.style.cssText='flex:1;accent-color:#00eaff;cursor:pointer;';
+    inp.style.cssText='flex:1;accent-color:#7ab4ff;cursor:pointer;';
     const disp = document.createElement('span');
-    disp.style.cssText='font-size:11px;min-width:32px;text-align:right;color:rgba(0,234,255,0.7);';
+    disp.style.cssText='font-size:11px;min-width:32px;text-align:right;color:rgba(180,200,240,0.75);';
     disp.textContent=parseFloat(cur).toFixed(2);
     inp.oninput=()=>{
         disp.textContent=parseFloat(inp.value).toFixed(2);
@@ -333,11 +336,11 @@ function appendColorPick(wrap, ctrl, state) {
         btn.style.cssText=[
             `background:${preset.value}`,
             'width:26px','height:26px','border-radius:50%',
-            'border:2px solid rgba(0,234,255,0.18)',
-            'cursor:pointer','transition:transform 0.15s,border-color 0.15s',
+            'border:2px solid rgba(255,255,255,0.15)',
+            'cursor:pointer','transition:transform 0.15s,border-color 0.15s,box-shadow 0.15s',
         ].join(';');
-        btn.onmouseover=()=>{btn.style.transform='scale(1.2)';btn.style.borderColor='#00eaff';};
-        btn.onmouseout=()=>{btn.style.transform='';btn.style.borderColor='rgba(0,234,255,0.18)';};
+        btn.onmouseover=()=>{btn.style.transform='scale(1.2)';btn.style.borderColor='rgba(255,255,255,0.6)';btn.style.boxShadow=`0 0 8px ${preset.value}88`;};
+        btn.onmouseout=()=>{btn.style.transform='';btn.style.borderColor='rgba(255,255,255,0.15)';btn.style.boxShadow='';};
         btn.onclick=()=>{
             const [domain,prop]=ctrl.channel.split('.');
             const ns=JSON.parse(JSON.stringify(_sceneRef.state));
@@ -365,10 +368,10 @@ function appendEnum(wrap, ctrl, state) {
         btn.textContent=opt.label;
         const isActive=curVal===opt.value;
         btn.style.cssText=[
-            'background:'+(isActive?'rgba(0,234,255,0.18)':'transparent'),
-            'border:1px solid rgba(0,234,255,'+(isActive?'0.5':'0.18')+')',
-            'color:#00eaff','border-radius:5px','padding:3px 9px',
-            'font-size:10px','cursor:pointer','font-family:monospace',
+            'background:'+(isActive?'rgba(100,160,255,0.18)':'rgba(255,255,255,0.04)'),
+            'border:1px solid rgba(160,200,255,'+(isActive?'0.55':'0.15')+')',
+            'color:'+(isActive?'#c0d8ff':'rgba(180,195,220,0.65)'),'border-radius:6px','padding:3px 9px',
+            'font-size:10px','cursor:pointer','font-family:system-ui,sans-serif',
         ].join(';');
         btn.onclick=()=>{
             const ns=JSON.parse(JSON.stringify(_sceneRef.state));
@@ -377,11 +380,11 @@ function appendEnum(wrap, ctrl, state) {
             _sceneRef.state=ns;
             _sceneRef._buildAllParts(ns);
             row.querySelectorAll('button').forEach(b=>{
-                b.style.background='transparent';
-                b.style.borderColor='rgba(0,234,255,0.18)';
+                b.style.background='rgba(255,255,255,0.04)';
+                b.style.borderColor='rgba(160,200,255,0.15)';
             });
-            btn.style.background='rgba(0,234,255,0.18)';
-            btn.style.borderColor='rgba(0,234,255,0.5)';
+            btn.style.background='rgba(100,160,255,0.18)';
+            btn.style.borderColor='rgba(160,200,255,0.55)';
             // enum → 에디터 토큰 적용
             syncEnumToEditor(ctrl.channel, opt.value);
         };
@@ -421,7 +424,7 @@ function appendPosePicker(wrap, state) {
 function appendEnvPicker(wrap, state) {
     // 환경
     const envLabel=document.createElement('div');
-    envLabel.style.cssText='font-size:9px;color:rgba(0,234,255,0.42);margin-bottom:6px;letter-spacing:1.5px;';
+    envLabel.style.cssText='font-size:9px;color:rgba(160,180,220,0.55);margin-bottom:6px;letter-spacing:1.5px;';
     envLabel.textContent='배경';
     wrap.appendChild(envLabel);
     const envRow=document.createElement('div');
@@ -430,11 +433,11 @@ function appendEnvPicker(wrap, state) {
         const btn=document.createElement('button');
         btn.textContent=e.label;
         const isActive=(state.env?.preset||'park')===e.key;
-        btn.style.cssText=['background:'+(isActive?'rgba(0,234,255,0.18)':'transparent'),'border:1px solid rgba(0,234,255,'+(isActive?'0.5':'0.18')+')','color:#00eaff','border-radius:5px','padding:3px 9px','font-size:10px','cursor:pointer','font-family:monospace'].join(';');
+        btn.style.cssText=['background:'+(isActive?'rgba(100,160,255,0.18)':'rgba(255,255,255,0.04)'),'border:1px solid rgba(160,200,255,'+(isActive?'0.55':'0.15')+')','color:'+(isActive?'#c0d8ff':'rgba(180,195,220,0.65)'),'border-radius:6px','padding:3px 9px','font-size:10px','cursor:pointer','font-family:system-ui,sans-serif'].join(';');
         btn.onclick=()=>{
             _sceneRef.state.env.preset=e.key;
             _sceneRef._applyEnv(_sceneRef.state.env);
-            envRow.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.borderColor='rgba(0,234,255,0.18)';});
+            envRow.querySelectorAll('button').forEach(b=>{b.style.background='rgba(255,255,255,0.04)';b.style.borderColor='rgba(160,200,255,0.15)';b.style.color='rgba(180,195,220,0.65)';});
             btn.style.background='rgba(0,234,255,0.18)';btn.style.borderColor='rgba(0,234,255,0.5)';
             // 에디터에도 반영
             const envTokenMap={park:'outdoors',indoor:'indoors',street:'street',sky:'sky'};
@@ -446,7 +449,7 @@ function appendEnvPicker(wrap, state) {
 
     // 날씨
     const wLabel=document.createElement('div');
-    wLabel.style.cssText='font-size:9px;color:rgba(0,234,255,0.42);margin-bottom:6px;letter-spacing:1.5px;';
+    wLabel.style.cssText='font-size:9px;color:rgba(160,180,220,0.55);margin-bottom:6px;letter-spacing:1.5px;';
     wLabel.textContent='날씨';
     wrap.appendChild(wLabel);
     const wRow=document.createElement('div');
@@ -455,11 +458,11 @@ function appendEnvPicker(wrap, state) {
         const btn=document.createElement('button');
         btn.textContent=w.label;
         const isActive=(state.env?.weather||'clear')===w.key;
-        btn.style.cssText=['background:'+(isActive?'rgba(0,234,255,0.18)':'transparent'),'border:1px solid rgba(0,234,255,'+(isActive?'0.5':'0.18')+')','color:#00eaff','border-radius:5px','padding:3px 9px','font-size:10px','cursor:pointer','font-family:monospace'].join(';');
+        btn.style.cssText=['background:'+(isActive?'rgba(100,160,255,0.18)':'rgba(255,255,255,0.04)'),'border:1px solid rgba(160,200,255,'+(isActive?'0.55':'0.15')+')','color:'+(isActive?'#c0d8ff':'rgba(180,195,220,0.65)'),'border-radius:6px','padding:3px 9px','font-size:10px','cursor:pointer','font-family:system-ui,sans-serif'].join(';');
         btn.onclick=()=>{
             _sceneRef.state.env.weather=w.key;
             _sceneRef._weather?.setWeather(w.key);
-            wRow.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.borderColor='rgba(0,234,255,0.18)';});
+            wRow.querySelectorAll('button').forEach(b=>{b.style.background='rgba(255,255,255,0.04)';b.style.borderColor='rgba(160,200,255,0.15)';b.style.color='rgba(180,195,220,0.65)';});
             btn.style.background='rgba(0,234,255,0.18)';btn.style.borderColor='rgba(0,234,255,0.5)';
             if(w.key!=='clear') applyTokenToEditor(w.key,{layerHint:6});
         };
@@ -469,7 +472,7 @@ function appendEnvPicker(wrap, state) {
 
     // 시간대
     const tLabel=document.createElement('div');
-    tLabel.style.cssText='font-size:9px;color:rgba(0,234,255,0.42);margin:10px 0 6px;letter-spacing:1.5px;';
+    tLabel.style.cssText='font-size:9px;color:rgba(160,180,220,0.55);margin:10px 0 6px;letter-spacing:1.5px;';
     tLabel.textContent='시간대';
     wrap.appendChild(tLabel);
     const tRow=document.createElement('div');
@@ -480,7 +483,7 @@ function appendEnvPicker(wrap, state) {
     tSlider.style.cssText='flex:1;accent-color:#00eaff;cursor:pointer;';
     const tLabels=['새벽','낮','저녁','밤'];
     const tDisp=document.createElement('span');
-    tDisp.style.cssText='font-size:10px;color:rgba(0,234,255,0.6);min-width:28px;text-align:right;';
+    tDisp.style.cssText='font-size:10px;color:rgba(180,200,240,0.70);min-width:28px;text-align:right;';
     tDisp.textContent=tLabels[Math.round(parseFloat(tSlider.value)*3)];
     tSlider.oninput=()=>{
         const v=parseFloat(tSlider.value);
@@ -603,7 +606,7 @@ export function initHUD(sceneRef) {
     if (!document.getElementById('previz-hud-style')) {
         const style=document.createElement('style');
         style.id='previz-hud-style';
-        style.textContent=`.hud-active{background:rgba(0,234,255,0.20)!important;color:#00eaff!important;border-color:rgba(0,234,255,0.5)!important;}`;
+        style.textContent=`.hud-active{background:rgba(100,160,255,0.22)!important;color:#c0d8ff!important;border-color:rgba(160,200,255,0.55)!important;}`;
         document.head.appendChild(style);
     }
 }
@@ -611,9 +614,13 @@ export function initHUD(sceneRef) {
 // ── HUD 그룹/칩 생성 헬퍼 ─────────────────────────────────────────
 function hudGroup(title) {
     const wrap=document.createElement('div');
-    wrap.style.cssText=['display:flex','align-items:center','gap:3px','background:rgba(2,10,22,0.80)','border:1px solid rgba(0,234,255,0.16)','border-radius:8px','padding:3px 7px','font-family:monospace'].join(';');
+    wrap.style.cssText=['display:flex','align-items:center','gap:3px',
+        'background:rgba(15,20,32,0.78)','border:1px solid rgba(255,255,255,0.10)',
+        'border-radius:8px','padding:3px 7px','font-family:system-ui,sans-serif',
+        'backdrop-filter:blur(10px)','-webkit-backdrop-filter:blur(10px)',
+    ].join(';');
     const lbl=document.createElement('span');
-    lbl.style.cssText='font-size:9px;color:rgba(0,234,255,0.35);margin-right:3px;white-space:nowrap;';
+    lbl.style.cssText='font-size:9px;color:rgba(160,180,220,0.45);margin-right:3px;white-space:nowrap;';
     lbl.textContent=title;
     wrap.appendChild(lbl);
     return wrap;
@@ -623,7 +630,10 @@ function hudChip(label, active, onClick) {
     const btn=document.createElement('button');
     btn.textContent=label;
     if(active) btn.classList.add('hud-active');
-    btn.style.cssText=['background:transparent','border:1px solid rgba(0,234,255,0.18)','color:rgba(0,234,255,0.60)','border-radius:5px','padding:3px 7px','font-size:10px','cursor:pointer','font-family:monospace','white-space:nowrap'].join(';');
+    btn.style.cssText=['background:rgba(255,255,255,0.04)','border:1px solid rgba(255,255,255,0.12)',
+        'color:rgba(180,195,220,0.65)','border-radius:5px','padding:3px 8px',
+        'font-size:10px','cursor:pointer','font-family:system-ui,sans-serif','white-space:nowrap',
+    ].join(';');
     btn.onclick=onClick;
     return btn;
 }
@@ -634,12 +644,12 @@ function updateUnmappedBadge(unmapped) {
     if(!badge){
         badge=document.createElement('div');
         badge.id='previz-unmapped-badge';
-        badge.style.cssText=['position:absolute','bottom:70px','left:16px','background:rgba(2,10,22,0.85)','border:1px solid rgba(0,234,255,0.14)','border-radius:7px','padding:6px 10px','font-family:monospace','font-size:9px','color:rgba(0,234,255,0.42)','max-width:180px','line-height:1.6'].join(';');
+        badge.style.cssText=['position:absolute','bottom:70px','left:16px','background:rgba(15,20,32,0.80)','border:1px solid rgba(255,255,255,0.10)','border-radius:7px','padding:6px 10px','font-family:system-ui,sans-serif','font-size:9px','color:rgba(180,190,210,0.55)','max-width:180px','line-height:1.6','backdrop-filter:blur(8px)'].join(';');
         document.getElementById('previz-canvas-wrap')?.appendChild(badge);
     }
     if(!unmapped||unmapped.length===0){badge.style.display='none';return;}
     badge.style.display='block';
-    badge.innerHTML=`<div style="color:rgba(0,234,255,0.55);margin-bottom:3px;">⚠ 3D 미반영 (${unmapped.length})</div>`
+    badge.innerHTML=`<div style="color:rgba(220,200,120,0.70);margin-bottom:3px;">⚠ 3D 미반영 (${unmapped.length})</div>`
         +unmapped.slice(0,6).map(t=>`<span style="opacity:0.5;">${t}</span>`).join('<br>');
 }
 

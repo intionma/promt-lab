@@ -540,7 +540,8 @@ export class PrevizScene {
             this._charGroup.add(armGroup);
             this._track(pId, armGroup);
 
-            const upperLen = sk.H * 0.155;
+            // 팔은 어깨에서 아래로 내려가야 함 (음수)
+            const upperLen = -(sk.H * 0.155);
             // 상완
             const upperSecs = [
                 { y: 0,            rx: sk.upperArmW,       rz: sk.upperArmW*0.90 },
@@ -568,11 +569,11 @@ export class PrevizScene {
             if (state.pose === 'peace_sign' && side < 0) foreGroup.rotation.x = -0.5;
             armGroup.add(foreGroup);
 
-            const foreLen = sk.H * 0.138;
+            const foreLen = -(sk.H * 0.138);
             const foreSecs = [
-                { y: 0,          rx: sk.foreArmW,     rz: sk.foreArmW*0.88 },
+                { y: 0,           rx: sk.foreArmW,      rz: sk.foreArmW*0.88 },
                 { y: foreLen*0.5, rx: sk.foreArmW*0.92, rz: sk.foreArmW*0.85 },
-                { y: foreLen,    rx: sk.wristW*1.1,   rz: sk.wristW },
+                { y: foreLen,     rx: sk.wristW*1.1,    rz: sk.wristW },
             ];
             const foreGeo  = buildTubeMesh(foreSecs, THREE, 10);
             const foreMesh = new THREE.Mesh(foreGeo, mat);
@@ -584,7 +585,7 @@ export class PrevizScene {
             const handGeo  = new THREE.SphereGeometry(sk.wristW*1.3, 10, 8);
             const handMesh = new THREE.Mesh(handGeo, mat);
             handMesh.scale.set(1.4, 0.9, 0.7);
-            handMesh.position.set(0, foreLen + sk.wristW*0.6, 0);
+            handMesh.position.set(0, foreLen - sk.wristW*0.6, 0);
             foreGroup.add(handMesh);
         });
     }
@@ -1052,12 +1053,14 @@ export class PrevizScene {
             }
         });
 
+        let hasCameraTag = false;
         tags.forEach(({ token }) => {
             const m = TAG_MAP[token];
             if (m) {
                 const [domain, prop] = m.ch.split('.');
                 if (prop) { if (!ns[domain]) ns[domain]={}; ns[domain][prop]=m.v; }
                 else ns[domain] = m.v;
+                if (m.ch.startsWith('camera.')) hasCameraTag = true;
             } else if (!ENV_TAG_MAP[token]) {
                 const t = token.toLowerCase();
                 if      (t.includes('long')  && t.includes('hair')) ns.hair.length = 1.0;
@@ -1071,10 +1074,35 @@ export class PrevizScene {
         this.state = ns;
         this._applyEnv(ns.env);
         this._buildCharacter(ns);
-        this._updateCameraForState(ns);
+        // 사용자가 직접 카메라를 조작하지 않은 경우에만(카메라 태그 있을 때만) 초기화
+        if (hasCameraTag) this._updateCameraForState(ns);
 
         if (typeof window.__previzUpdateUnmapped === 'function')
             window.__previzUpdateUnmapped(ns.unmapped);
+    }
+
+    // ── UI에서 호출: 캐릭터 리빌드 (카메라 유지) ─────────────────
+    _buildAllParts(state) {
+        this.state = state;
+        this._buildCharacter(state);
+        this._saveState(state);
+    }
+
+    // ── UI에서 호출: 눈 색만 교체 ────────────────────────────────
+    _buildEyes(state) {
+        this.state = state;
+        // HEAD 파트 전체 제거 후 재빌드 (얼굴 + 눈)
+        if (this._meshMap[PART.HEAD]) {
+            this._meshMap[PART.HEAD].forEach(m => {
+                this._charGroup.remove(m);
+                if (m.geometry) m.geometry.dispose();
+                if (m.material) m.material.dispose();
+            });
+            this._meshMap[PART.HEAD] = [];
+        }
+        const sk = buildSkeleton(state);
+        this._buildHead(sk, state);
+        this._saveState(state);
     }
 
     _updateCameraForState(state) {
@@ -1230,6 +1258,7 @@ export class PrevizScene {
 
     _loop() {
         this.animId = requestAnimationFrame(() => this._loop());
+        this._weather?.update();
         this.renderer.render(this.scene, this.camera);
         this.onFrameTick?.();
     }

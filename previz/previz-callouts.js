@@ -109,8 +109,8 @@ export class CalloutManager {
         CALLOUT_DEFS.forEach(def => {
             // SVG 선
             const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute('stroke', 'rgba(0,234,255,0.18)');
-            line.setAttribute('stroke-width', '1');
+            line.setAttribute('stroke', 'rgba(160,200,255,0.45)');
+            line.setAttribute('stroke-width', '1.5');
             line.style.transition = 'stroke 0.25s';
             svg.appendChild(line);
 
@@ -122,17 +122,19 @@ export class CalloutManager {
                 'position:absolute',
                 'display:flex', 'align-items:center', 'gap:6px',
                 'padding:5px 10px',
-                'background:rgba(2,10,22,0.55)',
-                'border:1px solid rgba(0,234,255,0.18)',
+                'background:rgba(15,25,45,0.72)',
+                'border:1px solid rgba(180,210,255,0.40)',
                 'border-radius:8px',
                 'cursor:pointer',
                 'pointer-events:auto',
                 'white-space:nowrap',
                 'font-family:monospace', 'font-size:11px',
-                'color:rgba(0,234,255,0.20)',
+                'color:rgba(220,235,255,0.85)',
                 'transition:color 0.25s,border-color 0.25s,background 0.25s,opacity 0.25s',
                 'user-select:none',
-                'opacity:0.25',
+                'opacity:0.72',
+                'box-shadow:0 2px 8px rgba(0,0,0,0.4)',
+                'text-shadow:0 1px 3px rgba(0,0,0,0.8)',
             ].join(';');
             box.innerHTML = `<span style="font-size:13px;">${def.icon}</span><span>${def.label}</span>`;
 
@@ -150,19 +152,19 @@ export class CalloutManager {
 
     _onHover(id, enter, box, line) {
         if (enter) {
-            box.style.color            = '#00eaff';
-            box.style.borderColor      = 'rgba(0,234,255,0.7)';
-            box.style.background       = 'rgba(0,30,55,0.85)';
+            box.style.color            = '#ffffff';
+            box.style.borderColor      = 'rgba(100,180,255,0.90)';
+            box.style.background       = 'rgba(20,60,110,0.92)';
             box.style.opacity          = '1';
-            box.style.boxShadow        = '0 0 14px rgba(0,234,255,0.18)';
-            line.setAttribute('stroke', 'rgba(0,234,255,0.65)');
+            box.style.boxShadow        = '0 0 18px rgba(80,160,255,0.35), 0 2px 8px rgba(0,0,0,0.5)';
+            line.setAttribute('stroke', 'rgba(100,180,255,0.85)');
         } else {
-            box.style.color            = 'rgba(0,234,255,0.20)';
-            box.style.borderColor      = 'rgba(0,234,255,0.18)';
-            box.style.background       = 'rgba(2,10,22,0.55)';
-            box.style.opacity          = '0.25';
+            box.style.color            = 'rgba(220,235,255,0.85)';
+            box.style.borderColor      = 'rgba(180,210,255,0.40)';
+            box.style.background       = 'rgba(15,25,45,0.72)';
+            box.style.opacity          = '0.72';
             box.style.boxShadow        = '';
-            line.setAttribute('stroke', 'rgba(0,234,255,0.18)');
+            line.setAttribute('stroke', 'rgba(160,200,255,0.45)');
         }
     }
 
