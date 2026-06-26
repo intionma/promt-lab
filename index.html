@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v8.4 &nbsp;·&nbsp; 2026-06-26 — ComfyUI 전송 패널 추가</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v8.5 &nbsp;·&nbsp; 2026-06-26 — 이미지 갤러리 탭 추가</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -913,6 +913,7 @@
                     <button class="result-tab active" id="rtab-pos" onclick="switchResultTab('pos')"><i class="fa-solid fa-circle-plus"></i> 긍정</button>
                     <button class="result-tab" id="rtab-neg" onclick="switchResultTab('neg')"><i class="fa-solid fa-circle-minus"></i> 부정</button>
                     <button class="result-tab" id="rtab-memo" onclick="switchResultTab('memo')"><i class="fa-solid fa-pen-to-square"></i> 메모</button>
+                    <button class="result-tab" id="rtab-gallery" onclick="switchResultTab('gallery')"><i class="fa-solid fa-images"></i> 이미지 <span id="rtab-gallery-count" style="display:none; background:#38bdf8; color:#fff; border-radius:9px; padding:0 6px; font-size:10px; margin-left:2px;"></span></button>
                 </div>
 
                 <!-- 긍정 탭 -->
@@ -978,6 +979,20 @@
                         <div class="result-label"><span style="color: var(--text-dim);"><i class="fa-solid fa-pen-to-square"></i> 생성 세팅 메모</span></div>
                         <textarea class="result-textarea" id="generation-memo" placeholder="시드, 샘플러, CFG 등 생성 관련 세팅을 메모하세요..." style="background-color: var(--folder-bg); min-height:200px;"></textarea>
                     </div>
+                </div>
+
+                <div class="result-tab-content" id="rtab-content-gallery">
+                    <div class="result-label" style="display:flex; align-items:center; gap:8px;">
+                        <span style="color:#38bdf8; flex:1;"><i class="fa-solid fa-images"></i> 생성 이미지 갤러리</span>
+                        <button class="action-btn" onclick="openComfyModal()" style="color:#38bdf8; border-color:#38bdf8; padding:5px 10px; font-size:12px;"><i class="fa-solid fa-paper-plane"></i> ComfyUI</button>
+                        <button class="action-btn" onclick="clearImageGallery()" style="color:var(--accent-danger); border-color:var(--border-dim); padding:5px 10px; font-size:12px;"><i class="fa-solid fa-trash-can"></i> 비우기</button>
+                    </div>
+                    <div id="gallery-empty" style="text-align:center; color:var(--text-dim); font-size:13px; padding:40px 12px; line-height:1.7;">
+                        <i class="fa-solid fa-image" style="font-size:32px; opacity:0.3; display:block; margin-bottom:12px;"></i>
+                        아직 생성된 이미지가 없습니다.<br>
+                        <span style="font-size:12px;">상단 <b style="color:#38bdf8;">ComfyUI</b> 버튼으로 프롬프트를 전송하면<br>여기에 결과 이미지가 쌓입니다.</span>
+                    </div>
+                    <div id="result-gallery-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px;"></div>
                 </div>
             </div>
         </section>
@@ -1438,9 +1453,63 @@
                 el.style.cssText = 'max-width:240px; max-height:340px; border-radius:10px; border:1px solid var(--border-dim); cursor:zoom-in;';
                 a.appendChild(el);
                 gallery.prepend(a);
+                // 결과 패널 갤러리 탭에도 추가 (모달을 닫아도 유지)
+                galleryAddImage(url);
             });
             _comfySetProgress(100, '✅ 완료');
             _comfyFinish();
+        }
+
+        // ── 이미지 갤러리 탭 ──────────────────────────────────────────
+        const GALLERY_KEY = 'comfy_gallery_urls_v1';
+        let _galleryUrls = [];
+        try { _galleryUrls = JSON.parse(localStorage.getItem(GALLERY_KEY) || '[]'); } catch (e) { _galleryUrls = []; }
+
+        function _galleryRenderOne(url, append) {
+            const grid = document.getElementById('result-gallery-grid');
+            if (!grid) return;
+            const a = document.createElement('a');
+            a.href = url; a.target = '_blank';
+            a.style.cssText = 'display:block; position:relative;';
+            const el = document.createElement('img');
+            el.src = url; el.loading = 'lazy';
+            el.style.cssText = 'width:100%; border-radius:10px; border:1px solid var(--border-dim); cursor:zoom-in; display:block;';
+            el.onerror = () => { a.style.opacity = '0.35'; el.alt = '이미지를 불러올 수 없음 (ComfyUI 종료됨?)'; };
+            a.appendChild(el);
+            if (append) grid.appendChild(a); else grid.prepend(a);
+        }
+
+        function _galleryUpdateCount() {
+            const badge = document.getElementById('rtab-gallery-count');
+            const empty = document.getElementById('gallery-empty');
+            if (badge) { badge.textContent = _galleryUrls.length; badge.style.display = _galleryUrls.length ? 'inline-block' : 'none'; }
+            if (empty) empty.style.display = _galleryUrls.length ? 'none' : 'block';
+        }
+
+        function galleryAddImage(url) {
+            _galleryUrls.unshift(url);
+            if (_galleryUrls.length > 200) _galleryUrls = _galleryUrls.slice(0, 200);
+            try { localStorage.setItem(GALLERY_KEY, JSON.stringify(_galleryUrls)); } catch (e) {}
+            _galleryRenderOne(url, false);
+            _galleryUpdateCount();
+        }
+
+        function renderImageGallery() {
+            const grid = document.getElementById('result-gallery-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            _galleryUrls.forEach(u => _galleryRenderOne(u, true));
+            _galleryUpdateCount();
+        }
+
+        function clearImageGallery() {
+            if (!_galleryUrls.length) return;
+            showConfirm('갤러리의 모든 이미지를 목록에서 지웁니다. (ComfyUI에 저장된 원본 파일은 유지) 계속할까요?', () => {
+                _galleryUrls = [];
+                try { localStorage.setItem(GALLERY_KEY, JSON.stringify(_galleryUrls)); } catch (e) {}
+                renderImageGallery();
+                showToast('갤러리를 비웠습니다.', 'success');
+            });
         }
 
         function _comfyFinish() {
@@ -1995,7 +2064,7 @@
         }
 
         function switchResultTab(tab) {
-            ['pos','neg','memo'].forEach(t => {
+            ['pos','neg','memo','gallery'].forEach(t => {
                 document.getElementById('rtab-'+t)?.classList.toggle('active', t === tab);
                 document.getElementById('rtab-content-'+t)?.classList.toggle('active', t === tab);
             });
@@ -8640,6 +8709,7 @@
         })();
 
         initApp();
+        renderImageGallery();   // 저장된 생성 이미지 갤러리 복원
 
         // DB 텍스트 편집기 드래그 이동
         (function() {
