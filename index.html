@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.3 &nbsp;·&nbsp; 2026-06-26 — 라이브 단계 미리보기 (베이스/디테일러/업스케일)</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.4 &nbsp;·&nbsp; 2026-06-26 — 미리보기 노드 자동감지+직접선택·단계 라벨</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -1221,6 +1221,12 @@
                             </div>
                             <div id="comfy-fav-nodes" style="display:flex; flex-direction:column; gap:8px;"></div>
                         </div>
+
+                        <!-- 미리보기 단계 노드 -->
+                        <div style="border-top:1px dashed var(--border-dim); padding-top:10px;">
+                            <label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:6px;">미리보기 단계 노드 — 어떤 노드의 출력을 단계 미리보기로 볼지 (이미지 출력 노드 자동 감지)</label>
+                            <div id="comfy-preview-nodes" style="display:flex; flex-direction:column; gap:5px;"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -1524,6 +1530,7 @@
                     groups: _comfyGroups,
                     nodeFaves: _comfyNodeFaves,
                     overrides: _comfyOverrides,
+                    previewNodes: _comfyPreviewNodes,
                 }));
             } catch (e) {}
         }
@@ -1563,6 +1570,7 @@
                 if (Array.isArray(s.groups)) _comfyGroups = s.groups;
                 if (Array.isArray(s.nodeFaves)) _comfyNodeFaves = s.nodeFaves;
                 if (s.overrides && typeof s.overrides === 'object') _comfyOverrides = s.overrides;
+                if (Array.isArray(s.previewNodes)) _comfyPreviewNodes = s.previewNodes;
                 comfySetWfMode(s.wfMode || 'basic');
                 comfySetTarget(s.target || 'both');
                 if ((s.wfMode === 'custom') && s.wfJson) comfyAnalyzeWorkflow(true);
@@ -1682,9 +1690,47 @@
                     favSel.appendChild(o);
                 });
             }
+            // 미리보기 단계 노드 자동 감지 (이미지 출력 노드)
+            const imgOutNodes = ids.filter(id => /SaveImage|PreviewImage|Image\s*Save|VHS_|SaveImageWebsocket/i.test(wf[id].class_type));
+            // 기존 설정에 없는 노드는 새로 추가(기본 켜짐), 사라진 노드는 제거
+            const keep = _comfyPreviewNodes.filter(p => imgOutNodes.includes(p.id));
+            imgOutNodes.forEach(id => {
+                if (!keep.some(p => p.id === id)) keep.push({ id, label: wf[id]._meta?.title || wf[id].class_type, enabled: true });
+            });
+            _comfyPreviewNodes = keep;
+            comfyRenderPreviewNodes(wf);
+
             comfyRenderGroups();
             comfyRenderFavNodes();
             _comfySaveSettings();
+        }
+
+        // ── 미리보기 단계 노드 ─────────────────────────────────────────
+        let _comfyPreviewNodes = []; // [{id, label, enabled}]
+
+        function comfyRenderPreviewNodes(wf) {
+            const wrap = document.getElementById('comfy-preview-nodes');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+            if (!_comfyPreviewNodes.length) {
+                wrap.innerHTML = '<span style="font-size:11px; color:var(--text-dim);">이미지 출력 노드(SaveImage/PreviewImage)를 못 찾았습니다. 모든 출력이 미리보기로 표시됩니다.</span>';
+                return;
+            }
+            _comfyPreviewNodes.forEach((p, i) => {
+                const cls = (wf && wf[p.id]) ? wf[p.id].class_type : '';
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex; align-items:center; gap:7px;';
+                const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = p.enabled;
+                cb.onchange = () => { p.enabled = cb.checked; _comfySaveSettings(); };
+                const info = document.createElement('span');
+                info.style.cssText = 'font-size:11px; color:var(--text-dim); font-family:var(--font-code); flex-shrink:0;';
+                info.textContent = `#${p.id} ${cls}`;
+                const lab = document.createElement('input'); lab.type = 'text'; lab.value = p.label; lab.placeholder = '단계 이름 (예: 베이스)';
+                lab.style.cssText = 'flex:1; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:6px; padding:4px 8px; color:var(--text-main); font-size:11px; outline:none;';
+                lab.oninput = () => { p.label = lab.value; _comfySaveSettings(); };
+                row.append(cb, info, lab);
+                wrap.appendChild(row);
+            });
         }
 
         // ── 고급: 노드 수치 직접 편집 ──────────────────────────────────
@@ -2095,8 +2141,16 @@
                 if (max) _comfySetProgress((value / max) * 100, `${_comfyQ()}${value}/${max} 스텝`);
             } else if (msg.type === 'executed' && d.output && d.output.images && d.prompt_id && _comfyJobs[d.prompt_id]) {
                 // 각 노드(베이스/디테일러/업스케일)가 끝날 때마다 라이브 단계 미리보기에 추가
-                _comfyStageImages(d.prompt_id, d.output.images);
+                _comfyStageImages(d.prompt_id, d.output.images, d.node);
             }
+        }
+
+        // 노드 id가 미리보기 단계로 선택됐는지 + 라벨
+        function _comfyPreviewInfo(nodeId) {
+            if (!_comfyPreviewNodes.length) return { show: true, label: '' }; // 선택 정보 없으면 전부 표시
+            const p = _comfyPreviewNodes.find(x => String(x.id) === String(nodeId));
+            if (!p) return { show: false, label: '' };
+            return { show: !!p.enabled, label: p.label || '' };
         }
 
         function _comfyImgUrl(img) {
@@ -2112,15 +2166,26 @@
             if (inline) { const t = document.getElementById('comfy-inline-thumbs-' + inline); if (t) t.innerHTML = ''; }
         }
 
-        function _comfyThumb(url, h) {
+        function _comfyThumb(url, h, caption) {
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'display:flex; flex-direction:column; gap:3px; align-items:center;';
             const a = document.createElement('a'); a.href = url; a.target = '_blank';
             const im = document.createElement('img'); im.src = url;
-            im.style.cssText = `height:${h}px; border-radius:8px; border:1px solid var(--border-dim); cursor:zoom-in;`;
-            a.appendChild(im); return a;
+            im.style.cssText = `height:${h}px; border-radius:8px; border:1px solid var(--border-dim); cursor:zoom-in; display:block;`;
+            a.appendChild(im); wrap.appendChild(a);
+            if (caption) {
+                const c = document.createElement('span');
+                c.textContent = caption;
+                c.style.cssText = 'font-size:10px; color:var(--text-dim); max-width:' + (h * 1.2) + 'px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
+                wrap.appendChild(c);
+            }
+            return wrap;
         }
 
-        // 단계별 라이브 미리보기 (저장 안 함, 매 실행 갱신)
-        function _comfyStageImages(pid, images) {
+        // 단계별 라이브 미리보기 (저장 안 함, 매 실행 갱신) — 선택된 미리보기 노드만 라벨과 함께
+        function _comfyStageImages(pid, images, nodeId) {
+            const info = _comfyPreviewInfo(nodeId);
+            if (!info.show) return; // 미선택 노드면 건너뜀
             const job = _comfyJobs[pid];
             const inline = job ? job.inline : null;
             if (job && !job.cleared) { _comfyClearLive(inline); job.cleared = true; }
@@ -2129,8 +2194,8 @@
             if (lw) lw.style.display = 'block';
             images.forEach(img => {
                 const url = _comfyImgUrl(img);
-                if (live) live.appendChild(_comfyThumb(url, 120));            // 단계 순서대로 → 뒤에 추가
-                if (inline) { const t = document.getElementById('comfy-inline-thumbs-' + inline); if (t) t.appendChild(_comfyThumb(url, 96)); }
+                if (live) live.appendChild(_comfyThumb(url, 120, info.label));   // 단계 순서대로 → 뒤에 추가
+                if (inline) { const t = document.getElementById('comfy-inline-thumbs-' + inline); if (t) t.appendChild(_comfyThumb(url, 96, info.label)); }
             });
         }
 
@@ -2149,7 +2214,7 @@
                     (outputs[nodeId].images || []).forEach(img => {
                         const url = _comfyImgUrl(img);
                         // 웹소켓 단계 이벤트를 못 받았으면(폴백) 라이브에도 표시
-                        if (!sawStage) _comfyStageImages(pid, [img]);
+                        if (!sawStage) _comfyStageImages(pid, [img], nodeId);
                         if ((img.type || 'output') === 'output') {
                             if (gallery) gallery.prepend(_comfyThumb(url, 240));
                             galleryAddImage(url); // 결과 갤러리 탭에 영구 저장
