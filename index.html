@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.6 &nbsp;·&nbsp; 2026-06-26 — 미리보기 크게/스크롤·비율유지·라이트박스·교체전 유지</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.7 &nbsp;·&nbsp; 2026-06-26 — 대기열 팝업 확대 애니메이션</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -1320,7 +1320,7 @@
 
     <!-- ── ComfyUI 전송 대기열 (우측 하단 플로팅) ── -->
     <div id="comfy-queue-fab" style="position:fixed; right:18px; bottom:74px; z-index:100002; display:none; flex-direction:column; align-items:flex-end; gap:8px;">
-        <div id="comfy-queue-list" style="display:none; width:min(300px,86vw); max-height:50vh; overflow-y:auto; background:var(--glass-bg); backdrop-filter:blur(40px) saturate(180%); -webkit-backdrop-filter:blur(40px) saturate(180%); border:1px solid var(--glass-border); border-radius:14px; box-shadow:0 16px 48px rgba(0,0,0,0.5); padding:12px;"></div>
+        <div id="comfy-queue-list" style="display:none; width:min(300px,86vw); max-height:50vh; overflow-y:auto; background:var(--glass-bg); backdrop-filter:blur(40px) saturate(180%); -webkit-backdrop-filter:blur(40px) saturate(180%); border:1px solid var(--glass-border); border-radius:14px; box-shadow:0 16px 48px rgba(0,0,0,0.5); padding:12px; transform-origin:bottom right; transform:scale(0.5); opacity:0; transition:transform .24s cubic-bezier(.2,.9,.25,1.1), opacity .18s ease;"></div>
         <button onclick="comfyToggleQueuePanel()" title="전송 대기열" style="position:relative; width:52px; height:52px; border-radius:50%; border:none; background:linear-gradient(135deg,#38bdf8,#a78bfa); color:#fff; font-size:19px; cursor:pointer; box-shadow:0 6px 20px rgba(56,189,248,0.45);">
             <i class="fa-solid fa-layer-group"></i>
             <span id="comfy-queue-badge" style="position:absolute; top:-4px; right:-4px; min-width:20px; height:20px; padding:0 5px; border-radius:11px; background:#ef4444; color:#fff; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid var(--bg-base);">0</span>
@@ -2135,12 +2135,31 @@
         function _comfyQ() { return _comfyQueueCount > 0 ? `대기열 ${_comfyQueueCount} · ` : ''; }
 
         let _comfyJobSeq = 0;
+        let _comfyQueueOpen = false;
 
-        function comfyToggleQueuePanel() {
+        function comfyOpenQueuePanel() {
             const list = document.getElementById('comfy-queue-list');
             if (!list) return;
-            list.style.display = (list.style.display === 'none') ? 'block' : 'none';
-            if (list.style.display === 'block') comfyRenderQueue();
+            _comfyQueueOpen = true;
+            list.style.display = 'block';
+            comfyRenderQueue();
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                list.style.transform = 'scale(1)';
+                list.style.opacity = '1';
+            }));
+        }
+
+        function comfyCloseQueuePanel() {
+            const list = document.getElementById('comfy-queue-list');
+            if (!list) return;
+            _comfyQueueOpen = false;
+            list.style.transform = 'scale(0.5)';
+            list.style.opacity = '0';
+            setTimeout(() => { if (!_comfyQueueOpen) list.style.display = 'none'; }, 240);
+        }
+
+        function comfyToggleQueuePanel() {
+            if (_comfyQueueOpen) comfyCloseQueuePanel(); else comfyOpenQueuePanel();
         }
 
         function comfyRenderQueue() {
@@ -2152,8 +2171,8 @@
             const n = jobs.length;
             badge.textContent = n;
             fab.style.display = n > 0 ? 'flex' : 'none';
-            if (n === 0) { list.style.display = 'none'; return; }
-            if (list.style.display === 'none') return; // 펼쳐졌을 때만 갱신
+            if (n === 0) { _comfyQueueOpen = false; list.style.display = 'none'; list.style.transform = 'scale(0.5)'; list.style.opacity = '0'; return; }
+            if (!_comfyQueueOpen) return; // 펼쳐졌을 때만 내용 갱신
             list.innerHTML = `<div style="display:flex; align-items:center; margin-bottom:8px;"><span style="flex:1; font-size:13px; font-weight:800; font-family:var(--font-heading);"><i class="fa-solid fa-layer-group" style="color:#38bdf8;"></i> 전송 대기열 ${n}</span><button onclick="comfyCancelAllQueue()" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#f87171; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer;">전체 취소</button></div>`;
             jobs.forEach(([pid, job]) => {
                 const running = (pid === _comfyRunningPid);
