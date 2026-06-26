@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.7 &nbsp;·&nbsp; 2026-06-26 — HTML 다운로드: 순정/내설정 선택</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.8 &nbsp;·&nbsp; 2026-06-26 — ComfyUI 주소 빠른 선택 + 스킴 보정</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -1134,8 +1134,16 @@
                 <!-- 연결 -->
                 <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
                     <div style="flex:1; min-width:220px;">
-                        <label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:5px;">ComfyUI 주소</label>
-                        <input id="comfy-url" type="text" placeholder="http://127.0.0.1:8188" style="width:100%; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:9px 12px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;">
+                        <label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:5px;">ComfyUI 주소 (선택 또는 직접 입력)</label>
+                        <input id="comfy-url" type="text" list="comfy-url-list" placeholder="http://127.0.0.1:8188" autocomplete="off" onchange="_comfySaveSettings()" style="width:100%; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:9px 12px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;">
+                        <datalist id="comfy-url-list">
+                            <option value="http://127.0.0.1:8188"></option>
+                            <option value="http://192.168.0.3:8188"></option>
+                        </datalist>
+                        <div style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;">
+                            <button type="button" class="io-pill" style="--pc:#38bdf8; padding:4px 10px;" onclick="comfySetUrl('http://127.0.0.1:8188')">127.0.0.1 (이 PC)</button>
+                            <button type="button" class="io-pill" style="--pc:#22c55e; padding:4px 10px;" onclick="comfySetUrl('http://192.168.0.3:8188')">192.168.0.3 (LAN)</button>
+                        </div>
                     </div>
                     <button class="action-btn" onclick="comfyLoadCheckpoints()" style="color:#38bdf8; border-color:#38bdf8; height:38px;"><i class="fa-solid fa-rotate"></i> 연결 확인 · 모델 불러오기</button>
                     <span id="comfy-conn-status" style="font-size:12px; color:var(--text-dim); align-self:center;"></span>
@@ -1466,7 +1474,14 @@
         function _comfyBase() {
             let u = (document.getElementById('comfy-url').value || '').trim();
             if (!u) u = 'http://127.0.0.1:8188';
+            if (!/^https?:\/\//i.test(u)) u = 'http://' + u; // 스킴 누락 보정
             return u.replace(/\/+$/, '');
+        }
+
+        function comfySetUrl(url) {
+            document.getElementById('comfy-url').value = url;
+            _comfySaveSettings();
+            comfyLoadCheckpoints();
         }
 
         let _comfyWfMode = 'basic';
