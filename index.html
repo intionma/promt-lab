@@ -1932,34 +1932,9 @@
                                 btn.appendChild(tooltip);
                                 btn.addEventListener('mouseenter', () => { tooltip.style.display = 'block'; });
                                 btn.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
-                                btn.addEventListener('dblclick', (e) => {
-                                    e.stopPropagation();
-                                    tooltip.style.display = 'none';
-                                    const rect = btn.getBoundingClientRect();
-                                    const editDiv = document.createElement('div');
-                                    editDiv.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.bottom+4}px;z-index:99999;background:var(--bg-surface);border:1px solid var(--accent-blue);border-radius:8px;padding:8px;display:flex;gap:6px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,0.4);`;
-                                    const inp = document.createElement('input');
-                                    inp.value = data.t;
-                                    inp.style.cssText = 'background:var(--bg-base);border:1px solid var(--border-dim);color:var(--text-main);border-radius:6px;padding:4px 8px;font-size:12px;font-family:var(--font-code);outline:none;width:200px;';
-                                    const saveBtn2 = document.createElement('button');
-                                    saveBtn2.textContent = '저장';
-                                    saveBtn2.style.cssText = 'background:var(--accent-blue);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;';
-                                    const finish2 = () => {
-                                        const nv = inp.value.trim();
-                                        if (nv && nv !== data.t) {
-                                            data.t = nv;
-                                            safeSetStorage('pro_prompt_db_v7_0', promptDB);
-                                            initApp();
-                                        }
-                                        editDiv.remove();
-                                    };
-                                    saveBtn2.onclick = finish2;
-                                    inp.onkeydown = (ev) => { if (ev.key === 'Enter') finish2(); if (ev.key === 'Escape') editDiv.remove(); };
-                                    editDiv.appendChild(inp); editDiv.appendChild(saveBtn2);
-                                    document.body.appendChild(editDiv);
-                                    inp.focus(); inp.select();
-                                    setTimeout(() => { document.addEventListener('mousedown', function handler(ev) { if (!editDiv.contains(ev.target)) { editDiv.remove(); document.removeEventListener('mousedown', handler); } }); }, 0);
-                                });
+                                // 더블클릭 인라인 편집 제거: 태그를 빠르게 연속 선택할 때
+                                // 브라우저가 더블클릭으로 오인해 의도치 않게 수정창이 뜨던 버그.
+                                // 태그 수정은 우클릭 → 'DB에서 태그 수정'(전체 필드 팝업)으로 일원화.
                             }
                             const star = document.createElement('i');
                             star.className = `fa-star tag-fav-icon ${favorites.includes(data.t) ? 'fa-solid active' : 'fa-regular'}`;
@@ -4598,7 +4573,8 @@
 
             const textarea = document.getElementById(`layer-${layerIndex}`);
             let content = textarea.value;
-            if (isTagActive(tagText, content)) {
+            const wasActive = isTagActive(tagText, content);
+            if (wasActive) {
                 content = removeTagFromContent(tagText, content);
             } else {
                 // build insert text respecting per-prompt default weights
@@ -4624,7 +4600,7 @@
             contextStates[currentContext][layerIndex-1] = textarea.value;
             syncFromManualInput(layerIndex);
             // 추가 시 해당 레이어로 스크롤 + 플래시 하이라이트
-            if (!isActive) {
+            if (!wasActive) {
                 const layerGroup = document.getElementById(`layer-group-${layerIndex}`);
                 if (layerGroup) {
                     layerGroup.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
