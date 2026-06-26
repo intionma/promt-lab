@@ -3330,6 +3330,306 @@
             }
         };
 
+        // ─── 내장 Pony/Danbooru 태그 사전 (번역 + 계층) ─────────────────────────
+        // k: 한글 번역, l: 기본 계층(1~7). 조회 시 공백↔언더스코어 양쪽 정규화.
+        const TAG_DICT = {
+            // ── L1 화질/렌더링/화풍 ──────────────────────────────────────────────
+            "score_9":{"k":"최고 품질 (score 9)","l":1},"score_8_up":{"k":"고품질 (score 8 이상)","l":1},
+            "score_7_up":{"k":"우수 품질 (score 7 이상)","l":1},"score_6_up":{"k":"보통 품질 (score 6 이상)","l":1},
+            "score_5_up":{"k":"낮은 품질 (score 5 이상)","l":1},"score_4_up":{"k":"최저 품질 (score 4 이상)","l":1},
+            "masterpiece":{"k":"마스터피스","l":1},"best quality":{"k":"최고 품질","l":1},
+            "high quality":{"k":"고품질","l":1},"amazing quality":{"k":"놀라운 품질","l":1},
+            "ultra quality":{"k":"초고화질","l":1},"ultra detailed":{"k":"극강 디테일","l":1},
+            "highly detailed":{"k":"고도의 디테일","l":1},"highres":{"k":"고해상도","l":1},
+            "absurdres":{"k":"초고해상도","l":1},"4k":{"k":"4K 해상도","l":1},"8k":{"k":"8K 해상도","l":1},
+            "photorealistic":{"k":"사진 같은 리얼리즘","l":1},"hyperrealistic":{"k":"극초실사","l":1},
+            "ultra realistic":{"k":"초실사","l":1},"realistic":{"k":"실사풍","l":1},
+            "sharp focus":{"k":"선명한 초점","l":1},"intricate detail":{"k":"섬세한 디테일","l":1},
+            "perfect anatomy":{"k":"완벽한 해부학","l":1},"subsurface scattering":{"k":"피부 산란 효과","l":1},
+            "skin texture":{"k":"피부 텍스처","l":1},"realistic skin":{"k":"실사 피부","l":1},
+            "source_pony":{"k":"Pony 출처","l":1},"source_anime":{"k":"애니메이션 출처","l":1},
+            "source_furry":{"k":"퍼리 출처","l":1},"source_cartoon":{"k":"카툰 출처","l":1},
+            "source_realistic":{"k":"실사 출처","l":1},
+            "rating_safe":{"k":"전체 이용가","l":1},"rating_questionable":{"k":"성인 (선정적)","l":1},
+            "rating_explicit":{"k":"성인 (노골적)","l":1},
+            "anime":{"k":"애니메이션 스타일","l":1},"manga":{"k":"만화 스타일","l":1},
+            "cartoon":{"k":"카툰 스타일","l":1},"illustration":{"k":"일러스트","l":1},
+            "digital art":{"k":"디지털 아트","l":1},"oil painting":{"k":"유화","l":1},
+            "watercolor":{"k":"수채화","l":1},"sketch":{"k":"스케치","l":1},
+            "pixel art":{"k":"픽셀 아트","l":1},"3d":{"k":"3D 렌더링","l":1},"cgi":{"k":"CGI","l":1},
+            "line art":{"k":"선화","l":1},"flat color":{"k":"단색 채색","l":1},
+            "cell shading":{"k":"셀 쉐이딩","l":1},"semi-realistic":{"k":"반실사","l":1},
+            "dark fantasy":{"k":"다크 판타지","l":1},"high fantasy":{"k":"하이 판타지","l":1},
+            "game cg":{"k":"게임 CG","l":1},"acrylic":{"k":"아크릴화","l":1},
+            "impressionist":{"k":"인상주의 풍","l":1},"kawaii":{"k":"카와이","l":1},
+            "moe":{"k":"모에풍","l":1},"dark theme":{"k":"어두운 테마","l":1},
+            // ── L2 구도/피사체 ─────────────────────────────────────────────────────
+            "1girl":{"k":"소녀 1명","l":2},"2girls":{"k":"소녀 2명","l":2},"3girls":{"k":"소녀 3명","l":2},
+            "4girls":{"k":"소녀 4명","l":2},"multiple girls":{"k":"다수의 소녀","l":2},
+            "1boy":{"k":"소년 1명","l":2},"2boys":{"k":"소년 2명","l":2},
+            "multiple boys":{"k":"다수의 소년","l":2},"multiple people":{"k":"다수의 사람","l":2},
+            "solo":{"k":"단독","l":2},"couple":{"k":"커플","l":2},"duo":{"k":"2인","l":2},
+            "trio":{"k":"3인","l":2},"group":{"k":"그룹","l":2},
+            "female":{"k":"여성","l":2},"male":{"k":"남성","l":2},
+            "girl":{"k":"소녀","l":2},"boy":{"k":"소년","l":2},
+            "woman":{"k":"여성","l":2},"man":{"k":"남성","l":2},
+            "adult":{"k":"성인","l":2},"young":{"k":"젊은","l":2},"teen":{"k":"십대","l":2},
+            "mature":{"k":"성숙한","l":2},"elderly":{"k":"노인","l":2},
+            "beautiful":{"k":"아름다운","l":2},"cute":{"k":"귀여운","l":2},
+            "pretty":{"k":"예쁜","l":2},"gorgeous":{"k":"화려하고 아름다운","l":2},
+            "handsome":{"k":"잘생긴","l":2},
+            "korean":{"k":"한국인","l":2},"japanese":{"k":"일본인","l":2},
+            "chinese":{"k":"중국인","l":2},"asian":{"k":"아시아인","l":2},
+            "western":{"k":"서양인","l":2},"european":{"k":"유럽인","l":2},
+            "full body":{"k":"전신","l":2},"upper body":{"k":"상반신","l":2},
+            "lower body":{"k":"하반신","l":2},"cowboy shot":{"k":"허벅지 위 컷 (카우보이 샷)","l":2},
+            "bust":{"k":"버스트 샷","l":2},"portrait":{"k":"포트레이트","l":2},
+            "close-up":{"k":"클로즈업","l":2},"wide shot":{"k":"와이드 샷","l":2},
+            "medium shot":{"k":"미디엄 샷","l":2},"from behind":{"k":"뒤에서","l":2},
+            "from above":{"k":"위에서","l":2},"from below":{"k":"아래에서","l":2},
+            "from side":{"k":"측면","l":2},"dutch angle":{"k":"더치 앵글","l":2},
+            "overhead view":{"k":"부감 (위에서 아래)","l":2},"bird eye view":{"k":"조감도","l":2},
+            "low angle":{"k":"로우 앵글","l":2},"high angle":{"k":"하이 앵글","l":2},
+            "worm eye view":{"k":"벌레 시점","l":2},"pov":{"k":"1인칭 시점","l":2},
+            "first person":{"k":"1인칭","l":2},"selfie":{"k":"셀카","l":2},
+            "profile":{"k":"옆 모습","l":2},"three-quarter view":{"k":"3/4 뷰","l":2},
+            "face":{"k":"얼굴","l":2},
+            // ── L3 외형/얼굴/신체 ───────────────────────────────────────────────────
+            "blonde hair":{"k":"금발","l":3},"brown hair":{"k":"갈색 머리","l":3},
+            "black hair":{"k":"검은 머리","l":3},"white hair":{"k":"흰 머리","l":3},
+            "silver hair":{"k":"은발","l":3},"red hair":{"k":"빨간 머리","l":3},
+            "blue hair":{"k":"파란 머리","l":3},"pink hair":{"k":"분홍 머리","l":3},
+            "purple hair":{"k":"보라 머리","l":3},"green hair":{"k":"초록 머리","l":3},
+            "orange hair":{"k":"주황 머리","l":3},"gray hair":{"k":"회색 머리","l":3},
+            "multicolored hair":{"k":"멀티 컬러 머리","l":3},"gradient hair":{"k":"그라데이션 머리","l":3},
+            "short hair":{"k":"단발","l":3},"long hair":{"k":"긴 머리","l":3},
+            "medium hair":{"k":"중간 길이 머리","l":3},"very long hair":{"k":"매우 긴 머리","l":3},
+            "wavy hair":{"k":"웨이브 머리","l":3},"curly hair":{"k":"곱슬머리","l":3},
+            "straight hair":{"k":"직모","l":3},"twintails":{"k":"트윈테일","l":3},
+            "ponytail":{"k":"포니테일","l":3},"braid":{"k":"땋은 머리","l":3},
+            "bun":{"k":"머리 번","l":3},"pigtails":{"k":"갈래머리","l":3},
+            "bangs":{"k":"앞머리","l":3},"ahoge":{"k":"아호게 (삐친 머리카락)","l":3},
+            "hair ornament":{"k":"머리 장식","l":3},"hair ribbon":{"k":"머리 리본","l":3},
+            "hair flower":{"k":"머리 꽃 장식","l":3},"hair pin":{"k":"머리핀","l":3},
+            "blue eyes":{"k":"파란 눈","l":3},"brown eyes":{"k":"갈색 눈","l":3},
+            "green eyes":{"k":"초록 눈","l":3},"red eyes":{"k":"붉은 눈","l":3},
+            "purple eyes":{"k":"보라 눈","l":3},"golden eyes":{"k":"금색 눈","l":3},
+            "yellow eyes":{"k":"노란 눈","l":3},"black eyes":{"k":"검은 눈","l":3},
+            "pink eyes":{"k":"분홍 눈","l":3},"aqua eyes":{"k":"아쿠아 눈","l":3},
+            "heterochromia":{"k":"오드아이 (양눈 색 다름)","l":3},
+            "cat eyes":{"k":"고양이 눈","l":3},"large eyes":{"k":"큰 눈","l":3},
+            "dark skin":{"k":"어두운 피부","l":3},"tan skin":{"k":"구릿빛 피부","l":3},
+            "pale skin":{"k":"창백한 피부","l":3},"white skin":{"k":"흰 피부","l":3},
+            "freckles":{"k":"주근깨","l":3},"mole":{"k":"점","l":3},"tattoo":{"k":"문신","l":3},"scar":{"k":"흉터","l":3},
+            "petite":{"k":"작고 아담한","l":3},"tall":{"k":"키 큰","l":3},
+            "slim":{"k":"날씬한","l":3},"slender":{"k":"호리호리한","l":3},
+            "curvy":{"k":"굴곡있는 몸매","l":3},"muscular":{"k":"근육질","l":3},
+            "chubby":{"k":"통통한","l":3},"thick thighs":{"k":"굵은 허벅지","l":3},
+            "large breasts":{"k":"큰 가슴","l":3},"huge breasts":{"k":"거대한 가슴","l":3},
+            "gigantic breasts":{"k":"초거대 가슴","l":3},"medium breasts":{"k":"중간 크기 가슴","l":3},
+            "small breasts":{"k":"작은 가슴","l":3},"flat chest":{"k":"평평한 가슴 (로리)","l":3},
+            "perky breasts":{"k":"탄력있는 가슴","l":3},"sagging breasts":{"k":"처진 가슴","l":3},
+            "nipples":{"k":"젖꼭지","l":3},"areola":{"k":"유륜","l":3},
+            "cleavage":{"k":"가슴 골","l":3},"sideboob":{"k":"옆가슴","l":3},"underboob":{"k":"아래 가슴","l":3},
+            "navel":{"k":"배꼽","l":3},"belly button":{"k":"배꼽","l":3},
+            "midriff":{"k":"배","l":3},"abdomen":{"k":"복부","l":3},
+            "ass":{"k":"엉덩이","l":3},"butt":{"k":"엉덩이","l":3},"buttocks":{"k":"엉덩이","l":3},
+            "pussy":{"k":"여성 성기","l":3},"vagina":{"k":"질","l":3},"labia":{"k":"음순","l":3},
+            "anus":{"k":"항문","l":3},"penis":{"k":"남성 성기","l":3},"cock":{"k":"남성 성기","l":3},
+            "erection":{"k":"발기","l":3},"balls":{"k":"고환","l":3},"testicles":{"k":"고환","l":3},
+            "pubic hair":{"k":"음모","l":3},
+            "cat ears":{"k":"고양이 귀","l":3},"elf ears":{"k":"엘프 귀","l":3},
+            "fox ears":{"k":"여우 귀","l":3},"animal ears":{"k":"동물 귀","l":3},
+            "rabbit ears":{"k":"토끼 귀","l":3},"wolf ears":{"k":"늑대 귀","l":3},
+            "tail":{"k":"꼬리","l":3},"fox tail":{"k":"여우 꼬리","l":3},
+            "cat tail":{"k":"고양이 꼬리","l":3},"wolf tail":{"k":"늑대 꼬리","l":3},
+            "wings":{"k":"날개","l":3},"angel wings":{"k":"천사 날개","l":3},
+            "demon wings":{"k":"악마 날개","l":3},"feathered wings":{"k":"깃털 날개","l":3},
+            "halo":{"k":"천사 광륜","l":3},"horns":{"k":"뿔","l":3},"demon horns":{"k":"악마 뿔","l":3},
+            "smile":{"k":"미소","l":3},"smiling":{"k":"웃는","l":3},"grinning":{"k":"활짝 웃는","l":3},
+            "laughing":{"k":"웃음 짓는","l":3},"crying":{"k":"우는","l":3},
+            "frowning":{"k":"찡그린","l":3},"pouting":{"k":"삐진","l":3},
+            "serious":{"k":"진지한","l":3},"angry":{"k":"화난","l":3},
+            "surprised":{"k":"놀란","l":3},"shocked":{"k":"충격받은","l":3},
+            "embarrassed":{"k":"당황한","l":3},"shy":{"k":"수줍은","l":3},
+            "nervous":{"k":"긴장된","l":3},"blush":{"k":"홍조","l":3},"blushing":{"k":"얼굴 빨개진","l":3},
+            "winking":{"k":"윙크","l":3},"wink":{"k":"윙크","l":3},
+            "ahegao":{"k":"아헤가오","l":3},"heart eyes":{"k":"하트 눈","l":3},
+            "tongue out":{"k":"혀 내밈","l":3},"drooling":{"k":"침 흘림","l":3},
+            "sleeping":{"k":"자고있는","l":3},"yawning":{"k":"하품하는","l":3},
+            "glasses":{"k":"안경","l":3},"eyepatch":{"k":"안대","l":3},
+            "makeup":{"k":"메이크업","l":3},"eyeshadow":{"k":"아이섀도우","l":3},
+            "eyelashes":{"k":"속눈썹","l":3},"mascara":{"k":"마스카라","l":3},
+            "lipstick":{"k":"립스틱","l":3},"blush makeup":{"k":"볼터치","l":3},
+            "small head":{"k":"작은 머리 (SD비율)","l":3},"big head":{"k":"큰 머리","l":3},
+            // ── L4 의상/악세서리 ─────────────────────────────────────────────────
+            "shirt":{"k":"셔츠","l":4},"t-shirt":{"k":"티셔츠","l":4},"blouse":{"k":"블라우스","l":4},
+            "jacket":{"k":"재킷","l":4},"coat":{"k":"코트","l":4},"hoodie":{"k":"후드티","l":4},
+            "sweater":{"k":"스웨터","l":4},"cardigan":{"k":"카디건","l":4},"vest":{"k":"조끼","l":4},
+            "crop top":{"k":"크롭탑","l":4},"tube top":{"k":"튜브탑","l":4},
+            "off shoulder":{"k":"오프숄더","l":4},"off-shoulder":{"k":"오프숄더","l":4},
+            "halter top":{"k":"핼터탑","l":4},"tank top":{"k":"민소매 탑","l":4},
+            "skirt":{"k":"치마","l":4},"pants":{"k":"바지","l":4},"jeans":{"k":"청바지","l":4},
+            "shorts":{"k":"반바지","l":4},"miniskirt":{"k":"미니스커트","l":4},
+            "mini skirt":{"k":"미니스커트","l":4},"pleated skirt":{"k":"플리츠 스커트","l":4},
+            "pencil skirt":{"k":"연필 스커트","l":4},"leggings":{"k":"레깅스","l":4},
+            "stockings":{"k":"스타킹","l":4},"pantyhose":{"k":"팬티스타킹","l":4},
+            "thighhighs":{"k":"허벅지 양말 (니하이)","l":4},"thigh highs":{"k":"허벅지 양말 (니하이)","l":4},
+            "kneehighs":{"k":"무릎 양말","l":4},"knee highs":{"k":"무릎 양말","l":4},
+            "dress":{"k":"드레스","l":4},"sundress":{"k":"선드레스","l":4},
+            "evening gown":{"k":"이브닝 가운","l":4},"wedding dress":{"k":"웨딩 드레스","l":4},
+            "uniform":{"k":"유니폼","l":4},"school uniform":{"k":"교복","l":4},
+            "sailor uniform":{"k":"세일러 교복","l":4},"military uniform":{"k":"군복","l":4},
+            "maid":{"k":"메이드","l":4},"maid outfit":{"k":"메이드복","l":4},
+            "miko":{"k":"무녀복","l":4},"kimono":{"k":"기모노","l":4},"yukata":{"k":"유카타","l":4},
+            "hanbok":{"k":"한복","l":4},"cheongsam":{"k":"치파오","l":4},"qipao":{"k":"치파오","l":4},
+            "armor":{"k":"갑옷","l":4},"fantasy outfit":{"k":"판타지 의상","l":4},
+            "sportswear":{"k":"스포츠웨어","l":4},"gym wear":{"k":"운동복","l":4},
+            "bikini":{"k":"비키니","l":4},"micro bikini":{"k":"마이크로 비키니","l":4},
+            "string bikini":{"k":"끈 비키니","l":4},"swimsuit":{"k":"수영복","l":4},
+            "one-piece swimsuit":{"k":"원피스 수영복","l":4},"one piece":{"k":"원피스 수영복","l":4},
+            "lingerie":{"k":"란제리","l":4},"underwear":{"k":"속옷","l":4},
+            "bra":{"k":"브라","l":4},"panties":{"k":"팬티","l":4},"thong":{"k":"끈팬티","l":4},
+            "no bra":{"k":"노브라","l":4},"topless":{"k":"상반신 노출","l":4},
+            "bottomless":{"k":"하반신 노출","l":4},"naked":{"k":"나체","l":4},"nude":{"k":"누드","l":4},
+            "see-through":{"k":"비치는 소재","l":4},"transparent":{"k":"투명한","l":4},
+            "wet clothes":{"k":"젖은 옷","l":4},"wet shirt":{"k":"젖은 셔츠","l":4},
+            "lifted skirt":{"k":"치마 들어올림","l":4},"skirt lift":{"k":"스커트 리프트","l":4},
+            "panties visible":{"k":"팬티 보임","l":4},"bra visible":{"k":"브라 보임","l":4},
+            "fishnet":{"k":"그물 스타킹","l":4},"fishnets":{"k":"그물 스타킹","l":4},
+            "body stocking":{"k":"전신 스타킹","l":4},"pasties":{"k":"패스티 (젖꼭지 가리개)","l":4},
+            "shoes":{"k":"신발","l":4},"boots":{"k":"부츠","l":4},"heels":{"k":"하이힐","l":4},
+            "high heels":{"k":"하이힐","l":4},"sneakers":{"k":"운동화","l":4},
+            "sandals":{"k":"샌들","l":4},"socks":{"k":"양말","l":4},"ankle socks":{"k":"발목 양말","l":4},
+            "hat":{"k":"모자","l":4},"cap":{"k":"모자 (캡)","l":4},"beret":{"k":"베레모","l":4},
+            "witch hat":{"k":"마녀 모자","l":4},"santa hat":{"k":"산타 모자","l":4},
+            "ribbon":{"k":"리본","l":4},"bow":{"k":"나비매듭","l":4},
+            "tie":{"k":"넥타이","l":4},"bow tie":{"k":"나비넥타이","l":4},
+            "scarf":{"k":"스카프","l":4},"gloves":{"k":"장갑","l":4},
+            "elbow gloves":{"k":"팔꿈치 장갑","l":4},"belt":{"k":"벨트","l":4},"bag":{"k":"가방","l":4},
+            "necklace":{"k":"목걸이","l":4},"earrings":{"k":"귀걸이","l":4},
+            "bracelet":{"k":"팔찌","l":4},"ring":{"k":"반지","l":4},
+            "choker":{"k":"초커","l":4},"collar":{"k":"목 collar","l":4},
+            "watch":{"k":"시계","l":4},"sunglasses":{"k":"선글라스","l":4},
+            "hair clip":{"k":"머리핀","l":4},"hairclip":{"k":"머리핀","l":4},
+            "headband":{"k":"머리띠","l":4},"flower crown":{"k":"꽃 왕관","l":4},
+            "crown":{"k":"왕관","l":4},"tiara":{"k":"티아라","l":4},
+            // ── L5 액션/포즈 ───────────────────────────────────────────────────────
+            "standing":{"k":"서있는","l":5},"sitting":{"k":"앉아있는","l":5},
+            "lying":{"k":"누워있는","l":5},"lying down":{"k":"누워있는","l":5},
+            "kneeling":{"k":"무릎 꿇은","l":5},"crouching":{"k":"쪼그린","l":5},
+            "jumping":{"k":"점프하는","l":5},"running":{"k":"달리는","l":5},
+            "walking":{"k":"걷는","l":5},"dancing":{"k":"춤추는","l":5},
+            "floating":{"k":"떠있는","l":5},"flying":{"k":"날고있는","l":5},
+            "leaning":{"k":"기대는","l":5},"bending":{"k":"몸을 구부리는","l":5},
+            "stretching":{"k":"스트레칭","l":5},
+            "looking at viewer":{"k":"시청자 보기","l":5},"looking away":{"k":"고개 돌린","l":5},
+            "looking back":{"k":"뒤돌아보는","l":5},"looking up":{"k":"위를 올려다보는","l":5},
+            "looking down":{"k":"아래를 내려다보는","l":5},
+            "arms up":{"k":"팔 들어올림","l":5},"arms behind back":{"k":"팔 등 뒤로","l":5},
+            "arms crossed":{"k":"팔 교차","l":5},"hand on hip":{"k":"손 허리에","l":5},
+            "holding":{"k":"들고있는","l":5},"grabbing":{"k":"잡는","l":5},
+            "reaching":{"k":"손을 뻗는","l":5},"pointing":{"k":"가리키는","l":5},
+            "waving":{"k":"손 흔드는","l":5},"peace sign":{"k":"브이 (피스 사인)","l":5},
+            "spread legs":{"k":"다리 벌린","l":5},"crossed legs":{"k":"다리 꼰","l":5},
+            "on knees":{"k":"무릎을 꿇은","l":5},"ass up":{"k":"엉덩이 들어올린","l":5},
+            "bent over":{"k":"앞으로 숙인","l":5},"presenting":{"k":"몸을 내보이는","l":5},
+            "on all fours":{"k":"네 발로 엎드린","l":5},"legs up":{"k":"다리 들어올린","l":5},
+            "legs spread":{"k":"다리 벌림","l":5},"squatting":{"k":"쪼그리고 앉은","l":5},
+            "doggy style":{"k":"도기스타일","l":5},"missionary":{"k":"정상위","l":5},
+            "cowgirl":{"k":"기승위 (카우걸)","l":5},"reverse cowgirl":{"k":"역기승위","l":5},
+            "prone bone":{"k":"프론 본","l":5},"mating press":{"k":"마팅 프레스","l":5},
+            "paizuri":{"k":"파이즈리 (가슴 섹스)","l":5},"fellatio":{"k":"펠라티오","l":5},
+            "blowjob":{"k":"구강성교","l":5},"cunnilingus":{"k":"커닐링구스","l":5},
+            "69":{"k":"69 체위","l":5},"anal":{"k":"항문 성교","l":5},
+            "masturbating":{"k":"자위","l":5},"masturbation":{"k":"자위","l":5},
+            "fingering":{"k":"손가락 삽입","l":5},"penetration":{"k":"삽입","l":5},
+            "sex":{"k":"성행위","l":5},"intercourse":{"k":"성교","l":5},
+            "orgasm":{"k":"오르가즘","l":5},"cum":{"k":"사정","l":5},
+            "cumshot":{"k":"사정 (컴샷)","l":5},"creampie":{"k":"크림파이 (내부 사정)","l":5},
+            "cum on face":{"k":"페이셜","l":5},"facial":{"k":"페이셜","l":5},
+            "bondage":{"k":"본디지 (속박)","l":5},"tied up":{"k":"묶인","l":5},
+            "restrained":{"k":"구속된","l":5},"handcuffed":{"k":"수갑 채워진","l":5},
+            "blindfolded":{"k":"눈 가린","l":5},"gagged":{"k":"재갈 물린","l":5},
+            "dynamic pose":{"k":"역동적인 포즈","l":5},"action pose":{"k":"액션 포즈","l":5},
+            "maid pose":{"k":"메이드 포즈","l":5},"pinup":{"k":"핀업 포즈","l":5},
+            // ── L6 배경/환경 ─────────────────────────────────────────────────────
+            "simple background":{"k":"단순한 배경","l":6},"white background":{"k":"흰 배경","l":6},
+            "black background":{"k":"검은 배경","l":6},"gradient background":{"k":"그라데이션 배경","l":6},
+            "transparent background":{"k":"투명 배경","l":6},"background":{"k":"배경","l":6},
+            "indoor":{"k":"실내","l":6},"indoors":{"k":"실내","l":6},
+            "outdoor":{"k":"야외","l":6},"outdoors":{"k":"야외","l":6},
+            "bedroom":{"k":"침실","l":6},"living room":{"k":"거실","l":6},
+            "bathroom":{"k":"욕실","l":6},"kitchen":{"k":"주방","l":6},
+            "classroom":{"k":"교실","l":6},"office":{"k":"사무실","l":6},
+            "library":{"k":"도서관","l":6},"hospital":{"k":"병원","l":6},
+            "gym":{"k":"체육관","l":6},"school":{"k":"학교","l":6},
+            "city":{"k":"도시","l":6},"street":{"k":"거리","l":6},"alley":{"k":"골목","l":6},
+            "park":{"k":"공원","l":6},"garden":{"k":"정원","l":6},"forest":{"k":"숲","l":6},
+            "mountain":{"k":"산","l":6},"beach":{"k":"해변","l":6},
+            "ocean":{"k":"바다","l":6},"sea":{"k":"바다","l":6},
+            "river":{"k":"강","l":6},"lake":{"k":"호수","l":6},
+            "sky":{"k":"하늘","l":6},"sunset":{"k":"노을","l":6},"sunrise":{"k":"일출","l":6},
+            "night":{"k":"밤","l":6},"day":{"k":"낮","l":6},"dawn":{"k":"새벽","l":6},"dusk":{"k":"황혼","l":6},
+            "japan":{"k":"일본","l":6},"shrine":{"k":"신사","l":6},
+            "traditional":{"k":"전통적인","l":6},"modern":{"k":"현대적인","l":6},
+            "fantasy world":{"k":"판타지 세계","l":6},"space":{"k":"우주","l":6},"galaxy":{"k":"은하수","l":6},
+            "cyberpunk":{"k":"사이버펑크","l":6},"steampunk":{"k":"스팀펑크","l":6},
+            "bokeh background":{"k":"보케 배경","l":6},"blurred background":{"k":"흐린 배경","l":6},
+            "depth of field":{"k":"피사계 심도","l":6},
+            "rain":{"k":"비","l":6},"snow":{"k":"눈","l":6},"snowing":{"k":"눈 내림","l":6},
+            "cloudy":{"k":"흐린 하늘","l":6},"sunny":{"k":"맑은","l":6},"stormy":{"k":"폭풍우","l":6},
+            "cherry blossom":{"k":"벚꽃","l":6},"cherry blossoms":{"k":"벚꽃","l":6},
+            "spring":{"k":"봄","l":6},"summer":{"k":"여름","l":6},
+            "autumn":{"k":"가을","l":6},"fall":{"k":"가을","l":6},"winter":{"k":"겨울","l":6},
+            "pool":{"k":"수영장","l":6},"onsen":{"k":"온천","l":6},"shower":{"k":"샤워","l":6},
+            "bathtub":{"k":"욕조","l":6},"rooftop":{"k":"옥상","l":6},
+            "hallway":{"k":"복도","l":6},"staircase":{"k":"계단","l":6},
+            // ── L7 조명/이펙트/색감 ───────────────────────────────────────────────
+            "soft light":{"k":"부드러운 조명","l":7},"hard light":{"k":"강한 직사광","l":7},
+            "natural light":{"k":"자연광","l":7},"sunlight":{"k":"햇빛","l":7},
+            "moonlight":{"k":"달빛","l":7},"backlight":{"k":"역광","l":7},
+            "rim light":{"k":"림 라이트","l":7},"side light":{"k":"사이드 라이트","l":7},
+            "front light":{"k":"정면 조명","l":7},"top light":{"k":"상단 조명","l":7},
+            "god rays":{"k":"빛 기둥 (갓 레이)","l":7},"soft bedroom lighting":{"k":"침실 부드러운 조명","l":7},
+            "studio lighting":{"k":"스튜디오 조명","l":7},"dramatic lighting":{"k":"극적인 조명","l":7},
+            "cinematic lighting":{"k":"시네마틱 조명","l":7},"ambient light":{"k":"주변광","l":7},
+            "warm light":{"k":"따뜻한 조명","l":7},"cool light":{"k":"차가운 조명","l":7},
+            "golden hour":{"k":"황금 시간 (골든아워)","l":7},"blue hour":{"k":"블루아워","l":7},
+            "glowing":{"k":"빛나는","l":7},"neon":{"k":"네온","l":7},
+            "candlelight":{"k":"촛불","l":7},"firelight":{"k":"불빛","l":7},
+            "shadow":{"k":"그림자","l":7},"deep shadow":{"k":"깊은 그림자","l":7},
+            "high contrast":{"k":"고대비","l":7},"low contrast":{"k":"저대비","l":7},
+            "fog":{"k":"안개","l":7},"mist":{"k":"안개","l":7},"haze":{"k":"연무","l":7},
+            "sparkle":{"k":"반짝임","l":7},"bloom":{"k":"블룸 효과","l":7},
+            "lens flare":{"k":"렌즈 플레어","l":7},"bokeh":{"k":"보케","l":7},
+            "dark":{"k":"어두운","l":7},"bright":{"k":"밝은","l":7},
+            "colorful":{"k":"다채로운","l":7},"monochrome":{"k":"흑백","l":7},
+            "sepia":{"k":"세피아","l":7},"vibrant":{"k":"선명한","l":7},"vivid":{"k":"생생한","l":7},
+            "soft colors":{"k":"부드러운 색감","l":7},"muted colors":{"k":"차분한 색감","l":7},
+            "pastel colors":{"k":"파스텔 색감","l":7},"warm colors":{"k":"따뜻한 색감","l":7},
+            "cool colors":{"k":"차가운 색감","l":7},
+            "particles":{"k":"파티클","l":7},"magic particles":{"k":"마법 파티클","l":7},
+            "floating particles":{"k":"떠다니는 파티클","l":7},"dust":{"k":"먼지/티끌","l":7},
+            "petals":{"k":"꽃잎","l":7},"fireworks":{"k":"불꽃놀이","l":7},
+            "lightning":{"k":"번개","l":7},"aurora":{"k":"오로라","l":7},
+            "light beam":{"k":"빛 줄기","l":7},"starburst":{"k":"별빛 폭발","l":7},
+            "color grading":{"k":"색 보정","l":7},"film grain":{"k":"필름 노이즈","l":7},
+            "vignette":{"k":"비네트","l":7},"chromatic aberration":{"k":"색수차","l":7},
+            "hdr":{"k":"HDR","l":7},"tonal contrast":{"k":"색조 대비","l":7},
+        };
+
+        // TAG_DICT 조회: 공백/언더스코어 양방향 정규화
+        function _tagDictLookup(tag) {
+            const t = tag.toLowerCase().trim();
+            if (TAG_DICT[t]) return TAG_DICT[t];
+            const swapped = t.replace(/_/g, ' ');
+            if (TAG_DICT[swapped]) return TAG_DICT[swapped];
+            const underscored = t.replace(/ /g, '_');
+            if (TAG_DICT[underscored]) return TAG_DICT[underscored];
+            return null;
+        }
+
         // 바이그램(2글자 쌍) 집합 생성
         function _bigrams(str) {
             const s = str.toLowerCase().replace(/\s+/g, ' ').trim();
@@ -4902,13 +5202,15 @@
                 raw.forEach(token => {
                     const m = token.match(/^\((.+):[\d.]+\)$/);
                     const core = m ? m[1] : token;
-                    const info = activeTagsMap[core];
-                    if (info && info.layer !== layerIndex) {
-                        // 다른 레이어로 이동
-                        const tgt = document.getElementById(`layer-${info.layer}`);
+                    // DB 기준 우선, 없으면 TAG_DICT 기준으로 계층 판정
+                    const dbInfo = activeTagsMap[core];
+                    const dictInfo = !dbInfo ? _tagDictLookup(core) : null;
+                    const targetLayer = dbInfo ? dbInfo.layer : (dictInfo ? dictInfo.l : null);
+                    if (targetLayer && targetLayer !== layerIndex) {
+                        const tgt = document.getElementById(`layer-${targetLayer}`);
                         if (tgt) {
                             tgt.value = tgt.value ? `${tgt.value}, ${token}` : token;
-                            contextStates[currentContext][info.layer - 1] = tgt.value;
+                            contextStates[currentContext][targetLayer - 1] = tgt.value;
                             moved++;
                         } else {
                             kept.push(token);
@@ -6477,21 +6779,28 @@
                 if (found) {
                     known.push({ raw: r, clean, lid: found.lid, fk: found.fk });
                 } else {
-                    const fz = _fuzzyFindLayer(clean);
-                    if (fz && fz.score >= 0.15) {
-                        fuzzy.push({ raw: r, clean, lid: fz.lid, fk: fz.fk, score: fz.score });
+                    // TAG_DICT 우선 조회 (내장 사전에 있으면 높은 신뢰도로 분류)
+                    const dictEntry = _tagDictLookup(clean);
+                    if (dictEntry) {
+                        fuzzy.push({ raw: r, clean, lid: dictEntry.l, fk: null, score: 0.92, dictKor: dictEntry.k, fromDict: true });
                     } else {
-                        unknown.push({ raw: r, clean });
+                        const fz = _fuzzyFindLayer(clean);
+                        if (fz && fz.score >= 0.15) {
+                            fuzzy.push({ raw: r, clean, lid: fz.lid, fk: fz.fk, score: fz.score });
+                        } else {
+                            unknown.push({ raw: r, clean });
+                        }
                     }
                 }
             });
 
             const totalNew = fuzzy.length + unknown.length;
+            const dictCount = fuzzy.filter(f => f.fromDict).length;
 
             // Stats
             const stats = document.createElement('div');
             stats.style.cssText = 'font-size:12px;color:var(--text-dim);font-family:var(--font-ui);padding:6px 0;';
-            stats.innerHTML = `총 ${raw.length}개 분석 — <span style="color:var(--accent-green)">✅ DB에 있음 ${known.length}개</span>  <span style="color:#f59e0b">🔶 유사 ${fuzzy.length}개</span>  <span style="color:var(--text-dim)">❓ 미인식 ${unknown.length}개</span>`;
+            stats.innerHTML = `총 ${raw.length}개 분석 — <span style="color:var(--accent-green)">✅ DB에 있음 ${known.length}개</span>  <span style="color:#a78bfa">📖 사전 ${dictCount}개</span>  <span style="color:#f59e0b">🔶 유사 ${fuzzy.length - dictCount}개</span>  <span style="color:var(--text-dim)">❓ 미인식 ${unknown.length}개</span>`;
             resultDiv.appendChild(stats);
 
             if (totalNew === 0 && known.length > 0) {
@@ -6528,15 +6837,27 @@
                 resultDiv.appendChild(sec.el);
             }
 
+            // 사전 자동 분류 항목
+            const dictItems = fuzzy.filter(f => f.fromDict);
+            const fuzzyOnly = fuzzy.filter(f => !f.fromDict);
+            if (dictItems.length > 0) {
+                dictItems.sort((a, b) => (a.lid||99) - (b.lid||99));
+                const sec = _pcmSection('📖 사전 자동 분류 — 한글 번역 자동 제안됨 (계층/폴더 확인 후 추가)', '#a78bfa');
+                dictItems.forEach(item => {
+                    sec.content.appendChild(_pcmNewItem(item.clean, item.lid, item.fk, item.dictKor));
+                });
+                resultDiv.appendChild(sec.el);
+            }
+
             // Fuzzy section (계층→폴더 순 정렬)
-            if (fuzzy.length > 0) {
-                fuzzy.sort((a, b) => {
+            if (fuzzyOnly.length > 0) {
+                fuzzyOnly.sort((a, b) => {
                     if ((a.lid || 99) !== (b.lid || 99)) return (a.lid || 99) - (b.lid || 99);
                     return (a.fk || '').localeCompare(b.fk || '');
                 });
                 const sec = _pcmSection('🔶 유사 항목 — 계층/폴더 확인 후 추가', '#f59e0b');
-                fuzzy.forEach(item => {
-                    sec.content.appendChild(_pcmNewItem(item.clean, item.lid, item.fk));
+                fuzzyOnly.forEach(item => {
+                    sec.content.appendChild(_pcmNewItem(item.clean, item.lid, item.fk, null));
                 });
                 resultDiv.appendChild(sec.el);
             }
@@ -6546,7 +6867,7 @@
                 unknown.sort((a, b) => a.clean.localeCompare(b.clean));
                 const sec = _pcmSection('❓ 미인식 — 계층/폴더를 직접 선택하세요', 'var(--text-dim)');
                 unknown.forEach(item => {
-                    sec.content.appendChild(_pcmNewItem(item.clean, null, null));
+                    sec.content.appendChild(_pcmNewItem(item.clean, null, null, null));
                 });
                 resultDiv.appendChild(sec.el);
             }
@@ -6570,16 +6891,41 @@
             return { el, content };
         }
 
-        function _pcmNewItem(clean, presetLid, presetFk) {
+        function _pcmNewItem(clean, presetLid, presetFk, presetKor) {
             const row = document.createElement('div');
             row.className = 'pcm-new-item';
             row.dataset.cleanPrompt = clean;
-            row.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg-deep);border-radius:6px;padding:6px 8px;';
+            row.style.cssText = 'display:flex;flex-direction:column;gap:5px;background:var(--bg-deep);border-radius:6px;padding:7px 10px;';
+
+            // 상단 행: 태그명 + 배지
+            const topRow = document.createElement('div');
+            topRow.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;';
 
             const label = document.createElement('span');
-            label.style.cssText = 'font-size:12px;color:var(--text-main);font-family:var(--font-ui);flex:1;min-width:100px;word-break:break-all;';
+            label.style.cssText = 'font-size:12px;color:var(--text-main);font-family:var(--font-code);font-weight:600;flex:1;min-width:80px;word-break:break-all;';
             label.textContent = clean;
-            row.appendChild(label);
+            topRow.appendChild(label);
+
+            // Applied badge (shown after add)
+            const badge = document.createElement('span');
+            badge.className = 'pcm-applied-badge';
+            badge.style.cssText = 'display:none;color:var(--accent-green);font-size:13px;';
+            badge.textContent = '✅';
+            topRow.appendChild(badge);
+            row.appendChild(topRow);
+
+            // 하단 행: KR 입력 + 계층선택 + 폴더선택
+            const ctrlRow = document.createElement('div');
+            ctrlRow.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;';
+
+            // KR 입력 (자동완성)
+            const krInp = document.createElement('input');
+            krInp.className = 'pcm-kr-input';
+            krInp.type = 'text';
+            krInp.placeholder = '한글 뜻 (자동입력됨)';
+            krInp.value = presetKor || _tagDictLookup(clean)?.k || '';
+            krInp.style.cssText = 'background:var(--bg-surface);color:var(--text-main);border:1px solid var(--border-dim);border-radius:5px;padding:3px 8px;font-size:11px;font-family:var(--font-ui);min-width:110px;flex:1;';
+            ctrlRow.appendChild(krInp);
 
             // Layer select
             const layerSel = document.createElement('select');
@@ -6589,15 +6935,15 @@
             layerSel.appendChild(blankOpt);
             layerMeta.forEach(lm => {
                 const opt = document.createElement('option');
-                opt.value = lm.id; opt.textContent = `${lm.id}계층 ${lm.title}`;
+                opt.value = lm.id; opt.textContent = `${lm.id}계층`;
                 if (presetLid && lm.id === presetLid) opt.selected = true;
                 layerSel.appendChild(opt);
             });
-            row.appendChild(layerSel);
+            ctrlRow.appendChild(layerSel);
 
             // Folder select
             const folderSel = document.createElement('select');
-            folderSel.style.cssText = 'background:var(--bg-surface);color:var(--text-main);border:1px solid var(--border-dim);border-radius:5px;padding:3px 6px;font-size:11px;font-family:var(--font-ui);max-width:160px;';
+            folderSel.style.cssText = 'background:var(--bg-surface);color:var(--text-main);border:1px solid var(--border-dim);border-radius:5px;padding:3px 6px;font-size:11px;font-family:var(--font-ui);max-width:140px;';
 
             const buildFolderOptions = (lid, presetFkVal) => {
                 folderSel.innerHTML = '';
@@ -6619,14 +6965,8 @@
 
             buildFolderOptions(presetLid, presetFk);
             layerSel.addEventListener('change', () => buildFolderOptions(parseInt(layerSel.value), null));
-            row.appendChild(folderSel);
-
-            // Applied badge (shown after add)
-            const badge = document.createElement('span');
-            badge.className = 'pcm-applied-badge';
-            badge.style.cssText = 'display:none;color:var(--accent-green);font-size:13px;';
-            badge.textContent = '✅';
-            row.appendChild(badge);
+            ctrlRow.appendChild(folderSel);
+            row.appendChild(ctrlRow);
 
             return row;
         }
@@ -6636,23 +6976,26 @@
             let added = 0, skipped = 0;
             items.forEach(itemEl => {
                 const clean = itemEl.dataset.cleanPrompt;
+                const krInp = itemEl.querySelector('.pcm-kr-input');
                 const selects = itemEl.querySelectorAll('select');
                 const lid = parseInt(selects[0]?.value);
                 const fkVal = selects[1]?.value;
                 if (!lid) { skipped++; return; }
                 if (_findInDB(clean)) return; // already in DB
 
+                const krVal = (krInp?.value || '').trim() || clean;
                 if (!promptDB[lid]) promptDB[lid] = {};
                 let targetFk = fkVal && fkVal !== '' ? fkVal : '미분류|자유';
                 if (!promptDB[lid][targetFk]) promptDB[lid][targetFk] = [];
                 if (!promptDB[lid][targetFk].find(t => t.t === clean)) {
-                    promptDB[lid][targetFk].push({ t: clean, k: clean, n: '', c: '' });
+                    promptDB[lid][targetFk].push({ t: clean, k: krVal, n: '', c: '' });
                     added++;
                 }
 
                 // Mark as applied
                 const badge = itemEl.querySelector('.pcm-applied-badge');
                 if (badge) badge.style.display = '';
+                if (krInp) krInp.disabled = true;
                 selects.forEach(s => s.disabled = true);
             });
 
@@ -7150,6 +7493,25 @@
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveTagInlinePopup(); }
             if (e.key === 'Escape') closeTagInlinePopup();
         });
+
+        // 영문 태그 입력 시 TAG_DICT에서 한글 자동 제안
+        document.getElementById('tip-en').addEventListener('input', () => {
+            const krField = document.getElementById('tip-kr');
+            if (krField.dataset.userEdited) return; // 사용자가 직접 수정한 경우 덮어쓰지 않음
+            const v = document.getElementById('tip-en').value.trim();
+            const d = v ? _tagDictLookup(v) : null;
+            if (d) { krField.value = d.k; krField.placeholder = '(사전 자동완성)'; }
+            else { krField.placeholder = '카우보이 샷'; }
+        });
+        document.getElementById('tip-kr').addEventListener('input', (e) => {
+            e.target.dataset.userEdited = e.target.value ? '1' : '';
+        });
+        // 팝업 열릴 때 userEdited 플래그 초기화 (openTagInlinePopup 내에서)
+        const _origOpenTip = openTagInlinePopup;
+        window.openTagInlinePopup = function(anchorEl, state) {
+            _origOpenTip(anchorEl, state);
+            document.getElementById('tip-kr').dataset.userEdited = '';
+        };
 
         // ─── 사이드바 드래그앤드롭 ───
         let _dndDragging = null;
