@@ -495,6 +495,8 @@
                 inset 1px 0 0 rgba(255,255,255,0.07),
                 inset -1px 0 0 rgba(255,255,255,0.05);
         }
+        /* 위 glass 그룹 규칙이 position:relative 를 덮어쓰므로, JS 로 좌표 지정되는 팝업은 fixed 유지 */
+        #ctx-menu, #tag-inline-popup { position: fixed; }
         /* 상단 스페큘러 하이라이트 + 대각 광택 시트 (콘텐츠 위 은은하게) */
         .modal-content::after,
         .combo-create-modal::after,
