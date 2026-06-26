@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.0 &nbsp;·&nbsp; 2026-06-26 — 프롬프트 노드 직접 선택 (커스텀 노드 지원)</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.1 &nbsp;·&nbsp; 2026-06-26 — 프롬프트 주입 방식 (덮어쓰기/앞·뒤 추가)</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -1155,6 +1155,14 @@
                                 <select id="comfy-wf-neg" class="comfy-num"></select>
                             </div>
                         </div>
+                        <div>
+                            <label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">노드에 이미 글자가 있을 때</label>
+                            <select id="comfy-wf-injectmode" class="comfy-num" onchange="_comfySaveSettings()">
+                                <option value="replace">덮어쓰기 (기존 내용 교체)</option>
+                                <option value="prepend">기존 앞에 추가 (앱 프롬프트 + 기존)</option>
+                                <option value="append">기존 뒤에 추가 (기존 + 앱 프롬프트)</option>
+                            </select>
+                        </div>
                         <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--text-main);">
                             <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="comfy-wf-randseed" checked> 매번 시드 랜덤</label>
                         </div>
@@ -1371,6 +1379,7 @@
                     wfMode: _comfyWfMode,
                     wfJson: document.getElementById('comfy-wf-json').value,
                     wfRandSeed: document.getElementById('comfy-wf-randseed').checked,
+                    wfInjectMode: document.getElementById('comfy-wf-injectmode').value,
                     target: _comfyTarget,
                     connectedOnce: _comfyConnectedOnce,
                     groups: _comfyGroups,
@@ -1409,6 +1418,7 @@
                 if (s.scheduler) document.getElementById('comfy-scheduler').value = s.scheduler;
                 if (s.wfJson) document.getElementById('comfy-wf-json').value = s.wfJson;
                 if (s.wfRandSeed !== undefined) document.getElementById('comfy-wf-randseed').checked = s.wfRandSeed;
+                if (s.wfInjectMode) document.getElementById('comfy-wf-injectmode').value = s.wfInjectMode;
                 if (Array.isArray(s.groups)) _comfyGroups = s.groups;
                 comfySetWfMode(s.wfMode || 'basic');
                 comfySetTarget(s.target || 'both');
@@ -1679,13 +1689,20 @@
             const negId = document.getElementById('comfy-wf-neg').value;
             const wf = JSON.parse(JSON.stringify(_comfyCustomWF)); // 깊은 복사 (원본 보존)
 
+            const mode = document.getElementById('comfy-wf-injectmode').value || 'replace';
+            const combine = (existing, text) => {
+                const ex = (existing || '').trim();
+                if (mode === 'replace' || !ex) return text;
+                if (mode === 'prepend') return text + ', ' + ex;
+                return ex + ', ' + text; // append
+            };
             const inject = (id, text) => {
                 if (!id || !wf[id]) return;
                 const node = wf[id];
                 const field = _comfyTextField(node);
                 if (!field) return;
-                node.inputs[field] = text;
-                if (field === 'text_g' && typeof node.inputs.text_l === 'string') node.inputs.text_l = text;
+                node.inputs[field] = combine(node.inputs[field], text);
+                if (field === 'text_g' && typeof node.inputs.text_l === 'string') node.inputs.text_l = combine(node.inputs.text_l, text);
             };
 
             // 긍정 프롬프트 주입 (대상이 '부정만'이 아니면)
