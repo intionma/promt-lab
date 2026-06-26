@@ -20,13 +20,14 @@ export class WeatherSystem {
         const THREE = this.THREE;
         const isRain   = type === 'rain';
         const isPetals = type === 'petals';
-        const count = isRain ? 1200 : isPetals ? 350 : 800;
+        const isSparks = type === 'sparks';
+        const count = isRain ? 1200 : isPetals ? 350 : isSparks ? 400 : 800;
         const pos = new Float32Array(count * 3);
         this._velocities = new Float32Array(count * 3);
 
         for (let i = 0; i < count; i++) {
             pos[i*3]   = (Math.random() - 0.5) * 10;
-            pos[i*3+1] = Math.random() * 6;
+            pos[i*3+1] = isSparks ? (Math.random() * 6 - 1) : Math.random() * 6;
             pos[i*3+2] = (Math.random() - 0.5) * 10;
             if (isRain) {
                 this._velocities[i*3]   = (Math.random() - 0.5) * 0.005;
@@ -37,6 +38,11 @@ export class WeatherSystem {
                 this._velocities[i*3]   = (Math.random() - 0.5) * 0.022;
                 this._velocities[i*3+1] = -(0.006 + Math.random() * 0.006);
                 this._velocities[i*3+2] = (Math.random() - 0.5) * 0.022;
+            } else if (isSparks) {
+                // 불꽃 스파크: 위로 떠오르는 잔불
+                this._velocities[i*3]   = (Math.random() - 0.5) * 0.01;
+                this._velocities[i*3+1] = (0.01 + Math.random() * 0.02);
+                this._velocities[i*3+2] = (Math.random() - 0.5) * 0.01;
             } else { // snow
                 this._velocities[i*3]   = (Math.random() - 0.5) * 0.008;
                 this._velocities[i*3+1] = -(0.008 + Math.random() * 0.006);
@@ -47,11 +53,11 @@ export class WeatherSystem {
         const geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
         const mat = new THREE.PointsMaterial({
-            size:    isRain ? 0.018 : isPetals ? 0.05  : 0.035,
-            color:   isRain ? 0x88ccff : isPetals ? 0xff9ec4 : 0xddeeff,
+            size:    isRain ? 0.018 : isPetals ? 0.05 : isSparks ? 0.03 : 0.035,
+            color:   isRain ? 0x88ccff : isPetals ? 0xff9ec4 : isSparks ? 0xffae3a : 0xddeeff,
             blending: isPetals ? THREE.NormalBlending : THREE.AdditiveBlending,
             transparent: true,
-            opacity: isRain ? 0.55 : isPetals ? 0.9 : 0.70,
+            opacity: isRain ? 0.55 : isPetals ? 0.9 : isSparks ? 0.85 : 0.70,
             depthWrite: false,
         });
         this._pts = new THREE.Points(geo, mat);
@@ -62,11 +68,19 @@ export class WeatherSystem {
         if (!this._pts || this._type === 'clear') return;
         const pos = this._pts.geometry.attributes.position.array;
         const vel = this._velocities;
+        const rising = this._type === 'sparks';
         for (let i = 0; i < pos.length / 3; i++) {
             pos[i*3]   += vel[i*3];
             pos[i*3+1] += vel[i*3+1];
             pos[i*3+2] += vel[i*3+2];
-            if (pos[i*3+1] < -1) {
+            if (rising) {
+                // 위로 떠오른 잔불은 천장에서 바닥으로 재순환
+                if (pos[i*3+1] > 6) {
+                    pos[i*3]   = (Math.random() - 0.5) * 10;
+                    pos[i*3+1] = -1;
+                    pos[i*3+2] = (Math.random() - 0.5) * 10;
+                }
+            } else if (pos[i*3+1] < -1) {
                 pos[i*3]   = (Math.random() - 0.5) * 10;
                 pos[i*3+1] = 5.5;
                 pos[i*3+2] = (Math.random() - 0.5) * 10;

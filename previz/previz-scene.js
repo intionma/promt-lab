@@ -43,19 +43,26 @@ const HAIR_COLORS = {
 const EYE_COLORS = {
     blue_eyes:0x6fa8ff, red_eyes:0xff6a6a, green_eyes:0x66cf80,
     purple_eyes:0xb07bff, brown_eyes:0xb98a5a, golden_eyes:0xe6c25a,
+    heterochromia:0x8fb0ff,   // 오드아이(근사 단색)
 };
-const SKIN_TONES = { pale_skin:0xfff2ee, normal:0xffffff, tanned:0xd9a878, dark_skin:0xb07d52 };
+const SKIN_TONES = {
+    pale_skin:0xfff2ee, fair_skin:0xffe7da, normal:0xffffff,
+    tanned:0xd9a878, tanned_skin:0xd9a878, dark_skin:0xb07d52,
+};
 const OUTFIT_COLORS = {
-    school_uniform:0x4a5b8f, business_suit:0x3a3f4a, oversized_hoodie:0x9aa4b2,
-    dress:0xd06a8e, casual:0x6aa0c0, sportswear:0x4caa6a, gothic:0x4a3550,
-    kimono:0xc05068, maid:0x3a3f6a, white_dress:0xeef2f7,
+    school_uniform:0x4a5b8f, business_suit:0x3a3f4a, office_lady:0x3a3f4a,
+    oversized_hoodie:0x9aa4b2, sweater:0xb98a5a, 't-shirt':0xe8eef3,
+    casual:0x6aa0c0, casual_clothes:0x8fb6d9, dress:0xd06a8e, sundress:0xffe0ec,
+    sportswear:0x4caa6a, gothic:0x4a3550, kimono:0xc05068, maid:0x3a3f6a,
+    white_dress:0xeef2f7, 'one-piece_swimsuit':0x223a6a, bikini:0xff7aa8,
 };
 
 // ── 표정 → 블렌드셰이프 ──────────────────────────────────────────
 const EXPRESSION_MAP = {
     smile:'happy', happy:'happy', grin:'happy',
-    tears:'sad', crying:'sad', sad:'sad',
-    open_mouth:'aa', serious:'neutral', closed_mouth:'neutral',
+    gentle_smile:'happy', laughing:'happy', smirk:'relaxed',
+    tears:'sad', crying:'sad', sad:'sad', pout:'angry',
+    open_mouth:'aa', parted_lips:'aa', serious:'neutral', closed_mouth:'neutral',
     angry:'angry', surprised:'surprised', relaxed:'relaxed',
 };
 
@@ -72,6 +79,13 @@ const POSE_PRESETS = {
     sitting:      { lUpperArm:[0,0,-1.0],  rUpperArm:[0,0,1.0], lUpperLeg:[-1.5,0,0.05], rUpperLeg:[-1.5,0,-0.05], lLowerLeg:[1.6,0,0], rLowerLeg:[1.6,0,0] },
     lying_on_back:{ lUpperArm:[0,0,-1.3],  rUpperArm:[0,0,1.3], _rootRotX:-1.5708, _rootY:0.05 },
     lean:         { lUpperArm:[0,0,-1.15], rUpperArm:[0,0,1.15], _rootRotZ:0.08 },
+    leaning_forward:{ lUpperArm:[0,0,-1.1], rUpperArm:[0,0,1.1], _rootRotX:0.32 },
+    squatting:    { lUpperArm:[0,0,-1.05], rUpperArm:[0,0,1.05], lUpperLeg:[-1.7,0,0.12], rUpperLeg:[-1.7,0,-0.12], lLowerLeg:[2.2,0,0], rLowerLeg:[2.2,0,0], _rootY:-0.5 },
+    kneeling:     { lUpperArm:[0,0,-1.05], rUpperArm:[0,0,1.05], lUpperLeg:[-1.35,0,0.06], rUpperLeg:[-1.35,0,-0.06], lLowerLeg:[2.7,0,0], rLowerLeg:[2.7,0,0], _rootY:-0.42 },
+    walking:      { lUpperArm:[0.32,0,-1.18], rUpperArm:[-0.32,0,1.18], lUpperLeg:[-0.38,0,0], rUpperLeg:[0.38,0,0], lLowerLeg:[0.5,0,0] },
+    arms_behind_head:{ lUpperArm:[0,0,0.55], rUpperArm:[0,0,-0.55], lLowerArm:[0,-2.6,0], rLowerArm:[0,2.6,0] },
+    hand_on_own_cheek:{ lUpperArm:[0,0,-1.18], rUpperArm:[0,0,0.45], rLowerArm:[0,2.2,0] },
+    waving:       { lUpperArm:[0,0,-1.18], rUpperArm:[0,0,-2.2], rLowerArm:[0,-0.5,0] },
 };
 
 // ── 태그 → 채널 매핑 (DB 기본 태그 전부 포함) ────────────────────
@@ -84,32 +98,51 @@ const TAG_MAP = {
     // 눈동자
     blue_eyes:['eye.color'], red_eyes:['eye.color'], green_eyes:['eye.color'],
     purple_eyes:['eye.color'], brown_eyes:['eye.color'], golden_eyes:['eye.color'],
+    heterochromia:['eye.color'],
     // 피부
-    pale_skin:['skin.tone'], tanned:['skin.tone'], dark_skin:['skin.tone'],
+    pale_skin:['skin.tone'], fair_skin:['skin.tone'], tanned:['skin.tone'],
+    tanned_skin:['skin.tone'], dark_skin:['skin.tone'],
     // 표정
-    smile:['expression'], tears:['expression'], crying:['expression'], open_mouth:['expression'],
+    smile:['expression'], gentle_smile:['expression'], laughing:['expression'],
+    smirk:['expression'], pout:['expression'], parted_lips:['expression'],
+    tears:['expression'], crying:['expression'], open_mouth:['expression'],
     serious:['expression'], angry:['expression'], surprised:['expression'],
     // 체형
     petite:['body.size'], small:['body.size'], tall:['body.size'], skinny:['body.size'],
-    // 포즈
+    slim:['body.size'], slender:['body.size'], curvy:['body.size'], athletic:['body.size'],
+    // 포즈 / 제스처
     standing:['pose'], sitting:['pose'], lying_on_back:['pose'], sit:['pose'], stand:['pose'],
-    hands_on_hips:['pose'], peace_sign:['pose'], crossed_arms:['pose'], arms_up:['pose'], lean:['pose'],
+    squatting:['pose'], kneeling:['pose'], walking:['pose'], leaning_forward:['pose'], lean:['pose'],
+    hands_on_hips:['pose'], peace_sign:['pose'], crossed_arms:['pose'], arms_up:['pose'],
+    arms_behind_head:['pose'], hand_on_own_cheek:['pose'], waving:['pose'],
     // 카메라
-    close_up:['camera'], full_body:['camera'], from_behind:['camera'], from_above:['camera'],
-    from_below:['camera'], looking_at_viewer:['camera'],
+    close_up:['camera'], portrait:['camera'], upper_body:['camera'], cowboy_shot:['camera'],
+    full_body:['camera'], from_behind:['camera'], from_above:['camera'], from_below:['camera'],
+    from_side:['camera'], dutch_angle:['camera'], pov:['camera'], looking_at_viewer:['camera'],
     // 의상 (색 틴트)
-    school_uniform:['outfit'], business_suit:['outfit'], oversized_hoodie:['outfit'],
-    dress:['outfit'], casual:['outfit'], sportswear:['outfit'], gothic:['outfit'],
-    kimono:['outfit'], maid:['outfit'], white_dress:['outfit'],
+    school_uniform:['outfit'], business_suit:['outfit'], office_lady:['outfit'],
+    oversized_hoodie:['outfit'], sweater:['outfit'], 't-shirt':['outfit'],
+    casual:['outfit'], casual_clothes:['outfit'], dress:['outfit'], sundress:['outfit'],
+    sportswear:['outfit'], gothic:['outfit'], kimono:['outfit'], maid:['outfit'],
+    white_dress:['outfit'], 'one-piece_swimsuit':['outfit'], bikini:['outfit'],
     // 배경/환경
-    indoors:['env'], outdoors:['env'], bedroom:['env'], classroom:['env'], nature:['env'], city:['env'],
-    simple_background:['bg'], white_background:['bg'], solid_color:['bg'],
+    indoors:['env'], outdoors:['env'], bedroom:['env'], classroom:['env'], cafe:['env'],
+    office:['env'], library:['env'], stage:['env'], nature:['env'], forest:['env'],
+    beach:['env'], mountains:['env'], city:['env'], street:['env'], garden:['env'],
+    cyberpunk_city:['env'],
+    simple_background:['bg'], detailed_background:['bg'], white_background:['bg'],
+    black_background:['bg'], grey_background:['bg'], gradient_background:['bg'],
+    studio_backdrop:['bg'], solid_color:['bg'],
     // 시간/날씨
-    daytime:['time'], night:['time'], raining:['weather'], clear_sky:['weather'], snow:['weather'],
+    daytime:['time'], day:['time'], night:['time'], sunset:['time'], golden_hour:['time'],
+    starry_sky:['time'], raining:['weather'], rain:['weather'], clear_sky:['weather'], snow:['weather'],
     // 조명
     cinematic_lighting:['light'], soft_lighting:['light'], natural_lighting:['light'],
+    rim_lighting:['light'], backlighting:['light'], studio_lighting:['light'],
+    neon_lighting:['light'], neon_lights:['light'], god_rays:['light'], sunbeam:['light'],
     // 파티클
     falling_petals:['particle'], wind:['particle'], water_drops:['particle'],
+    floating_hair:['particle'], glowing_lights:['particle'], sparks:['particle'],
 };
 
 export class PrevizScene {
@@ -381,7 +414,12 @@ export class PrevizScene {
         const baseY = this._charWrap.position.y;
         this._charWrap.scale.setScalar(s);
         this._charWrap.position.y = baseY; // 스케일 후 바닥 유지
-        if (size === 'skinny') this._charWrap.scale.x = this._charWrap.scale.z = s * 0.95;
+        // 폭(좌우) 보정: 슬렌더 계열은 슬림하게, 글래머는 약간 풍성하게
+        if (size === 'skinny' || size === 'slim' || size === 'slender')
+            this._charWrap.scale.x = this._charWrap.scale.z = s * 0.95;
+        else if (size === 'curvy')
+            this._charWrap.scale.x = this._charWrap.scale.z = s * 1.05;
+        // athletic은 기본 비율 유지
     }
 
     // UI 호환 메서드
@@ -405,8 +443,12 @@ export class PrevizScene {
     _applyEnv(envState) {
         const bgMap = {
             studio:0x0a0e16, indoor:0x14121c, bedroom:0x1a141e, classroom:0x141a22,
-            outdoor:0x10202c, nature:0x0e2018, city:0x0a0e1a, sky:0x081420,
-            white:0xe8eef5, simple:0x10141c,
+            cafe:0x1c1812, office:0x14181f, library:0x18140f, stage:0x1a0a1e,
+            outdoor:0x10202c, nature:0x0e2018, forest:0x0c1c12, beach:0x16283a,
+            mountains:0x14202a, city:0x0a0e1a, street:0x0c1016, garden:0x102014,
+            cyber:0x140a22, sky:0x081420,
+            white:0xe8eef5, black:0x050608, grey:0x2a2e36, gradient:0x101826,
+            studio_backdrop:0x12141a, detailed:0x12161e, simple:0x10141c,
         };
         const key = envState.bg || envState.preset || 'studio';
         const hex = bgMap[key] ?? 0x0a0e16;
@@ -445,11 +487,29 @@ export class PrevizScene {
                     case 'outfit':     ns.outfit.preset = t; ns.outfit.color = OUTFIT_COLORS[t] ?? null; break;
                     case 'camera':     this._tagToCamera(t, ns); hasCamera = true; break;
                     case 'env':        this._tagToEnv(t, ns); break;
-                    case 'bg':         ns.env.bg = (t === 'white_background' ? 'white' : 'simple'); break;
-                    case 'time':       ns.env.timeOfDay = (t === 'night' ? 0.9 : 0.5); break;
-                    case 'weather':    ns.env.weather = (t === 'raining' ? 'rain' : t === 'snow' ? 'snow' : 'clear'); break;
+                    case 'bg': {
+                        const bgKey = {
+                            white_background:'white', black_background:'black', grey_background:'grey',
+                            gradient_background:'gradient', studio_backdrop:'studio_backdrop',
+                            detailed_background:'detailed', simple_background:'simple', solid_color:'simple',
+                        };
+                        ns.env.bg = bgKey[t] || 'simple';
+                        break;
+                    }
+                    case 'time':
+                        ns.env.timeOfDay = (t === 'night' || t === 'starry_sky') ? 0.92
+                            : (t === 'sunset' || t === 'golden_hour') ? 0.78
+                            : (t === 'day' || t === 'daytime') ? 0.5 : ns.env.timeOfDay;
+                        break;
+                    case 'weather':    ns.env.weather = (t === 'raining' || t === 'rain') ? 'rain' : t === 'snow' ? 'snow' : 'clear'; break;
                     case 'light':      ns._light = t; break;
-                    case 'particle':   ns.env.weather = (t === 'falling_petals' ? 'petals' : t === 'water_drops' ? 'rain' : ns.env.weather); break;
+                    case 'particle':
+                        ns.env.weather = t === 'falling_petals' ? 'petals'
+                            : t === 'water_drops' ? 'rain'
+                            : t === 'sparks' ? 'sparks'
+                            : (t === 'wind' || t === 'floating_hair' || t === 'glowing_lights') ? (ns.env.weather === 'clear' ? 'petals' : ns.env.weather)
+                            : ns.env.weather;
+                        break;
                 }
             });
         });
@@ -465,30 +525,54 @@ export class PrevizScene {
     }
 
     _tagToCamera(t, ns) {
-        if (t === 'close_up')          ns.camera.zoom = 0.55;
+        if (t === 'close_up' || t === 'portrait')   ns.camera.zoom = 0.5;
+        else if (t === 'upper_body')   ns.camera.zoom = 0.72;
+        else if (t === 'cowboy_shot')  ns.camera.zoom = 0.95;
         else if (t === 'full_body')    ns.camera.zoom = 1.25;
         else if (t === 'from_behind')  ns.camera.angle = 'back';
+        else if (t === 'from_side')    ns.camera.angle = 'side';
         else if (t === 'from_above')   ns.camera.angle = 'high';
         else if (t === 'from_below')   ns.camera.angle = 'low';
+        else if (t === 'dutch_angle')  ns.camera.angle = 'dutch';
+        else if (t === 'pov')          ns.camera.zoom = 0.62;
         else if (t === 'looking_at_viewer') ns.camera.angle = 'front';
     }
     _tagToEnv(t, ns) {
-        const m = { indoors:'indoor', bedroom:'bedroom', classroom:'classroom', outdoors:'outdoor', nature:'nature', city:'city' };
+        // 토큰 → (배경 프리셋 키). bgMap/_applyTimeOfDay에서 색으로 사용.
+        const m = {
+            indoors:'indoor', bedroom:'bedroom', classroom:'classroom', cafe:'cafe',
+            office:'office', library:'library', stage:'stage',
+            outdoors:'outdoor', nature:'nature', forest:'forest', beach:'beach',
+            mountains:'mountains', city:'city', street:'street', garden:'garden',
+            cyberpunk_city:'cyber',
+        };
         ns.env.preset = m[t] || ns.env.preset; ns.env.bg = m[t] || ns.env.bg;
     }
     _applyLight(l) {
         const L = this._lights; if (!L.key) return;
-        if (l === 'cinematic_lighting') { L.key.intensity = 2.1; L.amb.intensity = 0.9; }
-        else if (l === 'soft_lighting') { L.key.intensity = 1.2; L.amb.intensity = 1.9; }
-        else if (l === 'natural_lighting') { L.key.intensity = 1.6; L.key.color.setHex(0xfff3e6); L.amb.intensity = 1.5; }
+        switch (l) {
+            case 'cinematic_lighting': L.key.intensity = 2.1; L.amb.intensity = 0.9; break;
+            case 'soft_lighting':      L.key.intensity = 1.2; L.amb.intensity = 1.9; break;
+            case 'natural_lighting':   L.key.intensity = 1.6; L.key.color.setHex(0xfff3e6); L.amb.intensity = 1.5; break;
+            case 'studio_lighting':    L.key.intensity = 1.9; L.amb.intensity = 1.3; L.fill && (L.fill.intensity = 1.2); break;
+            case 'rim_lighting':
+            case 'backlighting':       L.rim && (L.rim.intensity = 2.6); L.key.intensity = 1.2; L.amb.intensity = 0.7; break;
+            case 'neon_lighting':
+            case 'neon_lights':        L.key.color.setHex(0xff5ad0); L.key.intensity = 1.4; L.rim && (L.rim.color.setHex(0x4ad0ff), L.rim.intensity = 2.2); break;
+            case 'god_rays':
+            case 'sunbeam':            L.key.color.setHex(0xfff0c0); L.key.intensity = 2.3; L.amb.intensity = 1.0; break;
+        }
     }
 
     _updateCameraForState(state) {
         const angle = state.camera?.angle || 'front';
         const o = this._orbit;
+        o.phi = Math.PI/2 - 0.12;   // 기본 시선 높이로 리셋
         if (angle === 'back')      o.theta = Math.PI;
+        else if (angle === 'side') { o.theta = Math.PI/2; }
         else if (angle === 'high') { o.theta = 0; o.phi = Math.PI/6; }
         else if (angle === 'low')  { o.theta = 0; o.phi = Math.PI/2 + 0.3; }
+        else if (angle === 'dutch'){ o.theta = 0.18; }
         else                       o.theta = 0;
         o.radius = 2.7 * (state.camera?.zoom ?? 1.0);
         this.camera.fov = state.camera?.fov ?? 30;
