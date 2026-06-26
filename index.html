@@ -353,6 +353,10 @@
         .fixed-weight-toolbar button.reset-btn { color: var(--text-dim); font-size: 11px; }
 
         /* 특수 기능 패널 버튼 */
+        .io-pill { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:20px; border:1.5px solid; font-size:12px; font-weight:700; font-family:var(--font-ui); cursor:pointer; transition:.15s; user-select:none; }
+        .io-pill.active { background:color-mix(in srgb, var(--pc,#a78bfa) 18%, transparent); border-color:var(--pc,#a78bfa); color:var(--pc,#a78bfa); }
+        .io-pill:not(.active) { background:transparent; border-color:var(--border-dim); color:var(--text-dim); }
+        .io-pill:hover { opacity:0.85; }
         .special-tool-btn { display:flex; align-items:center; gap:9px; flex-wrap:wrap; width:100%; padding:8px 10px; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid var(--border-dim); color:var(--text-main); font-family:var(--font-ui); font-size:12px; font-weight:700; cursor:pointer; text-align:left; transition:.15s; }
         .special-tool-btn:hover { border-color:var(--c); background:color-mix(in srgb, var(--c) 12%, transparent); }
         .special-tool-btn i { font-size:13px; color:var(--c); width:16px; text-align:center; flex-shrink:0; }
@@ -987,24 +991,29 @@
     </div>
 
     <div class="modal-overlay" id="db-io-modal">
-        <div class="modal-content" style="width: 700px;">
+        <div class="modal-content" style="width:700px;">
             <div class="modal-header">
                 <span class="modal-title" id="io-modal-title"></span>
                 <button class="action-btn" onclick="document.getElementById('db-io-modal').style.display='none'"><i class="fa-solid fa-xmark"></i> 닫기</button>
             </div>
-            <div style="padding: 24px;">
-                <p id="io-desc" style="font-size: 14px; color: var(--text-dim); line-height: 1.6; margin-bottom: 12px;"></p>
-                <div id="io-export-options" style="display:none; margin-bottom:14px; display:flex; gap:10px; flex-wrap:wrap;">
-                    <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-family:var(--font-ui);cursor:pointer;"><input type="checkbox" id="io-chk-db" checked> 태그 DB</label>
-                    <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-family:var(--font-ui);cursor:pointer;"><input type="checkbox" id="io-chk-combo" checked> 간편 조합</label>
-                    <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-family:var(--font-ui);cursor:pointer;"><input type="checkbox" id="io-chk-tabs" checked> 에디터 탭/내용</label>
-                    <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-family:var(--font-ui);cursor:pointer;"><input type="checkbox" id="io-chk-weights" checked> 태그 가중치</label>
-                    <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-family:var(--font-ui);cursor:pointer;"><input type="checkbox" id="io-chk-favs" checked> 즐겨찾기</label>
-                    <button onclick="updateExportPreview()" style="margin-left:auto;padding:4px 12px;border-radius:6px;border:1px solid var(--border-dim);background:var(--bg-base);color:var(--text-main);font-size:12px;font-family:var(--font-ui);cursor:pointer;">미리보기 갱신</button>
+            <div style="padding:20px 24px 24px;">
+                <div id="io-desc" style="font-size:13px; color:var(--text-dim); line-height:1.6; margin-bottom:14px;"></div>
+                <div id="io-export-options" style="display:none; margin-bottom:16px;">
+                    <div style="font-size:10px;color:var(--text-dim);font-family:var(--font-ui);font-weight:800;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.8px;">내보낼 항목 선택</div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button class="io-pill active" data-key="db" style="--pc:#a78bfa;" onclick="toggleIOPill(this)"><i class="fa-solid fa-database"></i> 태그 DB</button>
+                        <button class="io-pill active" data-key="combo" style="--pc:#22c55e;" onclick="toggleIOPill(this)"><i class="fa-solid fa-puzzle-piece"></i> 간편 조합</button>
+                        <button class="io-pill active" data-key="tabs" style="--pc:#38bdf8;" onclick="toggleIOPill(this)"><i class="fa-solid fa-table-columns"></i> 에디터 탭/내용</button>
+                        <button class="io-pill active" data-key="weights" style="--pc:#f59e0b;" onclick="toggleIOPill(this)"><i class="fa-solid fa-weight-hanging"></i> 태그 가중치</button>
+                        <button class="io-pill active" data-key="favs" style="--pc:#ec4899;" onclick="toggleIOPill(this)"><i class="fa-solid fa-star"></i> 즐겨찾기</button>
+                        <button class="io-pill active" data-key="kormap" style="--pc:#f97316;" onclick="toggleIOPill(this)"><i class="fa-solid fa-language"></i> 한글 번역맵</button>
+                    </div>
+                    <div id="io-export-size" style="font-size:11px;color:var(--text-dim);margin-top:10px;font-family:var(--font-ui);"></div>
                 </div>
                 <textarea class="io-textarea" id="io-textarea"></textarea>
-                <div style="display: flex; gap: 15px; margin-top: 24px;">
-                    <button class="btn-add-db" style="flex: 1; border:none;" id="io-action-btn" onclick="executeIO()"></button>
+                <div style="display:flex; gap:10px; margin-top:18px; align-items:center;">
+                    <div id="io-size-label" style="font-size:11px;color:var(--text-dim);font-family:var(--font-ui);flex:1;"></div>
+                    <button class="btn-add-db" style="border:none; padding:12px 28px;" id="io-action-btn" onclick="executeIO()"></button>
                 </div>
             </div>
         </div>
@@ -6420,24 +6429,41 @@
         }
 
         let currentIOType = '';
+        function toggleIOPill(btn) {
+            btn.classList.toggle('active');
+            updateExportPreview();
+        }
+
+        function _ioActivePills() {
+            const active = {};
+            document.querySelectorAll('#io-export-options .io-pill').forEach(p => {
+                active[p.dataset.key] = p.classList.contains('active');
+            });
+            return active;
+        }
+
         function buildExportData() {
-            const chkDB = document.getElementById('io-chk-db')?.checked !== false;
-            const chkCombo = document.getElementById('io-chk-combo')?.checked !== false;
-            const chkTabs = document.getElementById('io-chk-tabs')?.checked !== false;
-            const chkWeights = document.getElementById('io-chk-weights')?.checked !== false;
-            const chkFavs = document.getElementById('io-chk-favs')?.checked !== false;
+            const a = _ioActivePills();
             const data = { _version: 2 };
-            if (chkDB) data.promptDB = promptDB;
-            if (chkCombo) data.comboFS = comboFS;
-            if (chkTabs) { data.contextTabs = contextTabs; data.contextStates = contextStates; }
-            if (chkWeights) data.tagDefaultWeights = tagDefaultWeights;
-            if (chkFavs) data.favorites = favorites;
+            if (a.db !== false) data.promptDB = promptDB;
+            if (a.combo !== false) data.comboFS = comboFS;
+            if (a.tabs !== false) { data.contextTabs = contextTabs; data.contextStates = contextStates; }
+            if (a.weights !== false) data.tagDefaultWeights = tagDefaultWeights;
+            if (a.favs !== false) data.favorites = favorites;
+            if (a.kormap !== false) data.customKorMap = customKorMap;
             return JSON.stringify(data);
         }
 
         function updateExportPreview() {
             const textarea = document.getElementById('io-textarea');
-            if (textarea) textarea.value = buildExportData();
+            if (!textarea) return;
+            const raw = buildExportData();
+            textarea.value = raw;
+            const sizeEl = document.getElementById('io-size-label');
+            if (sizeEl) {
+                const kb = (new Blob([raw]).size / 1024).toFixed(1);
+                sizeEl.textContent = `📦 ${kb} KB`;
+            }
         }
 
         function openIOModal(type) {
@@ -6450,17 +6476,14 @@
             const exportOpts = document.getElementById('io-export-options');
             if (type === 'export') {
                 title.innerHTML = '<i class="fa-solid fa-copy"></i> 데이터 내보내기';
-                desc.innerText = "내보낼 항목을 선택하고 코드를 복사하세요.";
-                if (exportOpts) exportOpts.style.display = 'flex';
-                textarea.value = buildExportData();
+                if (desc) desc.innerHTML = '';
+                if (exportOpts) exportOpts.style.display = 'block';
+                // reset all pills to active on open
+                document.querySelectorAll('#io-export-options .io-pill').forEach(p => p.classList.add('active'));
+                updateExportPreview();
                 textarea.readOnly = true;
                 btn.innerText = "선택 항목 복사하기";
                 btn.style.backgroundColor = "var(--accent-blue)";
-                // 체크박스 변경 시 미리보기 자동 갱신
-                ['io-chk-db','io-chk-combo','io-chk-tabs','io-chk-weights','io-chk-favs'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.onchange = updateExportPreview;
-                });
             } else {
                 title.innerHTML = '<i class="fa-solid fa-paste"></i> 복구/추가';
                 desc.innerHTML = `백업해둔 코드를 붙여넣기 하세요.<br>
@@ -6538,6 +6561,14 @@
                     }
                 }
                 saveComboFS();
+            }
+
+            // Merge customKorMap
+            if (parsed.customKorMap && typeof parsed.customKorMap === 'object') {
+                for (const [k, v] of Object.entries(parsed.customKorMap)) {
+                    if (!customKorMap[k]) { customKorMap[k] = v; addedCount++; }
+                }
+                saveCustomKorMap();
             }
 
             initApp();
@@ -6670,6 +6701,11 @@
                             favorites.length = 0;
                             parsed.favorites.forEach(f => favorites.push(f));
                             safeSetStorage('pro_prompt_favs_v7_0', favorites);
+                        }
+                        if (parsed.customKorMap && typeof parsed.customKorMap === 'object') {
+                            Object.keys(customKorMap).forEach(k => delete customKorMap[k]);
+                            Object.assign(customKorMap, parsed.customKorMap);
+                            saveCustomKorMap();
                         }
                         initApp();
                         showToast("전체 데이터 복구 성공!", "success");
