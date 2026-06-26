@@ -7293,6 +7293,17 @@
         // ────────────────────────────────────────────────────────────────────
     </script>
 
+    <!-- Three.js + three-vrm (ESM importmap) — Preview Studio VRM 렌더링용 -->
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+        "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.4.0/lib/three-vrm.module.js"
+      }
+    }
+    </script>
+
     <!-- 홀로그램 프리비주얼 모듈 -->
     <script type="module">
         import { openPreviz, closePreviz, hookIntoApp } from './previz/previz-main.js';

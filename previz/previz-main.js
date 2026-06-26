@@ -133,6 +133,9 @@ export async function openPreviz() {
                 }
                 #previz-hud::-webkit-scrollbar { display: none; }
                 .previz-callout { font-size: 10px !important; padding: 3px 7px !important; }
+                #previz-controls { top: 6px !important; gap: 4px !important; }
+                #previz-controls button { padding: 4px 8px !important; font-size: 10px !important; }
+                #previz-controls input[type=range] { width: 64px !important; }
             }
         `;
         document.head.appendChild(mStyle);
@@ -211,6 +214,7 @@ export async function openPreviz() {
         await _scene.init();
         initPartClickHandler(_scene);
         initHUD(_scene);
+        buildPrevizControls(_scene, canvasWrap);
 
         // Callout 오버레이 초기화
         ensurePrevizTagsInDB();
@@ -234,6 +238,77 @@ export async function openPreviz() {
     updateTagCount(tags.length);
 
     startTagWatch();
+}
+
+// ── 프리뷰 컨트롤 바 (뷰 전환 + 홀로그램 토글/강도) ──────────────
+function buildPrevizControls(scene, canvasWrap) {
+    if (document.getElementById('previz-controls')) return;
+
+    const bar = document.createElement('div');
+    bar.id = 'previz-controls';
+    bar.style.cssText = [
+        'position:absolute', 'top:10px', 'left:50%', 'transform:translateX(-50%)',
+        'display:flex', 'flex-wrap:wrap', 'gap:6px', 'align-items:center', 'justify-content:center',
+        'z-index:60', 'max-width:calc(100% - 16px)', 'pointer-events:auto',
+    ].join(';');
+
+    // 뷰 모드 토글
+    let viewMode = 'free';
+    const viewBtn = ctrlButton('🆓 자유뷰');
+    viewBtn.onclick = () => {
+        viewMode = viewMode === 'free' ? 'camera' : 'free';
+        scene.setViewMode(viewMode);
+        viewBtn.firstChild.textContent = viewMode === 'free' ? '🆓 자유뷰' : '📷 카메라뷰';
+        viewBtn.title = viewMode === 'free' ? '자유롭게 회전 (클릭: 고정 출력 구도)' : '실제 출력 구도 고정 (클릭: 자유 회전)';
+    };
+    viewBtn.title = '자유롭게 회전 (클릭: 고정 출력 구도)';
+
+    // 홀로그램 ON/OFF 비교
+    let holoOn = true;
+    const holoBtn = ctrlButton('✨ 홀로그램');
+    holoBtn.onclick = () => {
+        holoOn = !holoOn;
+        scene.toggleHolo(holoOn);
+        holoBtn.style.opacity = holoOn ? '1' : '0.5';
+        slider.disabled = !holoOn;
+        slider.style.opacity = holoOn ? '1' : '0.4';
+    };
+    holoBtn.title = '홀로그램 효과 ON/OFF 비교';
+
+    // 홀로그램 강도 슬라이더
+    const sliderWrap = document.createElement('div');
+    sliderWrap.style.cssText = 'display:flex;align-items:center;gap:5px;background:rgba(15,20,32,0.78);border:1px solid rgba(255,255,255,0.10);border-radius:8px;padding:4px 9px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);';
+    const slabel = document.createElement('span');
+    slabel.textContent = '강도';
+    slabel.style.cssText = 'font-size:10px;color:rgba(180,200,240,0.7);white-space:nowrap;font-family:system-ui,sans-serif;';
+    const slider = document.createElement('input');
+    slider.type = 'range'; slider.min = '0'; slider.max = '1'; slider.step = '0.05';
+    slider.value = String(scene.state?.holo?.intensity ?? 0.45);
+    slider.style.cssText = 'width:84px;accent-color:#33ccff;cursor:pointer;';
+    slider.oninput = () => scene._applyHolo(parseFloat(slider.value));
+    sliderWrap.appendChild(slabel); sliderWrap.appendChild(slider);
+
+    bar.appendChild(viewBtn);
+    bar.appendChild(holoBtn);
+    bar.appendChild(sliderWrap);
+    canvasWrap.appendChild(bar);
+}
+
+function ctrlButton(label) {
+    const btn = document.createElement('button');
+    const span = document.createElement('span');
+    span.textContent = label;
+    btn.appendChild(span);
+    btn.style.cssText = [
+        'background:rgba(15,20,32,0.78)', 'border:1px solid rgba(255,255,255,0.12)',
+        'color:rgba(200,220,250,0.9)', 'border-radius:8px', 'padding:5px 11px',
+        'font-size:11px', 'cursor:pointer', 'font-family:system-ui,sans-serif', 'white-space:nowrap',
+        'backdrop-filter:blur(10px)', '-webkit-backdrop-filter:blur(10px)',
+        'transition:border-color 0.15s,background 0.15s',
+    ].join(';');
+    btn.onmouseover = () => btn.style.borderColor = 'rgba(120,180,255,0.5)';
+    btn.onmouseout  = () => btn.style.borderColor = 'rgba(255,255,255,0.12)';
+    return btn;
 }
 
 export function closePreviz() {

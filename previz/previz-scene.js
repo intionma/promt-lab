@@ -1,1268 +1,596 @@
 /**
- * previz-scene.js — 실시간 3D 캐릭터 프리뷰 (Blender/VRoid Studio 스타일)
- * MeshPhong 재질 + 스튜디오 조명 + 스켈레톤 기반 캐릭터
- * 포인트 클라우드/홀로그램 없음 — 실제 메시 지오메트리
+ * previz-scene.js — 실시간 VRM 아니메 캐릭터 프리뷰 (VRoid 품질)
+ * three + @pixiv/three-vrm 기반. MToon 토온 셰이딩 유지 + 홀로그램 오버레이.
+ * 태그 → 머티리얼 색 / 표정 블렌드셰이프 / 휴머노이드 본 포즈 / 체형 / 배경.
+ *
+ * 기본 아바타는 pixiv three-vrm 샘플을 핫링크로 사용(재배포 아님).
+ * 운영 시에는 소유/라이선스된 VRM으로 교체하세요. (BASE_VRM_URLS 참고)
  */
 
-import { ENV_PRESETS, ENV_TAG_MAP, WeatherSystem } from './previz-env.js';
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 
-const THREE_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-const LS_KEY    = 'previz_state_v3';
+import { WeatherSystem } from './previz-env.js';
 
-// ── 포즈 프리셋 ───────────────────────────────────────────────────
-const POSE_PRESETS = {
-    stand:         { label:'서기',     lArmRot:[0,0,0.12],      rArmRot:[0,0,-0.12],     lLegRot:[0,0,0],    rLegRot:[0,0,0] },
-    arms_up:       { label:'팔 들기',  lArmRot:[-1.4,0,0.25],   rArmRot:[-1.4,0,-0.25],  lLegRot:[0,0,0],    rLegRot:[0,0,0] },
-    hands_on_hips: { label:'손 허리',  lArmRot:[0,0,0.55],      rArmRot:[0,0,-0.55],     lLegRot:[0,0,0.04], rLegRot:[0,0,-0.04] },
-    crossed_arms:  { label:'팔짱',     lArmRot:[0.45,0,0.30],   rArmRot:[0.45,0,-0.30],  lLegRot:[0,0,0],    rLegRot:[0,0,0] },
-    peace_sign:    { label:'브이',     lArmRot:[-1.2,0,0.20],   rArmRot:[0.15,0,-0.18],  lLegRot:[0,0,0.03], rLegRot:[0,0,-0.03] },
-    sit:           { label:'앉기',     lArmRot:[0,0,0.20],      rArmRot:[0,0,-0.20],     lLegRot:[1.45,0,0], rLegRot:[1.45,0,0] },
-    lean:          { label:'기대기',   lArmRot:[0,0,0.60],      rArmRot:[0.25,0,-0.18],  lLegRot:[0,0,0.06], rLegRot:[0,0,-0.06] },
-};
+const LS_KEY = 'previz_state_v4';
 
-// ── 의상 프리셋 ───────────────────────────────────────────────────
-const OUTFIT_PRESETS = {
-    none:           { label:'없음',       color: null,      skirtLen: 0 },
-    school_uniform: { label:'교복',       color: 0x1133aa,  skirtLen: 0.28 },
-    dress:          { label:'드레스',     color: 0xcc3366,  skirtLen: 0.55 },
-    casual:         { label:'캐주얼',     color: 0x2d6a8f,  skirtLen: 0.20 },
-    sportswear:     { label:'스포츠웨어', color: 0x228844,  skirtLen: 0.15 },
-    gothic:         { label:'고딕',       color: 0x1a0022,  skirtLen: 0.50 },
-    kimono:         { label:'기모노',     color: 0xaa2244,  skirtLen: 0.65 },
-    white_dress:    { label:'흰 드레스',  color: 0xe8eef5,  skirtLen: 0.60 },
-    maid:           { label:'메이드',     color: 0x1a1a3a,  skirtLen: 0.35 },
-};
+// 기본 아바타 후보 (순서대로 폴백). 런타임에 평가 (window.__PREVIZ_VRM_URL 오버라이드 지원)
+// window.__PREVIZ_VRM_URL 로 자기 소유 VRM 모델을 지정하면 최우선 사용됩니다.
+const DEFAULT_VRM_URLS = [
+    'https://cdn.jsdelivr.net/gh/pixiv/three-vrm@dev/packages/three-vrm/examples/models/VRM1_Constraint_Twist_Sample.vrm',
+    'https://raw.githubusercontent.com/pixiv/three-vrm/dev/packages/three-vrm/examples/models/VRM1_Constraint_Twist_Sample.vrm',
+];
+function getVrmUrls() {
+    const override = (typeof window !== 'undefined' && window.__PREVIZ_VRM_URL) || null;
+    return [override, ...DEFAULT_VRM_URLS].filter(Boolean);
+}
 
-// ── 태그 → 씬 상태 매핑 ──────────────────────────────────────────
-const TAG_MAP = {
-    long_hair:          { ch:'hair.length',   v:1.0 },
-    medium_hair:        { ch:'hair.length',   v:0.55 },
-    short_hair:         { ch:'hair.length',   v:0.18 },
-    very_long_hair:     { ch:'hair.length',   v:1.35 },
-    blonde_hair:        { ch:'hair.color',    v:0xf5d060 },
-    black_hair:         { ch:'hair.color',    v:0x181820 },
-    brown_hair:         { ch:'hair.color',    v:0x7a4a1e },
-    white_hair:         { ch:'hair.color',    v:0xe8eaf5 },
-    pink_hair:          { ch:'hair.color',    v:0xff80b0 },
-    silver_hair:        { ch:'hair.color',    v:0xc0c8d8 },
-    red_hair:           { ch:'hair.color',    v:0xcc2200 },
-    purple_hair:        { ch:'hair.color',    v:0x7722cc },
-    blue_hair:          { ch:'hair.color',    v:0x2244dd },
-    green_hair:         { ch:'hair.color',    v:0x22aa44 },
-    orange_hair:        { ch:'hair.color',    v:0xee6622 },
-    blue_eyes:          { ch:'eye.color',     v:0x2288ff },
-    red_eyes:           { ch:'eye.color',     v:0xff2222 },
-    green_eyes:         { ch:'eye.color',     v:0x22cc44 },
-    purple_eyes:        { ch:'eye.color',     v:0x9933ff },
-    brown_eyes:         { ch:'eye.color',     v:0x885522 },
-    golden_eyes:        { ch:'eye.color',     v:0xddaa00 },
-    petite:             { ch:'body.height',   v:0.88 },
-    small:              { ch:'body.height',   v:0.88 },
-    tall:               { ch:'body.height',   v:1.10 },
-    large_breasts:      { ch:'body.chest',    v:1.38 },
-    small_breasts:      { ch:'body.chest',    v:0.72 },
-    ponytail:           { ch:'hair.style',    v:'ponytail' },
-    twintails:          { ch:'hair.style',    v:'twintails' },
-    braid:              { ch:'hair.style',    v:'braid' },
-    hands_on_hips:      { ch:'pose',          v:'hands_on_hips' },
-    peace_sign:         { ch:'pose',          v:'peace_sign' },
-    crossed_arms:       { ch:'pose',          v:'crossed_arms' },
-    arms_up:            { ch:'pose',          v:'arms_up' },
-    close_up:           { ch:'camera.zoom',   v:0.55 },
-    from_behind:        { ch:'camera.angle',  v:'back' },
-    from_above:         { ch:'camera.angle',  v:'high' },
-    from_below:         { ch:'camera.angle',  v:'low' },
-    looking_at_viewer:  { ch:'camera.angle',  v:'front' },
-    school_uniform:     { ch:'outfit.preset', v:'school_uniform' },
-    dress:              { ch:'outfit.preset', v:'dress' },
-    kimono:             { ch:'outfit.preset', v:'kimono' },
-    maid:               { ch:'outfit.preset', v:'maid' },
-};
-
-// ── 바디파트 ID ───────────────────────────────────────────────────
+// ── 바디파트 ─────────────────────────────────────────────────────
 export const PART = { HEAD:0, TORSO:1, L_ARM:2, R_ARM:3, L_LEG:4, R_LEG:5, HAIR:6, OUTFIT:7 };
 export const PART_NAME = ['머리','몸통','왼팔','오른팔','왼다리','오른다리','머리카락','의상'];
 
-// ── 스켈레톤 계산 (VRM 비율 기준) ────────────────────────────────
-// 참조: VRoid Studio 표준 비율
-//   머리 1/6.8 · 다리 56% · 허리=어깨의 42% · 눈이 얼굴의 30%
-function buildSkeleton(state) {
-    const H  = 2.0 * state.body.height;
-    const CS = state.body.chest;
+// ── 색상 프리셋 (머티리얼 틴트) ──────────────────────────────────
+const HAIR_COLORS = {
+    blonde_hair:0xf3d27a, brown_hair:0xffffff, black_hair:0x6b6b78,
+    white_hair:0xeef0f6, pink_hair:0xff9ec4, silver_hair:0xcfd6e4,
+    red_hair:0xe06a4a, purple_hair:0xb583e6, blue_hair:0x7da4ee,
+    green_hair:0x86d29a, orange_hair:0xffa257,
+};
+const EYE_COLORS = {
+    blue_eyes:0x6fa8ff, red_eyes:0xff6a6a, green_eyes:0x66cf80,
+    purple_eyes:0xb07bff, brown_eyes:0xb98a5a, golden_eyes:0xe6c25a,
+};
+const SKIN_TONES = { pale_skin:0xfff2ee, normal:0xffffff, tanned:0xd9a878, dark_skin:0xb07d52 };
+const OUTFIT_COLORS = {
+    school_uniform:0x4a5b8f, business_suit:0x3a3f4a, oversized_hoodie:0x9aa4b2,
+    dress:0xd06a8e, casual:0x6aa0c0, sportswear:0x4caa6a, gothic:0x4a3550,
+    kimono:0xc05068, maid:0x3a3f6a, white_dress:0xeef2f7,
+};
 
-    // ── Y 관절 위치 (발 = 0) ──
-    const footY       = 0;
-    const ankleY      = H * 0.038;   // 발목
-    const kneeY       = H * 0.268;   // 무릎
-    const hipY        = H * 0.558;   // 골반 (다리 56%)
-    const waistY      = H * 0.638;   // 허리
-    const underbustY  = H * 0.688;   // 언더버스트
-    const bustY       = H * 0.730;   // 가슴
-    const shoulderY   = H * 0.800;   // 어깨
-    const neckBotY    = H * 0.833;   // 목 아래
-    const neckTopY    = H * 0.862;   // 목 위
-    const chinY       = H * 0.878;   // 턱
-    const mouthY      = H * 0.898;   // 입
-    const noseY       = H * 0.916;   // 코
-    const eyeY        = H * 0.936;   // 눈 (얼굴 중간 아래)
-    const browY       = H * 0.956;   // 눈썹
-    const foreheadY   = H * 0.972;   // 이마
-    const headTopY    = H * 1.000;   // 머리 꼭대기
-    const headCenterY = (chinY + headTopY) * 0.5;
+// ── 표정 → 블렌드셰이프 ──────────────────────────────────────────
+const EXPRESSION_MAP = {
+    smile:'happy', happy:'happy', grin:'happy',
+    tears:'sad', crying:'sad', sad:'sad',
+    open_mouth:'aa', serious:'neutral', closed_mouth:'neutral',
+    angry:'angry', surprised:'surprised', relaxed:'relaxed',
+};
 
-    // ── 너비/깊이 (반경) — VRM 기준으로 슬림하게 ──
-    const shoulderW  = 0.152;                      // 어깨
-    const bustW      = 0.082 * Math.sqrt(CS);      // 가슴 폭
-    const bustDepth  = 0.052 * CS;                 // 가슴 깊이
-    const waistW     = 0.044;                      // 허리 (어깨의 ~42%)
-    const waistD     = 0.038;
-    const hipW       = 0.105;                      // 골반
-    const hipD       = 0.090;
-    const thighW     = 0.046;                      // 허벅지 (얇게)
-    const kneeW      = 0.030;
-    const calfW      = 0.034;
-    const ankleW     = 0.020;
-    const upperArmW  = 0.030;                      // 팔 (얇게)
-    const foreArmW   = 0.024;
-    const wristW     = 0.017;
-    // 머리: 얼굴 역삼각형 (VRoid 특징)
-    const headW      = 0.168;                      // 가로 반경
-    const headH      = (headTopY - chinY) * 0.54;  // 세로 반경
-    const headD      = 0.148;                      // 앞뒤 반경
-    const neckW      = 0.034;
-    const neckD      = 0.030;
-    // 눈 크기 (얼굴 폭의 ~22%)
-    const eyeRx      = headW * 0.21;
-    const eyeRy      = headH * 0.22;              // VRoid 큰 눈
+// ── 포즈 → 휴머노이드 본 회전 (정규화 본 로컬, [x,y,z] rad) ───────
+// VRM 기본은 T포즈. stand에서 팔을 내려 A포즈로.
+const POSE_PRESETS = {
+    stand:        { lUpperArm:[0,0,-1.18], rUpperArm:[0,0,1.18] },
+    standing:     { lUpperArm:[0,0,-1.18], rUpperArm:[0,0,1.18] },
+    arms_up:      { lUpperArm:[0,0,1.4],   rUpperArm:[0,0,-1.4] },
+    hands_on_hips:{ lUpperArm:[0,0,-1.0],  rUpperArm:[0,0,1.0], lLowerArm:[0,-1.5,0], rLowerArm:[0,1.5,0] },
+    crossed_arms: { lUpperArm:[0,0,-1.35], rUpperArm:[0,0,1.35], lLowerArm:[0,-1.9,0], rLowerArm:[0,1.9,0] },
+    peace_sign:   { lUpperArm:[0,0,-1.15], rUpperArm:[0,0,-1.35], rLowerArm:[0,-0.3,0] },
+    sit:          { lUpperArm:[0,0,-1.0],  rUpperArm:[0,0,1.0], lUpperLeg:[-1.5,0,0.05], rUpperLeg:[-1.5,0,-0.05], lLowerLeg:[1.6,0,0], rLowerLeg:[1.6,0,0] },
+    sitting:      { lUpperArm:[0,0,-1.0],  rUpperArm:[0,0,1.0], lUpperLeg:[-1.5,0,0.05], rUpperLeg:[-1.5,0,-0.05], lLowerLeg:[1.6,0,0], rLowerLeg:[1.6,0,0] },
+    lying_on_back:{ lUpperArm:[0,0,-1.3],  rUpperArm:[0,0,1.3], _rootRotX:-1.5708, _rootY:0.05 },
+    lean:         { lUpperArm:[0,0,-1.15], rUpperArm:[0,0,1.15], _rootRotZ:0.08 },
+};
 
-    return {
-        H, CS,
-        footY, ankleY, kneeY, hipY, waistY, underbustY, bustY,
-        shoulderY, neckBotY, neckTopY, chinY, mouthY, noseY, eyeY, browY, foreheadY, headTopY, headCenterY,
-        shoulderW, bustW, bustDepth, waistW, waistD, hipW, hipD,
-        thighW, kneeW, calfW, ankleW,
-        upperArmW, foreArmW, wristW,
-        headW, headH, headD, neckW, neckD,
-        eyeRx, eyeRy,
-    };
-}
-
-// ── 튜브 메시 생성 (단면 배열 → 삼각형 메시) ─────────────────────
-function buildTubeMesh(sections, THREE, radSegs = 14) {
-    // sections: [{y, rx, rz, ox?, oz?}]
-    const verts = [], uvs = [], idx = [];
-    const n = sections.length;
-    const R = radSegs;
-
-    for (let si = 0; si < n; si++) {
-        const { y, rx, rz, ox = 0, oz = 0 } = sections[si];
-        for (let i = 0; i <= R; i++) {
-            const a = (i / R) * Math.PI * 2;
-            verts.push(ox + Math.cos(a)*rx, y, oz + Math.sin(a)*rz);
-            uvs.push(i / R, si / (n - 1));
-        }
-    }
-
-    for (let si = 0; si < n - 1; si++) {
-        for (let i = 0; i < R; i++) {
-            const a = si*(R+1)+i, b = a+1, c = a+R+1, d = c+1;
-            idx.push(a, c, b,  b, c, d);
-        }
-    }
-
-    // 상단/하단 캡
-    const addCap = (si, flip) => {
-        const { y, rx, rz, ox = 0, oz = 0 } = sections[si];
-        const ci = verts.length / 3;
-        verts.push(ox, y, oz); uvs.push(0.5, flip ? 0 : 1);
-        for (let i = 0; i <= R; i++) {
-            const a = (i/R)*Math.PI*2;
-            verts.push(ox + Math.cos(a)*rx, y, oz + Math.sin(a)*rz);
-            uvs.push(0.5+Math.cos(a)*0.5, 0.5+Math.sin(a)*0.5);
-        }
-        for (let i = 0; i < R; i++) {
-            flip ? idx.push(ci, ci+1+i, ci+2+i) : idx.push(ci, ci+2+i, ci+1+i);
-        }
-    };
-    addCap(0, true);
-    addCap(n-1, false);
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(verts), 3));
-    geo.setAttribute('uv',       new THREE.Float32BufferAttribute(new Float32Array(uvs), 2));
-    geo.setIndex(idx);
-    geo.computeVertexNormals();
-    return geo;
-}
+// ── 태그 → 채널 매핑 (DB 기본 태그 전부 포함) ────────────────────
+const TAG_MAP = {
+    // 헤어 컬러
+    blonde_hair:['hair.color'], brown_hair:['hair.color'], black_hair:['hair.color'],
+    white_hair:['hair.color'], pink_hair:['hair.color'], silver_hair:['hair.color'],
+    red_hair:['hair.color'], purple_hair:['hair.color'], blue_hair:['hair.color'],
+    green_hair:['hair.color'], orange_hair:['hair.color'],
+    // 눈동자
+    blue_eyes:['eye.color'], red_eyes:['eye.color'], green_eyes:['eye.color'],
+    purple_eyes:['eye.color'], brown_eyes:['eye.color'], golden_eyes:['eye.color'],
+    // 피부
+    pale_skin:['skin.tone'], tanned:['skin.tone'], dark_skin:['skin.tone'],
+    // 표정
+    smile:['expression'], tears:['expression'], crying:['expression'], open_mouth:['expression'],
+    serious:['expression'], angry:['expression'], surprised:['expression'],
+    // 체형
+    petite:['body.size'], small:['body.size'], tall:['body.size'], skinny:['body.size'],
+    // 포즈
+    standing:['pose'], sitting:['pose'], lying_on_back:['pose'], sit:['pose'], stand:['pose'],
+    hands_on_hips:['pose'], peace_sign:['pose'], crossed_arms:['pose'], arms_up:['pose'], lean:['pose'],
+    // 카메라
+    close_up:['camera'], full_body:['camera'], from_behind:['camera'], from_above:['camera'],
+    from_below:['camera'], looking_at_viewer:['camera'],
+    // 의상 (색 틴트)
+    school_uniform:['outfit'], business_suit:['outfit'], oversized_hoodie:['outfit'],
+    dress:['outfit'], casual:['outfit'], sportswear:['outfit'], gothic:['outfit'],
+    kimono:['outfit'], maid:['outfit'], white_dress:['outfit'],
+    // 배경/환경
+    indoors:['env'], outdoors:['env'], bedroom:['env'], classroom:['env'], nature:['env'], city:['env'],
+    simple_background:['bg'], white_background:['bg'], solid_color:['bg'],
+    // 시간/날씨
+    daytime:['time'], night:['time'], raining:['weather'], clear_sky:['weather'], snow:['weather'],
+    // 조명
+    cinematic_lighting:['light'], soft_lighting:['light'], natural_lighting:['light'],
+    // 파티클
+    falling_petals:['particle'], wind:['particle'], water_drops:['particle'],
+};
 
 export class PrevizScene {
     constructor(container) {
         this.container  = container;
-        this.THREE      = null;
+        this.THREE      = THREE;
         this.renderer   = null;
+        this.composer   = null;
+        this.bloomPass  = null;
         this.scene      = null;
         this.camera     = null;
         this.animId     = null;
-        this._orbit     = { theta:0, phi:Math.PI/7, radius:4.0, _panX:0, _panY:0 };
-        this._charGroup = null;   // 캐릭터 루트 그룹
-        this._meshMap   = {};     // partId → [Mesh, ...]
-        this._mats      = {};     // 공유 재질
+        this.clock      = new THREE.Clock();
+        this._orbit     = { theta:0, phi:Math.PI/2 - 0.12, radius:2.7, _panX:0, _panY:0, target:1.0 };
+        this.vrm        = null;
+        this._charWrap  = null;   // VRM 스케일/위치 래퍼
         this._lights    = {};
-        this._envMeshes = [];
+        this._stage     = {};
         this._weather   = null;
         this._raycaster = null;
+        this._scanline  = null;
         this.state      = this._defaultState();
         this.onFrameTick= null;
+        this._ready     = false;
     }
 
     _defaultState() {
         return {
-            hair:   { length:0.85, color:0x1a1a20, style:'straight' },
-            eye:    { color:0x4488ff },
-            body:   { height:1.0, chest:1.0 },
+            hair:   { color:0xffffff, length:1.0, style:'straight' },  // 0xffffff = 원본 텍스처 유지
+            eye:    { color:0xffffff },
+            skin:   { tone:'normal' },
+            body:   { size:'normal', height:1.0, chest:1.0 },
             pose:   'stand',
-            outfit: { preset:'none' },
-            env:    { preset:'studio', weather:'clear', timeOfDay:0.5 },
-            camera: { zoom:1.0, angle:'front', fov:40 },
-            unmapped:[],
+            expression: 'neutral',
+            outfit: { preset:'none', color:null },
+            env:    { preset:'studio', weather:'clear', timeOfDay:0.5, bg:'studio' },
+            camera: { zoom:1.0, angle:'front', fov:30 },
+            holo:   { intensity:0.45 },
+            unmapped: [],
+            promptOnly: [],
         };
     }
 
     // ── 초기화 ───────────────────────────────────────────────────
     async init() {
-        this.THREE = await this._loadThree();
-        const THREE = this.THREE;
+        const w = this.container.clientWidth  || window.innerWidth;
+        const h = this.container.clientHeight || window.innerHeight;
 
-        // 렌더러
         this.renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false });
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.setSize(w, h);
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.0;
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        this.renderer.outputEncoding = THREE.sRGBEncoding || 3001;
-        this._setSize();
         this.container.appendChild(this.renderer.domElement);
 
-        // 씬
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x1a1e26);
+        this.scene.background = new THREE.Color(0x0a0e16);
 
-        // 카메라
-        const [w, h] = [this.container.clientWidth, this.container.clientHeight];
-        this.camera = new THREE.PerspectiveCamera(40, w/h, 0.01, 100);
-        this._updateCameraPos();
+        this.camera = new THREE.PerspectiveCamera(30, w/h, 0.05, 100);
 
-        // 조명 (스튜디오)
         this._setupLights();
-
-        // 스튜디오 환경
-        this._buildStudio();
-
-        // 날씨
+        this._buildStage();
         this._weather = new WeatherSystem(THREE, this.scene);
-
-        // 저장 상태 복원
-        try {
-            const saved = JSON.parse(localStorage.getItem(LS_KEY));
-            if (saved) {
-                const def = this._defaultState();
-                this.state = {
-                    ...def,
-                    ...saved,
-                    hair:   { ...def.hair,   ...(saved.hair   || {}) },
-                    eye:    { ...def.eye,    ...(saved.eye    || {}) },
-                    body:   { ...def.body,   ...(saved.body   || {}) },
-                    outfit: { ...def.outfit, ...(saved.outfit || {}) },
-                    env:    { ...def.env,    ...(saved.env    || {}) },
-                    camera: { ...def.camera, ...(saved.camera || {}) },
-                };
-                // 색상값이 문자열(구버전)로 저장된 경우 숫자로 변환
-                if (typeof this.state.hair.color === 'string')
-                    this.state.hair.color = parseInt(this.state.hair.color.replace('#', ''), 16);
-                if (typeof this.state.eye.color === 'string')
-                    this.state.eye.color  = parseInt(this.state.eye.color.replace('#', ''), 16);
-            }
-        } catch(_) {}
-
-        // Raycaster
         this._raycaster = new THREE.Raycaster();
 
-        // 캐릭터 빌드
-        this._buildCharacter(this.state);
+        // 포스트프로세싱 (블룸 = 홀로그램 글로우)
+        this.composer = new EffectComposer(this.renderer);
+        this.composer.addPass(new RenderPass(this.scene, this.camera));
+        this.bloomPass = new UnrealBloomPass(new THREE.Vector2(w, h), 0.35, 0.4, 0.8);
+        this.composer.addPass(this.bloomPass);
+
+        // CSS 스캔라인/비네트 오버레이
+        this._buildScanlineOverlay();
+
+        // 저장 상태 복원 (깊은 병합)
+        try {
+            const saved = JSON.parse(localStorage.getItem(LS_KEY));
+            if (saved) this.state = this._mergeState(this._defaultState(), saved);
+        } catch(_) {}
+
+        this._charWrap = new THREE.Group();
+        this.scene.add(this._charWrap);
+
+        await this._loadVRM();
+
+        this._applyAll(this.state);
+        this._applyEnv(this.state.env);
+        this._applyHolo(this.state.holo.intensity);
+        this._updateCameraForState(this.state);
+
         this._bindEvents();
         window.addEventListener('resize', () => this.resize());
         this._loop();
+        this._ready = true;
     }
 
-    _loadThree() {
-        return new Promise((resolve, reject) => {
-            if (window.__previzTHREE) { resolve(window.__previzTHREE); return; }
-            const s = document.createElement('script');
-            s.src = THREE_CDN;
-            s.onload = () => { window.__previzTHREE = window.THREE; resolve(window.THREE); };
-            s.onerror = reject;
-            document.head.appendChild(s);
+    async _loadVRM() {
+        const loader = new GLTFLoader();
+        loader.register((parser) => new VRMLoaderPlugin(parser));
+        for (const url of getVrmUrls()) {
+            try {
+                const gltf = await loader.loadAsync(url);
+                const vrm = gltf.userData.vrm;
+                VRMUtils.removeUnnecessaryVertices(gltf.scene);
+                vrm.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; } });
+                this.vrm = vrm;
+                this._charWrap.add(vrm.scene);
+                this._catalogMaterials();
+                return;
+            } catch (e) {
+                console.warn('[previz] VRM 로드 실패, 다음 후보 시도:', url, e?.message || e);
+            }
+        }
+        console.error('[previz] 모든 VRM 후보 로드 실패 — 폴백 프리미티브 표시');
+        this._buildFallbackFigure();
+    }
+
+    // 머티리얼을 부위별로 분류 (이름 규칙 기반)
+    _catalogMaterials() {
+        this._mat = { hair:[], eye:[], skin:[], top:[], bottom:[], shoes:[], all:[] };
+        if (!this.vrm) return;
+        this.vrm.scene.traverse(o => {
+            if (!o.isMesh) return;
+            const mats = Array.isArray(o.material) ? o.material : [o.material];
+            mats.forEach(m => {
+                const n = (m.name || '');
+                const isOutline = /Outline/i.test(n);
+                this._mat.all.push(m);
+                if (isOutline) return;                       // 아웃라인은 틴트 제외
+                if (/_HAIR/i.test(n))            this._mat.hair.push(m);
+                else if (/EyeIris/i.test(n))     this._mat.eye.push(m);
+                else if (/_SKIN/i.test(n))       this._mat.skin.push(m);
+                else if (/Tops/i.test(n))        this._mat.top.push(m);
+                else if (/Bottoms/i.test(n))     this._mat.bottom.push(m);
+                else if (/Shoes/i.test(n))       this._mat.shoes.push(m);
+            });
         });
     }
 
-    // ── 스튜디오 조명 ─────────────────────────────────────────────
+    _tint(mat, hex) {
+        if (!mat) return;
+        const c = new THREE.Color(hex);
+        if (mat.color && mat.color.set) mat.color.set(c);
+        // MToon uniforms 폴백
+        if (mat.uniforms && mat.uniforms.litFactor && mat.uniforms.litFactor.value && mat.uniforms.litFactor.value.set)
+            mat.uniforms.litFactor.value.set(c.r, c.g, c.b);
+        mat.needsUpdate = true;
+    }
+    _tintGroup(list, hex) { (list||[]).forEach(m => this._tint(m, hex)); }
+
+    // ── 조명 ──────────────────────────────────────────────────────
     _setupLights() {
-        const THREE = this.THREE;
-
-        // 앰비언트 (전체적인 기본 밝기)
-        const ambient = new THREE.AmbientLight(0x334466, 0.65);
-        this.scene.add(ambient);
-        this._lights.ambient = ambient;
-
-        // 키 라이트 (주조명 — 왼쪽 위 앞)
-        const key = new THREE.DirectionalLight(0xfff4e8, 2.2);
-        key.position.set(-3, 5, 4);
-        key.castShadow = true;
-        key.shadow.mapSize.width  = 1024;
-        key.shadow.mapSize.height = 1024;
-        key.shadow.camera.near = 0.5;
-        key.shadow.camera.far  = 20;
-        key.shadow.camera.left = key.shadow.camera.bottom = -4;
-        key.shadow.camera.right = key.shadow.camera.top = 4;
-        key.shadow.bias = -0.001;
-        this.scene.add(key);
-        this._lights.key = key;
-
-        // 필 라이트 (보조 — 오른쪽, 쿨톤)
-        const fill = new THREE.DirectionalLight(0xd0e8ff, 0.85);
-        fill.position.set(4, 3, 2);
-        this.scene.add(fill);
-        this._lights.fill = fill;
-
-        // 림 라이트 (뒤에서 — 실루엣 강조)
-        const rim = new THREE.DirectionalLight(0x8899cc, 0.55);
-        rim.position.set(0, 3, -5);
-        this.scene.add(rim);
-        this._lights.rim = rim;
-
-        // 하단 반사광
-        const bounce = new THREE.HemisphereLight(0x667799, 0x443322, 0.40);
-        this.scene.add(bounce);
-        this._lights.bounce = bounce;
+        const amb = new THREE.AmbientLight(0x6b7c99, 1.5); this.scene.add(amb); this._lights.amb = amb;
+        const key = new THREE.DirectionalLight(0xfff3e6, 1.7); key.position.set(-2.5, 4, 3.5);
+        key.castShadow = true; key.shadow.mapSize.set(1024,1024);
+        key.shadow.camera.near=0.5; key.shadow.camera.far=20;
+        key.shadow.camera.left=key.shadow.camera.bottom=-3; key.shadow.camera.right=key.shadow.camera.top=3;
+        key.shadow.bias=-0.0015; this.scene.add(key); this._lights.key = key;
+        const fill = new THREE.DirectionalLight(0xbfe0ff, 0.8); fill.position.set(3, 2, 2); this.scene.add(fill); this._lights.fill = fill;
+        const rim = new THREE.DirectionalLight(0x55b0ff, 1.2); rim.position.set(0, 2.5, -4); this.scene.add(rim); this._lights.rim = rim;
+        const hemi = new THREE.HemisphereLight(0x88aaff, 0x223044, 0.5); this.scene.add(hemi); this._lights.hemi = hemi;
     }
 
-    // ── 스튜디오 환경 (바닥 + 배경) ──────────────────────────────
-    _buildStudio() {
-        const THREE = this.THREE;
+    // ── 홀로그램 스테이지 (바닥 파티클 웨이브 + 링) ──────────────
+    _buildStage() {
+        // 파티클 웨이브 그리드
+        const N=80, M=80, pos=[];
+        for (let i=0;i<N;i++) for (let j=0;j<M;j++){ pos.push((i/N-0.5)*7, 0, (j/M-0.5)*7); }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(pos),3));
+        const mat = new THREE.PointsMaterial({ color:0x2ea8ff, size:0.02, transparent:true, opacity:0.6, blending:THREE.AdditiveBlending, depthWrite:false });
+        const grid = new THREE.Points(geo, mat); this.scene.add(grid);
+        this._stage.grid = grid; this._stage.gridBase = geo.attributes.position.array.slice();
 
-        // 스튜디오 바닥
-        const floorGeo = new THREE.PlaneGeometry(16, 16);
-        const floorMat = new THREE.MeshLambertMaterial({ color:0x15191f });
-        const floor = new THREE.Mesh(floorGeo, floorMat);
-        floor.rotation.x = -Math.PI/2;
-        floor.receiveShadow = true;
-        this.scene.add(floor);
+        // 발광 링 플랫폼
+        const ring = new THREE.Mesh(
+            new THREE.RingGeometry(0.32, 0.52, 56),
+            new THREE.MeshBasicMaterial({ color:0x33ccff, transparent:true, opacity:0.45, side:THREE.DoubleSide, blending:THREE.AdditiveBlending, depthWrite:false }));
+        ring.rotation.x = -Math.PI/2; ring.position.y = 0.005; this.scene.add(ring); this._stage.ring = ring;
 
-        // 배경 사이클로라마 (곡면 배경)
-        const cycGeo = new THREE.CylinderGeometry(8, 8, 10, 32, 1, true, -Math.PI*0.35, Math.PI*0.7);
-        const cycMat = new THREE.MeshLambertMaterial({ color:0x1a1e26, side:THREE.BackSide });
-        const cyc = new THREE.Mesh(cycGeo, cycMat);
-        cyc.position.y = 3;
-        this.scene.add(cyc);
-
-        // 격자 (Blender 스타일 — 희미하게)
-        const grid = new THREE.GridHelper(12, 24, 0x2a3040, 0x1e2530);
-        this.scene.add(grid);
+        // 그림자 받는 바닥(보이지 않게, 그림자만)
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(14,14), new THREE.ShadowMaterial({ opacity:0.35 }));
+        floor.rotation.x = -Math.PI/2; floor.receiveShadow = true; this.scene.add(floor); this._stage.floor = floor;
     }
 
-    // ── 공유 재질 ─────────────────────────────────────────────────
-    _getSkinMat() {
-        const THREE = this.THREE;
-        if (!this._mats.skin)
-            this._mats.skin = new THREE.MeshPhongMaterial({
-                color: 0xf0c8a8, shininess: 22, specular: 0x441100,
-            });
-        return this._mats.skin;
+    _buildScanlineOverlay() {
+        const ov = document.createElement('div');
+        ov.id = 'previz-holo-overlay';
+        ov.style.cssText = [
+            'position:absolute','inset:0','pointer-events:none','z-index:5',
+            'background:repeating-linear-gradient(0deg,rgba(80,180,255,0.05) 0px,rgba(80,180,255,0.05) 1px,transparent 2px,transparent 4px)',
+            'mix-blend-mode:screen','opacity:0.5','transition:opacity 0.3s',
+        ].join(';');
+        const vig = document.createElement('div');
+        vig.style.cssText = 'position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 160px rgba(0,20,40,0.85);';
+        ov.appendChild(vig);
+        this.container.appendChild(ov);
+        this._scanline = ov;
     }
 
-    _getHairMat(color) {
-        const THREE = this.THREE;
-        if (!this._mats.hair || this._mats.hair._col !== color) {
-            this._mats.hair?.dispose();
-            this._mats.hair = new THREE.MeshPhongMaterial({ color, shininess:55, specular:0x888888 });
-            this._mats.hair._col = color;
-        }
-        return this._mats.hair;
+    _buildFallbackFigure() {
+        const g = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color:0x88aaff, emissive:0x224466, emissiveIntensity:0.5, transparent:true, opacity:0.85 });
+        const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.18, 0.7, 6, 16), mat); body.position.y = 0.9;
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 24, 16), mat); head.position.y = 1.5;
+        g.add(body); g.add(head); this._charWrap.add(g);
+        this._fallback = g;
     }
 
-    _getEyeMat(color) {
-        const THREE = this.THREE;
-        if (!this._mats.eye || this._mats.eye._col !== color) {
-            this._mats.eye?.dispose();
-            this._mats.eye = new THREE.MeshPhongMaterial({ color, shininess:120, specular:0xffffff, emissive:color, emissiveIntensity:0.15 });
-            this._mats.eye._col = color;
-        }
-        return this._mats.eye;
-    }
-
-    // ── 캐릭터 전체 빌드 ──────────────────────────────────────────
-    _buildCharacter(state) {
-        // 기존 캐릭터 제거
-        if (this._charGroup) {
-            this.scene.remove(this._charGroup);
-            this._disposeGroup(this._charGroup);
-        }
-        this._meshMap = {};
-
-        const THREE = this.THREE;
-        const sk    = buildSkeleton(state);
-        const pose  = POSE_PRESETS[state.pose] || POSE_PRESETS.stand;
-
-        this._charGroup = new THREE.Group();
-        this.scene.add(this._charGroup);
-
-        this._buildTorso(sk, state);
-        this._buildLegs(sk, pose, state);
-        this._buildArms(sk, pose, state);
-        this._buildHead(sk, state);
-        this._buildHair(sk, state);
-
-        const outfitDef = OUTFIT_PRESETS[state.outfit?.preset];
-        if (outfitDef?.color) this._buildOutfit(sk, state, outfitDef);
-
+    // ── 전체 적용 ─────────────────────────────────────────────────
+    _applyAll(state) {
+        this._tintGroup(this._mat?.hair, state.hair.color);
+        this._tintGroup(this._mat?.eye,  state.eye.color);
+        this._tintGroup(this._mat?.skin, SKIN_TONES[state.skin.tone] ?? 0xffffff);
+        // 의상: 색 지정 없으면 0xffffff(원본 텍스처)로 리셋 — 누적 방지
+        const oc = state.outfit.color != null ? state.outfit.color : 0xffffff;
+        this._tintGroup(this._mat?.top, oc);
+        this._tintGroup(this._mat?.bottom, oc);
+        this._applyPose(state.pose);
+        this._applyExpression(state.expression);
+        this._applyBody(state.body.size);
         this._saveState(state);
     }
 
-    // ── 몸통 ──────────────────────────────────────────────────────
-    _buildTorso(sk, state) {
-        const THREE = this.THREE;
-        const mat   = this._getSkinMat();
-
-        // VRM 몸통 비율: 골반→허리(잘록)→언더버스트→가슴→어깨
-        const torsoSecs = [
-            { y: sk.hipY,                               rx: sk.hipW*1.02, rz: sk.hipD*0.96 },
-            { y: sk.hipY + (sk.waistY-sk.hipY)*0.35,    rx: sk.hipW*0.90, rz: sk.hipD*0.85 },
-            { y: sk.waistY,                             rx: sk.waistW,    rz: sk.waistD },
-            { y: sk.underbustY,                         rx: sk.waistW*1.12, rz: sk.waistD*1.10 },
-            { y: sk.bustY,                              rx: sk.bustW,     rz: sk.bustDepth },
-            { y: sk.bustY+(sk.shoulderY-sk.bustY)*0.42, rx: sk.bustW*0.90, rz: sk.bustDepth*0.74 },
-            { y: sk.bustY+(sk.shoulderY-sk.bustY)*0.78, rx: sk.shoulderW*0.90, rz: sk.bustDepth*0.58 },
-            { y: sk.shoulderY,                          rx: sk.shoulderW, rz: sk.bustDepth*0.48 },
-            { y: sk.neckBotY,                           rx: sk.neckW*1.5, rz: sk.neckD*1.35 },
-        ];
-        const torsoGeo = buildTubeMesh(torsoSecs, THREE, 16);
-        const torsoMesh = new THREE.Mesh(torsoGeo, mat);
-        torsoMesh.castShadow = true; torsoMesh.receiveShadow = true;
-        torsoMesh.userData.partId = PART.TORSO;
-        this._charGroup.add(torsoMesh);
-        this._track(PART.TORSO, torsoMesh);
-
-        // 목
-        const neckSecs = [
-            { y: sk.neckBotY, rx: sk.neckW*1.1, rz: sk.neckD*1.0 },
-            { y: (sk.neckBotY+sk.neckTopY)*0.5, rx: sk.neckW, rz: sk.neckD*0.92 },
-            { y: sk.neckTopY, rx: sk.neckW*0.92, rz: sk.neckD*0.88 },
-            { y: sk.chinY,    rx: sk.neckW*0.88, rz: sk.neckD*0.85 },
-        ];
-        const neckGeo  = buildTubeMesh(neckSecs, THREE, 12);
-        const neckMesh = new THREE.Mesh(neckGeo, mat);
-        neckMesh.castShadow = true;
-        neckMesh.userData.partId = PART.TORSO;
-        this._charGroup.add(neckMesh);
-        this._track(PART.TORSO, neckMesh);
-    }
-
-    // ── 다리 ──────────────────────────────────────────────────────
-    _buildLegs(sk, pose, state) {
-        const THREE = this.THREE;
-        const mat   = this._getSkinMat();
-        const isSit = state.pose === 'sit';
-
-        [-1, 1].forEach(side => {
-            const pId  = side < 0 ? PART.L_LEG : PART.R_LEG;
-            const poseRot = side < 0 ? pose.lLegRot : pose.rLegRot;
-            const ox   = side * (sk.hipW * 0.82);
-
-            // 다리 그룹 (골반 위치 피봇)
-            const legGroup = new THREE.Group();
-            legGroup.position.set(ox, sk.hipY, 0);
-            legGroup.rotation.set(...poseRot);
-            legGroup.userData.partId = pId;
-            this._charGroup.add(legGroup);
-            this._track(pId, legGroup);
-
-            // 허벅지: 그룹 로컬 좌표 (0,0,0)에서 아래로
-            const thighLen = sk.kneeY - sk.hipY;
-            const thighSecs = [
-                { y: 0,           rx: sk.thighW*1.05, rz: sk.thighW*0.92 },
-                { y: thighLen*0.3, rx: sk.thighW,     rz: sk.thighW*0.88 },
-                { y: thighLen*0.7, rx: sk.thighW*0.85, rz: sk.thighW*0.78 },
-                { y: thighLen,    rx: sk.kneeW*1.1,   rz: sk.kneeW*1.0 },
-            ];
-            const thighGeo  = buildTubeMesh(thighSecs, THREE, 12);
-            const thighMesh = new THREE.Mesh(thighGeo, mat);
-            thighMesh.castShadow = true;
-            thighMesh.userData.partId = pId;
-            legGroup.add(thighMesh);
-
-            // 무릎 구
-            const kneeGeo  = new THREE.SphereGeometry(sk.kneeW*1.05, 10, 8);
-            const kneeMesh = new THREE.Mesh(kneeGeo, mat);
-            kneeMesh.position.set(0, thighLen, 0);
-            kneeMesh.userData.partId = pId;
-            legGroup.add(kneeMesh);
-
-            // 종아리 서브 그룹 (무릎 피봇)
-            const calfGroup = new THREE.Group();
-            calfGroup.position.set(0, thighLen, 0);
-            calfGroup.userData.partId = pId;
-            legGroup.add(calfGroup);
-
-            // 앉기: 종아리 90도 꺾기
-            if (isSit) calfGroup.rotation.x = -Math.PI * 0.55;
-
-            const calfLen = sk.ankleY - sk.kneeY;
-            const calfSecs = [
-                { y: 0,          rx: sk.calfW,     rz: sk.calfW*0.90 },
-                { y: calfLen*0.4, rx: sk.calfW*0.95, rz: sk.calfW*0.85 },
-                { y: calfLen*0.75, rx: sk.calfW*0.78, rz: sk.calfW*0.72 },
-                { y: calfLen,    rx: sk.ankleW*1.1, rz: sk.ankleW*1.0 },
-            ];
-            const calfGeo  = buildTubeMesh(calfSecs, THREE, 12);
-            const calfMesh = new THREE.Mesh(calfGeo, mat);
-            calfMesh.castShadow = true;
-            calfMesh.userData.partId = pId;
-            calfGroup.add(calfMesh);
-
-            // 발
-            const footGeo  = new THREE.BoxGeometry(sk.ankleW*1.6, sk.ankleW*0.7, sk.ankleW*2.8);
-            const footMesh = new THREE.Mesh(footGeo, mat);
-            footMesh.position.set(0, calfLen + sk.ankleW*0.25, -sk.ankleW*0.5);
-            footMesh.userData.partId = pId;
-            calfGroup.add(footMesh);
+    _applyPose(poseName) {
+        if (!this.vrm?.humanoid) return;
+        const H = this.vrm.humanoid;
+        // 리셋: 주요 본 0
+        ['leftUpperArm','rightUpperArm','leftLowerArm','rightLowerArm',
+         'leftUpperLeg','rightUpperLeg','leftLowerLeg','rightLowerLeg'].forEach(b=>{
+            const node = H.getNormalizedBoneNode(b); if (node) node.rotation.set(0,0,0);
         });
+        if (this._charWrap) { this._charWrap.rotation.set(0,0,0); this._charWrap.position.y = 0; }
+
+        const p = POSE_PRESETS[poseName] || POSE_PRESETS.stand;
+        const set = (bone, rot) => { const n = H.getNormalizedBoneNode(bone); if (n && rot) n.rotation.set(rot[0],rot[1],rot[2]); };
+        set('leftUpperArm', p.lUpperArm); set('rightUpperArm', p.rUpperArm);
+        set('leftLowerArm', p.lLowerArm); set('rightLowerArm', p.rLowerArm);
+        set('leftUpperLeg', p.lUpperLeg); set('rightUpperLeg', p.rUpperLeg);
+        set('leftLowerLeg', p.lLowerLeg); set('rightLowerLeg', p.rLowerLeg);
+        if (p._rootRotX) this._charWrap.rotation.x = p._rootRotX;
+        if (p._rootRotZ) this._charWrap.rotation.z = p._rootRotZ;
+        if (p._rootY != null) this._charWrap.position.y = p._rootY;
+        if (poseName === 'sit' || poseName === 'sitting') this._charWrap.position.y = -0.28;
+        this.vrm.update(0);
     }
 
-    // ── 팔 ────────────────────────────────────────────────────────
-    _buildArms(sk, pose, state) {
-        const THREE = this.THREE;
-        const mat   = this._getSkinMat();
-
-        [-1, 1].forEach(side => {
-            const pId     = side < 0 ? PART.L_ARM : PART.R_ARM;
-            const poseRot = side < 0 ? pose.lArmRot : pose.rArmRot;
-            const rot = [...poseRot];
-
-            // 어깨 그룹
-            const armGroup = new THREE.Group();
-            armGroup.position.set(side * (sk.shoulderW + 0.02), sk.shoulderY, 0);
-            armGroup.rotation.set(...rot);
-            armGroup.userData.partId = pId;
-            this._charGroup.add(armGroup);
-            this._track(pId, armGroup);
-
-            // 팔은 어깨에서 아래로 내려가야 함 (음수)
-            const upperLen = -(sk.H * 0.155);
-            // 상완
-            const upperSecs = [
-                { y: 0,            rx: sk.upperArmW,       rz: sk.upperArmW*0.90 },
-                { y: upperLen*0.5, rx: sk.upperArmW*0.95,  rz: sk.upperArmW*0.88 },
-                { y: upperLen,     rx: sk.foreArmW*1.05,   rz: sk.foreArmW*1.0 },
-            ];
-            const upperGeo  = buildTubeMesh(upperSecs, THREE, 10);
-            const upperMesh = new THREE.Mesh(upperGeo, mat);
-            upperMesh.castShadow = true;
-            upperMesh.userData.partId = pId;
-            armGroup.add(upperMesh);
-
-            // 팔꿈치 구
-            const elbowGeo  = new THREE.SphereGeometry(sk.foreArmW*1.02, 8, 6);
-            const elbowMesh = new THREE.Mesh(elbowGeo, mat);
-            elbowMesh.position.set(0, upperLen, 0);
-            armGroup.add(elbowMesh);
-
-            // 전완 서브 그룹
-            const foreGroup = new THREE.Group();
-            foreGroup.position.set(0, upperLen, 0);
-            foreGroup.userData.partId = pId;
-            // 팔짱/peace_sign: 전완 꺾기
-            if (state.pose === 'crossed_arms') foreGroup.rotation.x = -1.1;
-            if (state.pose === 'peace_sign' && side < 0) foreGroup.rotation.x = -0.5;
-            armGroup.add(foreGroup);
-
-            const foreLen = -(sk.H * 0.138);
-            const foreSecs = [
-                { y: 0,           rx: sk.foreArmW,      rz: sk.foreArmW*0.88 },
-                { y: foreLen*0.5, rx: sk.foreArmW*0.92, rz: sk.foreArmW*0.85 },
-                { y: foreLen,     rx: sk.wristW*1.1,    rz: sk.wristW },
-            ];
-            const foreGeo  = buildTubeMesh(foreSecs, THREE, 10);
-            const foreMesh = new THREE.Mesh(foreGeo, mat);
-            foreMesh.castShadow = true;
-            foreMesh.userData.partId = pId;
-            foreGroup.add(foreMesh);
-
-            // 손 (납작한 구)
-            const handGeo  = new THREE.SphereGeometry(sk.wristW*1.3, 10, 8);
-            const handMesh = new THREE.Mesh(handGeo, mat);
-            handMesh.scale.set(1.4, 0.9, 0.7);
-            handMesh.position.set(0, foreLen - sk.wristW*0.6, 0);
-            foreGroup.add(handMesh);
-        });
+    _applyExpression(exp) {
+        const em = this.vrm?.expressionManager; if (!em) return;
+        ['happy','sad','angry','surprised','relaxed','aa','oh','neutral'].forEach(n => { try { em.setValue(n, 0); } catch(_){} });
+        const target = EXPRESSION_MAP[exp] || (exp && em.expressionMap?.[exp] ? exp : null);
+        if (target) { try { em.setValue(target, 1.0); } catch(_){} }
+        this.vrm.update(0);
     }
 
-    // ── 머리 (VRM 역삼각형 얼굴형) ──────────────────────────────
-    _buildHead(sk, state) {
-        const THREE = this.THREE;
-        const mat   = this._getSkinMat();
-
-        // 두상: 이마~턱 역삼각형 (VRoid 특징)
-        // 상단은 둥글고, 하단(턱)은 좁고 뾰족하게
-        const headSecs = [
-            { y: sk.chinY,      rx: sk.headW*0.45, rz: sk.headD*0.50 },  // 턱
-            { y: sk.mouthY,     rx: sk.headW*0.62, rz: sk.headD*0.66 },
-            { y: sk.noseY,      rx: sk.headW*0.80, rz: sk.headD*0.82 },
-            { y: sk.eyeY,       rx: sk.headW*0.95, rz: sk.headD*0.92 },
-            { y: sk.browY,      rx: sk.headW*1.00, rz: sk.headD*0.98 },  // 최대 폭 (관자놀이)
-            { y: sk.foreheadY,  rx: sk.headW*0.98, rz: sk.headD*0.96 },
-            { y: sk.headCenterY + (sk.headTopY-sk.headCenterY)*0.5, rx: sk.headW*0.90, rz: sk.headD*0.88 },
-            { y: sk.headTopY,   rx: sk.headW*0.55, rz: sk.headD*0.52 },  // 정수리 좁아짐
-        ];
-        const headGeo  = buildTubeMesh(headSecs, THREE, 20);
-        const headMesh = new THREE.Mesh(headGeo, mat);
-        headMesh.castShadow = true;
-        headMesh.userData.partId = PART.HEAD;
-        this._charGroup.add(headMesh);
-        this._track(PART.HEAD, headMesh);
-
-        // 얼굴 피처
-        this._buildFace(sk, state);
+    _applyBody(size) {
+        if (!this._charWrap) return;
+        let s = 1.0;
+        if (size === 'petite' || size === 'small') s = 0.92;
+        else if (size === 'tall') s = 1.06;
+        const baseY = this._charWrap.position.y;
+        this._charWrap.scale.setScalar(s);
+        this._charWrap.position.y = baseY; // 스케일 후 바닥 유지
+        if (size === 'skinny') this._charWrap.scale.x = this._charWrap.scale.z = s * 0.95;
     }
 
-    // ── 얼굴 — VRM 스타일 캔버스 텍스처 ──────────────────────────
-    // 캔버스에 눈/코/입을 그려서 얼굴 평면에 매핑
-    _buildFace(sk, state) {
-        const THREE = this.THREE;
-        const faceZ = sk.headD * 0.96;
+    // UI 호환 메서드
+    _buildAllParts(state) { this.state = state; this._applyAll(state); }
+    _buildEyes(state)     { this.state = state; this._tintGroup(this._mat?.eye, state.eye.color); this._saveState(state); }
 
-        // ── 눈 (캔버스 텍스처) ──
-        const eyeColor = '#' + state.eye.color.toString(16).padStart(6, '0');
-        const ex_off   = sk.headW * 0.36;
-        const ey       = sk.eyeY;
-
-        [-1, 1].forEach(side => {
-            const ex = side * ex_off;
-            const tex = this._makeEyeTexture(eyeColor, side < 0);
-            const eyeMat = new THREE.MeshBasicMaterial({ map:tex, transparent:true, alphaTest:0.02, depthWrite:false });
-
-            // 눈 판 (타원형으로 scale)
-            const eyeGeo  = new THREE.PlaneGeometry(sk.eyeRx*2.2, sk.eyeRy*2.2);
-            const eyeMesh = new THREE.Mesh(eyeGeo, eyeMat);
-            eyeMesh.position.set(ex, ey, faceZ + 0.001);
-            eyeMesh.userData.partId = PART.HEAD;
-            this._charGroup.add(eyeMesh);
-            this._track(PART.HEAD, eyeMesh);
-
-            // 눈썹 (얇은 플레인)
-            const browTex = this._makeBrowTexture(side < 0);
-            const browMat = new THREE.MeshBasicMaterial({ map:browTex, transparent:true, alphaTest:0.05, depthWrite:false });
-            const browGeo = new THREE.PlaneGeometry(sk.eyeRx*2.1, sk.eyeRy*0.55);
-            const browMesh = new THREE.Mesh(browGeo, browMat);
-            browMesh.position.set(ex, sk.browY, faceZ + 0.001);
-            this._charGroup.add(browMesh);
-            this._track(PART.HEAD, browMesh);
-        });
-
-        // ── 코 (VRoid: 아주 미니멀, 콧날 라인만) ──
-        const noseTex = this._makeNoseTexture();
-        const noseMat = new THREE.MeshBasicMaterial({ map:noseTex, transparent:true, alphaTest:0.05, depthWrite:false });
-        const noseGeo = new THREE.PlaneGeometry(sk.headW*0.28, sk.headW*0.18);
-        const noseMesh = new THREE.Mesh(noseGeo, noseMat);
-        noseMesh.position.set(0, sk.noseY, faceZ + 0.001);
-        this._charGroup.add(noseMesh);
-        this._track(PART.HEAD, noseMesh);
-
-        // ── 입 (VRoid: 작고 귀엽게) ──
-        const mouthTex = this._makeMouthTexture();
-        const mouthMat = new THREE.MeshBasicMaterial({ map:mouthTex, transparent:true, alphaTest:0.05, depthWrite:false });
-        const mouthGeo = new THREE.PlaneGeometry(sk.headW*0.30, sk.headW*0.13);
-        const mouthMesh = new THREE.Mesh(mouthGeo, mouthMat);
-        mouthMesh.position.set(0, sk.mouthY, faceZ + 0.001);
-        this._charGroup.add(mouthMesh);
-        this._track(PART.HEAD, mouthMesh);
-
-        // ── 볼 홍조 ──
-        [-1, 1].forEach(side => {
-            const blushTex = this._makeBlushTexture();
-            const blushMat = new THREE.MeshBasicMaterial({ map:blushTex, transparent:true, opacity:0.55, depthWrite:false });
-            const blushGeo = new THREE.PlaneGeometry(sk.headW*0.38, sk.headW*0.20);
-            const blushMesh = new THREE.Mesh(blushGeo, blushMat);
-            blushMesh.position.set(side * sk.headW*0.55, sk.eyeY - sk.eyeRy*1.6, faceZ*0.92);
-            this._charGroup.add(blushMesh);
-            this._track(PART.HEAD, blushMesh);
-        });
+    // ── 홀로그램 강도 (0~1) ──────────────────────────────────────
+    _applyHolo(intensity) {
+        const t = Math.max(0, Math.min(1, intensity ?? 0.45));
+        this.state.holo.intensity = t;
+        if (this.bloomPass) { this.bloomPass.strength = 0.08 + t * 0.55; this.bloomPass.radius = 0.3 + t*0.3; this.bloomPass.threshold = 0.85 - t*0.25; }
+        if (this._lights.rim)  this._lights.rim.intensity  = 0.3 + t * 1.8;
+        if (this._lights.fill) this._lights.fill.color.setHex(t > 0.5 ? 0x9fd0ff : 0xbfe0ff);
+        if (this._stage.grid)  this._stage.grid.material.opacity = 0.15 + t * 0.6;
+        if (this._stage.ring)  this._stage.ring.material.opacity = 0.1 + t * 0.5;
+        if (this._scanline)    this._scanline.style.opacity = String(0.1 + t * 0.7);
+        this._saveState(this.state);
     }
 
-    // ── 캔버스 텍스처 생성 헬퍼 ──────────────────────────────────
-    _makeEyeTexture(irisColor, isLeft) {
-        const THREE = this.THREE;
-        const W = 128, H = 80;
-        const c = document.createElement('canvas'); c.width=W; c.height=H;
-        const ctx = c.getContext('2d');
-
-        // 눈 흰자 (클리핑 경로)
-        ctx.clearRect(0, 0, W, H);
-        ctx.save();
-        // 아몬드형 클리핑
-        ctx.beginPath();
-        ctx.ellipse(W/2, H*0.52, W*0.46, H*0.40, 0, 0, Math.PI*2);
-        ctx.clip();
-
-        // 흰자
-        ctx.fillStyle = '#f8f4f0';
-        ctx.fillRect(0, 0, W, H);
-
-        // 홍채
-        const grad = ctx.createRadialGradient(W/2, H*0.52, 0, W/2, H*0.52, W*0.28);
-        grad.addColorStop(0, irisColor);
-        grad.addColorStop(0.5, irisColor);
-        grad.addColorStop(1, this._darkenHex(irisColor, 0.55));
-        ctx.beginPath();
-        ctx.ellipse(W/2, H*0.52, W*0.28, H*0.33, 0, 0, Math.PI*2);
-        ctx.fillStyle = grad;
-        ctx.fill();
-
-        // 동공
-        ctx.beginPath();
-        ctx.ellipse(W/2, H*0.52, W*0.12, H*0.16, 0, 0, Math.PI*2);
-        ctx.fillStyle = '#06060e';
-        ctx.fill();
-
-        // 하이라이트
-        ctx.beginPath();
-        ctx.ellipse(W*0.36, H*0.36, W*0.08, H*0.10, -0.3, 0, Math.PI*2);
-        ctx.fillStyle = 'rgba(255,255,255,0.88)';
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(W*0.62, H*0.44, W*0.04, H*0.05, 0, 0, Math.PI*2);
-        ctx.fillStyle = 'rgba(255,255,255,0.55)';
-        ctx.fill();
-
-        ctx.restore();
-
-        // 속눈썹 위 (두꺼운 곡선)
-        ctx.beginPath();
-        ctx.moveTo(W*0.06, H*0.30);
-        ctx.bezierCurveTo(W*0.25, H*0.08, W*0.75, H*0.08, W*0.94, H*0.28);
-        ctx.lineWidth = H*0.14;
-        ctx.strokeStyle = '#0d0d1a';
-        ctx.lineCap = 'round';
-        ctx.stroke();
-
-        // 속눈썹 끝 (꼬리)
-        ctx.beginPath();
-        ctx.moveTo(W*0.94, H*0.28);
-        ctx.lineTo(W*(isLeft ? 1.05 : -0.05), H*0.18);
-        ctx.lineWidth = H*0.07;
-        ctx.strokeStyle = '#0d0d1a';
-        ctx.stroke();
-
-        // 아래 속눈썹 (얇게)
-        ctx.beginPath();
-        ctx.moveTo(W*0.15, H*0.80);
-        ctx.bezierCurveTo(W*0.35, H*0.90, W*0.65, H*0.90, W*0.85, H*0.80);
-        ctx.lineWidth = H*0.04;
-        ctx.strokeStyle = '#1a1a2e';
-        ctx.stroke();
-
-        const tex = new THREE.CanvasTexture(c);
-        return tex;
-    }
-
-    _makeBrowTexture(isLeft) {
-        const THREE = this.THREE;
-        const W = 96, H = 32;
-        const c = document.createElement('canvas'); c.width=W; c.height=H;
-        const ctx = c.getContext('2d');
-        ctx.clearRect(0, 0, W, H);
-
-        const tilt = isLeft ? 0.12 : -0.12;
-        ctx.save();
-        ctx.translate(W/2, H/2);
-        ctx.rotate(tilt);
-        ctx.translate(-W/2, -H/2);
-
-        ctx.beginPath();
-        ctx.moveTo(W*0.08, H*0.70);
-        ctx.bezierCurveTo(W*0.28, H*0.18, W*0.72, H*0.15, W*0.92, H*0.55);
-        ctx.lineWidth = H*0.44;
-        ctx.strokeStyle = '#191924';
-        ctx.lineCap = 'round';
-        ctx.stroke();
-
-        ctx.restore();
-        return new THREE.CanvasTexture(c);
-    }
-
-    _makeNoseTexture() {
-        const THREE = this.THREE;
-        const W = 48, H = 32;
-        const c = document.createElement('canvas'); c.width=W; c.height=H;
-        const ctx = c.getContext('2d');
-        ctx.clearRect(0, 0, W, H);
-
-        // 콧날 끝 (VRoid: 두 개의 작은 호)
-        [-1, 1].forEach(side => {
-            ctx.beginPath();
-            ctx.arc(W/2 + side*W*0.18, H*0.62, W*0.10, 0.2, Math.PI-0.2);
-            ctx.strokeStyle = 'rgba(160,100,80,0.55)';
-            ctx.lineWidth = 1.8;
-            ctx.stroke();
-        });
-        return new THREE.CanvasTexture(c);
-    }
-
-    _makeMouthTexture() {
-        const THREE = this.THREE;
-        const W = 64, H = 32;
-        const c = document.createElement('canvas'); c.width=W; c.height=H;
-        const ctx = c.getContext('2d');
-        ctx.clearRect(0, 0, W, H);
-
-        // 입꼬리 (미소)
-        ctx.beginPath();
-        ctx.moveTo(W*0.18, H*0.38);
-        ctx.bezierCurveTo(W*0.38, H*0.60, W*0.62, H*0.60, W*0.82, H*0.38);
-        ctx.strokeStyle = '#c06070';
-        ctx.lineWidth = 2.2;
-        ctx.lineCap = 'round';
-        ctx.stroke();
-
-        // 아랫입술 라인
-        ctx.beginPath();
-        ctx.moveTo(W*0.28, H*0.55);
-        ctx.bezierCurveTo(W*0.40, H*0.75, W*0.60, H*0.75, W*0.72, H*0.55);
-        ctx.strokeStyle = 'rgba(180,80,100,0.50)';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-
-        return new THREE.CanvasTexture(c);
-    }
-
-    _makeBlushTexture() {
-        const THREE = this.THREE;
-        const W = 64, H = 32;
-        const c = document.createElement('canvas'); c.width=W; c.height=H;
-        const ctx = c.getContext('2d');
-        ctx.clearRect(0, 0, W, H);
-        const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W/2);
-        grad.addColorStop(0, 'rgba(255,140,160,0.65)');
-        grad.addColorStop(1, 'rgba(255,140,160,0)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, W, H);
-        return new THREE.CanvasTexture(c);
-    }
-
-    _darkenHex(hex, factor) {
-        const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-        return '#' + [r*factor|0, g*factor|0, b*factor|0].map(v=>v.toString(16).padStart(2,'0')).join('');
-    }
-
-    // ── 머리카락 ──────────────────────────────────────────────────
-    _buildHair(sk, state) {
-        const THREE  = this.THREE;
-        const { length, color, style } = state.hair;
-        const mat    = this._getHairMat(color);
-
-        const isTwin  = style === 'twintails';
-        const isPony  = style === 'ponytail';
-        const isBraid = style === 'braid';
-
-        // 두상 캡 (머리 위쪽 볼륨)
-        const capGeo  = new THREE.SphereGeometry(sk.headW * 1.06, 24, 16, 0, Math.PI*2, 0, Math.PI*0.58);
-        const capMesh = new THREE.Mesh(capGeo, mat);
-        capMesh.scale.set(1, (sk.headH/sk.headW)*1.05, sk.headD/sk.headW*1.04);
-        capMesh.position.set(0, sk.headCenterY - sk.headH * 0.04, 0);
-        capMesh.castShadow = true;
-        capMesh.userData.partId = PART.HAIR;
-        this._charGroup.add(capMesh);
-        this._track(PART.HAIR, capMesh);
-
-        // 앞머리 뱅 (앞에 드리우는 머리)
-        const bangMat = mat;
-        for (let i = -2; i <= 2; i++) {
-            const bangGeo  = new THREE.PlaneGeometry(sk.headW*0.28, sk.headH*0.35 + length*0.04);
-            const bangMesh = new THREE.Mesh(bangGeo, bangMat);
-            bangMesh.position.set(
-                i * sk.headW*0.32,
-                sk.eyeY + sk.headH*0.12,
-                sk.headD * 1.00,
-            );
-            bangMesh.rotation.x = 0.12;
-            bangMesh.castShadow = true;
-            bangMesh.userData.partId = PART.HAIR;
-            this._charGroup.add(bangMesh);
-            this._track(PART.HAIR, bangMesh);
-        }
-
-        if (length < 0.15) return;
-
-        // 흘러내리는 머리카락
-        const dropTop  = sk.neckTopY + 0.02;
-        const dropLen  = length * sk.H * 0.46;
-        const dropBot  = Math.max(sk.footY + 0.02, dropTop - dropLen);
-        const height   = dropTop - dropBot;
-
-        if (isTwin) {
-            // 트윈테일: 좌우 각각 다발
-            [-1, 1].forEach(side => {
-                const tailGeo  = new THREE.CylinderGeometry(sk.headW*0.12, sk.headW*0.06, height, 10);
-                const tailMesh = new THREE.Mesh(tailGeo, mat);
-                tailMesh.position.set(
-                    side * sk.headW*0.72,
-                    dropTop - height*0.5,
-                    -(sk.headD*0.3),
-                );
-                tailMesh.rotation.z = side * 0.15;
-                tailMesh.castShadow = true;
-                tailMesh.userData.partId = PART.HAIR;
-                this._charGroup.add(tailMesh);
-                this._track(PART.HAIR, tailMesh);
-            });
-        } else if (isPony) {
-            // 포니테일: 뒤로 모임
-            const tailGeo  = new THREE.CylinderGeometry(sk.headW*0.12, sk.headW*0.05, height, 10);
-            const tailMesh = new THREE.Mesh(tailGeo, mat);
-            tailMesh.position.set(0, dropTop - height*0.5, sk.headD*0.85);
-            tailMesh.rotation.x = 0.30;
-            tailMesh.castShadow = true;
-            tailMesh.userData.partId = PART.HAIR;
-            this._charGroup.add(tailMesh);
-            this._track(PART.HAIR, tailMesh);
-        } else {
-            // 스트레이트 / 브레이드: 뒤로 흘러내림
-            const strips = isBraid ? 3 : 4;
-            for (let i = 0; i < strips; i++) {
-                const ox  = (i/(strips-1) - 0.5) * sk.headW * 1.4;
-                const geo = new THREE.PlaneGeometry(sk.headW * (0.38/strips*1.6), height);
-                const mesh = new THREE.Mesh(geo, mat);
-                mesh.position.set(ox, dropTop - height*0.5, -(sk.headD*0.78));
-                mesh.rotation.y = Math.PI;
-                if (isBraid) mesh.rotation.z = Math.sin(i*1.2)*0.12;
-                mesh.castShadow = true;
-                mesh.userData.partId = PART.HAIR;
-                this._charGroup.add(mesh);
-                this._track(PART.HAIR, mesh);
-            }
-        }
-    }
-
-    // ── 의상 오버레이 ─────────────────────────────────────────────
-    _buildOutfit(sk, state, outfitDef) {
-        const THREE = this.THREE;
-        const mat   = new THREE.MeshPhongMaterial({
-            color: outfitDef.color, shininess: 18, specular: 0x222222,
-            transparent: true, opacity: 0.97,
-        });
-
-        // 상의 (몸통 살짝 크게)
-        const topSecs = [
-            { y: sk.waistY,    rx: sk.waistW*1.12,  rz: sk.waistD*1.10 },
-            { y: sk.bustY,     rx: sk.bustW*1.10,   rz: sk.bustDepth*1.08 },
-            { y: sk.shoulderY, rx: sk.shoulderW*1.06, rz: sk.bustDepth*0.75 },
-            { y: sk.neckBotY,  rx: sk.neckW*1.5,    rz: sk.neckD*1.4 },
-        ];
-        const topGeo  = buildTubeMesh(topSecs, THREE, 16);
-        const topMesh = new THREE.Mesh(topGeo, mat);
-        topMesh.castShadow = true;
-        topMesh.userData.partId = PART.OUTFIT;
-        this._charGroup.add(topMesh);
-        this._track(PART.OUTFIT, topMesh);
-
-        // 스커트 / 하의 (플레어 원뿔)
-        const skirtLen = outfitDef.skirtLen * sk.H * 0.45;
-        if (skirtLen > 0.01) {
-            const skirtBot = Math.max(sk.footY + 0.02, sk.hipY - skirtLen);
-            const flare = sk.hipW * 1.0 + (sk.hipY - skirtBot) * 0.28;
-            const skirtSecs = [
-                { y: sk.hipY,       rx: sk.hipW*1.08,  rz: sk.hipD*1.04 },
-                { y: (sk.hipY+skirtBot)*0.6, rx: sk.hipW*1.18+flare*0.3, rz: sk.hipD*1.15+flare*0.25 },
-                { y: skirtBot,      rx: sk.hipW*1.18+flare, rz: sk.hipD*1.10+flare*0.85 },
-            ];
-            const skirtGeo  = buildTubeMesh(skirtSecs, THREE, 20);
-            const skirtMesh = new THREE.Mesh(skirtGeo, mat);
-            skirtMesh.castShadow = true;
-            skirtMesh.userData.partId = PART.OUTFIT;
-            this._charGroup.add(skirtMesh);
-            this._track(PART.OUTFIT, skirtMesh);
-        }
-    }
-
-    // ── 파트 추적 ─────────────────────────────────────────────────
-    _track(partId, obj) {
-        if (!this._meshMap[partId]) this._meshMap[partId] = [];
-        this._meshMap[partId].push(obj);
-    }
-
-    _disposeGroup(group) {
-        group.traverse(obj => {
-            if (obj.geometry) obj.geometry.dispose();
-            if (obj.material) {
-                if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-                else obj.material.dispose();
-            }
-        });
-    }
-
-    // ── 환경 (조명 색온도 + 환경 변경) ───────────────────────────
+    // ── 환경 ──────────────────────────────────────────────────────
     _applyEnv(envState) {
-        const THREE = this.THREE;
-        const preset = ENV_PRESETS[envState.preset] || ENV_PRESETS.park;
-
-        // 배경색 변경
-        if (this.scene.background) this.scene.background.setHex(preset.fogColor);
-
-        // 조명 색온도를 환경에 맞게 조정
-        const tod = envState.timeOfDay ?? 0.5;
-        this._applyTimeOfDay(tod);
-
-        this._weather?.setWeather(envState.weather);
+        const bgMap = {
+            studio:0x0a0e16, indoor:0x14121c, bedroom:0x1a141e, classroom:0x141a22,
+            outdoor:0x10202c, nature:0x0e2018, city:0x0a0e1a, sky:0x081420,
+            white:0xe8eef5, simple:0x10141c,
+        };
+        const key = envState.bg || envState.preset || 'studio';
+        const hex = bgMap[key] ?? 0x0a0e16;
+        if (this.scene.background) this.scene.background.setHex(hex);
+        this._applyTimeOfDay(envState.timeOfDay ?? 0.5);
+        this._weather?.setWeather(envState.weather || 'clear');
     }
 
     _applyTimeOfDay(t) {
-        const THREE = this.THREE;
-        const L = this._lights;
-        if (!L.key) return;
-
-        // t: 0=새벽, 0.25=아침, 0.5=낮, 0.75=저녁, 1=밤
-        if (t < 0.25) {
-            // 새벽 — 차갑고 어두움
-            L.key.color.setHex(0x8899cc); L.key.intensity = 0.8;
-            L.fill.color.setHex(0x334466); L.fill.intensity = 0.4;
-            if (this.scene.background) this.scene.background.setHex(0x0a0f1a);
-        } else if (t < 0.5) {
-            // 아침 — 따뜻한 골든아워
-            const s = (t-0.25)/0.25;
-            L.key.color.setHex(0xffddaa); L.key.intensity = 1.5 + s*0.7;
-            L.fill.color.setHex(0xaabbdd); L.fill.intensity = 0.6 + s*0.25;
-            if (this.scene.background) this.scene.background.setHex(0x1a2030);
-        } else if (t < 0.75) {
-            // 낮 — 밝고 중립
-            L.key.color.setHex(0xfff5e8); L.key.intensity = 2.2;
-            L.fill.color.setHex(0xd0e8ff); L.fill.intensity = 0.85;
-            if (this.scene.background) this.scene.background.setHex(0x1a1e26);
-        } else {
-            // 저녁/밤 — 오렌지/딥블루
-            const s = (t-0.75)/0.25;
-            L.key.color.setHex(0xff9944); L.key.intensity = 1.2 - s*0.8;
-            L.fill.color.setHex(0x2244aa); L.fill.intensity = 0.5 - s*0.2;
-            if (this.scene.background) this.scene.background.setHex(0x080c14);
-        }
+        const L = this._lights; if (!L.key) return;
+        if (t < 0.25)      { L.key.color.setHex(0x8aa0d0); L.key.intensity = 1.0; }
+        else if (t < 0.5)  { L.key.color.setHex(0xffdcb0); L.key.intensity = 1.6; }
+        else if (t < 0.75) { L.key.color.setHex(0xfff3e6); L.key.intensity = 1.7; }
+        else               { L.key.color.setHex(0xff9a55); L.key.intensity = 1.1; }
     }
 
-    // ── 태그 변경 → 씬 업데이트 ──────────────────────────────────
+    // ── 태그 변경 → 상태 재구성 후 적용 ──────────────────────────
     onTagsChanged(tags) {
         const ns = this._defaultState();
-        ns.unmapped = [];
+        ns.holo.intensity = this.state?.holo?.intensity ?? 0.45;   // 강도 유지
+        ns.unmapped = []; ns.promptOnly = [];
+        let hasCamera = false;
 
         tags.forEach(({ token }) => {
-            const envMap = ENV_TAG_MAP[token];
-            if (envMap) {
-                if (envMap.env)     ns.env.preset   = envMap.env;
-                if (envMap.weather) ns.env.weather  = envMap.weather;
-                if (envMap.timeOfDay !== undefined) ns.env.timeOfDay = envMap.timeOfDay;
-            }
-        });
-
-        let hasCameraTag = false;
-        tags.forEach(({ token }) => {
-            const m = TAG_MAP[token];
-            if (m) {
-                const [domain, prop] = m.ch.split('.');
-                if (prop) { if (!ns[domain]) ns[domain]={}; ns[domain][prop]=m.v; }
-                else ns[domain] = m.v;
-                if (m.ch.startsWith('camera.')) hasCameraTag = true;
-            } else if (!ENV_TAG_MAP[token]) {
-                const t = token.toLowerCase();
-                if      (t.includes('long')  && t.includes('hair')) ns.hair.length = 1.0;
-                else if (t.includes('short') && t.includes('hair')) ns.hair.length = 0.18;
-                else if (t.includes('tall'))  ns.body.height = 1.10;
-                else if (t.includes('petite')) ns.body.height = 0.88;
-                else ns.unmapped.push(token);
-            }
+            const t = (token || '').toLowerCase().trim();
+            const chans = TAG_MAP[t];
+            if (!chans) { ns.promptOnly.push(token); return; }
+            chans.forEach(ch => {
+                switch (ch) {
+                    case 'hair.color': ns.hair.color = HAIR_COLORS[t] ?? 0xffffff; break;
+                    case 'eye.color':  ns.eye.color  = EYE_COLORS[t]  ?? 0xffffff; break;
+                    case 'skin.tone':  ns.skin.tone  = t; break;
+                    case 'expression': ns.expression = t; break;
+                    case 'body.size':  ns.body.size  = t; break;
+                    case 'pose':       ns.pose = t; break;
+                    case 'outfit':     ns.outfit.preset = t; ns.outfit.color = OUTFIT_COLORS[t] ?? null; break;
+                    case 'camera':     this._tagToCamera(t, ns); hasCamera = true; break;
+                    case 'env':        this._tagToEnv(t, ns); break;
+                    case 'bg':         ns.env.bg = (t === 'white_background' ? 'white' : 'simple'); break;
+                    case 'time':       ns.env.timeOfDay = (t === 'night' ? 0.9 : 0.5); break;
+                    case 'weather':    ns.env.weather = (t === 'raining' ? 'rain' : t === 'snow' ? 'snow' : 'clear'); break;
+                    case 'light':      ns._light = t; break;
+                    case 'particle':   ns.env.weather = (t === 'falling_petals' ? 'petals' : t === 'water_drops' ? 'rain' : ns.env.weather); break;
+                }
+            });
         });
 
         this.state = ns;
+        this._applyAll(ns);
         this._applyEnv(ns.env);
-        this._buildCharacter(ns);
-        // 사용자가 직접 카메라를 조작하지 않은 경우에만(카메라 태그 있을 때만) 초기화
-        if (hasCameraTag) this._updateCameraForState(ns);
+        this._applyLight(ns._light);
+        if (hasCamera) this._updateCameraForState(ns);
 
         if (typeof window.__previzUpdateUnmapped === 'function')
-            window.__previzUpdateUnmapped(ns.unmapped);
+            window.__previzUpdateUnmapped(ns.promptOnly);
     }
 
-    // ── UI에서 호출: 캐릭터 리빌드 (카메라 유지) ─────────────────
-    _buildAllParts(state) {
-        this.state = state;
-        this._buildCharacter(state);
-        this._saveState(state);
+    _tagToCamera(t, ns) {
+        if (t === 'close_up')          ns.camera.zoom = 0.55;
+        else if (t === 'full_body')    ns.camera.zoom = 1.25;
+        else if (t === 'from_behind')  ns.camera.angle = 'back';
+        else if (t === 'from_above')   ns.camera.angle = 'high';
+        else if (t === 'from_below')   ns.camera.angle = 'low';
+        else if (t === 'looking_at_viewer') ns.camera.angle = 'front';
     }
-
-    // ── UI에서 호출: 눈 색만 교체 ────────────────────────────────
-    _buildEyes(state) {
-        this.state = state;
-        // HEAD 파트 전체 제거 후 재빌드 (얼굴 + 눈)
-        if (this._meshMap[PART.HEAD]) {
-            this._meshMap[PART.HEAD].forEach(m => {
-                this._charGroup.remove(m);
-                if (m.geometry) m.geometry.dispose();
-                if (m.material) m.material.dispose();
-            });
-            this._meshMap[PART.HEAD] = [];
-        }
-        const sk = buildSkeleton(state);
-        this._buildHead(sk, state);
-        this._saveState(state);
+    _tagToEnv(t, ns) {
+        const m = { indoors:'indoor', bedroom:'bedroom', classroom:'classroom', outdoors:'outdoor', nature:'nature', city:'city' };
+        ns.env.preset = m[t] || ns.env.preset; ns.env.bg = m[t] || ns.env.bg;
+    }
+    _applyLight(l) {
+        const L = this._lights; if (!L.key) return;
+        if (l === 'cinematic_lighting') { L.key.intensity = 2.1; L.amb.intensity = 0.9; }
+        else if (l === 'soft_lighting') { L.key.intensity = 1.2; L.amb.intensity = 1.9; }
+        else if (l === 'natural_lighting') { L.key.intensity = 1.6; L.key.color.setHex(0xfff3e6); L.amb.intensity = 1.5; }
     }
 
     _updateCameraForState(state) {
         const angle = state.camera?.angle || 'front';
-        if (angle === 'back')      this._orbit.theta = Math.PI;
-        else if (angle === 'high') { this._orbit.theta = 0; this._orbit.phi = Math.PI/12; }
-        else if (angle === 'low')  { this._orbit.theta = 0; this._orbit.phi = Math.PI/2.1; }
-        else                       this._orbit.theta = 0;
-
-        this._orbit.radius = 4.0 * (state.camera?.zoom ?? 1.0);
-        this.camera.fov    = state.camera?.fov ?? 40;
+        const o = this._orbit;
+        if (angle === 'back')      o.theta = Math.PI;
+        else if (angle === 'high') { o.theta = 0; o.phi = Math.PI/6; }
+        else if (angle === 'low')  { o.theta = 0; o.phi = Math.PI/2 + 0.3; }
+        else                       o.theta = 0;
+        o.radius = 2.7 * (state.camera?.zoom ?? 1.0);
+        this.camera.fov = state.camera?.fov ?? 30;
         this.camera.updateProjectionMatrix();
         this._updateCameraPos();
     }
 
-    _saveState(state) {
-        try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(_) {}
+    // ── 상태 저장/병합 ────────────────────────────────────────────
+    _saveState(state) { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(_){} }
+    _mergeState(def, saved) {
+        const out = { ...def, ...saved };
+        ['hair','eye','skin','body','outfit','env','camera','holo'].forEach(k => {
+            out[k] = { ...def[k], ...(saved[k] || {}) };
+        });
+        // 구버전 문자열 색상 → 숫자
+        ['hair','eye'].forEach(k => { if (typeof out[k].color === 'string') out[k].color = parseInt(out[k].color.replace('#',''),16) || 0xffffff; });
+        return out;
     }
 
-    // ── 마우스 이벤트 ─────────────────────────────────────────────
+    // ── 뷰 모드: 'free'(자유 회전) / 'camera'(출력 구도 고정) ──────
+    setViewMode(mode) {
+        this._viewMode = mode;
+        this._orbit.locked = (mode === 'camera');
+        if (mode === 'camera') { this._orbit._panX = 0; this._orbit._panY = 0; this._updateCameraForState(this.state); }
+    }
+    getViewMode() { return this._viewMode || 'free'; }
+
+    // 홀로그램 ON/OFF 비교 토글
+    toggleHolo(on) {
+        if (on) { this._applyHolo(this._holoSaved ?? 0.45); }
+        else { this._holoSaved = this.state.holo.intensity || 0.45; this._applyHolo(0); }
+    }
+
+    // ── 마우스/터치 ───────────────────────────────────────────────
     _bindEvents() {
-        const el = this.renderer.domElement;
-        const o  = this._orbit;
-
+        const el = this.renderer.domElement; const o = this._orbit;
         el.addEventListener('contextmenu', e => e.preventDefault());
-
         el.addEventListener('mousedown', e => {
-            if (e.button === 0) {
-                o._sx = e.clientX; o._sy = e.clientY; o._lbDown = true;
-            } else if (e.button === 2) {
-                o.dragging = true; o._mode = 'rotate';
-                o.lastX = e.clientX; o.lastY = e.clientY;
-            } else if (e.button === 1) {
-                o.dragging = true; o._mode = 'pan';
-                o.lastX = e.clientX; o.lastY = e.clientY;
-                e.preventDefault();
-            }
+            if (e.button === 0) { o._sx=e.clientX; o._sy=e.clientY; o._lb=true; }
+            else if (o.locked) { return; }
+            else if (e.button === 2) { o.drag=true; o.mode='rotate'; o.lx=e.clientX; o.ly=e.clientY; }
+            else if (e.button === 1) { o.drag=true; o.mode='pan'; o.lx=e.clientX; o.ly=e.clientY; e.preventDefault(); }
         });
-
         el.addEventListener('mousemove', e => {
-            if (!o.dragging) return;
-            const dx = e.clientX-o.lastX, dy = e.clientY-o.lastY;
-            o.lastX = e.clientX; o.lastY = e.clientY;
-            if (o._mode === 'rotate') {
-                o.theta -= dx*0.008;
-                o.phi = Math.max(0.04, Math.min(Math.PI*0.62, o.phi+dy*0.006));
-            } else if (o._mode === 'pan') {
-                const scale = o.radius * 0.0012;
-                const sinT = Math.sin(o.theta), cosT = Math.cos(o.theta);
-                o._panX = (o._panX||0) - dx*scale*cosT;
-                o._panY = (o._panY||0) + dy*scale;
-            }
+            if (!o.drag) return;
+            const dx=e.clientX-o.lx, dy=e.clientY-o.ly; o.lx=e.clientX; o.ly=e.clientY;
+            if (o.mode==='rotate') { o.theta -= dx*0.008; o.phi = Math.max(0.1, Math.min(Math.PI-0.1, o.phi+dy*0.006)); }
+            else if (o.mode==='pan') { const s=o.radius*0.0014; o._panX -= dx*s; o._panY += dy*s; }
             this._updateCameraPos();
         });
-
         window.addEventListener('mouseup', e => {
-            if (e.button === 0 && o._lbDown) {
-                o._lbDown = false;
-                if (Math.abs(e.clientX-o._sx)+Math.abs(e.clientY-o._sy) < 5)
-                    this._handleClick(e);
-            } else {
-                o.dragging = false; o._mode = null;
-            }
+            if (e.button===0 && o._lb) { o._lb=false; if (Math.abs(e.clientX-o._sx)+Math.abs(e.clientY-o._sy)<5) this._handleClick(e); }
+            else { o.drag=false; o.mode=null; }
         });
+        el.addEventListener('wheel', e => { if (o.locked) return; o.radius = Math.max(1.0, Math.min(8, o.radius+e.deltaY*0.004)); this._updateCameraPos(); e.preventDefault(); }, { passive:false });
 
-        el.addEventListener('wheel', e => {
-            o.radius = Math.max(1.2, Math.min(12, o.radius+e.deltaY*0.005));
-            this._updateCameraPos();
-            e.preventDefault();
-        }, { passive:false });
-
-        // 터치
         let lastDist = 0;
         el.addEventListener('touchstart', e => {
-            if (e.touches.length===1) {
-                o.dragging=true; o._mode='rotate';
-                o.lastX=e.touches[0].clientX; o.lastY=e.touches[0].clientY;
-                o._sx=o.lastX; o._sy=o.lastY;
-            } else if (e.touches.length===2) {
-                o.dragging=false;
-                lastDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
-            }
+            if (o.locked) { if (e.touches.length===1){ o._sx=e.touches[0].clientX; o._sy=e.touches[0].clientY; o.drag=false; } return; }
+            if (e.touches.length===1){ o.drag=true; o.mode='rotate'; o.lx=e.touches[0].clientX; o.ly=e.touches[0].clientY; o._sx=o.lx; o._sy=o.ly; }
+            else if (e.touches.length===2){ o.drag=false; lastDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); }
         }, { passive:true });
         el.addEventListener('touchmove', e => {
-            if (e.touches.length===1 && o.dragging) {
-                const dx=e.touches[0].clientX-o.lastX, dy=e.touches[0].clientY-o.lastY;
-                o.lastX=e.touches[0].clientX; o.lastY=e.touches[0].clientY;
-                o.theta -= dx*0.008;
-                o.phi = Math.max(0.04, Math.min(Math.PI*0.62, o.phi+dy*0.006));
-                this._updateCameraPos();
-            } else if (e.touches.length===2) {
-                const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
-                o.radius=Math.max(1.2, Math.min(12, o.radius-(d-lastDist)*0.01));
-                lastDist=d; this._updateCameraPos();
-            }
+            if (e.touches.length===1 && o.drag){ const dx=e.touches[0].clientX-o.lx, dy=e.touches[0].clientY-o.ly; o.lx=e.touches[0].clientX; o.ly=e.touches[0].clientY; o.theta-=dx*0.008; o.phi=Math.max(0.1,Math.min(Math.PI-0.1,o.phi+dy*0.006)); this._updateCameraPos(); }
+            else if (e.touches.length===2){ const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); o.radius=Math.max(1.0,Math.min(8,o.radius-(d-lastDist)*0.008)); lastDist=d; this._updateCameraPos(); }
             e.preventDefault();
         }, { passive:false });
         el.addEventListener('touchend', e => {
-            if (o.dragging && e.changedTouches.length>0) {
-                const t=e.changedTouches[0];
-                if (Math.abs(t.clientX-o._sx)+Math.abs(t.clientY-o._sy)<10) this._handleClick(t);
-            }
-            o.dragging=false;
+            if (o.drag && e.changedTouches.length>0){ const t=e.changedTouches[0]; if (Math.abs(t.clientX-o._sx)+Math.abs(t.clientY-o._sy)<10) this._handleClick(t); }
+            o.drag=false;
         });
     }
 
-    static _PART_TO_CALLOUT = {
-        [0]:'face', [1]:'upper', [2]:'pose', [3]:'pose',
-        [4]:'lower', [5]:'lower', [6]:'hair', [7]:'upper',
-    };
+    _matNameToCallout(name) {
+        if (/_HAIR/i.test(name)) return { part:PART.HAIR, callout:'hair' };
+        if (/EyeIris|_EYE|_FACE/i.test(name)) return { part:PART.HEAD, callout:'face' };
+        if (/Tops/i.test(name)) return { part:PART.OUTFIT, callout:'upper' };
+        if (/Bottoms/i.test(name)) return { part:PART.OUTFIT, callout:'lower' };
+        if (/Shoes/i.test(name)) return { part:PART.L_LEG, callout:'lower' };
+        if (/_SKIN/i.test(name)) return { part:PART.TORSO, callout:'upper' };
+        return { part:PART.TORSO, callout:'upper' };
+    }
 
     _handleClick(e) {
-        if (!this._raycaster) return;
-        const THREE = this.THREE;
-        const rect  = this.renderer.domElement.getBoundingClientRect();
-        const mouse = new THREE.Vector2(
-            ((e.clientX-rect.left)/rect.width)*2-1,
-            -((e.clientY-rect.top)/rect.height)*2+1,
-        );
+        if (!this._raycaster || !this.vrm) return;
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        const mouse = new THREE.Vector2(((e.clientX-rect.left)/rect.width)*2-1, -((e.clientY-rect.top)/rect.height)*2+1);
         this._raycaster.setFromCamera(mouse, this.camera);
-
-        // 캐릭터 그룹 내 모든 Mesh 대상
-        const targets = [];
-        if (this._charGroup) this._charGroup.traverse(o => { if (o.isMesh) targets.push(o); });
+        const targets = []; this.vrm.scene.traverse(o => { if (o.isMesh) targets.push(o); });
         const hits = this._raycaster.intersectObjects(targets, false);
-
         if (hits.length > 0) {
-            const partId = hits[0].object.userData.partId;
+            const m = hits[0].object.material;
+            const name = (Array.isArray(m) ? m[0]?.name : m?.name) || '';
+            const { part, callout } = this._matNameToCallout(name);
             if (typeof window.__previzOnPartClick === 'function')
-                window.__previzOnPartClick(partId, PART_NAME[partId], this.state, this);
-            const calloutId = PrevizScene._PART_TO_CALLOUT[partId];
-            if (calloutId && typeof window.__previzOpenCallout === 'function')
-                window.__previzOpenCallout(calloutId);
+                window.__previzOnPartClick(part, PART_NAME[part], this.state, this);
+            if (callout && typeof window.__previzOpenCallout === 'function')
+                window.__previzOpenCallout(callout);
         }
     }
 
     _updateCameraPos() {
         const o = this._orbit;
-        const baseY = 1.0;  // 캐릭터 중심 높이
-        const px = o._panX || 0;
-        const py = o._panY || 0;
-        const sinT = Math.sin(o.theta), cosT = Math.cos(o.theta);
-        const tx = px*cosT, tz = px*(-sinT);
-        const ty = baseY + py;
-
+        const baseY = o.target;
+        const px=o._panX||0, py=o._panY||0;
+        const sinT=Math.sin(o.theta), cosT=Math.cos(o.theta);
+        const tx=px*cosT, tz=px*(-sinT), ty=baseY+py;
         this.camera.position.set(
             o.radius*Math.sin(o.phi)*sinT + tx,
             o.radius*Math.cos(o.phi) + ty,
@@ -1273,28 +601,36 @@ export class PrevizScene {
 
     _loop() {
         this.animId = requestAnimationFrame(() => this._loop());
+        const dt = this.clock.getDelta();
+        // 파티클 웨이브
+        if (this._stage.grid) {
+            const a = this._stage.grid.geometry.attributes.position.array;
+            const b = this._stage.gridBase; const tt = this.clock.elapsedTime;
+            for (let i=0;i<a.length;i+=3) a[i+1] = Math.sin(b[i]*1.1+tt*1.3)*0.09 + Math.cos(b[i+2]*0.9+tt)*0.07;
+            this._stage.grid.geometry.attributes.position.needsUpdate = true;
+        }
+        if (this._stage.ring) this._stage.ring.rotation.z += dt*0.3;
         this._weather?.update();
-        this.renderer.render(this.scene, this.camera);
+        if (this.vrm) this.vrm.update(dt);
+        if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera);
         this.onFrameTick?.();
     }
 
     resize() {
         if (!this.renderer || !this.camera) return;
-        this._setSize();
-        const w=this.container.clientWidth, h=this.container.clientHeight;
-        this.camera.aspect = w/h;
-        this.camera.updateProjectionMatrix();
-    }
-    _setSize() {
-        const w=this.container.clientWidth||window.innerWidth;
-        const h=this.container.clientHeight||window.innerHeight;
+        const w = this.container.clientWidth || window.innerWidth;
+        const h = this.container.clientHeight || window.innerHeight;
         this.renderer.setSize(w, h);
+        this.composer?.setSize(w, h);
+        this.bloomPass?.setSize(w, h);
+        this.camera.aspect = w/h; this.camera.updateProjectionMatrix();
     }
 
     dispose() {
         if (this.animId) cancelAnimationFrame(this.animId);
         this._weather?.dispose();
-        if (this._charGroup) { this.scene.remove(this._charGroup); this._disposeGroup(this._charGroup); }
-        if (this.renderer)   { this.renderer.dispose(); this.renderer.domElement.remove(); }
+        if (this.vrm) VRMUtils.deepDispose(this.vrm.scene);
+        this._scanline?.remove();
+        if (this.renderer) { this.renderer.dispose(); this.renderer.domElement.remove(); }
     }
 }
