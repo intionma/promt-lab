@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.4 &nbsp;·&nbsp; 2026-06-26 — 전송 워크플로우 점검 (LoRA·디테일러 확인)</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.5 &nbsp;·&nbsp; 2026-06-26 — HTML 다운로드 버튼</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -835,6 +835,7 @@
         <div class="gt-group">
             <button class="gt-btn" onclick="openIOModal('export')" title="내보내기"><i class="fa-solid fa-copy"></i><span class="gt-label">내보내기</span></button>
             <button class="gt-btn" onclick="openIOModal('import')" title="복구/추가"><i class="fa-solid fa-paste"></i><span class="gt-label">불러오기</span></button>
+            <button class="gt-btn" style="--gc:#38bdf8;" onclick="downloadAppHtml()" title="이 앱을 HTML 파일로 다운로드 (로컬/공유용)"><i class="fa-solid fa-download"></i><span class="gt-label">HTML 저장</span></button>
             <div class="gt-divider"></div>
             <button class="gt-btn" style="--gc:var(--accent-green);" onclick="openPresetManager()" title="프리셋 관리"><i class="fa-solid fa-floppy-disk"></i></button>
             <button class="gt-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i class="fa-solid fa-sun"></i></button>
@@ -1341,6 +1342,34 @@
                 body.setAttribute('data-theme', 'dark');
                 btn.innerHTML = '<i class="fa-solid fa-sun"></i>';
                 localStorage.setItem('pro_prompt_theme', 'dark');
+            }
+        }
+
+        // 이 앱(HTML)을 파일로 다운로드 — 로컬 실행/공유용
+        async function downloadAppHtml() {
+            const fname = '프롬프트랩.html';
+            const triggerDownload = (html) => {
+                const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = fname;
+                document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            };
+            try {
+                // 서버에 올라간 원본 파일을 그대로 받기 (사용자 데이터/현재 상태 미포함)
+                const res = await fetch(window.location.href, { cache: 'no-store' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                triggerDownload(await res.text());
+                showToast('HTML 파일을 다운로드했습니다. 더블클릭으로 로컬 실행 가능합니다.', 'success', 4000);
+            } catch (e) {
+                // 폴백: 현재 DOM 스냅샷 (file:// 등 fetch 불가 시)
+                try {
+                    triggerDownload('<!DOCTYPE html>\n' + document.documentElement.outerHTML);
+                    showToast('HTML 파일을 다운로드했습니다. (현재 화면 스냅샷)', 'success', 4000);
+                } catch (e2) {
+                    showToast('다운로드 실패: ' + e.message, 'error', 5000);
+                }
             }
         }
 
