@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.13 &nbsp;·&nbsp; 2026-06-26 — 미리보기 크기 슬라이더 · 정사각 크롭 보정 · 갤러리 드래그</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.14 &nbsp;·&nbsp; 2026-06-26 — 중지 버튼은 진행 중인 것만 중지</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -968,7 +968,7 @@
                         <div id="comfy-inline-prog-pos" style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
                             <div style="flex:1; height:8px; background:var(--bg-surface); border-radius:5px; overflow:hidden;"><div id="comfy-inline-bar-pos" style="height:100%; width:0%; background:linear-gradient(90deg,#38bdf8,#a78bfa); transition:width .2s;"></div></div>
                             <span id="comfy-inline-status-pos" style="font-size:11px; color:var(--text-dim); min-width:72px; text-align:right;"></span>
-                            <button class="action-btn" onclick="comfyInterrupt()" style="color:var(--accent-danger); border-color:var(--border-dim); padding:3px 8px; font-size:11px;" title="중단"><i class="fa-solid fa-stop"></i></button>
+                            <button class="action-btn" onclick="comfyStopCurrent()" style="color:var(--accent-danger); border-color:var(--border-dim); padding:3px 8px; font-size:11px;" title="진행 중인 것만 중지"><i class="fa-solid fa-stop"></i></button>
                         </div>
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
                             <span style="font-size:10px; color:var(--text-dim); flex-shrink:0;"><i class="fa-solid fa-up-right-and-down-left-from-center"></i> 미리보기 크기</span>
@@ -999,7 +999,7 @@
                         <div id="comfy-inline-prog-neg" style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
                             <div style="flex:1; height:8px; background:var(--bg-surface); border-radius:5px; overflow:hidden;"><div id="comfy-inline-bar-neg" style="height:100%; width:0%; background:linear-gradient(90deg,#38bdf8,#a78bfa); transition:width .2s;"></div></div>
                             <span id="comfy-inline-status-neg" style="font-size:11px; color:var(--text-dim); min-width:72px; text-align:right;"></span>
-                            <button class="action-btn" onclick="comfyInterrupt()" style="color:var(--accent-danger); border-color:var(--border-dim); padding:3px 8px; font-size:11px;" title="중단"><i class="fa-solid fa-stop"></i></button>
+                            <button class="action-btn" onclick="comfyStopCurrent()" style="color:var(--accent-danger); border-color:var(--border-dim); padding:3px 8px; font-size:11px;" title="진행 중인 것만 중지"><i class="fa-solid fa-stop"></i></button>
                         </div>
                         <div id="comfy-inline-thumbs-neg" class="lb-group" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
                     </div>
@@ -1282,7 +1282,7 @@
                 <div style="display:flex; gap:10px; align-items:center;">
                     <button id="comfy-send-btn" class="btn-add-db" style="border:none; padding:12px 28px;" onclick="comfyGenerate()"><i class="fa-solid fa-paper-plane"></i> 생성 전송</button>
                     <button class="action-btn" onclick="comfyPreviewWorkflow()" title="실제 전송될 워크플로우 점검 (LoRA·디테일러 포함 여부)" style="color:#a78bfa; border-color:#a78bfa;"><i class="fa-solid fa-list-check"></i> 전송 내용</button>
-                    <button class="action-btn" id="comfy-interrupt-btn" onclick="comfyInterrupt()" style="color:var(--accent-danger); border-color:var(--accent-danger); display:none;"><i class="fa-solid fa-stop"></i> 중단</button>
+                    <button class="action-btn" id="comfy-interrupt-btn" onclick="comfyStopCurrent()" style="color:var(--accent-danger); border-color:var(--accent-danger); display:none;"><i class="fa-solid fa-stop"></i> 중단</button>
                     <div style="flex:1; height:8px; background:var(--bg-surface); border-radius:5px; overflow:hidden;"><div id="comfy-progress" style="height:100%; width:0%; background:linear-gradient(90deg,#38bdf8,#a78bfa); transition:width .2s;"></div></div>
                     <span id="comfy-status" style="font-size:12px; color:var(--text-dim); min-width:90px; text-align:right;"></span>
                 </div>
@@ -2358,6 +2358,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (running) _comfyRunningPid = null;
             comfyRenderQueue();
             if (_comfyQueueCount === 0) _comfyOnAllDone();
+        }
+
+        // 현재 진행 중인 것만 중지 (대기열의 나머지는 유지 → 다음 작업 자동 진행)
+        async function comfyStopCurrent() {
+            if (_comfyRunningPid && _comfyJobs[_comfyRunningPid]) {
+                await comfyCancelJob(_comfyRunningPid);
+            } else {
+                try { await fetch(_comfyBase() + '/interrupt', { method: 'POST' }); } catch (e) {}
+            }
         }
 
         async function comfyCancelAllQueue() {
