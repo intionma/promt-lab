@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v8.8 &nbsp;·&nbsp; 2026-06-26 — 노드 토글 그룹 (LoRA·디테일러 ON/OFF)</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v8.9 &nbsp;·&nbsp; 2026-06-26 — 번역 접으면 복사/전송 버튼 위로</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -956,7 +956,7 @@
                         </div>
                         <div class="preview-box" id="korean-preview">태그의 한글 뜻이 표시됩니다.</div>
                     </div>
-                    <div style="margin-top:auto; padding-top:8px; display:flex; gap:8px;">
+                    <div id="pos-action-row" style="margin-top:auto; padding-top:8px; display:flex; gap:8px;">
                         <button class="btn-copy pos" style="flex:1;" onclick="copyPrompt('pos')"><i class="fa-solid fa-copy"></i> 긍정 복사</button>
                         <button id="btn-comfy-send-pos" class="btn-copy" style="flex:1; display:none; background:#38bdf8; border-color:#38bdf8;" onclick="comfyQuickSend('pos')"><i class="fa-solid fa-paper-plane"></i> ComfyUI 전송</button>
                     </div>
@@ -975,7 +975,7 @@
                         </div>
                         <div class="preview-box" id="negative-korean-preview">부정 프롬프트의 한글 뜻이 표시됩니다.</div>
                     </div>
-                    <div style="margin-top:auto; padding-top:8px; display:flex; gap:8px;">
+                    <div id="neg-action-row" style="margin-top:auto; padding-top:8px; display:flex; gap:8px;">
                         <button class="btn-copy neg" style="flex:1;" onclick="copyPrompt('neg')"><i class="fa-solid fa-copy"></i> 부정 복사</button>
                         <button id="btn-comfy-send-neg" class="btn-copy" style="flex:1; display:none; background:#38bdf8; border-color:#38bdf8;" onclick="comfyQuickSend('neg')"><i class="fa-solid fa-paper-plane"></i> ComfyUI 전송</button>
                     </div>
@@ -2447,15 +2447,18 @@
             setTimeout(() => document.getElementById('generation-memo')?.focus(), 50);
         }
 
-        // 한글 번역 미리보기 접기/펼치기
+        // 한글 번역 미리보기 접기/펼치기 (접으면 복사·전송 버튼이 위로 올라옴)
         function toggleKoreanPreview(which) {
             const box = document.getElementById(which === 'neg' ? 'negative-korean-preview' : 'korean-preview');
             const caret = document.getElementById('korean-preview-caret-' + which);
+            const row = document.getElementById((which === 'neg' ? 'neg' : 'pos') + '-action-row');
             if (!box) return;
-            const hidden = box.style.display === 'none';
-            box.style.display = hidden ? '' : 'none';
-            if (caret) caret.style.transform = hidden ? '' : 'rotate(-90deg)';
-            try { localStorage.setItem('kor_preview_' + which + '_collapsed', hidden ? '0' : '1'); } catch (e) {}
+            const willCollapse = box.style.display !== 'none';
+            box.style.display = willCollapse ? 'none' : '';
+            if (caret) caret.style.transform = willCollapse ? 'rotate(-90deg)' : '';
+            // 접으면 버튼이 번역 라벨 바로 아래로 올라오고, 펼치면 다시 하단 고정
+            if (row) row.style.marginTop = willCollapse ? '12px' : 'auto';
+            try { localStorage.setItem('kor_preview_' + which + '_collapsed', willCollapse ? '1' : '0'); } catch (e) {}
         }
 
         function performUndo() {
