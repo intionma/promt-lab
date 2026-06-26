@@ -1932,15 +1932,26 @@
                                 btn.appendChild(tooltip);
                                 btn.addEventListener('mouseenter', () => { tooltip.style.display = 'block'; });
                                 btn.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
-                                // 더블클릭 인라인 편집 제거: 태그를 빠르게 연속 선택할 때
-                                // 브라우저가 더블클릭으로 오인해 의도치 않게 수정창이 뜨던 버그.
-                                // 태그 수정은 우클릭 → 'DB에서 태그 수정'(전체 필드 팝업)으로 일원화.
+                                btn._tooltip = tooltip;
                             }
                             const star = document.createElement('i');
                             star.className = `fa-star tag-fav-icon ${favorites.includes(data.t) ? 'fa-solid active' : 'fa-regular'}`;
                             star.onclick = (e) => { e.stopPropagation(); toggleFavorite(data.t); };
                             btn.appendChild(star);
-                            btn.onclick = () => handleTagToggle(btn, data.t, data.n, i);
+                            // 같은 태그를 350ms 내 두 번 클릭 = 수정(더블클릭). 서로 다른 태그를
+                            // 빠르게 연속 선택할 땐 트래커가 리셋되어 수정창이 뜨지 않음.
+                            btn.onclick = () => {
+                                const now = Date.now();
+                                const last = window.__lastTagClick || { tag: null, time: 0 };
+                                if (last.tag === data.t && (now - last.time) < 350) {
+                                    window.__lastTagClick = { tag: null, time: 0 };
+                                    handleTagToggle(btn, data.t, data.n, i); // 직전 단일 클릭 토글 되돌림
+                                    openTagInlineEdit(btn, data);
+                                    return;
+                                }
+                                window.__lastTagClick = { tag: data.t, time: now };
+                                handleTagToggle(btn, data.t, data.n, i);
+                            };
                             setupTagDrag(btn, i, subLayerRaw);
                             activeTagsMap[data.t] = { neg: data.n, layer: i, kor: data.k || data.t, c: data.c || "", folderId: folderId, color: subColor };
                             return btn;
@@ -4566,6 +4577,37 @@
                 result = result.replace(getRegexForTag(p), '');
             });
             return result.replace(/,\s*,+/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').trim();
+        }
+
+        // 태그 더블클릭 인라인 편집 (data.t 직접 수정). 같은 태그 더블클릭 시 호출.
+        function openTagInlineEdit(btn, data) {
+            if (btn._tooltip) btn._tooltip.style.display = 'none';
+            document.getElementById('__tag-inline-edit')?.remove();
+            const rect = btn.getBoundingClientRect();
+            const editDiv = document.createElement('div');
+            editDiv.id = '__tag-inline-edit';
+            editDiv.style.cssText = `position:fixed;left:${Math.min(rect.left, window.innerWidth-260)}px;top:${rect.bottom+4}px;z-index:99999;background:var(--bg-surface);border:1px solid var(--accent-blue);border-radius:8px;padding:8px;display:flex;gap:6px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,0.4);`;
+            const inp = document.createElement('input');
+            inp.value = data.t;
+            inp.style.cssText = 'background:var(--bg-base);border:1px solid var(--border-dim);color:var(--text-main);border-radius:6px;padding:4px 8px;font-size:12px;font-family:var(--font-code);outline:none;width:220px;';
+            const saveBtn2 = document.createElement('button');
+            saveBtn2.textContent = '저장';
+            saveBtn2.style.cssText = 'background:var(--accent-blue);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;white-space:nowrap;';
+            const finish2 = () => {
+                const nv = inp.value.trim();
+                if (nv && nv !== data.t) {
+                    data.t = nv;
+                    safeSetStorage('pro_prompt_db_v7_0', promptDB);
+                    initApp();
+                }
+                editDiv.remove();
+            };
+            saveBtn2.onclick = finish2;
+            inp.onkeydown = (ev) => { if (ev.key === 'Enter') finish2(); if (ev.key === 'Escape') editDiv.remove(); };
+            editDiv.appendChild(inp); editDiv.appendChild(saveBtn2);
+            document.body.appendChild(editDiv);
+            inp.focus(); inp.select();
+            setTimeout(() => { document.addEventListener('mousedown', function handler(ev) { if (!editDiv.contains(ev.target)) { editDiv.remove(); document.removeEventListener('mousedown', handler); } }); }, 0);
         }
 
         function handleTagToggle(btn, tagText, negText, layerIndex) {
