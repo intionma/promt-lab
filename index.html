@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.9 &nbsp;·&nbsp; 2026-06-26 — 대기열 라벨 한글 핵심 요약</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.10 &nbsp;·&nbsp; 2026-06-26 — PC 종료 (도우미 스크립트 연동)</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -839,6 +839,7 @@
             <div class="gt-divider"></div>
             <button class="gt-btn" style="--gc:var(--accent-green);" onclick="openPresetManager()" title="프리셋 관리"><i class="fa-solid fa-floppy-disk"></i></button>
             <button class="gt-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i class="fa-solid fa-sun"></i></button>
+            <button class="gt-btn" style="--gc:#ef4444;" onclick="openShutdownModal()" title="PC 종료 (도우미 스크립트 필요)"><i class="fa-solid fa-power-off"></i></button>
         </div>
         </div>
     </header>
@@ -1327,6 +1328,41 @@
         </button>
     </div>
 
+    <!-- ── PC 종료 ── -->
+    <div class="modal-overlay" id="shutdown-modal">
+        <div class="modal-content" style="width:min(620px,96vw); max-height:92vh;">
+            <div class="modal-header">
+                <span class="modal-title"><i class="fa-solid fa-power-off" style="color:#ef4444;"></i> PC 종료</span>
+                <button class="action-btn" onclick="document.getElementById('shutdown-modal').style.display='none'"><i class="fa-solid fa-xmark"></i> 닫기</button>
+            </div>
+            <div style="padding:18px 22px; overflow-y:auto; display:flex; flex-direction:column; gap:14px;">
+                <div style="font-size:12px; color:var(--text-dim); line-height:1.6;">브라우저만으로는 PC를 끌 수 없어, PC에서 <b>종료 도우미 스크립트</b>를 실행해 두면 이 버튼으로 끌 수 있어요. (모바일에서도 같은 와이파이면 동작)</div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+                    <div style="flex:1; min-width:200px;">
+                        <label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:5px;">종료 도우미 주소</label>
+                        <input id="shutdown-url" type="text" placeholder="http://127.0.0.1:8189" style="width:100%; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:9px 12px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;">
+                    </div>
+                    <div style="width:160px;">
+                        <label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:5px;">토큰(비밀번호)</label>
+                        <input id="shutdown-token" type="text" placeholder="change-me-1234" style="width:100%; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:9px 12px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;">
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="btn-add-db" style="border:none; padding:11px 22px; background:#ef4444;" onclick="shutdownPC()"><i class="fa-solid fa-power-off"></i> 지금 PC 종료</button>
+                    <span id="shutdown-status" style="font-size:12px; color:var(--text-dim);"></span>
+                </div>
+                <details style="background:var(--input-bg); border:1px solid var(--border-dim); border-radius:10px; padding:12px 14px;">
+                    <summary style="cursor:pointer; font-size:12px; font-weight:700; color:var(--text-main);"><i class="fa-solid fa-file-code"></i> 종료 도우미 스크립트 (PC에서 1회 실행)</summary>
+                    <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
+                        <div style="font-size:11px; color:var(--text-dim); line-height:1.6;">아래를 <code>shutdown_server.py</code>로 저장 후 PC에서 <code>python shutdown_server.py</code> 실행. (토큰은 위 입력칸과 똑같이 맞추세요)</div>
+                        <textarea id="shutdown-script" readonly style="width:100%; height:200px; background:var(--bg-base); border:1px solid var(--border-dim); border-radius:8px; padding:10px; color:var(--text-main); font-family:var(--font-code); font-size:11px; line-height:1.5; outline:none; resize:vertical;"></textarea>
+                        <button class="action-btn" onclick="copyShutdownScript()" style="align-self:flex-start; color:var(--accent-green); border-color:var(--accent-green);"><i class="fa-solid fa-copy"></i> 스크립트 복사</button>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </div>
+
     <!-- 모바일 하단 탭바 -->
     <nav id="mobile-tabbar"></nav>
 
@@ -1470,6 +1506,83 @@
             } catch (e) {
                 showToast('다운로드 실패: ' + e.message + ' (이 사이트에서 다시 시도)', 'error', 5000);
             }
+        }
+
+        // ── PC 종료 도우미 ──
+        const _SHUTDOWN_SCRIPT = `# shutdown_server.py — 프롬프트 랩 PC 종료 도우미
+# 실행: python shutdown_server.py   (PC를 끄려는 컴퓨터에서)
+import http.server, os, platform
+TOKEN = "change-me-1234"   # 앱의 토큰 입력칸과 똑같이 맞추세요
+PORT  = 8189
+
+class H(http.server.BaseHTTPRequestHandler):
+    def _cors(self):
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', '*')
+    def do_OPTIONS(self):
+        self.send_response(204); self._cors(); self.end_headers()
+    def do_POST(self):
+        if self.path.split('?')[0] != '/shutdown' or ('token=' + TOKEN) not in self.path:
+            self.send_response(403); self._cors(); self.end_headers(); self.wfile.write(b'forbidden'); return
+        self.send_response(200); self._cors(); self.end_headers(); self.wfile.write(b'ok')
+        if platform.system() == 'Windows':
+            os.system('shutdown /s /t 5')
+        else:
+            os.system('sudo shutdown -h now')   # 맥/리눅스는 sudo 권한 필요할 수 있음
+    def log_message(self, *a): pass
+
+print(f"종료 도우미 실행 중 — 포트 {PORT}, 토큰 '{TOKEN}'")
+http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
+`;
+        const SHUTDOWN_KEY = 'shutdown_settings_v1';
+
+        function openShutdownModal() {
+            try {
+                const s = JSON.parse(localStorage.getItem(SHUTDOWN_KEY) || '{}');
+                document.getElementById('shutdown-url').value = s.url || _comfyShutdownDefault();
+                document.getElementById('shutdown-token').value = s.token || 'change-me-1234';
+            } catch (e) {}
+            document.getElementById('shutdown-script').value = _SHUTDOWN_SCRIPT;
+            document.getElementById('shutdown-status').textContent = '';
+            document.getElementById('shutdown-modal').style.display = 'flex';
+        }
+
+        function _comfyShutdownDefault() {
+            // ComfyUI 주소의 호스트 + 8189 포트로 기본 추정
+            try {
+                const u = (JSON.parse(localStorage.getItem('comfy_settings_v1') || '{}').url) || 'http://127.0.0.1:8188';
+                const m = u.match(/^(https?:\/\/[^:/]+)/i);
+                if (m) return m[1] + ':8189';
+            } catch (e) {}
+            return 'http://127.0.0.1:8189';
+        }
+
+        function copyShutdownScript() {
+            const ta = document.getElementById('shutdown-script');
+            ta.select();
+            navigator.clipboard ? navigator.clipboard.writeText(ta.value).then(() => showToast('스크립트를 복사했습니다.', 'success')) : (document.execCommand('copy'), showToast('스크립트를 복사했습니다.', 'success'));
+        }
+
+        async function shutdownPC() {
+            let url = (document.getElementById('shutdown-url').value || '').trim();
+            const token = (document.getElementById('shutdown-token').value || '').trim();
+            if (!url) { showToast('종료 도우미 주소를 입력하세요.', 'error'); return; }
+            if (!/^https?:\/\//i.test(url)) url = 'http://' + url;
+            url = url.replace(/\/+$/, '');
+            try { localStorage.setItem(SHUTDOWN_KEY, JSON.stringify({ url, token })); } catch (e) {}
+            showConfirm('정말 PC를 종료할까요? 진행 중인 작업이 모두 종료됩니다.', async () => {
+                const st = document.getElementById('shutdown-status');
+                st.textContent = '종료 요청 중...'; st.style.color = 'var(--text-dim)';
+                try {
+                    const res = await fetch(`${url}/shutdown?token=${encodeURIComponent(token)}`, { method: 'POST' });
+                    if (res.ok) { st.textContent = '✅ 종료 명령 전송됨 — 곧 꺼집니다.'; st.style.color = 'var(--accent-green)'; showToast('PC 종료 명령을 보냈습니다.', 'success', 4000); }
+                    else { st.innerHTML = '❌ 거부됨 (토큰 불일치?)'; st.style.color = 'var(--accent-danger)'; }
+                } catch (e) {
+                    st.innerHTML = '❌ 연결 실패 — 도우미 스크립트가 실행 중인지, 주소가 맞는지 확인';
+                    st.style.color = 'var(--accent-danger)';
+                }
+            });
         }
 
         // ─────────────────────────────────────────────────────────────
