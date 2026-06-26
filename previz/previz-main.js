@@ -108,6 +108,36 @@ export async function openPreviz() {
     const tabbar = document.getElementById('mobile-tabbar');
     if (tabbar) tabbar.style.display = 'none';
 
+    // 모바일 반응형 CSS (최초 1회)
+    if (!document.getElementById('previz-mobile-style')) {
+        const mStyle = document.createElement('style');
+        mStyle.id = 'previz-mobile-style';
+        mStyle.textContent = `
+            @media (max-width: 640px) {
+                #previz-header-subtitle { display: none !important; }
+                #previz-tag-count { display: none !important; }
+                #previz-close-btn { padding: 5px 10px !important; font-size: 11px !important; }
+                #previz-readout { display: none !important; }
+                #previz-part-panel {
+                    top: auto !important; bottom: 56px !important;
+                    right: 8px !important; left: 8px !important;
+                    width: auto !important; max-height: 52vh !important;
+                }
+                #previz-hud {
+                    bottom: 4px !important; left: 4px !important;
+                    right: 4px !important; width: auto;
+                    flex-wrap: nowrap !important; overflow-x: auto !important;
+                    justify-content: flex-start !important;
+                    -webkit-overflow-scrolling: touch;
+                    scrollbar-width: none;
+                }
+                #previz-hud::-webkit-scrollbar { display: none; }
+                .previz-callout { font-size: 10px !important; padding: 3px 7px !important; }
+            }
+        `;
+        document.head.appendChild(mStyle);
+    }
+
     // 프리비주얼 컨테이너 생성 or 재사용
     let container = document.getElementById('previz-container');
     if (!container) {
@@ -119,28 +149,30 @@ export async function openPreviz() {
             'flex-direction:column', 'overflow:hidden',
         ].join(';');
 
-        // 헤더 바 (Blender/VRoid 스타일)
+        // 헤더 바
         const header = document.createElement('div');
+        header.id = 'previz-header';
         header.style.cssText = [
             'display:flex', 'align-items:center', 'justify-content:space-between',
-            'padding:8px 14px', 'background:#1e2228',
-            'border-bottom:1px solid #2e333d',
+            'padding:6px 12px', 'background:#1a1e26',
+            'border-bottom:1px solid #252b35',
             'flex-shrink:0', 'font-family:system-ui,sans-serif',
+            'min-height:40px',
         ].join(';');
         header.innerHTML = `
-            <div style="display:flex;align-items:center;gap:10px;">
-                <span style="color:#e8e8ec;font-size:13px;font-weight:600;letter-spacing:0.5px;">
-                    🎬 Prompt Preview Studio
+            <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+                <span style="color:#d8dde8;font-size:13px;font-weight:600;white-space:nowrap;">
+                    🎬 Preview Studio
                 </span>
-                <span style="color:#555b66;font-size:11px;">실시간 3D 프리뷰</span>
+                <span id="previz-header-subtitle" style="color:#4a5260;font-size:11px;white-space:nowrap;">실시간 3D</span>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;">
-                <span id="previz-tag-count" style="color:#7a8494;font-size:11px;background:#252930;padding:3px 9px;border-radius:4px;"></span>
+            <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+                <span id="previz-tag-count" style="color:#6a7384;font-size:11px;background:#1e2330;padding:2px 8px;border-radius:4px;"></span>
                 <button id="previz-close-btn" style="
-                    background:#2a2f38;border:1px solid #3a414d;
-                    color:#c8cdd6;border-radius:5px;padding:5px 14px;
-                    font-size:12px;cursor:pointer;font-family:inherit;
-                " onmouseover="this.style.background='#343b47'" onmouseout="this.style.background='#2a2f38'">✕ 닫기</button>
+                    background:#222830;border:1px solid #333a47;
+                    color:#b8c0ce;border-radius:6px;padding:5px 12px;
+                    font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap;
+                " onmouseover="this.style.background='#2c3340'" onmouseout="this.style.background='#222830'">✕ 닫기</button>
             </div>
         `;
         container.appendChild(header);
@@ -151,15 +183,15 @@ export async function openPreviz() {
         canvasWrap.style.cssText = 'flex:1;position:relative;overflow:hidden;';
         container.appendChild(canvasWrap);
 
-        // 프롬프트 readout (하단)
+        // 프롬프트 readout (하단 — 모바일에서 숨김)
         const readout = document.createElement('div');
         readout.id = 'previz-readout';
         readout.style.cssText = [
-            'padding:7px 14px', 'background:#181b21',
-            'border-top:1px solid #262b34',
-            'font-family:system-ui,sans-serif', 'font-size:11px',
-            'color:#6b7585', 'line-height:1.5',
-            'max-height:48px', 'overflow:hidden', 'flex-shrink:0',
+            'padding:5px 12px', 'background:#161920',
+            'border-top:1px solid #202530',
+            'font-family:system-ui,sans-serif', 'font-size:10px',
+            'color:#585f6e', 'line-height:1.5',
+            'max-height:36px', 'overflow:hidden', 'flex-shrink:0',
         ].join(';');
         readout.textContent = '— 태그를 선택하면 캐릭터가 업데이트됩니다 —';
         container.appendChild(readout);
