@@ -1938,19 +1938,20 @@
                             star.className = `fa-star tag-fav-icon ${favorites.includes(data.t) ? 'fa-solid active' : 'fa-regular'}`;
                             star.onclick = (e) => { e.stopPropagation(); toggleFavorite(data.t); };
                             btn.appendChild(star);
-                            // 같은 태그를 350ms 내 두 번 클릭 = 수정(더블클릭). 서로 다른 태그를
-                            // 빠르게 연속 선택할 땐 트래커가 리셋되어 수정창이 뜨지 않음.
+                            // 더블클릭 = 편집. 첫 클릭을 250ms 지연 후 실행해서
+                            // 더블클릭이 감지되면 토글 없이 편집창만 연다.
                             btn.onclick = () => {
-                                const now = Date.now();
-                                const last = window.__lastTagClick || { tag: null, time: 0 };
-                                if (last.tag === data.t && (now - last.time) < 350) {
-                                    window.__lastTagClick = { tag: null, time: 0 };
-                                    handleTagToggle(btn, data.t, data.n, i); // 직전 단일 클릭 토글 되돌림
+                                if (btn._clickTimer) {
+                                    // 250ms 내 두 번째 클릭 → 더블클릭 확정, 토글 취소 후 편집
+                                    clearTimeout(btn._clickTimer);
+                                    btn._clickTimer = null;
                                     openTagInlineEdit(btn, data);
                                     return;
                                 }
-                                window.__lastTagClick = { tag: data.t, time: now };
-                                handleTagToggle(btn, data.t, data.n, i);
+                                btn._clickTimer = setTimeout(() => {
+                                    btn._clickTimer = null;
+                                    handleTagToggle(btn, data.t, data.n, i);
+                                }, 250);
                             };
                             setupTagDrag(btn, i, subLayerRaw);
                             activeTagsMap[data.t] = { neg: data.n, layer: i, kor: data.k || data.t, c: data.c || "", folderId: folderId, color: subColor };

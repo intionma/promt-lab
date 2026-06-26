@@ -619,8 +619,8 @@ export class PrevizScene {
         this._weather?.update();
         if (this.vrm) this.vrm.update(dt);
         if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera);
-        // callout 투영: 3프레임에 1번이면 충분 (느리게 움직임)
-        if ((this._frame % 3) === 0) this.onFrameTick?.();
+        // callout 투영: 드래그 중에는 매 프레임, 정지 시 3프레임 주기
+        if (this._orbit.drag || (this._frame % 3) === 0) this.onFrameTick?.();
     }
 
     resize() {
