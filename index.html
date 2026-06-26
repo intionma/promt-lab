@@ -5254,46 +5254,6 @@
                 }
             });
 
-            // ── 3. 범주별 자연 명사구 요약 ──────────────────────────────
-            // 자동 산문(구어체) 대신, 의미 그룹을 자연스러운 명사구로 묶어 표시.
-            // 동사 어미 강제가 없어 어색하지 않고, 태그가 많아져도 깔끔히 확장됨.
-            const _SECTIONS = [
-                { icon:'👤', label:'인물',     keys:['gender','nationality'] },
-                { icon:'💇', label:'헤어',     keys:['hairColor','hairLen','hairStyle'] },
-                { icon:'👁️', label:'눈·얼굴',  keys:['eyeColor','faceDetail','gaze'] },
-                { icon:'🙂', label:'표정',     keys:['exp','makeup'] },
-                { icon:'🧍', label:'체형·피부', keys:['bodySize','chest','skin','bodyDetail'] },
-                { icon:'👗', label:'의상',     keys:['clothes','bottoms','legwear','footwear'] },
-                { icon:'💍', label:'악세서리',  keys:['accessory','jewelry'] },
-                { icon:'🤸', label:'포즈',     keys:['pose','gesture'] },
-                { icon:'🏞️', label:'배경',     keys:['inOut','bgPlace','bgType','furniture'] },
-                { icon:'🕒', label:'시간·날씨', keys:['time','weather'] },
-                { icon:'🎬', label:'구도·연출', keys:['angle','camera','lighting','particles'] },
-                { icon:'✨', label:'화풍·품질', keys:['style','colorTone','quality','rating'] },
-            ];
-            const _seenKV = new Set();
-            const _rows = [];
-            _SECTIONS.forEach(sec => {
-                const items = [];
-                sec.keys.forEach(k => (G[k] || []).forEach(v => {
-                    const kk = sec.label + '|' + v;
-                    if (v && !_seenKV.has(kk)) { _seenKV.add(kk); items.push(v); }
-                }));
-                if (!items.length) return;
-                const joined = items
-                    .map(t => `<span style="color:var(--text-main);">${t}</span>`)
-                    .join('<span style="color:var(--text-dim);opacity:0.55;"> · </span>');
-                _rows.push(
-                    `<div style="display:flex;gap:10px;align-items:baseline;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.045);">`
-                  + `<span style="flex-shrink:0;min-width:64px;font-size:11px;color:var(--text-dim);font-weight:700;letter-spacing:-0.3px;">${sec.icon} ${sec.label}</span>`
-                  + `<span style="font-size:13px;line-height:1.65;font-weight:500;">${joined}</span>`
-                  + `</div>`
-                );
-            });
-            if (!_rows.length) return '<span style="color:var(--text-dim);">등록된 태그가 없습니다.</span>';
-            return `<div style="display:flex;flex-direction:column;">${_rows.join('')}</div>`;
-
-            // ───────── (이하 레거시 산문 엔진 — 위 return 으로 인해 실행되지 않음) ─────────
             // ── 3. 헬퍼 ──
             const ip = w => _ptcl(w,'이','가');
             const ep = w => _ptcl(w,'은','는');
