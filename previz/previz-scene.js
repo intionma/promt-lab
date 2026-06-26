@@ -181,7 +181,8 @@ export class PrevizScene {
         // 포스트프로세싱 (블룸 = 홀로그램 글로우)
         this.composer = new EffectComposer(this.renderer);
         this.composer.addPass(new RenderPass(this.scene, this.camera));
-        this.bloomPass = new UnrealBloomPass(new THREE.Vector2(w, h), 0.35, 0.4, 0.8);
+        // 블룸은 절반 해상도로 계산 (성능 절감, 체감 품질 차이 미미)
+        this.bloomPass = new UnrealBloomPass(new THREE.Vector2(w>>1, h>>1), 0.35, 0.4, 0.8);
         this.composer.addPass(this.bloomPass);
 
         // CSS 스캔라인/비네트 오버레이
@@ -278,8 +279,8 @@ export class PrevizScene {
 
     // ── 홀로그램 스테이지 (바닥 파티클 웨이브 + 링) ──────────────
     _buildStage() {
-        // 파티클 웨이브 그리드
-        const N=80, M=80, pos=[];
+        // 파티클 웨이브 그리드 (48×48=2304 pts, 80×80 대비 64% 감소)
+        const N=48, M=48, pos=[];
         for (let i=0;i<N;i++) for (let j=0;j<M;j++){ pos.push((i/N-0.5)*7, 0, (j/M-0.5)*7); }
         const geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(pos),3));
@@ -606,8 +607,9 @@ export class PrevizScene {
     _loop() {
         this.animId = requestAnimationFrame(() => this._loop());
         const dt = this.clock.getDelta();
-        // 파티클 웨이브
-        if (this._stage.grid) {
+        this._frame = (this._frame || 0) + 1;
+        // 파티클 웨이브: 격frame 업데이트 (시각적 차이 없음)
+        if (this._stage.grid && (this._frame & 1) === 0) {
             const a = this._stage.grid.geometry.attributes.position.array;
             const b = this._stage.gridBase; const tt = this.clock.elapsedTime;
             for (let i=0;i<a.length;i+=3) a[i+1] = Math.sin(b[i]*1.1+tt*1.3)*0.09 + Math.cos(b[i+2]*0.9+tt)*0.07;
@@ -617,7 +619,8 @@ export class PrevizScene {
         this._weather?.update();
         if (this.vrm) this.vrm.update(dt);
         if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera);
-        this.onFrameTick?.();
+        // callout 투영: 3프레임에 1번이면 충분 (느리게 움직임)
+        if ((this._frame % 3) === 0) this.onFrameTick?.();
     }
 
     resize() {
@@ -626,7 +629,7 @@ export class PrevizScene {
         const h = this.container.clientHeight || window.innerHeight;
         this.renderer.setSize(w, h);
         this.composer?.setSize(w, h);
-        this.bloomPass?.setSize(w, h);
+        this.bloomPass?.setSize(w>>1, h>>1);
         this.camera.aspect = w/h; this.camera.updateProjectionMatrix();
     }
 
