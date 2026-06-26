@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v8.9 &nbsp;·&nbsp; 2026-06-26 — 번역 접으면 복사/전송 버튼 위로</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.0 &nbsp;·&nbsp; 2026-06-26 — 프롬프트 노드 직접 선택 (커스텀 노드 지원)</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -1454,40 +1454,49 @@
             }
             _comfyCustomWF = wf;
 
-            // CLIPTextEncode 계열 노드 수집
-            const clipNodes = ids.filter(id => /CLIPTextEncode/i.test(wf[id].class_type) && _comfyTextField(wf[id]));
-            // KSampler 계열에서 positive/negative 추적
+            // 문자열 입력을 가진 모든 노드를 프롬프트 후보로 수집 (CLIPTextEncode 외 커스텀 노드도 포함)
+            // 프롬프트일 가능성이 높은 노드(클래스/제목에 prompt/text/clip/encode 포함)를 앞쪽으로 정렬
+            const isLikely = (id) => /prompt|text|clip|encode|conditioning|wildcard/i.test(wf[id].class_type + ' ' + (wf[id]._meta?.title || ''));
+            const textNodes = ids.filter(id => _comfyTextField(wf[id]))
+                .sort((a, b) => (isLikely(b) ? 1 : 0) - (isLikely(a) ? 1 : 0));
+
+            // 샘플러 계열에서 positive/negative 링크 추적 (가능하면 자동 감지)
             let posId = null, negId = null;
             for (const id of ids) {
-                if (/KSampler|SamplerCustom/i.test(wf[id].class_type)) {
+                if (/KSampler|SamplerCustom|Sampler/i.test(wf[id].class_type)) {
                     const inp = wf[id].inputs || {};
-                    if (Array.isArray(inp.positive)) posId = String(inp.positive[0]);
-                    if (Array.isArray(inp.negative)) negId = String(inp.negative[0]);
-                    if (posId || negId) break;
+                    if (!posId && Array.isArray(inp.positive)) posId = String(inp.positive[0]);
+                    if (!negId && Array.isArray(inp.negative)) negId = String(inp.negative[0]);
                 }
             }
+            // 추적된 노드가 문자열 입력이 없으면(예: 컨디셔닝 결합 노드) 후보 중 첫/둘째로 대체
+            if (posId && !_comfyTextField(wf[posId])) posId = null;
+            if (negId && !_comfyTextField(wf[negId])) negId = null;
+
             const posSel = document.getElementById('comfy-wf-pos');
             const negSel = document.getElementById('comfy-wf-neg');
             const fill = (sel) => {
                 sel.innerHTML = '';
-                clipNodes.forEach(id => {
+                textNodes.forEach(id => {
                     const o = document.createElement('option');
                     o.value = id;
-                    o.textContent = `#${id} · ${wf[id].class_type} · "${_comfyTextPreview(wf[id])}"`;
+                    const title = wf[id]._meta?.title ? ` · ${wf[id]._meta.title}` : '';
+                    o.textContent = `#${id} · ${wf[id].class_type}${title} · "${_comfyTextPreview(wf[id])}"`;
                     sel.appendChild(o);
                 });
             };
             fill(posSel); fill(negSel);
-            if (posId && clipNodes.includes(posId)) posSel.value = posId;
-            if (negId && clipNodes.includes(negId)) negSel.value = negId;
+            // 자동 감지값 우선, 없으면 후보 순서로 긍정=1번째, 부정=2번째 추정
+            posSel.value = (posId && textNodes.includes(posId)) ? posId : (textNodes[0] || '');
+            negSel.value = (negId && textNodes.includes(negId)) ? negId : (textNodes.find(id => id !== posSel.value) || textNodes[0] || '');
 
-            document.getElementById('comfy-wf-map').style.display = clipNodes.length ? 'flex' : 'none';
-            if (!clipNodes.length) {
-                statusEl.innerHTML = '⚠ CLIPTextEncode 노드를 못 찾았습니다. 프롬프트 노드가 다른 형식일 수 있어요.';
+            document.getElementById('comfy-wf-map').style.display = textNodes.length ? 'flex' : 'none';
+            if (!textNodes.length) {
+                statusEl.innerHTML = '⚠ 텍스트 입력이 있는 노드를 못 찾았습니다. 프롬프트가 외부 파일/위젯으로 들어가는 워크플로우일 수 있어요.';
                 statusEl.style.color = '#f59e0b';
             } else {
-                const auto = (posId && negId) ? ' (긍정/부정 자동 감지됨)' : ' — 노드를 직접 골라주세요';
-                statusEl.innerHTML = `✅ 노드 ${ids.length}개 · 프롬프트 노드 ${clipNodes.length}개${auto}`;
+                const auto = (posId && negId) ? ' (긍정/부정 자동 감지됨)' : ' — 아래에서 긍정/부정 노드를 직접 골라주세요';
+                statusEl.innerHTML = `✅ 노드 ${ids.length}개 · 프롬프트 후보 ${textNodes.length}개${auto}`;
                 statusEl.style.color = 'var(--accent-green)';
             }
 
