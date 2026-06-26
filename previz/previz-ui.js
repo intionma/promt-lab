@@ -256,7 +256,6 @@ function buildParamPane(def) {
 function getParamDefs(calloutId, state) {
     switch (calloutId) {
         case 'hair': return [
-            { type:'slider',     label:'길이',   channel:'hair.length', min:0.05, max:1.40, step:0.05 },
             { type:'color-pick', label:'색상',   channel:'hair.color',
               presets: [
                 { label:'시안',  value:'#00eaff'}, { label:'금발',  value:'#f5d060'},
@@ -264,11 +263,6 @@ function getParamDefs(calloutId, state) {
                 { label:'핑크',  value:'#ff80b0'}, { label:'은발',  value:'#c0c8d8'},
                 { label:'빨강',  value:'#cc2200'}, { label:'하양',  value:'#e8eaf0'},
                 { label:'보라',  value:'#9933ff'}, { label:'파랑',  value:'#2244cc'},
-              ]},
-            { type:'enum', label:'스타일', channel:'hair.style',
-              options:[
-                {value:'straight',label:'생머리'},{value:'ponytail',label:'포니테일'},
-                {value:'twintails',label:'트윈테일'},{value:'braid',label:'브레이드'},
               ]},
         ];
         case 'face': return [
@@ -281,8 +275,7 @@ function getParamDefs(calloutId, state) {
               ]},
         ];
         case 'upper': return [
-            { type:'slider', label:'키',   channel:'body.height', min:0.78, max:1.20, step:0.01 },
-            { type:'slider', label:'가슴', channel:'body.chest',  min:0.50, max:1.80, step:0.05 },
+            { type:'slider', label:'키', channel:'body.height', min:0.85, max:1.15, step:0.01 },
         ];
         case 'pose': return [
             { type:'pose' },
