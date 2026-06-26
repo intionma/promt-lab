@@ -737,6 +737,22 @@
                     <div class="combo-grid" id="combo-list-container"></div>
                 </div>
             </div>
+
+            <!-- 실험적 기능 버튼 -->
+            <div style="flex-shrink:0; padding:10px 14px 12px;">
+                <button id="btn-previz" onclick="window.__previzOpen && window.__previzOpen()" style="
+                    width:100%; padding:9px 0; border-radius:8px;
+                    background:linear-gradient(135deg,rgba(0,60,80,0.7),rgba(0,30,50,0.9));
+                    border:1px solid rgba(0,234,255,0.25); color:#00eaff;
+                    font-family:monospace; font-size:12px; letter-spacing:2px;
+                    cursor:pointer; display:flex; align-items:center; justify-content:center;
+                    gap:8px; transition:border-color 0.2s,box-shadow 0.2s;
+                " onmouseover="this.style.borderColor='rgba(0,234,255,0.6)';this.style.boxShadow='0 0 12px rgba(0,234,255,0.15)'"
+                   onmouseout="this.style.borderColor='rgba(0,234,255,0.25)';this.style.boxShadow=''">
+                    <i class="fa-solid fa-cube" style="font-size:11px;"></i>
+                    실험적 기능 — 홀로그램 프리비주얼
+                </button>
+            </div>
         </aside>
 
         <div class="panel-resize-handle" id="resize-handle-1"></div>
@@ -7261,6 +7277,14 @@
             }
         })();
         // ────────────────────────────────────────────────────────────────────
+    </script>
+
+    <!-- 홀로그램 프리비주얼 모듈 -->
+    <script type="module">
+        import { openPreviz, closePreviz, hookIntoApp } from './previz/previz-main.js';
+        window.__previzOpen = openPreviz;
+        window.__previzClose = closePreviz;
+        hookIntoApp();
     </script>
 
 </body>
