@@ -64,9 +64,11 @@
             flex-shrink: 0; display: flex; align-items: center; gap: 14px;
             height: 50px; padding: 0 16px;
             background: var(--bg-panel); border-bottom: 1px solid var(--border-dim);
-            overflow-x: auto; overflow-y: hidden; white-space: nowrap; z-index: 50;
+            overflow: visible; white-space: nowrap; z-index: 50; position: relative;
         }
-        #global-topbar::-webkit-scrollbar { height: 0; }
+        /* 버튼들만 가로 스크롤 (브랜드/툴팁은 바깥에 있어 잘리지 않음) */
+        .gt-scroll { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; }
+        .gt-scroll::-webkit-scrollbar { height: 0; }
         .gt-brand { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-heading); font-weight: 800; font-size: 15px; color: var(--text-main); flex-shrink: 0; position: relative; cursor: default; }
         .gt-brand > i { color: var(--accent-blue); }
         .gt-group { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
@@ -806,8 +808,9 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v8.2 &nbsp;·&nbsp; 2026-06-26 — DB검사 정규화 중복감지 · 일괄적용</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v8.3 &nbsp;·&nbsp; 2026-06-26 — 버전 툴팁 노출 수정 · DB검사 개선</span></span>
         <div class="gt-divider"></div>
+        <div class="gt-scroll">
         <div class="gt-group">
             <button class="gt-btn" style="--gc:#a78bfa;" onclick="openPromptClassifyModal()" title="프롬프트 붙여넣기 → 자동 분류 → DB 추가"><i class="fa-solid fa-wand-magic-sparkles"></i><span class="gt-label">자동 분류</span></button>
             <button class="gt-btn" style="--gc:#ec4899;" onclick="openDBAuditModal()" title="DB 검사 — Pony/Danbooru 사전 기준 계층 검증 + 중복 감지"><i class="fa-solid fa-clipboard-check"></i><span class="gt-label">DB 검사</span></button>
@@ -828,6 +831,7 @@
             <div class="gt-divider"></div>
             <button class="gt-btn" style="--gc:var(--accent-green);" onclick="openPresetManager()" title="프리셋 관리"><i class="fa-solid fa-floppy-disk"></i></button>
             <button class="gt-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i class="fa-solid fa-sun"></i></button>
+        </div>
         </div>
     </header>
 
