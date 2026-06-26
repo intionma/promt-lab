@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.1 &nbsp;·&nbsp; 2026-06-26 — 프롬프트 주입 방식 (덮어쓰기/앞·뒤 추가)</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.2 &nbsp;·&nbsp; 2026-06-26 — 토글 그룹 노드 검색 필터</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -1174,8 +1174,9 @@
                             <details style="background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px;">
                                 <summary style="cursor:pointer; font-size:12px; color:var(--text-main); font-weight:700;"><i class="fa-solid fa-plus"></i> 새 토글 그룹 만들기</summary>
                                 <div style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
-                                    <div style="font-size:11px; color:var(--text-dim);">끄고 켜고 싶은 노드를 선택하세요. (예: FaceDetailer, LoraLoader). OFF 시 해당 노드를 우회(bypass)합니다.</div>
-                                    <div id="comfy-node-list" style="max-height:160px; overflow-y:auto; display:flex; flex-direction:column; gap:3px; background:var(--bg-base); border:1px solid var(--border-dim); border-radius:6px; padding:6px;"></div>
+                                    <div style="font-size:11px; color:var(--text-dim);">끄고 켜고 싶은 노드를 선택하세요. (예: UltimateSDUpscale, UpscaleModelLoader, FaceDetailer, LoraLoader). OFF 시 해당 노드를 우회(bypass)합니다. <b style="color:#f59e0b;">※ ComfyUI에서 bypass/뮤트된 노드는 API JSON에 안 들어가니, 켠 상태로 저장하세요.</b></div>
+                                    <input id="comfy-node-search" type="text" placeholder="노드 검색 (예: upscale)" oninput="comfyFilterNodeList()" style="background:var(--input-bg); border:1px solid var(--border-dim); border-radius:6px; padding:6px 9px; color:var(--text-main); font-size:12px; outline:none;">
+                                    <div id="comfy-node-list" style="max-height:180px; overflow-y:auto; display:flex; flex-direction:column; gap:3px; background:var(--bg-base); border:1px solid var(--border-dim); border-radius:6px; padding:6px;"></div>
                                     <div style="display:flex; gap:6px;">
                                         <input id="comfy-group-name" type="text" placeholder="그룹 이름 (예: 얼굴 디테일러)" style="flex:1; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:6px; padding:7px 10px; color:var(--text-main); font-size:12px; outline:none;">
                                         <button class="action-btn" onclick="comfyCreateGroup()" style="color:#22c55e; border-color:#22c55e;"><i class="fa-solid fa-check"></i> 그룹 추가</button>
@@ -1535,6 +1536,13 @@
             try { const r = await fetch(_comfyBase() + '/object_info'); _comfyObjectInfo = await r.json(); }
             catch (e) { _comfyObjectInfo = {}; }
             return _comfyObjectInfo;
+        }
+
+        function comfyFilterNodeList() {
+            const q = (document.getElementById('comfy-node-search').value || '').toLowerCase().trim();
+            document.querySelectorAll('#comfy-node-list label').forEach(lbl => {
+                lbl.style.display = (!q || lbl.textContent.toLowerCase().includes(q)) ? 'flex' : 'none';
+            });
         }
 
         function comfyCreateGroup() {
