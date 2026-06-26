@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v8.5 &nbsp;·&nbsp; 2026-06-26 — 이미지 갤러리 탭 추가</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v8.6 &nbsp;·&nbsp; 2026-06-26 — 내 ComfyUI 워크플로우 연동</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -1124,8 +1124,46 @@
                     <span id="comfy-conn-status" style="font-size:12px; color:var(--text-dim); align-self:center;"></span>
                 </div>
 
-                <!-- 생성 파라미터 -->
-                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px;">
+                <!-- 워크플로우 소스 선택 -->
+                <div>
+                    <label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:6px;">워크플로우 소스</label>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button type="button" id="comfy-wfmode-basic" class="io-pill active" style="--pc:#a78bfa;" onclick="comfySetWfMode('basic')"><i class="fa-solid fa-bolt"></i> 기본 (간단 생성)</button>
+                        <button type="button" id="comfy-wfmode-custom" class="io-pill" style="--pc:#38bdf8;" onclick="comfySetWfMode('custom')"><i class="fa-solid fa-diagram-project"></i> 내 워크플로우 (ComfyUI 세팅 그대로)</button>
+                    </div>
+                </div>
+
+                <!-- 내 워크플로우 (API JSON) -->
+                <div id="comfy-custom-wf" style="display:none; flex-direction:column; gap:10px; border:1px solid rgba(56,189,248,0.3); border-radius:10px; padding:14px; background:rgba(56,189,248,0.04);">
+                    <div style="font-size:12px; color:var(--text-dim); line-height:1.6;">
+                        <b style="color:#38bdf8;">내 ComfyUI 세팅 그대로 사용</b> — 부정 프롬프트·얼굴 디테일러·시드·스텝·LoRA·업스케일 등 전부 유지되고, <b>앱이 만든 긍정 프롬프트만 주입</b>합니다.<br>
+                        <span style="font-size:11px;">① ComfyUI 설정(⚙) → <code>Enable Dev mode Options</code> 체크 → ② 상단 <code>Save (API Format)</code> 로 받은 JSON을 아래에 붙여넣고 <b>분석</b>을 누르세요.</span>
+                    </div>
+                    <textarea id="comfy-wf-json" placeholder='{ "3": { "class_type": "KSampler", ... }, ... }  ← Save (API Format) JSON' style="width:100%; min-height:90px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:10px; color:var(--text-main); font-family:var(--font-code); font-size:12px; outline:none; resize:vertical;"></textarea>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <button class="action-btn" onclick="comfyAnalyzeWorkflow()" style="color:#38bdf8; border-color:#38bdf8;"><i class="fa-solid fa-magnifying-glass-chart"></i> 분석</button>
+                        <span id="comfy-wf-status" style="font-size:12px; color:var(--text-dim);"></span>
+                    </div>
+                    <div id="comfy-wf-map" style="display:none; flex-direction:column; gap:10px;">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <div>
+                                <label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">긍정 프롬프트 노드</label>
+                                <select id="comfy-wf-pos" class="comfy-num"></select>
+                            </div>
+                            <div>
+                                <label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">부정 프롬프트 노드</label>
+                                <select id="comfy-wf-neg" class="comfy-num"></select>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--text-main);">
+                            <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="comfy-wf-negoverride"> 부정 프롬프트도 앱 값으로 교체</label>
+                            <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="comfy-wf-randseed" checked> 매번 시드 랜덤</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 생성 파라미터 (기본 모드 전용) -->
+                <div id="comfy-basic-params" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px;">
                     <div style="grid-column:1/-1;">
                         <label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:5px;">체크포인트 (모델 파일명)</label>
                         <input id="comfy-ckpt" list="comfy-ckpt-list" type="text" placeholder="ponyRealism_v23.safetensors" style="width:100%; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:9px 12px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;">
@@ -1155,7 +1193,7 @@
                         </div>
                     </div>
                 </div>
-                <p style="font-size:11px; color:var(--text-dim); margin:-6px 0 0;">Seed = -1 이면 매번 랜덤. 긍정/부정 프롬프트는 현재 결과 패널 내용을 자동으로 사용합니다.</p>
+                <p id="comfy-basic-hint" style="font-size:11px; color:var(--text-dim); margin:-6px 0 0;">Seed = -1 이면 매번 랜덤. 긍정/부정 프롬프트는 현재 결과 패널 내용을 자동으로 사용합니다.</p>
 
                 <!-- 전송 + 진행률 -->
                 <div style="display:flex; gap:10px; align-items:center;">
@@ -1257,6 +1295,9 @@
             return u.replace(/\/+$/, '');
         }
 
+        let _comfyWfMode = 'basic';
+        let _comfyCustomWF = null; // 파싱된 API 워크플로우
+
         function _comfySaveSettings() {
             try {
                 localStorage.setItem(COMFY_KEY, JSON.stringify({
@@ -1268,8 +1309,23 @@
                     h: document.getElementById('comfy-h').value,
                     sampler: document.getElementById('comfy-sampler').value,
                     scheduler: document.getElementById('comfy-scheduler').value,
+                    wfMode: _comfyWfMode,
+                    wfJson: document.getElementById('comfy-wf-json').value,
+                    wfNegOverride: document.getElementById('comfy-wf-negoverride').checked,
+                    wfRandSeed: document.getElementById('comfy-wf-randseed').checked,
                 }));
             } catch (e) {}
+        }
+
+        function comfySetWfMode(mode) {
+            _comfyWfMode = mode;
+            document.getElementById('comfy-wfmode-basic').classList.toggle('active', mode === 'basic');
+            document.getElementById('comfy-wfmode-custom').classList.toggle('active', mode === 'custom');
+            document.getElementById('comfy-custom-wf').style.display = mode === 'custom' ? 'flex' : 'none';
+            // 기본 모드 전용 파라미터(체크포인트/스텝/cfg 등) 숨김
+            document.getElementById('comfy-basic-params').style.display = mode === 'custom' ? 'none' : 'grid';
+            document.getElementById('comfy-basic-hint').style.display = mode === 'custom' ? 'none' : 'block';
+            _comfySaveSettings();
         }
 
         function openComfyModal() {
@@ -1284,9 +1340,88 @@
                 if (s.h) document.getElementById('comfy-h').value = s.h;
                 if (s.sampler) document.getElementById('comfy-sampler').value = s.sampler;
                 if (s.scheduler) document.getElementById('comfy-scheduler').value = s.scheduler;
+                if (s.wfJson) document.getElementById('comfy-wf-json').value = s.wfJson;
+                if (s.wfNegOverride) document.getElementById('comfy-wf-negoverride').checked = true;
+                if (s.wfRandSeed !== undefined) document.getElementById('comfy-wf-randseed').checked = s.wfRandSeed;
+                comfySetWfMode(s.wfMode || 'basic');
+                if ((s.wfMode === 'custom') && s.wfJson) comfyAnalyzeWorkflow(true);
             } catch (e) {}
             if (!document.getElementById('comfy-url').value) document.getElementById('comfy-url').value = 'http://127.0.0.1:8188';
             document.getElementById('comfy-modal').style.display = 'flex';
+        }
+
+        // CLIPTextEncode 계열 노드에서 텍스트 입력 필드명 찾기 (text / text_g 등)
+        function _comfyTextField(node) {
+            if (!node || !node.inputs) return null;
+            if (typeof node.inputs.text === 'string') return 'text';
+            if (typeof node.inputs.text_g === 'string') return 'text_g';
+            if (typeof node.inputs.text_l === 'string') return 'text_l';
+            // 그 외 문자열 입력 첫 번째
+            for (const k in node.inputs) { if (typeof node.inputs[k] === 'string') return k; }
+            return null;
+        }
+
+        function _comfyTextPreview(node) {
+            const f = _comfyTextField(node);
+            const v = f ? String(node.inputs[f]) : '';
+            return v.length > 40 ? v.slice(0, 40) + '…' : (v || '(빈 텍스트)');
+        }
+
+        function comfyAnalyzeWorkflow(silent) {
+            const statusEl = document.getElementById('comfy-wf-status');
+            const raw = document.getElementById('comfy-wf-json').value.trim();
+            if (!raw) { if (!silent) statusEl.textContent = 'JSON을 붙여넣으세요.'; return; }
+            let wf;
+            try { wf = JSON.parse(raw); } catch (e) {
+                statusEl.innerHTML = '❌ JSON 파싱 실패 — <code>Save (API Format)</code> 형식인지 확인';
+                statusEl.style.color = 'var(--accent-danger)'; return;
+            }
+            // API 포맷 검증: {id: {class_type, inputs}}
+            const ids = Object.keys(wf);
+            const looksApi = ids.length && wf[ids[0]] && wf[ids[0]].class_type;
+            if (!looksApi) {
+                statusEl.innerHTML = '❌ 일반 워크플로우 형식 같습니다. ComfyUI에서 <code>Save (API Format)</code>로 받아주세요.';
+                statusEl.style.color = 'var(--accent-danger)'; return;
+            }
+            _comfyCustomWF = wf;
+
+            // CLIPTextEncode 계열 노드 수집
+            const clipNodes = ids.filter(id => /CLIPTextEncode/i.test(wf[id].class_type) && _comfyTextField(wf[id]));
+            // KSampler 계열에서 positive/negative 추적
+            let posId = null, negId = null;
+            for (const id of ids) {
+                if (/KSampler|SamplerCustom/i.test(wf[id].class_type)) {
+                    const inp = wf[id].inputs || {};
+                    if (Array.isArray(inp.positive)) posId = String(inp.positive[0]);
+                    if (Array.isArray(inp.negative)) negId = String(inp.negative[0]);
+                    if (posId || negId) break;
+                }
+            }
+            const posSel = document.getElementById('comfy-wf-pos');
+            const negSel = document.getElementById('comfy-wf-neg');
+            const fill = (sel) => {
+                sel.innerHTML = '';
+                clipNodes.forEach(id => {
+                    const o = document.createElement('option');
+                    o.value = id;
+                    o.textContent = `#${id} · ${wf[id].class_type} · "${_comfyTextPreview(wf[id])}"`;
+                    sel.appendChild(o);
+                });
+            };
+            fill(posSel); fill(negSel);
+            if (posId && clipNodes.includes(posId)) posSel.value = posId;
+            if (negId && clipNodes.includes(negId)) negSel.value = negId;
+
+            document.getElementById('comfy-wf-map').style.display = clipNodes.length ? 'flex' : 'none';
+            if (!clipNodes.length) {
+                statusEl.innerHTML = '⚠ CLIPTextEncode 노드를 못 찾았습니다. 프롬프트 노드가 다른 형식일 수 있어요.';
+                statusEl.style.color = '#f59e0b';
+            } else {
+                const auto = (posId && negId) ? ' (긍정/부정 자동 감지됨)' : ' — 노드를 직접 골라주세요';
+                statusEl.innerHTML = `✅ 노드 ${ids.length}개 · 프롬프트 노드 ${clipNodes.length}개${auto}`;
+                statusEl.style.color = 'var(--accent-green)';
+            }
+            _comfySaveSettings();
         }
 
         function comfyCloseSocket() {
@@ -1346,6 +1481,44 @@
             };
         }
 
+        // 내 워크플로우(API JSON)에 긍정 프롬프트(+옵션)만 주입
+        function _comfyBuildCustomWorkflow(pos, neg) {
+            if (!_comfyCustomWF) { showToast('워크플로우 JSON을 먼저 분석하세요.', 'error'); return null; }
+            const posId = document.getElementById('comfy-wf-pos').value;
+            const negId = document.getElementById('comfy-wf-neg').value;
+            if (!posId) { showToast('긍정 프롬프트 노드를 선택하세요.', 'error'); return null; }
+            const wf = JSON.parse(JSON.stringify(_comfyCustomWF)); // 깊은 복사 (원본 보존)
+
+            // 긍정 프롬프트 주입
+            const posNode = wf[posId];
+            const posField = _comfyTextField(posNode);
+            if (posField) {
+                posNode.inputs[posField] = pos;
+                // SDXL 듀얼 인코더면 text_g/text_l 둘 다
+                if (posField === 'text_g' && typeof posNode.inputs.text_l === 'string') posNode.inputs.text_l = pos;
+            }
+
+            // 부정 프롬프트 교체 (옵션)
+            if (document.getElementById('comfy-wf-negoverride').checked && negId && wf[negId]) {
+                const negNode = wf[negId];
+                const negField = _comfyTextField(negNode);
+                if (negField) {
+                    negNode.inputs[negField] = neg;
+                    if (negField === 'text_g' && typeof negNode.inputs.text_l === 'string') negNode.inputs.text_l = neg;
+                }
+            }
+
+            // 시드 랜덤 (옵션) — seed / noise_seed 필드를 가진 모든 노드
+            if (document.getElementById('comfy-wf-randseed').checked) {
+                for (const id in wf) {
+                    const inp = wf[id].inputs || {};
+                    if (typeof inp.seed === 'number') inp.seed = Math.floor(Math.random() * 1e15);
+                    if (typeof inp.noise_seed === 'number') inp.noise_seed = Math.floor(Math.random() * 1e15);
+                }
+            }
+            return wf;
+        }
+
         function _comfyUUID() {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
                 const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
@@ -1361,7 +1534,16 @@
             const pos = (document.getElementById('final-positive').value || '').trim();
             const neg = (document.getElementById('final-negative').value || '').trim();
             if (!pos) { showToast('긍정 프롬프트가 비어 있습니다.', 'error'); return; }
-            if (!document.getElementById('comfy-ckpt').value.trim()) { showToast('체크포인트(모델 파일명)를 입력하세요.', 'error'); return; }
+
+            // 모드별 워크플로우 준비
+            let workflow;
+            if (_comfyWfMode === 'custom') {
+                workflow = _comfyBuildCustomWorkflow(pos, neg);
+                if (!workflow) return; // 내부에서 에러 토스트 처리
+            } else {
+                if (!document.getElementById('comfy-ckpt').value.trim()) { showToast('체크포인트(모델 파일명)를 입력하세요.', 'error'); return; }
+                workflow = _comfyBuildWorkflow(pos, neg);
+            }
             _comfySaveSettings();
 
             const sendBtn = document.getElementById('comfy-send-btn');
@@ -1392,7 +1574,7 @@
 
             // /prompt 전송
             try {
-                const body = JSON.stringify({ prompt: _comfyBuildWorkflow(pos, neg), client_id: _comfyClientId });
+                const body = JSON.stringify({ prompt: workflow, client_id: _comfyClientId });
                 const res = await fetch(_comfyBase() + '/prompt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
                 if (!res.ok) {
                     const txt = await res.text();
