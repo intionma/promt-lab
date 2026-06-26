@@ -352,6 +352,13 @@
         .fixed-weight-toolbar .fw-val { font-size: 12px; font-family: var(--font-code); color: var(--accent-blue); min-width: 32px; text-align: center; font-weight: 700; }
         .fixed-weight-toolbar button.reset-btn { color: var(--text-dim); font-size: 11px; }
 
+        /* 특수 기능 패널 버튼 */
+        .special-tool-btn { display:flex; align-items:center; gap:9px; flex-wrap:wrap; width:100%; padding:8px 10px; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid var(--border-dim); color:var(--text-main); font-family:var(--font-ui); font-size:12px; font-weight:700; cursor:pointer; text-align:left; transition:.15s; }
+        .special-tool-btn:hover { border-color:var(--c); background:color-mix(in srgb, var(--c) 12%, transparent); }
+        .special-tool-btn i { font-size:13px; color:var(--c); width:16px; text-align:center; flex-shrink:0; }
+        .special-tool-btn span { flex:1; min-width:90px; }
+        .special-tool-btn small { width:100%; padding-left:25px; font-size:10px; font-weight:500; color:var(--text-dim); }
+
         /* 우클릭 컨텍스트 메뉴 */
         #ctx-menu { position: fixed; z-index: 99999; background: rgba(255,255,255,0.06); backdrop-filter: blur(60px) saturate(200%) brightness(1.08); -webkit-backdrop-filter: blur(60px) saturate(200%) brightness(1.08); border: 1px solid rgba(255,255,255,0.12); border-top: 1px solid rgba(255,255,255,0.45); border-radius: 14px; padding: 6px; min-width: 200px; box-shadow: 0 0 0 0.5px rgba(255,255,255,0.06), 0 16px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.35); display: none; }
         [data-theme="light"] #ctx-menu { background: rgba(255,255,255,0.15); box-shadow: 0 16px 48px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9); border-top: 1px solid rgba(255,255,255,0.9); }
@@ -794,6 +801,25 @@
                 <div class="sidebar-sticky-bar" id="sidebar-sticky-bar" style="display:none; margin: 0 -20px; padding: 8px 20px;">
                     <button onclick="collapseAllLayers(true)"><i class="fa-solid fa-angles-up"></i> 모두 닫기</button>
                     <button onclick="collapseAllLayers(false)"><i class="fa-solid fa-angles-down"></i> 모두 열기</button>
+                </div>
+
+                <!-- 특수 기능 패널 (After Effects 스타일, 접고 펼치기) -->
+                <div id="special-tools-panel" style="border:1px solid var(--border-dim);border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.02);">
+                    <button id="special-tools-header" onclick="toggleSpecialTools()" style="width:100%;display:flex;align-items:center;gap:8px;padding:9px 12px;background:linear-gradient(135deg,rgba(236,72,153,0.12),rgba(167,139,250,0.12));border:none;cursor:pointer;color:var(--text-main);font-family:var(--font-ui);font-size:12px;font-weight:800;">
+                        <i id="special-tools-caret" class="fa-solid fa-chevron-right" style="font-size:10px;color:#ec4899;transition:transform .2s;"></i>
+                        <i class="fa-solid fa-wand-magic-sparkles" style="font-size:11px;color:#a78bfa;"></i>
+                        <span style="flex:1;text-align:left;">특수 기능</span>
+                        <span style="font-size:9px;color:var(--text-dim);font-weight:600;">DB 도구 · 분류 · 검사</span>
+                    </button>
+                    <div id="special-tools-body" style="display:none;padding:10px 12px;flex-direction:column;gap:6px;">
+                        <button class="special-tool-btn" onclick="openDBAuditModal()" style="--c:#ec4899;"><i class="fa-solid fa-clipboard-check"></i><span>DB 태그 검사 &amp; 재분류</span><small>사전 기준 계층 검증 · 중복 감지</small></button>
+                        <button class="special-tool-btn" onclick="openPromptClassifyModal()" style="--c:#a78bfa;"><i class="fa-solid fa-wand-magic-sparkles"></i><span>프롬프트 자동 분류 추가</span><small>붙여넣기 → 계층 추정 → DB 추가</small></button>
+                        <button class="special-tool-btn" onclick="openTranslationSessionModal()" style="--c:#f97316;"><i class="fa-solid fa-language"></i><span>한국어 번역 세션</span><small>미번역 태그 일괄 번역</small></button>
+                        <div style="height:1px;background:var(--border-dim);margin:3px 0;"></div>
+                        <button class="special-tool-btn" onclick="reorganizeTagsByDB()" style="--c:#22c55e;"><i class="fa-solid fa-shuffle"></i><span>레이어 재배치</span><small>현재 에디터 태그를 올바른 계층으로</small></button>
+                        <button class="special-tool-btn" onclick="openDedupHelper()" style="--c:#f59e0b;"><i class="fa-solid fa-copy"></i><span>중복 감지</span><small>현재 에디터 내 중복 프롬프트</small></button>
+                        <button class="special-tool-btn" onclick="window.__previzOpen && window.__previzOpen()" style="--c:#38bdf8;"><i class="fa-solid fa-camera-movie"></i><span>Prompt Preview Studio</span><small>실험적 미리보기</small></button>
+                    </div>
                 </div>
             </div>
             <div class="panel-content" style="padding-top: 8px;">
@@ -1751,6 +1777,37 @@
             ctxMenu.style.top = (y + menuH > vh ? vh - menuH - 8 : y) + 'px';
         }
 
+        // ─── 모바일 롱프레스 → 우클릭(contextmenu) 메뉴 ───────────────────────────
+        (function setupLongPressContextMenu() {
+            let lpTimer = null, lpStartX = 0, lpStartY = 0, lpTarget = null, lpFired = false;
+            const LP_DELAY = 480, LP_MOVE_TOL = 12;
+            const clear = () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } lpTarget = null; };
+            document.addEventListener('touchstart', (e) => {
+                if (e.touches.length !== 1) { clear(); return; }
+                // 롱프레스로 메뉴를 띄울 대상이 있는 영역만
+                const t = e.target.closest('.tag-btn, .prompt-chip, .layer-title-bar, .sub-folder-header, .result-textarea, .editor-body, .editor-section');
+                if (!t) return;
+                const touch = e.touches[0];
+                lpStartX = touch.clientX; lpStartY = touch.clientY; lpTarget = e.target; lpFired = false;
+                lpTimer = setTimeout(() => {
+                    lpFired = true;
+                    if (navigator.vibrate) { try { navigator.vibrate(15); } catch(_){} }
+                    const ev = new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: lpStartX, clientY: lpStartY });
+                    lpTarget.dispatchEvent(ev);
+                }, LP_DELAY);
+            }, { passive: true });
+            document.addEventListener('touchmove', (e) => {
+                if (!lpTimer) return;
+                const touch = e.touches[0];
+                if (Math.abs(touch.clientX - lpStartX) > LP_MOVE_TOL || Math.abs(touch.clientY - lpStartY) > LP_MOVE_TOL) clear();
+            }, { passive: true });
+            document.addEventListener('touchend', (e) => {
+                if (lpFired) { e.preventDefault(); } // 롱프레스 후 클릭 방지
+                clear();
+            });
+            document.addEventListener('touchcancel', clear);
+        })();
+
         document.addEventListener('contextmenu', (e) => {
             const chip = e.target.closest('.prompt-chip');
             const editorBody = e.target.closest('.editor-body');
@@ -1905,7 +1962,7 @@
                 const korLabel = activeTagsMap[tagText]?.kor || tagText;
                 const menuItems = [
                     { label: `"${korLabel}"`, isHeader: true },
-                    { label: '즐겨찾기 토글', icon: 'fa-solid fa-star', action: () => toggleFavorite(tagText) },
+                    { label: favorites.includes(tagText) ? '즐겨찾기 해제' : '즐겨찾기에 추가', icon: favorites.includes(tagText) ? 'fa-solid fa-star' : 'fa-regular fa-star', action: () => toggleFavorite(tagText) },
                     'sep',
                     { label: '기본 가중치 설정', isHeader: true },
                 ];
@@ -1984,6 +2041,16 @@
         function initApp() {
             const sidebarDetail = document.getElementById('sidebar-content-detail');
             const editor = document.getElementById('editor-content');
+
+            // 특수 기능 패널 열림 상태 복원
+            try {
+                if (localStorage.getItem('special_tools_open') === '1') {
+                    const b = document.getElementById('special-tools-body');
+                    const c = document.getElementById('special-tools-caret');
+                    if (b) b.style.display = 'flex';
+                    if (c) c.style.transform = 'rotate(90deg)';
+                }
+            } catch(e){}
 
             // 폴더 열림 상태 저장 (재렌더 후 복원)
             const _openLayerGroups = new Set();
@@ -2136,21 +2203,7 @@
                 group.appendChild(groupContent);
                 sidebarDetail.appendChild(group);
 
-                // 레이어 7 하단에 실험적 기능 버튼 삽입
-                if (i === 7) {
-                    const _footBtn = (id, icon, label, onclick, hoverColor='var(--accent-blue)') =>
-                        `<button id="${id}" onclick="${onclick}" style="flex:1;padding:8px 4px;border-radius:7px;background:transparent;border:1px solid var(--border-dim);color:var(--text-dim);font-family:var(--font-ui);font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;transition:.2s;opacity:.65;" onmouseover="this.style.borderColor='${hoverColor}';this.style.color='${hoverColor}';this.style.opacity='1'" onmouseout="this.style.borderColor='var(--border-dim)';this.style.color='var(--text-dim)';this.style.opacity='.65'"><i class="fa-solid ${icon}" style="font-size:10px;"></i>${label}</button>`;
-                    const previzFooter = document.createElement('div');
-                    previzFooter.style.cssText = 'padding:10px 12px 6px;display:flex;flex-direction:column;gap:5px;';
-                    previzFooter.innerHTML =
-                        `<button id="btn-db-audit" onclick="openDBAuditModal()" style="width:100%;padding:11px 8px;border-radius:9px;background:linear-gradient(135deg,#ec4899,#a78bfa);border:none;color:#fff;font-family:var(--font-ui);font-size:12px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 4px 14px rgba(236,72,153,0.35);transition:.2s;" onmouseover="this.style.filter='brightness(1.1)';this.style.transform='translateY(-1px)'" onmouseout="this.style.filter='';this.style.transform=''"><i class="fa-solid fa-clipboard-check"></i>DB 태그 검사 &amp; 재분류</button>` +
-                        _footBtn('btn-previz', 'fa-camera-movie', 'Prompt Preview Studio (실험적)', "window.__previzOpen && window.__previzOpen()") +
-                        `<div style="display:flex;gap:5px;">` +
-                        _footBtn('btn-reorganize', 'fa-shuffle', '레이어 재배치', 'reorganizeTagsByDB()', 'var(--accent-green)') +
-                        _footBtn('btn-dedup', 'fa-copy', '중복 감지', 'openDedupHelper()', '#f59e0b') +
-                        `</div>`;
-                    groupContent.appendChild(previzFooter);
-                }
+                // (특수 기능 버튼은 사이드바 상단 "특수 기능" 패널로 이동됨)
 
                 const section = document.createElement('div');
                 section.className = 'editor-section';
@@ -7899,6 +7952,16 @@
                 syncFromManualInput(srcLayerId);
                 if (tgtLayerId !== srcLayerId) { sortLayerByDB(tgtLayerId); syncFromManualInput(tgtLayerId); }
             });
+        }
+
+        function toggleSpecialTools() {
+            const body = document.getElementById('special-tools-body');
+            const caret = document.getElementById('special-tools-caret');
+            if (!body) return;
+            const open = body.style.display !== 'none';
+            body.style.display = open ? 'none' : 'flex';
+            if (caret) caret.style.transform = open ? '' : 'rotate(90deg)';
+            try { localStorage.setItem('special_tools_open', open ? '0' : '1'); } catch(e){}
         }
 
         function collapseAllLayers(collapse) {
