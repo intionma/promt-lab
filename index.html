@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.10 &nbsp;·&nbsp; 2026-06-26 — PC 종료 (도우미 스크립트 연동)</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.11 &nbsp;·&nbsp; 2026-06-26 — 대기열 라벨 노이즈 필터 강화</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -2253,27 +2253,39 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // 대기열 라벨용: 핵심 태그 3~5개를 한글 번역으로 추려 짧은 문장처럼 표기 (품질/score 제외)
         function _comfyKorLabel(text) {
             const toks = (text || '').split(',').map(s => s.trim()).filter(Boolean);
-            const items = [];
+            const NOISE = /^score_|_score|^rating|quality|masterpiece|absurdres|highres|high res|^high$|detailed|^source_|^bad_|watermark|signature|^very |^ultra |^8k$|^4k$|sharp focus/i;
+            const items = [];   // 번역된 핵심
+            const rawCore = []; // 번역 없지만 노이즈 아닌 것
             const seen = new Set();
             toks.forEach(t => {
                 let core = t.replace(/^[\(\[]+/, '').replace(/[\)\]]+$/, '').replace(/:\s*[\d.]+\s*$/, '').trim();
                 if (!core) return;
                 const lc = core.toLowerCase();
-                if (/^score_|^rating|quality|masterpiece|best quality|absurdres|highres|^source_/i.test(lc)) return;
+                if (NOISE.test(lc)) return;       // 품질/노이즈 제외
                 let layer = (activeTagsMap[core] && activeTagsMap[core].layer) || (activeTagsMap[lc] && activeTagsMap[lc].layer) || null;
                 const dict = _tagDictLookup(lc);
                 if (layer == null && dict) layer = dict.l;
-                if (layer === 1) return; // 화질/품질 계층 제외
+                if (layer === 1) return;          // 1계층(화질) 제외
                 let kor = (activeTagsMap[core] && activeTagsMap[core].kor) || (activeTagsMap[lc] && activeTagsMap[lc].kor) || customKorMap[core] || customKorMap[lc] || (dict && dict.k) || null;
-                if (!kor) return;       // 한글 번역 있는 것만
-                if (seen.has(kor)) return; seen.add(kor);
-                items.push({ kor, layer: layer || 9 });
+                if (kor) {
+                    if (seen.has(kor)) return; seen.add(kor);
+                    items.push({ kor, layer: layer || 9 });
+                } else {
+                    rawCore.push(core);
+                }
             });
-            if (!items.length) return (text || '').slice(0, 24);
-            const order = [3, 4, 5, 2, 6, 7, 9];   // 인물/의상/액션/구도/배경 우선
-            items.sort((a, b) => order.indexOf(a.layer) - order.indexOf(b.layer));
-            let s = items.slice(0, 5).map(x => x.kor).join(', ');
-            if (s.length > 26) s = s.slice(0, 26) + '…';
+            let picked;
+            if (items.length) {
+                const order = [3, 4, 5, 2, 6, 7, 9];   // 인물/의상/액션/구도/배경 우선
+                items.sort((a, b) => order.indexOf(a.layer) - order.indexOf(b.layer));
+                picked = items.slice(0, 5).map(x => x.kor);
+            } else if (rawCore.length) {
+                picked = rawCore.slice(0, 4);          // 번역이 없으면 노이즈 뺀 원문이라도
+            } else {
+                return (text || '').slice(0, 24);
+            }
+            let s = picked.join(', ');
+            if (s.length > 26) s = s.slice(0, 25) + '…';
             return s;
         }
 
