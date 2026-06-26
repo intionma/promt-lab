@@ -1370,7 +1370,7 @@
             safeSetStorage(STATES_KEY, contextStates);
         }
         let currentViewMode = 'visual';
-        let activeTagsMap = {};
+        let activeTagsMap = {}; window.__getActiveTagsMap = () => activeTagsMap;
         let globalWeightCurrent = 1.0;
         let tagDefaultWeights = JSON.parse(localStorage.getItem('tag_default_weights_v1') || '{}');
         function saveTagDefaultWeights() { localStorage.setItem('tag_default_weights_v1', JSON.stringify(tagDefaultWeights)); }

@@ -39,8 +39,7 @@ function makeDefaultSceneState() {
 
 // ── 태그 읽기 헬퍼 ────────────────────────────────────────────────
 export function getActiveTags() {
-    // 메인 앱의 전역 변수 참조
-    const map = window.activeTagsMap || {};
+    const map = (window.__getActiveTagsMap && window.__getActiveTagsMap()) || {};
     const tags = Object.keys(map).map(token => ({
         token,
         kor: map[token]?.kor || token,
@@ -48,7 +47,7 @@ export function getActiveTags() {
         neg: map[token]?.neg || false,
         color: map[token]?.color || '',
     }));
-    return tags.filter(t => !t.neg);   // 네거티브 태그 제외
+    return tags.filter(t => !t.neg);
 }
 
 // ── 태그 변경 감지 ────────────────────────────────────────────────
