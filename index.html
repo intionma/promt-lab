@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.11 &nbsp;·&nbsp; 2026-06-26 — 대기열 라벨 노이즈 필터 강화</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.12 &nbsp;·&nbsp; 2026-06-26 — 라이트박스 드래그/스와이프로 이전·다음</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -970,7 +970,7 @@
                             <span id="comfy-inline-status-pos" style="font-size:11px; color:var(--text-dim); min-width:72px; text-align:right;"></span>
                             <button class="action-btn" onclick="comfyInterrupt()" style="color:var(--accent-danger); border-color:var(--border-dim); padding:3px 8px; font-size:11px;" title="중단"><i class="fa-solid fa-stop"></i></button>
                         </div>
-                        <div id="comfy-inline-thumbs-pos" style="display:flex; flex-wrap:wrap; gap:10px; max-height:540px; overflow-y:auto; align-content:flex-start; padding:4px; border-radius:8px;"></div>
+                        <div id="comfy-inline-thumbs-pos" class="lb-group" style="display:flex; flex-wrap:wrap; gap:10px; max-height:540px; overflow-y:auto; align-content:flex-start; padding:4px; border-radius:8px;"></div>
                     </div>
                 </div>
 
@@ -997,7 +997,7 @@
                             <span id="comfy-inline-status-neg" style="font-size:11px; color:var(--text-dim); min-width:72px; text-align:right;"></span>
                             <button class="action-btn" onclick="comfyInterrupt()" style="color:var(--accent-danger); border-color:var(--border-dim); padding:3px 8px; font-size:11px;" title="중단"><i class="fa-solid fa-stop"></i></button>
                         </div>
-                        <div id="comfy-inline-thumbs-neg" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+                        <div id="comfy-inline-thumbs-neg" class="lb-group" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
                     </div>
                 </div>
 
@@ -1012,7 +1012,7 @@
                         아직 생성된 이미지가 없습니다.<br>
                         <span style="font-size:12px;">상단 <b style="color:#38bdf8;">ComfyUI</b> 버튼으로 프롬프트를 전송하면<br>여기에 결과 이미지가 쌓입니다.</span>
                     </div>
-                    <div id="result-gallery-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px;"></div>
+                    <div id="result-gallery-grid" class="lb-group" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px;"></div>
                 </div>
             </div>
         </section>
@@ -1289,12 +1289,12 @@
                 <!-- 라이브 미리보기 (단계별, 저장 안 함, 매 실행 갱신) -->
                 <div id="comfy-live-wrap" style="display:none;">
                     <div style="font-size:11px; color:var(--text-dim); font-weight:700; margin-bottom:6px;"><i class="fa-solid fa-bolt" style="color:#eab308;"></i> 라이브 단계 미리보기 <span style="font-weight:500;">(베이스 → 디테일러 → 업스케일 · 저장 안 됨)</span></div>
-                    <div id="comfy-live-thumbs" style="display:flex; flex-wrap:wrap; gap:10px; max-height:420px; overflow-y:auto; align-content:flex-start;"></div>
+                    <div id="comfy-live-thumbs" class="lb-group" style="display:flex; flex-wrap:wrap; gap:10px; max-height:420px; overflow-y:auto; align-content:flex-start;"></div>
                 </div>
 
                 <!-- 저장된 결과 이미지 -->
                 <div style="font-size:11px; color:var(--text-dim); font-weight:700;"><i class="fa-solid fa-floppy-disk" style="color:#22c55e;"></i> 저장된 결과</div>
-                <div id="comfy-gallery" style="display:flex; flex-wrap:wrap; gap:10px; min-height:40px;"></div>
+                <div id="comfy-gallery" class="lb-group" style="display:flex; flex-wrap:wrap; gap:10px; min-height:40px;"></div>
             </div>
         </div>
     </div>
@@ -1313,10 +1313,13 @@
         </div>
     </div>
 
-    <!-- ── 이미지 라이트박스 (풀스크린 뷰어) ── -->
-    <div id="img-lightbox" style="display:none; position:fixed; inset:0; z-index:100010; background:rgba(0,0,0,0.92); align-items:center; justify-content:center;">
-        <button onclick="closeLightbox()" title="닫기 (Esc)" style="position:absolute; top:16px; right:18px; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:20px; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
-        <img id="img-lightbox-img" src="" onclick="closeLightbox()" title="클릭하면 닫기" style="max-width:96vw; max-height:94vh; border-radius:8px; object-fit:contain; cursor:zoom-out;">
+    <!-- ── 이미지 라이트박스 (풀스크린 뷰어, 드래그로 이전/다음) ── -->
+    <div id="img-lightbox" style="display:none; position:fixed; inset:0; z-index:100010; background:rgba(0,0,0,0.92); align-items:center; justify-content:center; touch-action:pan-y;">
+        <button onclick="closeLightbox()" title="닫기 (Esc)" style="position:absolute; top:16px; right:18px; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:20px; cursor:pointer; z-index:2;"><i class="fa-solid fa-xmark"></i></button>
+        <span id="img-lightbox-counter" style="position:absolute; top:22px; left:50%; transform:translateX(-50%); color:#fff; font-size:13px; font-family:var(--font-ui); background:rgba(0,0,0,0.4); padding:4px 12px; border-radius:14px; z-index:2; display:none;"></span>
+        <button id="img-lightbox-prev" onclick="lightboxNav(-1)" title="이전" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); width:46px; height:46px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:20px; cursor:pointer; z-index:2; display:none;"><i class="fa-solid fa-chevron-left"></i></button>
+        <button id="img-lightbox-next" onclick="lightboxNav(1)" title="다음" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); width:46px; height:46px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:20px; cursor:pointer; z-index:2; display:none;"><i class="fa-solid fa-chevron-right"></i></button>
+        <img id="img-lightbox-img" src="" draggable="false" style="max-width:96vw; max-height:94vh; border-radius:8px; object-fit:contain; cursor:grab; user-select:none; transition:transform .12s ease;">
     </div>
 
     <!-- ── ComfyUI 전송 대기열 (우측 하단 플로팅) ── -->
@@ -2413,23 +2416,76 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return { show: !!p.enabled, label: p.label || '' };
         }
 
-        // ── 풀스크린 이미지 뷰어 ──
-        function openLightbox(url) {
-            const box = document.getElementById('img-lightbox');
-            document.getElementById('img-lightbox-img').src = url;
-            box.style.display = 'flex';
+        // ── 풀스크린 이미지 뷰어 (드래그/스와이프로 이전·다음) ──
+        let _lbUrls = [], _lbIdx = 0;
+
+        function openLightbox(url, urls, idx) {
+            _lbUrls = (Array.isArray(urls) && urls.length) ? urls : [url];
+            _lbIdx = (typeof idx === 'number' && idx >= 0) ? idx : Math.max(0, _lbUrls.indexOf(url));
+            document.getElementById('img-lightbox').style.display = 'flex';
+            _lbShow();
         }
+
+        // 썸네일 클릭 → 같은 묶음(.lb-group)의 형제 이미지들로 네비게이션
+        function openLightboxFromEl(imgEl) {
+            const group = imgEl.closest('.lb-group');
+            if (group) {
+                const imgs = Array.from(group.querySelectorAll('img'));
+                openLightbox(imgEl.src, imgs.map(i => i.src), imgs.indexOf(imgEl));
+            } else {
+                openLightbox(imgEl.src);
+            }
+        }
+
+        function _lbShow() {
+            const img = document.getElementById('img-lightbox-img');
+            img.style.transform = '';
+            img.src = _lbUrls[_lbIdx] || '';
+            const multi = _lbUrls.length > 1;
+            const counter = document.getElementById('img-lightbox-counter');
+            counter.style.display = multi ? 'block' : 'none';
+            counter.textContent = `${_lbIdx + 1} / ${_lbUrls.length}`;
+            document.getElementById('img-lightbox-prev').style.display = multi ? 'flex' : 'none';
+            document.getElementById('img-lightbox-next').style.display = multi ? 'flex' : 'none';
+        }
+
+        function lightboxNav(dir) {
+            if (_lbUrls.length < 2) return;
+            _lbIdx = (_lbIdx + dir + _lbUrls.length) % _lbUrls.length;
+            _lbShow();
+        }
+
         function closeLightbox() {
-            const box = document.getElementById('img-lightbox');
-            box.style.display = 'none';
+            document.getElementById('img-lightbox').style.display = 'none';
             document.getElementById('img-lightbox-img').src = '';
         }
+
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && document.getElementById('img-lightbox').style.display === 'flex') closeLightbox();
+            if (document.getElementById('img-lightbox').style.display !== 'flex') return;
+            if (e.key === 'Escape') closeLightbox();
+            else if (e.key === 'ArrowLeft') lightboxNav(-1);
+            else if (e.key === 'ArrowRight') lightboxNav(1);
         });
+
         (function () {
             const box = document.getElementById('img-lightbox');
-            if (box) box.addEventListener('click', (e) => { if (e.target === box) closeLightbox(); });
+            const img = document.getElementById('img-lightbox-img');
+            if (!box || !img) return;
+            box.addEventListener('click', (e) => { if (e.target === box) closeLightbox(); });
+            let downX = 0, downY = 0, dragging = false;
+            const start = (x, y) => { downX = x; downY = y; dragging = true; img.style.transition = 'none'; };
+            const move = (x) => { if (dragging) img.style.transform = `translateX(${x - downX}px)`; };
+            const end = (x, y) => {
+                if (!dragging) return; dragging = false;
+                img.style.transition = '';
+                const dx = x - downX, dy = y - downY;
+                if (Math.abs(dx) < 8 && Math.abs(dy) < 8) { closeLightbox(); return; } // 거의 안 움직이면 닫기(클릭)
+                if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) lightboxNav(dx < 0 ? 1 : -1);
+                else _lbShow(); // 원위치
+            };
+            img.addEventListener('pointerdown', (e) => { start(e.clientX, e.clientY); img.setPointerCapture(e.pointerId); });
+            img.addEventListener('pointermove', (e) => move(e.clientX));
+            img.addEventListener('pointerup', (e) => end(e.clientX, e.clientY));
         })();
 
         function _comfyImgUrl(img) {
@@ -2451,7 +2507,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             wrap.style.cssText = 'display:flex; flex-direction:column; gap:3px; align-items:center;';
             const im = document.createElement('img'); im.src = url;
             im.style.cssText = `max-height:${maxH}px; max-width:100%; width:auto; height:auto; border-radius:8px; border:1px solid var(--border-dim); cursor:zoom-in; display:block;`;
-            im.onclick = () => openLightbox(url);
+            im.onclick = () => openLightboxFromEl(im);
             wrap.appendChild(im);
             if (caption) {
                 const c = document.createElement('span');
@@ -2577,7 +2633,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const el = document.createElement('img');
             el.src = url; el.loading = 'lazy';
             el.style.cssText = 'width:100%; border-radius:10px; border:1px solid var(--border-dim); cursor:zoom-in; display:block;';
-            el.onclick = () => openLightbox(url);
+            el.onclick = () => openLightboxFromEl(el);
             el.onerror = () => { el.style.opacity = '0.35'; el.alt = '이미지를 불러올 수 없음 (ComfyUI 종료됨?)'; };
             if (append) grid.appendChild(el); else grid.prepend(el);
         }
