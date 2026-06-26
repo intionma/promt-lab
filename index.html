@@ -781,6 +781,9 @@
                     <button class="action-btn" onclick="openTranslationSessionModal()" title="한국어 번역 세션 — 미번역 태그 일괄 번역" style="color:#f97316; border-color:#f97316;"><i class="fa-solid fa-language"></i></button>
                     <button class="action-btn" onclick="openDBManager()" title="DB 관리" style="color:var(--accent-blue); border-color:var(--accent-blue);"><i class="fa-solid fa-database"></i></button>
                     <button class="action-btn" onclick="openDBTextEditor()" title="텍스트로 DB 편집" style="color:var(--accent-green); border-color:var(--accent-green);"><i class="fa-solid fa-code"></i></button>
+                    <button class="action-btn" onclick="reorganizeTagsByDB()" title="레이어 재배치 — 에디터 태그를 올바른 계층으로" style="color:#22c55e; border-color:#22c55e;"><i class="fa-solid fa-shuffle"></i></button>
+                    <button class="action-btn" onclick="openDedupHelper()" title="중복 감지 — 현재 에디터 내 중복 프롬프트" style="color:#f59e0b; border-color:#f59e0b;"><i class="fa-solid fa-clone"></i></button>
+                    <button class="action-btn" onclick="window.__previzOpen && window.__previzOpen()" title="Prompt Preview Studio" style="color:#38bdf8; border-color:#38bdf8;"><i class="fa-solid fa-camera-movie"></i></button>
                     <button class="action-btn" onclick="openIOModal('export')" title="내보내기"><i class="fa-solid fa-copy"></i></button>
                     <button class="action-btn" onclick="openIOModal('import')" title="복구/추가"><i class="fa-solid fa-paste"></i></button>
                 </div>
@@ -803,24 +806,6 @@
                     <button onclick="collapseAllLayers(false)"><i class="fa-solid fa-angles-down"></i> 모두 열기</button>
                 </div>
 
-                <!-- 특수 기능 패널 (After Effects 스타일, 접고 펼치기) -->
-                <div id="special-tools-panel" style="border:1px solid var(--border-dim);border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.02);">
-                    <button id="special-tools-header" onclick="toggleSpecialTools()" style="width:100%;display:flex;align-items:center;gap:8px;padding:9px 12px;background:linear-gradient(135deg,rgba(236,72,153,0.12),rgba(167,139,250,0.12));border:none;cursor:pointer;color:var(--text-main);font-family:var(--font-ui);font-size:12px;font-weight:800;">
-                        <i id="special-tools-caret" class="fa-solid fa-chevron-right" style="font-size:10px;color:#ec4899;transition:transform .2s;"></i>
-                        <i class="fa-solid fa-wand-magic-sparkles" style="font-size:11px;color:#a78bfa;"></i>
-                        <span style="flex:1;text-align:left;">특수 기능</span>
-                        <span style="font-size:9px;color:var(--text-dim);font-weight:600;">DB 도구 · 분류 · 검사</span>
-                    </button>
-                    <div id="special-tools-body" style="display:none;padding:10px 12px;flex-direction:column;gap:6px;">
-                        <button class="special-tool-btn" onclick="openDBAuditModal()" style="--c:#ec4899;"><i class="fa-solid fa-clipboard-check"></i><span>DB 태그 검사 &amp; 재분류</span><small>사전 기준 계층 검증 · 중복 감지</small></button>
-                        <button class="special-tool-btn" onclick="openPromptClassifyModal()" style="--c:#a78bfa;"><i class="fa-solid fa-wand-magic-sparkles"></i><span>프롬프트 자동 분류 추가</span><small>붙여넣기 → 계층 추정 → DB 추가</small></button>
-                        <button class="special-tool-btn" onclick="openTranslationSessionModal()" style="--c:#f97316;"><i class="fa-solid fa-language"></i><span>한국어 번역 세션</span><small>미번역 태그 일괄 번역</small></button>
-                        <div style="height:1px;background:var(--border-dim);margin:3px 0;"></div>
-                        <button class="special-tool-btn" onclick="reorganizeTagsByDB()" style="--c:#22c55e;"><i class="fa-solid fa-shuffle"></i><span>레이어 재배치</span><small>현재 에디터 태그를 올바른 계층으로</small></button>
-                        <button class="special-tool-btn" onclick="openDedupHelper()" style="--c:#f59e0b;"><i class="fa-solid fa-copy"></i><span>중복 감지</span><small>현재 에디터 내 중복 프롬프트</small></button>
-                        <button class="special-tool-btn" onclick="window.__previzOpen && window.__previzOpen()" style="--c:#38bdf8;"><i class="fa-solid fa-camera-movie"></i><span>Prompt Preview Studio</span><small>실험적 미리보기</small></button>
-                    </div>
-                </div>
             </div>
             <div class="panel-content" style="padding-top: 8px;">
                 <div id="sidebar-content-detail" style="display:flex; flex-direction:column; gap:16px;"></div>
@@ -2042,15 +2027,6 @@
             const sidebarDetail = document.getElementById('sidebar-content-detail');
             const editor = document.getElementById('editor-content');
 
-            // 특수 기능 패널 열림 상태 복원
-            try {
-                if (localStorage.getItem('special_tools_open') === '1') {
-                    const b = document.getElementById('special-tools-body');
-                    const c = document.getElementById('special-tools-caret');
-                    if (b) b.style.display = 'flex';
-                    if (c) c.style.transform = 'rotate(90deg)';
-                }
-            } catch(e){}
 
             // 폴더 열림 상태 저장 (재렌더 후 복원)
             const _openLayerGroups = new Set();
@@ -5426,7 +5402,7 @@
             hdr.appendChild(closeX);
 
             const body = document.createElement('div');
-            body.style.cssText = 'padding:14px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px;';
+            body.style.cssText = 'padding:14px 20px;overflow-y:auto;flex:1;min-height:0;display:flex;flex-direction:column;gap:14px;';
 
             // 통계
             const stats = document.createElement('div');
@@ -7954,15 +7930,6 @@
             });
         }
 
-        function toggleSpecialTools() {
-            const body = document.getElementById('special-tools-body');
-            const caret = document.getElementById('special-tools-caret');
-            if (!body) return;
-            const open = body.style.display !== 'none';
-            body.style.display = open ? 'none' : 'flex';
-            if (caret) caret.style.transform = open ? '' : 'rotate(90deg)';
-            try { localStorage.setItem('special_tools_open', open ? '0' : '1'); } catch(e){}
-        }
 
         function collapseAllLayers(collapse) {
             document.querySelectorAll('.layer-group').forEach(g => {
