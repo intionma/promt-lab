@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.14 &nbsp;·&nbsp; 2026-06-26 — 중지 버튼은 진행 중인 것만 중지</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.15 &nbsp;·&nbsp; 2026-06-26 — 미리보기 크기 슬라이더 모달에도 (항상 표시)</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -972,7 +972,7 @@
                         </div>
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
                             <span style="font-size:10px; color:var(--text-dim); flex-shrink:0;"><i class="fa-solid fa-up-right-and-down-left-from-center"></i> 미리보기 크기</span>
-                            <input type="range" id="preview-size-slider" min="120" max="640" step="20" oninput="setPreviewSize(this.value)" style="flex:1; accent-color:#38bdf8;">
+                            <input type="range" class="preview-size-slider" min="120" max="640" step="20" oninput="setPreviewSize(this.value)" style="flex:1; accent-color:#38bdf8;">
                         </div>
                         <div id="comfy-inline-thumbs-pos" class="lb-group" style="display:flex; flex-wrap:wrap; gap:10px; max-height:600px; overflow-y:auto; align-content:flex-start; padding:4px; border-radius:8px;"></div>
                     </div>
@@ -1285,6 +1285,12 @@
                     <button class="action-btn" id="comfy-interrupt-btn" onclick="comfyStopCurrent()" style="color:var(--accent-danger); border-color:var(--accent-danger); display:none;"><i class="fa-solid fa-stop"></i> 중단</button>
                     <div style="flex:1; height:8px; background:var(--bg-surface); border-radius:5px; overflow:hidden;"><div id="comfy-progress" style="height:100%; width:0%; background:linear-gradient(90deg,#38bdf8,#a78bfa); transition:width .2s;"></div></div>
                     <span id="comfy-status" style="font-size:12px; color:var(--text-dim); min-width:90px; text-align:right;"></span>
+                </div>
+
+                <!-- 미리보기 크기 (항상 표시) -->
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:11px; color:var(--text-dim); flex-shrink:0; font-weight:700;"><i class="fa-solid fa-up-right-and-down-left-from-center"></i> 미리보기 크기</span>
+                    <input type="range" class="preview-size-slider" min="120" max="640" step="20" oninput="setPreviewSize(this.value)" style="flex:1; accent-color:#38bdf8;">
                 </div>
 
                 <!-- 전송 워크플로우 점검 결과 -->
@@ -2429,17 +2435,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return { show: !!p.enabled, label: p.label || '' };
         }
 
-        // 미리보기 썸네일 크기 (CSS 변수 --lb-h, 전체 미리보기에 적용)
+        // 미리보기 썸네일 크기 (CSS 변수 --lb-h, 전체 미리보기에 적용) — 슬라이더들 동기화
         function setPreviewSize(v) {
             document.documentElement.style.setProperty('--lb-h', v + 'px');
             try { localStorage.setItem('preview_thumb_h', v); } catch (e) {}
+            document.querySelectorAll('.preview-size-slider').forEach(s => { if (s.value != v) s.value = v; });
         }
         (function () {
             let v = null;
             try { v = localStorage.getItem('preview_thumb_h'); } catch (e) {}
-            if (v) document.documentElement.style.setProperty('--lb-h', v + 'px');
-            const sl = document.getElementById('preview-size-slider');
-            if (sl) sl.value = v || 320;
+            v = v || 320;
+            document.documentElement.style.setProperty('--lb-h', v + 'px');
+            document.querySelectorAll('.preview-size-slider').forEach(s => s.value = v);
         })();
 
         // ── 풀스크린 이미지 뷰어 (드래그/스와이프로 이전·다음) ──
