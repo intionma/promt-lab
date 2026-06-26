@@ -145,6 +145,110 @@ const TAG_MAP = {
     floating_hair:['particle'], glowing_lights:['particle'], sparks:['particle'],
 };
 
+// ── 프로시저럴 소품 (VRM에 없는 헤어/의상/액세서리를 도형으로 생성) ──
+// 외부 에셋 없이 Three.js 프리미티브로 만들어 휴머노이드 본에 부착.
+// def: { bone, build, pos:[x,y,z](본 로컬), rot?, tint?('hair'|'outfit'), dark? }
+const PROP_DEFS = {
+    glasses:       { bone:'head', build:'glasses',    pos:[0,0.05,0.072] },
+    sunglasses:    { bone:'head', build:'glasses',    pos:[0,0.05,0.072], dark:true },
+    cat_ears:      { bone:'head', build:'catEars',    pos:[0,0.17,0],   tint:'hair' },
+    dog_ears:      { bone:'head', build:'dogEars',    pos:[0,0.13,0.01],tint:'hair' },
+    hat:           { bone:'head', build:'hat',        pos:[0,0.17,0] },
+    hair_ribbon:   { bone:'head', build:'ribbon',     pos:[0.075,0.14,0], tint:'hair' },
+    headphones:    { bone:'head', build:'headphones', pos:[0,0.09,0] },
+    choker:        { bone:'neck', build:'choker',     pos:[0,0.01,0] },
+    collar:        { bone:'neck', build:'choker',     pos:[0,0.01,0] },
+    ponytail:      { bone:'head', build:'ponytail',   pos:[0,0.04,-0.06], tint:'hair' },
+    twintails:     { bone:'head', build:'twintails',  pos:[0,0.04,0],     tint:'hair' },
+    skirt:         { bone:'hips', build:'skirt',      pos:[0,0.0,0],   tint:'outfit' },
+    pleated_skirt: { bone:'hips', build:'skirt',      pos:[0,0.0,0],   tint:'outfit', pleated:true },
+};
+
+const PROP_BUILDERS = {
+    glasses(THREE, def) {
+        const g = new THREE.Group();
+        const frame = new THREE.MeshStandardMaterial({ color: def.dark ? 0x101014 : 0x2a2a33, metalness:0.4, roughness:0.4 });
+        const lens = new THREE.TorusGeometry(0.026, 0.005, 8, 20);
+        const l1 = new THREE.Mesh(lens, frame); l1.position.x = -0.03;
+        const l2 = new THREE.Mesh(lens, frame); l2.position.x =  0.03;
+        const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.016,0.004,0.004), frame);
+        g.add(l1, l2, bridge);
+        if (def.dark) {
+            const dm = new THREE.MeshStandardMaterial({ color:0x05060a, metalness:0.6, roughness:0.15 });
+            const d = new THREE.CircleGeometry(0.024, 18);
+            const d1 = new THREE.Mesh(d, dm); d1.position.set(-0.03,0,0.002);
+            const d2 = new THREE.Mesh(d, dm); d2.position.set( 0.03,0,0.002);
+            g.add(d1, d2);
+        }
+        return g;
+    },
+    catEars(THREE) {
+        const g = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color:0xffffff, roughness:0.7 });
+        const geo = new THREE.ConeGeometry(0.035, 0.075, 4);
+        const e1 = new THREE.Mesh(geo, mat); e1.position.set(-0.058,0,0); e1.rotation.z = 0.28;
+        const e2 = new THREE.Mesh(geo, mat); e2.position.set( 0.058,0,0); e2.rotation.z = -0.28;
+        g.add(e1, e2); return g;
+    },
+    dogEars(THREE) {
+        const g = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color:0xffffff, roughness:0.8 });
+        const geo = new THREE.CapsuleGeometry(0.022, 0.06, 4, 8);
+        const e1 = new THREE.Mesh(geo, mat); e1.position.set(-0.075,-0.02,0); e1.rotation.z = 0.9;  e1.scale.z = 0.5;
+        const e2 = new THREE.Mesh(geo, mat); e2.position.set( 0.075,-0.02,0); e2.rotation.z = -0.9; e2.scale.z = 0.5;
+        g.add(e1, e2); return g;
+    },
+    hat(THREE) {
+        const g = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color:0x33384a, roughness:0.7 });
+        const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.10,0.105,0.05,20), mat);
+        const brim  = new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.14,0.008,20), mat); brim.position.y = -0.025;
+        g.add(crown, brim); return g;
+    },
+    ribbon(THREE) {
+        const g = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color:0xff7aa8, roughness:0.6 });
+        const box = new THREE.BoxGeometry(0.05,0.03,0.012);
+        const a = new THREE.Mesh(box, mat); a.position.x = -0.026; a.rotation.z = 0.4;
+        const b = new THREE.Mesh(box, mat); b.position.x =  0.026; b.rotation.z = -0.4;
+        const knot = new THREE.Mesh(new THREE.BoxGeometry(0.014,0.018,0.016), mat);
+        g.add(a, b, knot); return g;
+    },
+    headphones(THREE) {
+        const g = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color:0x1c1e26, roughness:0.5, metalness:0.3 });
+        const band = new THREE.Mesh(new THREE.TorusGeometry(0.092, 0.009, 8, 24, Math.PI), mat);
+        const cupGeo = new THREE.CylinderGeometry(0.028,0.028,0.02,16);
+        const c1 = new THREE.Mesh(cupGeo, mat); c1.position.set(-0.092,0,0); c1.rotation.z = Math.PI/2;
+        const c2 = new THREE.Mesh(cupGeo, mat); c2.position.set( 0.092,0,0); c2.rotation.z = Math.PI/2;
+        g.add(band, c1, c2); return g;
+    },
+    choker(THREE) {
+        const mat = new THREE.MeshStandardMaterial({ color:0x15151a, roughness:0.5 });
+        const m = new THREE.Mesh(new THREE.TorusGeometry(0.046, 0.008, 8, 22), mat);
+        m.rotation.x = Math.PI/2; return m;
+    },
+    ponytail(THREE) {
+        const mat = new THREE.MeshStandardMaterial({ color:0x6b5a48, roughness:0.75 });
+        const m = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.012,0.24,10), mat);
+        m.position.y = -0.10; m.rotation.x = -0.35; return m;
+    },
+    twintails(THREE) {
+        const g = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color:0x6b5a48, roughness:0.75 });
+        const geo = new THREE.CylinderGeometry(0.024,0.01,0.2,10);
+        const t1 = new THREE.Mesh(geo, mat); t1.position.set(-0.088,-0.06,0); t1.rotation.z = 0.2;
+        const t2 = new THREE.Mesh(geo, mat); t2.position.set( 0.088,-0.06,0); t2.rotation.z = -0.2;
+        g.add(t1, t2); return g;
+    },
+    skirt(THREE, def) {
+        const mat = new THREE.MeshStandardMaterial({ color:0x6a7a9a, roughness:0.7, side:THREE.DoubleSide });
+        const seg = def.pleated ? 24 : 18;
+        const m = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.17, 0.20, seg, 1, true), mat);
+        m.position.y = -0.04; return m;
+    },
+};
+
 export class PrevizScene {
     constructor(container) {
         this.container  = container;
@@ -167,6 +271,7 @@ export class PrevizScene {
         this.state      = this._defaultState();
         this.onFrameTick= null;
         this._ready     = false;
+        this._props     = {};   // 프로시저럴 소품 (헤어/의상/액세서리)
     }
 
     _defaultState() {
@@ -439,6 +544,59 @@ export class PrevizScene {
         this._saveState(this.state);
     }
 
+    // ── 프로시저럴 소품 (헤어/의상/액세서리) ────────────────────────
+    // 활성 토큰 집합에 맞춰 VRM 본에 소품을 붙이거나 제거하고, 색을 갱신한다.
+    _applyProps(tokens) {
+        if (!this.vrm?.humanoid) return;
+        const active = new Set();
+        (tokens || []).forEach(t => { if (PROP_DEFS[t]) active.add(t); });
+
+        // 비활성 소품 제거
+        Object.keys(this._props).forEach(k => {
+            if (!active.has(k)) {
+                const o = this._props[k];
+                o.parent && o.parent.remove(o);
+                this._disposeObj(o);
+                delete this._props[k];
+            }
+        });
+
+        // 활성 소품 생성/갱신
+        active.forEach(k => {
+            if (!this._props[k]) {
+                const def = PROP_DEFS[k];
+                const bone = this.vrm.humanoid.getRawBoneNode?.(def.bone)
+                          || this.vrm.humanoid.getNormalizedBoneNode?.(def.bone);
+                if (!bone) return;
+                const obj = PROP_BUILDERS[def.build](THREE, def);
+                obj.position.set(...(def.pos || [0,0,0]));
+                if (def.rot) obj.rotation.set(...def.rot);
+                obj.userData.tint = def.tint || null;
+                obj.traverse(m => { if (m.isMesh) m.frustumCulled = false; });
+                bone.add(obj);
+                this._props[k] = obj;
+            }
+            this._tintProp(k);
+        });
+    }
+
+    _tintProp(k) {
+        const o = this._props[k]; if (!o) return;
+        const tint = o.userData.tint;
+        let hex = null;
+        if (tint === 'hair')   hex = (this.state.hair.color && this.state.hair.color !== 0xffffff) ? this.state.hair.color : 0x6b5a48;
+        else if (tint === 'outfit') hex = (this.state.outfit.color != null) ? this.state.outfit.color : 0x6a7a9a;
+        if (hex == null) return;
+        o.traverse(m => { if (m.isMesh && m.material && m.material.color) m.material.color.setHex(hex); });
+    }
+
+    _disposeObj(o) {
+        o.traverse(m => {
+            if (m.geometry) m.geometry.dispose();
+            if (m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach(x => x.dispose());
+        });
+    }
+
     // ── 환경 ──────────────────────────────────────────────────────
     _applyEnv(envState) {
         const bgMap = {
@@ -518,8 +676,11 @@ export class PrevizScene {
         this._applyAll(ns);
         this._applyEnv(ns.env);
         this._applyLight(ns._light);
+        this._applyProps(tags.map(x => (x.token || '').toLowerCase().trim()));
         if (hasCamera) this._updateCameraForState(ns);
 
+        // 소품으로 반영되는 토큰은 '미반영' 목록에서 제외
+        ns.promptOnly = ns.promptOnly.filter(tk => !PROP_DEFS[(tk || '').toLowerCase().trim()]);
         if (typeof window.__previzUpdateUnmapped === 'function')
             window.__previzUpdateUnmapped(ns.promptOnly);
     }
@@ -720,6 +881,8 @@ export class PrevizScene {
     dispose() {
         if (this.animId) cancelAnimationFrame(this.animId);
         this._weather?.dispose();
+        Object.values(this._props || {}).forEach(o => { o.parent && o.parent.remove(o); this._disposeObj(o); });
+        this._props = {};
         if (this.vrm) VRMUtils.deepDispose(this.vrm.scene);
         this._scanline?.remove();
         if (this.renderer) { this.renderer.dispose(); this.renderer.domElement.remove(); }
