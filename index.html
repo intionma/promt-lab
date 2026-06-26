@@ -3490,7 +3490,7 @@
             "ponytail":{"k":"포니테일","l":3},"braid":{"k":"땋은 머리","l":3},
             "bun":{"k":"머리 번","l":3},"pigtails":{"k":"갈래머리","l":3},
             "bangs":{"k":"앞머리","l":3},"ahoge":{"k":"아호게 (삐친 머리카락)","l":3},
-            "hair ornament":{"k":"머리 장식","l":3},"hair ribbon":{"k":"머리 리본","l":3},
+            "hair ornament":{"k":"머리 장식","l":4},"hair ribbon":{"k":"머리 리본","l":4},
             "hair flower":{"k":"머리 꽃 장식","l":3},"hair pin":{"k":"머리핀","l":3},
             "blue eyes":{"k":"파란 눈","l":3},"brown eyes":{"k":"갈색 눈","l":3},
             "green eyes":{"k":"초록 눈","l":3},"red eyes":{"k":"붉은 눈","l":3},
@@ -3519,7 +3519,7 @@
             "anus":{"k":"항문","l":3},"penis":{"k":"남성 성기","l":3},"cock":{"k":"남성 성기","l":3},
             "erection":{"k":"발기","l":3},"balls":{"k":"고환","l":3},"testicles":{"k":"고환","l":3},
             "pubic hair":{"k":"음모","l":3},
-            "cat ears":{"k":"고양이 귀","l":3},"elf ears":{"k":"엘프 귀","l":3},
+            "cat ears":{"k":"고양이 귀","l":4},"elf ears":{"k":"엘프 귀","l":4},
             "fox ears":{"k":"여우 귀","l":3},"animal ears":{"k":"동물 귀","l":3},
             "rabbit ears":{"k":"토끼 귀","l":3},"wolf ears":{"k":"늑대 귀","l":3},
             "tail":{"k":"꼬리","l":3},"fox tail":{"k":"여우 꼬리","l":3},
@@ -3538,7 +3538,7 @@
             "ahegao":{"k":"아헤가오","l":3},"heart eyes":{"k":"하트 눈","l":3},
             "tongue out":{"k":"혀 내밈","l":3},"drooling":{"k":"침 흘림","l":3},
             "sleeping":{"k":"자고있는","l":3},"yawning":{"k":"하품하는","l":3},
-            "glasses":{"k":"안경","l":3},"eyepatch":{"k":"안대","l":3},
+            "glasses":{"k":"안경","l":4},"eyepatch":{"k":"안대","l":4},
             "makeup":{"k":"메이크업","l":3},"eyeshadow":{"k":"아이섀도우","l":3},
             "eyelashes":{"k":"속눈썹","l":3},"mascara":{"k":"마스카라","l":3},
             "lipstick":{"k":"립스틱","l":3},"blush makeup":{"k":"볼터치","l":3},
@@ -3685,11 +3685,12 @@
             "sparkle":{"k":"반짝임","l":7},"bloom":{"k":"블룸 효과","l":7},
             "lens flare":{"k":"렌즈 플레어","l":7},"bokeh":{"k":"보케","l":7},
             "dark":{"k":"어두운","l":7},"bright":{"k":"밝은","l":7},
-            "colorful":{"k":"다채로운","l":7},"monochrome":{"k":"흑백","l":7},
-            "sepia":{"k":"세피아","l":7},"vibrant":{"k":"선명한","l":7},"vivid":{"k":"생생한","l":7},
-            "soft colors":{"k":"부드러운 색감","l":7},"muted colors":{"k":"차분한 색감","l":7},
-            "pastel colors":{"k":"파스텔 색감","l":7},"warm colors":{"k":"따뜻한 색감","l":7},
-            "cool colors":{"k":"차가운 색감","l":7},
+            "colorful":{"k":"다채로운","l":1},"monochrome":{"k":"흑백","l":1},
+            "sepia":{"k":"세피아","l":1},"vibrant":{"k":"선명한","l":1},"vivid":{"k":"생생한","l":1},
+            "vibrant colors":{"k":"선명한 색감","l":1},
+            "soft colors":{"k":"부드러운 색감","l":1},"muted colors":{"k":"차분한 색감","l":1},
+            "pastel colors":{"k":"파스텔 색감","l":1},"warm colors":{"k":"따뜻한 색감","l":1},
+            "cool colors":{"k":"차가운 색감","l":1},
             "particles":{"k":"파티클","l":7},"magic particles":{"k":"마법 파티클","l":7},
             "floating particles":{"k":"떠다니는 파티클","l":7},"dust":{"k":"먼지/티끌","l":7},
             "petals":{"k":"꽃잎","l":7},"fireworks":{"k":"불꽃놀이","l":7},
@@ -5402,12 +5403,14 @@
                 if (!promptDB[lid]) continue;
                 Object.keys(promptDB[lid]).forEach(fk => {
                     promptDB[lid][fk].forEach((d, idx) => {
-                        (d.t || '').split(',').map(s => s.trim()).filter(Boolean).forEach(tok => {
+                        const _toks = (d.t || '').split(',').map(s => s.trim()).filter(Boolean);
+                        const multi = _toks.length > 1;
+                        _toks.forEach(tok => {
                             const core = _auditNorm(tok);
                             if (!core) return;
-                            entries.push({ lid, fk, idx, core, tok, fullT: d.t, kor: d.k || '' });
+                            entries.push({ lid, fk, idx, core, tok, fullT: d.t, kor: d.k || '', multi });
                             if (!tokenLocations.has(core)) tokenLocations.set(core, []);
-                            tokenLocations.get(core).push({ lid, fk, idx, tok, fullT: d.t });
+                            tokenLocations.get(core).push({ lid, fk, idx, tok, fullT: d.t, multi });
                         });
                     });
                 });
@@ -5432,7 +5435,8 @@
                 const uniqLocs = [];
                 const seenLoc = new Set();
                 locs.forEach(l => { const k = l.lid + '|' + l.fk + '|' + l.idx; if (!seenLoc.has(k)) { seenLoc.add(k); uniqLocs.push(l); } });
-                if (uniqLocs.length > 1) duplicates.push({ core, locs: uniqLocs });
+                // 모든 위치가 멀티토큰(콤보) 항목이면 정상 공유로 보고 중복 제외 (예: "1girl, solo" / "1girl, 1boy")
+                if (uniqLocs.length > 1 && !uniqLocs.every(l => l.multi)) duplicates.push({ core, locs: uniqLocs });
             });
             duplicates.sort((a, b) => b.locs.length - a.locs.length);
 
@@ -5458,11 +5462,12 @@
             hdr.appendChild(closeX);
 
             const body = document.createElement('div');
-            body.style.cssText = 'padding:14px 20px;overflow-y:auto;flex:1;min-height:0;display:flex;flex-direction:column;gap:14px;';
+            // 블록 레이아웃 + overflow-y:auto — flex 컬럼이면 자식이 flex-shrink로 찌그러져 스크롤이 안 됨
+            body.style.cssText = 'padding:14px 20px;overflow-y:auto;flex:1 1 auto;min-height:0;';
 
             // 통계
             const stats = document.createElement('div');
-            stats.style.cssText = 'font-size:12px;color:var(--text-dim);font-family:var(--font-ui);';
+            stats.style.cssText = 'font-size:12px;color:var(--text-dim);font-family:var(--font-ui);margin-bottom:14px;';
             const _dupExtra = duplicates.reduce((s, dp) => s + (dp.locs.length - 1), 0);
             stats.innerHTML = `DB 태그 토큰 ${entries.length}개 검사 — <span style="color:#f59e0b">⚠ 계층 불일치 ${misplaced.length}건</span> · <span style="color:#f87171">⧉ 중복 ${duplicates.length}종 (${_dupExtra}개 잉여)</span>`;
             body.appendChild(stats);
@@ -5477,7 +5482,7 @@
             // ── 계층 불일치 섹션 ──
             if (misplaced.length > 0) {
                 const sec = document.createElement('div');
-                sec.style.cssText = 'border:1px solid rgba(245,158,11,0.3);border-radius:10px;overflow:hidden;';
+                sec.style.cssText = 'border:1px solid rgba(245,158,11,0.3);border-radius:10px;overflow:hidden;margin-bottom:14px;';
                 sec.innerHTML = `<div style="padding:8px 12px;background:rgba(245,158,11,0.12);font-size:12px;font-weight:700;color:#f59e0b;">⚠ 계층 불일치 — 사전 권장 계층으로 이동</div>`;
                 const list = document.createElement('div');
                 list.style.cssText = 'display:flex;flex-direction:column;';
@@ -5490,10 +5495,9 @@
                     mvBtn.textContent = '이동';
                     mvBtn.style.cssText = 'background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.35);color:#22c55e;border-radius:6px;padding:4px 12px;font-size:11px;cursor:pointer;flex-shrink:0;';
                     mvBtn.onclick = () => {
-                        if (_auditMoveTag(mp.core, mp.curLid, mp.fk, mp.recLid)) {
+                        if (_auditMoveAt(mp.curLid, mp.fk, mp.idx, mp.core, mp.recLid)) {
                             safeSetStorage('pro_prompt_db_v7_0', promptDB); initApp();
-                            row.style.opacity = '0.4'; row.style.pointerEvents = 'none';
-                            mvBtn.textContent = '완료';
+                            openDBAuditModal();   // 최신 상태로 재렌더 → 처리된 항목이 실제로 사라짐
                         }
                     };
                     row.appendChild(mvBtn);
@@ -5505,11 +5509,14 @@
                 allBtn.textContent = `전체 ${misplaced.length}건 일괄 이동`;
                 allBtn.style.cssText = 'margin:8px 12px;align-self:flex-start;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.35);color:#22c55e;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;';
                 allBtn.onclick = () => {
+                    // 같은 폴더 내 idx 꼬임 방지: (계층,폴더)별 idx 내림차순으로 처리
+                    const ops = misplaced.map(mp => ({ lid: mp.curLid, fk: mp.fk, idx: mp.idx, core: mp.core, recLid: mp.recLid }));
+                    ops.sort((a, b) => a.lid !== b.lid ? b.lid - a.lid : (a.fk < b.fk ? 1 : a.fk > b.fk ? -1 : b.idx - a.idx));
                     let n = 0;
-                    misplaced.forEach(mp => { if (_auditMoveTag(mp.core, mp.curLid, mp.fk, mp.recLid)) n++; });
+                    ops.forEach(o => { if (_auditMoveAt(o.lid, o.fk, o.idx, o.core, o.recLid)) n++; });
                     safeSetStorage('pro_prompt_db_v7_0', promptDB); initApp();
                     showToast(`${n}개 태그를 권장 계층으로 이동했습니다.`, 'success');
-                    overlay.remove();
+                    openDBAuditModal();
                 };
                 sec.appendChild(allBtn);
                 body.appendChild(sec);
@@ -5518,7 +5525,7 @@
             // ── 중복 태그 섹션 ──
             if (duplicates.length > 0) {
                 const sec = document.createElement('div');
-                sec.style.cssText = 'border:1px solid rgba(248,113,113,0.3);border-radius:10px;overflow:hidden;';
+                sec.style.cssText = 'border:1px solid rgba(248,113,113,0.3);border-radius:10px;overflow:hidden;margin-bottom:14px;';
                 sec.innerHTML = `<div style="padding:8px 12px;background:rgba(248,113,113,0.12);font-size:12px;font-weight:700;color:#f87171;">⧉ 중복 태그 — 여러 폴더/계층에 같은 토큰 존재</div>`;
                 const list = document.createElement('div');
                 list.style.cssText = 'display:flex;flex-direction:column;';
@@ -5537,9 +5544,9 @@
                             delBtn.textContent = '이 위치에서 제거';
                             delBtn.style.cssText = 'background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:6px;padding:3px 9px;font-size:10px;cursor:pointer;flex-shrink:0;';
                             delBtn.onclick = () => {
-                                if (_auditRemoveToken(dp.core, loc.lid, loc.fk)) {
-                                    locRow.style.opacity = '0.4'; locRow.style.pointerEvents = 'none';
-                                    delBtn.textContent = '제거됨';
+                                if (_auditRemoveAt(loc.lid, loc.fk, loc.idx, dp.core)) {
+                                    safeSetStorage('pro_prompt_db_v7_0', promptDB); initApp();
+                                    openDBAuditModal();   // 최신 상태로 재렌더
                                 }
                             };
                             locRow.appendChild(delBtn);
@@ -5558,13 +5565,14 @@
                 dedupAllBtn.style.cssText = 'margin:8px 12px;align-self:flex-start;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.35);color:#f87171;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;';
                 dedupAllBtn.onclick = () => {
                     showConfirm(`중복 토큰 ${extraCount}개를 제거합니다. 각 태그는 첫 위치(원본)만 남습니다. 계속할까요?`, () => {
+                        const ops = [];
+                        duplicates.forEach(dp => dp.locs.slice(1).forEach(loc => ops.push({ lid: loc.lid, fk: loc.fk, idx: loc.idx, core: dp.core })));
+                        ops.sort((a, b) => a.lid !== b.lid ? b.lid - a.lid : (a.fk < b.fk ? 1 : a.fk > b.fk ? -1 : b.idx - a.idx));
                         let n = 0;
-                        duplicates.forEach(dp => {
-                            dp.locs.slice(1).forEach(loc => { if (_auditRemoveTokenSilent(dp.core, loc.lid, loc.fk)) n++; });
-                        });
+                        ops.forEach(o => { if (_auditRemoveAt(o.lid, o.fk, o.idx, o.core)) n++; });
                         safeSetStorage('pro_prompt_db_v7_0', promptDB); initApp();
                         showToast(`${n}개 중복 토큰을 정리했습니다.`, 'success');
-                        overlay.remove();
+                        openDBAuditModal();
                     });
                 };
                 sec.appendChild(dedupAllBtn);
@@ -5584,24 +5592,33 @@
             document.body.appendChild(overlay);
         }
 
-        // DB에서 특정 토큰을 가진 항목을 현재 폴더에서 빼내 권장 계층의 미분류 폴더로 이동
-        function _auditMoveTag(core, curLid, fk, recLid) {
-            if (!promptDB[curLid] || !promptDB[curLid][fk]) return false;
-            const arr = promptDB[curLid][fk];
-            const i = arr.findIndex(d => (d.t || '').split(',').map(s => _auditNorm(s)).includes(core));
-            if (i === -1) return false;
-            const entry = arr[i];
-            const tokens = entry.t.split(',').map(s => s.trim()).filter(Boolean);
-            // 이동할 원본 토큰(표기 보존)
-            const origTok = tokens.find(t => _auditNorm(t) === core) || core;
-            if (tokens.length === 1) {
-                // 단일 토큰 항목 — 통째로 이동
-                arr.splice(i, 1);
-                if (arr.length === 0) delete promptDB[curLid][fk];
+        // 정확한 (계층,폴더,인덱스)의 항목에서 토큰 제거 — 같은 폴더 중복도 올바른 항목 처리
+        function _auditRemoveAt(lid, fk, idx, core) {
+            const arr = promptDB[lid] && promptDB[lid][fk];
+            if (!arr || !arr[idx]) return false;
+            const entry = arr[idx];
+            const tokens = (entry.t || '').split(',').map(s => s.trim()).filter(Boolean);
+            if (tokens.length <= 1) {
+                arr.splice(idx, 1);
+                if (arr.length === 0) delete promptDB[lid][fk];
             } else {
-                // 멀티 토큰 — 해당 토큰만 분리
-                const remain = tokens.filter(t => _auditNorm(t) !== core);
-                entry.t = remain.join(', ');
+                entry.t = tokens.filter(t => _auditNorm(t) !== core).join(', ');
+            }
+            return true;
+        }
+
+        // 정확한 (계층,폴더,인덱스)의 토큰을 권장 계층의 미분류 폴더로 이동
+        function _auditMoveAt(lid, fk, idx, core, recLid) {
+            const arr = promptDB[lid] && promptDB[lid][fk];
+            if (!arr || !arr[idx]) return false;
+            const entry = arr[idx];
+            const tokens = (entry.t || '').split(',').map(s => s.trim()).filter(Boolean);
+            const origTok = tokens.find(t => _auditNorm(t) === core) || core;
+            if (tokens.length <= 1) {
+                arr.splice(idx, 1);
+                if (arr.length === 0) delete promptDB[lid][fk];
+            } else {
+                entry.t = tokens.filter(t => _auditNorm(t) !== core).join(', ');
             }
             const targetFk = '미분류|자유';
             if (!promptDB[recLid]) promptDB[recLid] = {};
@@ -5609,31 +5626,6 @@
             if (!promptDB[recLid][targetFk].find(d => _auditNorm(d.t) === core)) {
                 const dict = _tagDictLookup(core);
                 promptDB[recLid][targetFk].push({ t: origTok, k: dict?.k || origTok, n: '', c: '' });
-            }
-            return true;
-        }
-
-        // DB의 특정 (계층,폴더)에서 토큰 제거 — 저장/리렌더 포함 (개별 버튼용)
-        function _auditRemoveToken(core, lid, fk) {
-            if (!_auditRemoveTokenSilent(core, lid, fk)) return false;
-            safeSetStorage('pro_prompt_db_v7_0', promptDB);
-            initApp();
-            return true;
-        }
-
-        // 저장/리렌더 없이 메모리상에서만 토큰 제거 (일괄 처리용)
-        function _auditRemoveTokenSilent(core, lid, fk) {
-            if (!promptDB[lid] || !promptDB[lid][fk]) return false;
-            const arr = promptDB[lid][fk];
-            const i = arr.findIndex(d => (d.t || '').split(',').map(s => _auditNorm(s)).includes(core));
-            if (i === -1) return false;
-            const entry = arr[i];
-            const tokens = entry.t.split(',').map(s => s.trim()).filter(Boolean);
-            if (tokens.length === 1) {
-                arr.splice(i, 1);
-                if (arr.length === 0) delete promptDB[lid][fk];
-            } else {
-                entry.t = tokens.filter(t => _auditNorm(t) !== core).join(', ');
             }
             return true;
         }
