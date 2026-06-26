@@ -606,7 +606,7 @@
         .prompt-chip:hover .chip-tooltip { display: block; }
 
         /* ── 모바일 반응형 ── */
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
             /* ── 기본 레이아웃 ── */
             html { height: 100%; }
             body {
@@ -672,6 +672,13 @@
             .prompt-classify-overlay { align-items: flex-end !important; }
             .prompt-classify-overlay > div { width: 100vw !important; border-radius: 20px 20px 0 0 !important; max-height: 88vh !important; }
             .modal-content { width: 96vw !important; min-width: 0 !important; }
+            /* 모달 헤더: 제목이 버튼에 밀려 글자 단위로 세로로 깨지는 문제 방지 */
+            .modal-header { flex-wrap: wrap; gap: 8px 10px; }
+            .modal-title { white-space: nowrap; flex-shrink: 0; font-size: 16px; }
+            .modal-header > div { flex-wrap: wrap; justify-content: flex-end; }
+            .ccm-header { flex-wrap: wrap; gap: 6px 8px; }
+            .ccm-title { white-space: nowrap; min-width: 0; }
+            #db-text-editor-box { min-width: unset !important; }
             .context-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
             #output-format-toggle { font-size: 11px; }
             #db-text-editor-box { width: 98vw !important; min-width: unset !important; height: 70vh !important; }
@@ -681,7 +688,7 @@
         #mobile-tabbar {
             display: none;
         }
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
             #mobile-tabbar {
                 display: flex;
                 position: fixed;
@@ -7342,9 +7349,10 @@
                 tabbar.appendChild(btn);
             });
 
-            // 초기화: 모바일이면 첫 패널 활성화
+            // 초기화: 모바일/태블릿이면 첫 패널 활성화 (CSS 브레이크포인트 1024와 동기화)
+            const MOBILE_BP = 1024;
             function applyMobileLayout() {
-                if (window.innerWidth <= 768) {
+                if (window.innerWidth <= MOBILE_BP) {
                     switchMobilePanel(currentPanel);
                 } else {
                     // 데스크탑: 모든 패널 표시
