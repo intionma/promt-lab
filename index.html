@@ -2143,6 +2143,7 @@
                     const previzFooter = document.createElement('div');
                     previzFooter.style.cssText = 'padding:10px 12px 6px;display:flex;flex-direction:column;gap:5px;';
                     previzFooter.innerHTML =
+                        `<button id="btn-db-audit" onclick="openDBAuditModal()" style="width:100%;padding:11px 8px;border-radius:9px;background:linear-gradient(135deg,#ec4899,#a78bfa);border:none;color:#fff;font-family:var(--font-ui);font-size:12px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 4px 14px rgba(236,72,153,0.35);transition:.2s;" onmouseover="this.style.filter='brightness(1.1)';this.style.transform='translateY(-1px)'" onmouseout="this.style.filter='';this.style.transform=''"><i class="fa-solid fa-clipboard-check"></i>DB 태그 검사 &amp; 재분류</button>` +
                         _footBtn('btn-previz', 'fa-camera-movie', 'Prompt Preview Studio (실험적)', "window.__previzOpen && window.__previzOpen()") +
                         `<div style="display:flex;gap:5px;">` +
                         _footBtn('btn-reorganize', 'fa-shuffle', '레이어 재배치', 'reorganizeTagsByDB()', 'var(--accent-green)') +
