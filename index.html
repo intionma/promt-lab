@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.5 &nbsp;·&nbsp; 2026-06-26 — 대기열 플로팅 패널(개별/전체 취소) · 완료 시 진행바 정리</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.6 &nbsp;·&nbsp; 2026-06-26 — 미리보기 크게/스크롤·비율유지·라이트박스·교체전 유지</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -969,7 +969,7 @@
                             <span id="comfy-inline-status-pos" style="font-size:11px; color:var(--text-dim); min-width:72px; text-align:right;"></span>
                             <button class="action-btn" onclick="comfyInterrupt()" style="color:var(--accent-danger); border-color:var(--border-dim); padding:3px 8px; font-size:11px;" title="중단"><i class="fa-solid fa-stop"></i></button>
                         </div>
-                        <div id="comfy-inline-thumbs-pos" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+                        <div id="comfy-inline-thumbs-pos" style="display:flex; flex-wrap:wrap; gap:10px; max-height:540px; overflow-y:auto; align-content:flex-start; padding:4px; border-radius:8px;"></div>
                     </div>
                 </div>
 
@@ -1288,7 +1288,7 @@
                 <!-- 라이브 미리보기 (단계별, 저장 안 함, 매 실행 갱신) -->
                 <div id="comfy-live-wrap" style="display:none;">
                     <div style="font-size:11px; color:var(--text-dim); font-weight:700; margin-bottom:6px;"><i class="fa-solid fa-bolt" style="color:#eab308;"></i> 라이브 단계 미리보기 <span style="font-weight:500;">(베이스 → 디테일러 → 업스케일 · 저장 안 됨)</span></div>
-                    <div id="comfy-live-thumbs" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
+                    <div id="comfy-live-thumbs" style="display:flex; flex-wrap:wrap; gap:10px; max-height:420px; overflow-y:auto; align-content:flex-start;"></div>
                 </div>
 
                 <!-- 저장된 결과 이미지 -->
@@ -1310,6 +1310,12 @@
                 <textarea class="result-textarea" id="generation-memo" placeholder="예) seed 12345 · dpmpp_2m karras · CFG 7 · FaceDetailer 0.4 · LoRA addDetail 0.6" style="background-color: var(--folder-bg); min-height:240px; width:100%;"></textarea>
             </div>
         </div>
+    </div>
+
+    <!-- ── 이미지 라이트박스 (풀스크린 뷰어) ── -->
+    <div id="img-lightbox" style="display:none; position:fixed; inset:0; z-index:100010; background:rgba(0,0,0,0.92); align-items:center; justify-content:center;">
+        <button onclick="closeLightbox()" title="닫기 (Esc)" style="position:absolute; top:16px; right:18px; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:20px; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+        <img id="img-lightbox-img" src="" style="max-width:96vw; max-height:94vh; border-radius:8px; object-fit:contain;">
     </div>
 
     <!-- ── ComfyUI 전송 대기열 (우측 하단 플로팅) ── -->
@@ -2214,7 +2220,7 @@
                     const job = _comfyJobs[d.prompt_id];
                     _comfyRunningPid = d.prompt_id;
                     _comfyInlineTarget = job.inline;
-                    if (!job.cleared) { _comfyClearLive(job.inline); job.cleared = true; } // 새 실행 → 라이브 초기화
+                    // 라이브는 '새 이미지가 도착할 때' 비움(_comfyStageImages) → 이전 미리보기가 교체 직전까지 유지됨
                     _comfySetProgress(5, `${_comfyQ()}생성 중...`);
                     comfyRenderQueue();
                 }
@@ -2236,6 +2242,25 @@
             return { show: !!p.enabled, label: p.label || '' };
         }
 
+        // ── 풀스크린 이미지 뷰어 ──
+        function openLightbox(url) {
+            const box = document.getElementById('img-lightbox');
+            document.getElementById('img-lightbox-img').src = url;
+            box.style.display = 'flex';
+        }
+        function closeLightbox() {
+            const box = document.getElementById('img-lightbox');
+            box.style.display = 'none';
+            document.getElementById('img-lightbox-img').src = '';
+        }
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('img-lightbox').style.display === 'flex') closeLightbox();
+        });
+        (function () {
+            const box = document.getElementById('img-lightbox');
+            if (box) box.addEventListener('click', (e) => { if (e.target === box) closeLightbox(); });
+        })();
+
         function _comfyImgUrl(img) {
             return `${_comfyBase()}/view?filename=${encodeURIComponent(img.filename)}&subfolder=${encodeURIComponent(img.subfolder || '')}&type=${encodeURIComponent(img.type || 'output')}`;
         }
@@ -2249,17 +2274,18 @@
             if (inline) { const t = document.getElementById('comfy-inline-thumbs-' + inline); if (t) t.innerHTML = ''; }
         }
 
-        function _comfyThumb(url, h, caption) {
+        // maxH 기준으로 비율 유지 — 작은 얼굴 크롭은 작게, 큰 이미지는 maxH까지
+        function _comfyThumb(url, maxH, caption) {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display:flex; flex-direction:column; gap:3px; align-items:center;';
-            const a = document.createElement('a'); a.href = url; a.target = '_blank';
             const im = document.createElement('img'); im.src = url;
-            im.style.cssText = `height:${h}px; border-radius:8px; border:1px solid var(--border-dim); cursor:zoom-in; display:block;`;
-            a.appendChild(im); wrap.appendChild(a);
+            im.style.cssText = `max-height:${maxH}px; max-width:100%; width:auto; height:auto; border-radius:8px; border:1px solid var(--border-dim); cursor:zoom-in; display:block;`;
+            im.onclick = () => openLightbox(url);
+            wrap.appendChild(im);
             if (caption) {
                 const c = document.createElement('span');
                 c.textContent = caption;
-                c.style.cssText = 'font-size:10px; color:var(--text-dim); max-width:' + (h * 1.2) + 'px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
+                c.style.cssText = 'font-size:10px; color:var(--text-dim); max-width:' + (maxH * 1.4) + 'px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
                 wrap.appendChild(c);
             }
             return wrap;
@@ -2277,8 +2303,8 @@
             if (lw) lw.style.display = 'block';
             images.forEach(img => {
                 const url = _comfyImgUrl(img);
-                if (live) live.appendChild(_comfyThumb(url, 120, info.label));   // 단계 순서대로 → 뒤에 추가
-                if (inline) { const t = document.getElementById('comfy-inline-thumbs-' + inline); if (t) t.appendChild(_comfyThumb(url, 96, info.label)); }
+                if (live) live.appendChild(_comfyThumb(url, 160, info.label));   // 단계 순서대로 → 뒤에 추가
+                if (inline) { const t = document.getElementById('comfy-inline-thumbs-' + inline); if (t) t.appendChild(_comfyThumb(url, inline === 'pos' ? 320 : 130, info.label)); }
             });
         }
 
@@ -2377,15 +2403,12 @@
         function _galleryRenderOne(url, append) {
             const grid = document.getElementById('result-gallery-grid');
             if (!grid) return;
-            const a = document.createElement('a');
-            a.href = url; a.target = '_blank';
-            a.style.cssText = 'display:block; position:relative;';
             const el = document.createElement('img');
             el.src = url; el.loading = 'lazy';
             el.style.cssText = 'width:100%; border-radius:10px; border:1px solid var(--border-dim); cursor:zoom-in; display:block;';
-            el.onerror = () => { a.style.opacity = '0.35'; el.alt = '이미지를 불러올 수 없음 (ComfyUI 종료됨?)'; };
-            a.appendChild(el);
-            if (append) grid.appendChild(a); else grid.prepend(a);
+            el.onclick = () => openLightbox(url);
+            el.onerror = () => { el.style.opacity = '0.35'; el.alt = '이미지를 불러올 수 없음 (ComfyUI 종료됨?)'; };
+            if (append) grid.appendChild(el); else grid.prepend(el);
         }
 
         function _galleryUpdateCount() {
