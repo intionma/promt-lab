@@ -293,8 +293,8 @@ function getParamDefs(calloutId, state) {
                 {value:'none',label:'없음'},
                 {value:'school_uniform',label:'교복'},{value:'dress',label:'드레스'},
                 {value:'casual',label:'캐주얼'},{value:'sportswear',label:'스포츠'},
-                {value:'gothic_lolita',label:'고딕'},{value:'kimono',label:'기모노'},
-                {value:'maid_uniform',label:'메이드'},{value:'white_dress',label:'흰 드레스'},
+                {value:'gothic',label:'고딕'},{value:'kimono',label:'기모노'},
+                {value:'maid',label:'메이드'},{value:'white_dress',label:'흰 드레스'},
               ]},
         ];
         case 'env': return [
@@ -526,8 +526,8 @@ function syncEnumToEditor(channel, value) {
     if (channel === 'outfit.preset') {
         const outfitMap = {
             school_uniform:'school_uniform', dress:'dress', casual:'casual',
-            sportswear:'sportswear', gothic_lolita:'gothic_lolita', kimono:'kimono',
-            maid_uniform:'maid_uniform', white_dress:'white_dress',
+            sportswear:'sportswear', gothic:'gothic', kimono:'kimono',
+            maid:'maid', white_dress:'white_dress',
         };
         const token = outfitMap[value];
         if (token) applyTokenToEditor(token, { layerHint: 4 });

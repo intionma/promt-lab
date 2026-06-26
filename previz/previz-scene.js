@@ -263,7 +263,24 @@ export class PrevizScene {
         // 저장 상태 복원
         try {
             const saved = JSON.parse(localStorage.getItem(LS_KEY));
-            if (saved) this.state = { ...this._defaultState(), ...saved };
+            if (saved) {
+                const def = this._defaultState();
+                this.state = {
+                    ...def,
+                    ...saved,
+                    hair:   { ...def.hair,   ...(saved.hair   || {}) },
+                    eye:    { ...def.eye,    ...(saved.eye    || {}) },
+                    body:   { ...def.body,   ...(saved.body   || {}) },
+                    outfit: { ...def.outfit, ...(saved.outfit || {}) },
+                    env:    { ...def.env,    ...(saved.env    || {}) },
+                    camera: { ...def.camera, ...(saved.camera || {}) },
+                };
+                // 색상값이 문자열(구버전)로 저장된 경우 숫자로 변환
+                if (typeof this.state.hair.color === 'string')
+                    this.state.hair.color = parseInt(this.state.hair.color.replace('#', ''), 16);
+                if (typeof this.state.eye.color === 'string')
+                    this.state.eye.color  = parseInt(this.state.eye.color.replace('#', ''), 16);
+            }
         } catch(_) {}
 
         // Raycaster
@@ -528,9 +545,7 @@ export class PrevizScene {
         [-1, 1].forEach(side => {
             const pId     = side < 0 ? PART.L_ARM : PART.R_ARM;
             const poseRot = side < 0 ? pose.lArmRot : pose.rArmRot;
-            // 포즈 Z 회전을 side에 맞게 반전
             const rot = [...poseRot];
-            rot[2] *= side;
 
             // 어깨 그룹
             const armGroup = new THREE.Group();
