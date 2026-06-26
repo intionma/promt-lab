@@ -208,10 +208,12 @@ export class WeatherSystem {
     setWeather(type) {
         if (this._pts) { this.scene.remove(this._pts); this._pts = null; }
         this._type = type;
-        if (type === 'clear') return;
+        if (type === 'clear' || !type) return;
 
         const THREE = this.THREE;
-        const count = type === 'rain' ? 1200 : 800;
+        const isRain   = type === 'rain';
+        const isPetals = type === 'petals';
+        const count = isRain ? 1200 : isPetals ? 350 : 800;
         const pos = new Float32Array(count * 3);
         this._velocities = new Float32Array(count * 3);
 
@@ -219,19 +221,30 @@ export class WeatherSystem {
             pos[i*3]   = (Math.random() - 0.5) * 10;
             pos[i*3+1] = Math.random() * 6;
             pos[i*3+2] = (Math.random() - 0.5) * 10;
-            // velocity
-            this._velocities[i*3]   = type === 'rain' ? (Math.random() - 0.5) * 0.005 : (Math.random() - 0.5) * 0.008;
-            this._velocities[i*3+1] = type === 'rain' ? -(0.04 + Math.random() * 0.03) : -(0.008 + Math.random() * 0.006);
-            this._velocities[i*3+2] = (Math.random() - 0.5) * 0.005;
+            if (isRain) {
+                this._velocities[i*3]   = (Math.random() - 0.5) * 0.005;
+                this._velocities[i*3+1] = -(0.04 + Math.random() * 0.03);
+                this._velocities[i*3+2] = (Math.random() - 0.5) * 0.005;
+            } else if (isPetals) {
+                // 꽃잎: 옆으로 크게 흩날리며 천천히 낙하
+                this._velocities[i*3]   = (Math.random() - 0.5) * 0.022;
+                this._velocities[i*3+1] = -(0.006 + Math.random() * 0.006);
+                this._velocities[i*3+2] = (Math.random() - 0.5) * 0.022;
+            } else { // snow
+                this._velocities[i*3]   = (Math.random() - 0.5) * 0.008;
+                this._velocities[i*3+1] = -(0.008 + Math.random() * 0.006);
+                this._velocities[i*3+2] = (Math.random() - 0.5) * 0.005;
+            }
         }
 
         const geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
         const mat = new THREE.PointsMaterial({
-            size: type === 'rain' ? 0.018 : 0.035,
-            color: type === 'rain' ? 0x88ccff : 0xddeeFF,
-            blending: THREE.AdditiveBlending,
-            transparent: true, opacity: type === 'rain' ? 0.55 : 0.70,
+            size:    isRain ? 0.018 : isPetals ? 0.05  : 0.035,
+            color:   isRain ? 0x88ccff : isPetals ? 0xff9ec4 : 0xddeeff,
+            blending: isPetals ? THREE.NormalBlending : THREE.AdditiveBlending,
+            transparent: true,
+            opacity: isRain ? 0.55 : isPetals ? 0.9 : 0.70,
             depthWrite: false,
         });
         this._pts = new THREE.Points(geo, mat);
