@@ -4859,8 +4859,11 @@
 
         function _ptcl(word, c, v) {
             if (!word) return c;
+            const ch = word[word.length - 1];
             const code = word.charCodeAt(word.length - 1);
             if (code >= 0xAC00 && code <= 0xD7A3) return ((code - 0xAC00) % 28) !== 0 ? c : v;
+            // 영문 끝: 모음이면 받침 없는 형(v: 가/는/를/와/로), 자음이면 받침 있는 형(c)
+            if (/[a-z]/i.test(ch)) return /[aeiouy]/i.test(ch) ? v : c;
             return c;
         }
 
@@ -4951,9 +4954,20 @@
             const ip = w => _ptcl(w,'이','가');
             const ep = w => _ptcl(w,'은','는');
             const op = w => _ptcl(w,'을','를');
-            const rp = w => _ptcl(w,'으로','로');
+            const rp = w => {  // 으로/로 — ㄹ받침은 '로'
+                const code = w ? w.charCodeAt(w.length - 1) : 0;
+                if (code >= 0xAC00 && code <= 0xD7A3 && ((code - 0xAC00) % 28) === 8) return '로';
+                return _ptcl(w,'으로','로');
+            };
             const gp = w => _ptcl(w,'과','와');
             const L  = w => w[w.length - 1] || '';
+
+            // 헤어 명사구: 중복되는 '머리/헤어/머릿결' 접미를 마지막만 남기고 정리
+            const joinHair = arr => {
+                arr = arr.filter(Boolean);
+                if (arr.length <= 1) return arr.join(' ');
+                return arr.map((p,i) => i < arr.length-1 ? p.replace(/\s*(머리|머릿결|헤어)$/,'') : p).join(' ');
+            };
 
             // 자연스러운 나열 (생략 없음)
             function andJoin(arr) {
@@ -4973,231 +4987,127 @@
             const parts = [];  // 완성된 <p> 블록들
             const mkP = s => s?.trim() ? `<p style="margin:0 0 10px 0;line-height:1.9;">${s}</p>` : '';
 
+            // 명사구 배열을 하나의 흐르는 문장으로 직조.
+            // closers: 마지막 단어를 받아 종결구를 반환하는 함수들(랜덤 선택).
+            // linker: 2개일 때 앞 구절 뒤 연결어(기본 '에 ').
+            function weave(nps, closers, linker) {
+                nps = (nps || []).filter(Boolean);
+                if (!nps.length) return '';
+                const last = nps[nps.length - 1];
+                let head = '';
+                if (nps.length === 2) head = nps[0] + (linker || '에 ');
+                else if (nps.length >= 3) head = nps.slice(0, -1).join(', ') + ', ';
+                return head + pick(...closers)(last);
+            }
+
             // ══════════════════════════════════════════
-            // BLOCK A  조명 · 이펙트
+            // BLOCK A  무대 — 배경·시간·날씨 + 조명·카메라·이펙트
+            // (배경과 연출을 한 흐름으로 엮어 도입부를 만든다)
             // ══════════════════════════════════════════
             {
-                const lt = G.lighting, cam = G.camera, ptcl = G.particles;
-                if (lt.length || cam.length) {
-                    const ltStr  = andJoin(lt);
-                    const camStr = andJoin(cam);
+                const place = andJoin([...G.inOut, ...G.bgType, ...G.bgPlace, ...G.furniture]);
+                const sett  = andJoin([...G.time, ...G.weather]);
+                const envNP = (sett && place) ? `${sett}의 ${place}` : (sett || place);
+                const fxNP  = [andJoin(G.lighting), andJoin(G.camera)].filter(Boolean).join(', ');
+                const ptcl  = andJoin(G.particles);
+
+                let s = '';
+                if (envNP && fxNP) {
+                    s = pick(
+                        `${envNP}${op(L(envNP))} 배경으로, ${fxNP}${ip(L(fxNP))} 장면 전체를 감쌉니다.`,
+                        `${fxNP} 아래 ${envNP}${ip(L(envNP))} 펼쳐집니다.`,
+                        `${envNP}${op(L(envNP))} 무대로 ${fxNP}${ip(L(fxNP))} 분위기를 완성합니다.`
+                    );
+                } else if (envNP) {
+                    s = pick(
+                        `${envNP}${op(L(envNP))} 배경으로 한 장면입니다.`,
+                        `${envNP} 속 한 장면이 담겨 있습니다.`,
+                        `무대는 ${envNP}입니다.`
+                    );
+                } else if (fxNP) {
+                    s = pick(
+                        `${fxNP}${ip(L(fxNP))} 장면 전체를 감쌉니다.`,
+                        `${fxNP}${op(L(fxNP))} 살려 분위기를 잡은 연출입니다.`
+                    );
+                }
+                if (s) parts.push(mkP(s));
+
+                if (ptcl) parts.push(mkP(pick(
+                    `여기에 ${ptcl}${ip(L(ptcl))} 더해져 생동감을 불어넣습니다.`,
+                    `${ptcl}${ip(L(ptcl))} 화면을 가득 채우며 분위기를 살립니다.`
+                )));
+            }
+
+            // ══════════════════════════════════════════
+            // BLOCK C+D  인물 등장 · 외형
+            // (여러 부위를 한 문장에 직조해 끊김을 줄인다)
+            // ══════════════════════════════════════════
+            {
+                const person = andJoin([...G.gender, ...G.nationality]);
+                const ang    = andJoin(G.angle);
+
+                // (1) 등장 — 인물·앵글
+                if (person || ang) {
                     let s = '';
-                    if (ltStr && camStr) {
+                    if (person && ang) {
                         s = pick(
-                            `${ltStr}${gp(L(lt[lt.length-1]))} ${camStr}${ip(L(camStr))} 어우러진 연출입니다.`,
-                            `${camStr}${ip(L(camStr))} 적용된 ${ltStr} 아래 펼쳐지는 장면입니다.`,
-                            `${ltStr} 속에서 ${camStr}${ip(L(camStr))} 화면에 깊이를 더합니다.`
+                            `${ang}${rp(L(ang))} 담아낸 ${person}의 모습입니다.`,
+                            `${person}${op(L(person))} ${ang}${rp(L(ang))} 포착했습니다.`,
+                            `${person}${ip(L(person))} ${ang}${rp(L(ang))} 화면에 담겼습니다.`
                         );
-                    } else if (ltStr) {
+                    } else if (person) {
                         s = pick(
-                            `${ltStr} 아래 펼쳐지는 장면입니다.`,
-                            `${ltStr}${ip(L(ltStr))} 화면 전체를 감싸고 있습니다.`,
-                            `${ltStr}${op(L(ltStr))} 활용해 분위기를 살린 이미지입니다.`
+                            `화면의 주인공은 ${person}입니다.`,
+                            `${person}${ip(L(person))} 등장합니다.`
                         );
                     } else {
                         s = pick(
-                            `${camStr}${ip(L(camStr))} 걸린 장면입니다.`,
-                            `${camStr}${rp(L(camStr))} 배경을 표현한 이미지입니다.`
+                            `${ang}${rp(L(ang))} 담아낸 장면입니다.`,
+                            `${ang} 구도로 포착했습니다.`
                         );
                     }
                     parts.push(mkP(s));
                 }
-                if (ptcl.length) {
-                    const ps = andJoin(ptcl);
+
+                // (2) 헤어·눈·얼굴 → 한 문장
+                const hairNP  = joinHair([andJoin(G.hairColor), andJoin(G.hairLen), andJoin(G.hairStyle)]);
+                const lookNPs = [hairNP, andJoin(G.eyeColor), andJoin(G.faceDetail)].filter(Boolean);
+                if (lookNPs.length) {
+                    parts.push(mkP(weave(lookNPs, [
+                        w => `${w}${ip(L(w))} 가장 먼저 시선을 끕니다.`,
+                        w => `${w}${ip(L(w))} 어우러진 모습입니다.`,
+                        w => `${w}${ip(L(w))} 인상적으로 다가옵니다.`
+                    ])));
+                }
+
+                // (3) 표정·시선 → 한 문장
+                const moodNPs = [andJoin(G.exp), andJoin(G.gaze)].filter(Boolean);
+                if (moodNPs.length) {
+                    parts.push(mkP(weave(moodNPs, [
+                        w => `${w}${ip(L(w))} 인물의 분위기를 살립니다.`,
+                        w => `${w}${ip(L(w))} 자연스럽게 묻어납니다.`
+                    ])));
+                }
+
+                // (4) 체형·가슴·피부·신체 디테일 → 한 문장
+                const physNPs = [
+                    [andJoin(G.bodySize), andJoin(G.chest)].filter(Boolean).join(' '),
+                    andJoin(G.skin), andJoin(G.bodyDetail)
+                ].filter(Boolean);
+                if (physNPs.length) {
+                    parts.push(mkP(weave(physNPs, [
+                        w => `${w}${ip(L(w))} 인물의 매력을 더합니다.`,
+                        w => `${w}${op(L(w))} 갖춘 인물입니다.`,
+                        w => `${w}${ip(L(w))} 돋보입니다.`
+                    ])));
+                }
+
+                // (5) 메이크업
+                const mkupNP = andJoin(G.makeup);
+                if (mkupNP) {
                     parts.push(mkP(pick(
-                        `${ps}${ip(L(ps))} 장면에 생동감을 불어넣습니다.`,
-                        `${ps}이 화면을 가득 채우며 분위기를 완성합니다.`.replace('이 ', ip(L(ps))+' ')
-                    )));
-                }
-            }
-
-            // ══════════════════════════════════════════
-            // BLOCK B  배경 · 공간 · 시간 · 날씨
-            // ══════════════════════════════════════════
-            {
-                const bgCore = [...G.inOut, ...G.bgType, ...G.bgPlace];
-                const furn   = G.furniture;
-                const time   = G.time, wx = G.weather;
-
-                const hasBg   = bgCore.length > 0 || furn.length > 0;
-                const hasTime = time.length > 0 || wx.length > 0;
-
-                if (hasBg || hasTime) {
-                    const bgAll  = andJoin([...bgCore, ...furn]);
-                    const settAll = andJoin([...time, ...wx]);
-
-                    let s = '';
-                    if (bgAll && settAll) {
-                        s = pick(
-                            `${settAll}의 ${bgAll}을/를 배경으로 한 이미지입니다.`.replace('을/를', op(L(bgAll))),
-                            `배경은 ${bgAll}이며, ${settAll}의 분위기가 공간 전체를 감싸고 있습니다.`.replace('이며', ip(L(bgAll)) === '이' ? '이며' : '며'),
-                            `${bgAll} 배경에서 ${settAll}의 기운이 물씬 느껴집니다.`
-                        );
-                    } else if (bgAll) {
-                        s = pick(
-                            `배경은 ${bgAll}${rp(L(bgAll))} 설정되어 있습니다.`,
-                            `${bgAll}${op(L(bgAll))} 배경으로 한 이미지입니다.`,
-                            `${bgAll} 공간 속 한 장면입니다.`
-                        );
-                    } else {
-                        s = pick(
-                            `${settAll}의 분위기가 감도는 장면입니다.`,
-                            `${settAll}${op(L(settAll))} 배경으로 한 이미지입니다.`
-                        );
-                    }
-                    parts.push(mkP(s));
-                }
-            }
-
-            // ══════════════════════════════════════════
-            // BLOCK C  피사체 소개 (인원·성별·국적·앵글)
-            // ══════════════════════════════════════════
-            {
-                const gen   = G.gender, nat = G.nationality, ang = G.angle;
-                const hasSubj = gen.length || nat.length || ang.length;
-
-                if (hasSubj) {
-                    const personStr = andJoin([...gen, ...nat]);
-                    const angStr    = andJoin(ang);
-                    let s = '';
-
-                    if (personStr && angStr) {
-                        s = pick(
-                            `${personStr}${ip(L(personStr))} ${angStr}${rp(L(angStr))} 담겼습니다.`,
-                            `${angStr}${rp(L(angStr))} 포착된 ${personStr}의 모습입니다.`,
-                            `${personStr}${op(L(personStr))} ${angStr}으로 담아냈습니다.`.replace('으로', rp(L(angStr)))
-                        );
-                    } else if (personStr) {
-                        s = pick(
-                            `${personStr}${ip(L(personStr))} 화면의 주인공입니다.`,
-                            `주인공은 ${personStr}입니다.`,
-                            `${personStr}${ip(L(personStr))} 등장하는 이미지입니다.`
-                        );
-                    } else {
-                        s = pick(
-                            `${angStr}${rp(L(angStr))} 촬영된 이미지입니다.`,
-                            `${angStr} 구도로 담아낸 장면입니다.`
-                        );
-                    }
-                    parts.push(mkP(s));
-                }
-            }
-
-            // ══════════════════════════════════════════
-            // BLOCK D  외형 묘사 (헤어 · 체형 · 피부 · 얼굴 · 표정)
-            // ══════════════════════════════════════════
-            {
-                const hc = G.hairColor, hl = G.hairLen, hs = G.hairStyle;
-                const body = G.bodySize, chest = G.chest;
-                const skin = G.skin, bdet = G.bodyDetail;
-                const face = G.faceDetail, eye = G.eyeColor;
-                const exp  = G.exp, gaze = G.gaze, mkup = G.makeup;
-
-                // 헤어
-                if (hc.length || hl.length || hs.length) {
-                    const hcStr = andJoin(hc), hlStr = andJoin(hl), hsStr = andJoin(hs);
-                    let hairS = '';
-                    const all3 = [hcStr, hlStr, hsStr].filter(Boolean);
-                    if (all3.length >= 3) {
-                        hairS = pick(
-                            `${hcStr}에 ${hlStr} ${hsStr}이 인상적입니다.`.replace('이 인상', ip(L(hsStr))+' 인상'),
-                            `${hcStr}의 ${hlStr}를 ${hsStr}으로 연출했습니다.`.replace('를', op(L(hlStr))).replace('으로', rp(L(hsStr))),
-                            `${hlStr} ${hsStr}의 ${hcStr}이 개성을 드러냅니다.`.replace('이 개성', ip(L(hcStr))+' 개성')
-                        );
-                    } else if (hcStr && hlStr) {
-                        hairS = pick(
-                            `${hcStr}에 ${hlStr}가 매력적입니다.`.replace('가', ip(L(hlStr))),
-                            `${hcStr}의 ${hlStr}이 눈길을 끕니다.`.replace('이', ip(L(hlStr)))
-                        );
-                    } else if (hcStr && hsStr) {
-                        hairS = `${hcStr}의 ${hsStr}이 특징입니다.`.replace('이', ip(L(hsStr)));
-                    } else if (hlStr && hsStr) {
-                        hairS = `${hlStr}를 ${hsStr}으로 연출했습니다.`.replace('를', op(L(hlStr))).replace('으로', rp(L(hsStr)));
-                    } else {
-                        hairS = `${all3[0]}이 인상적입니다.`.replace('이', ip(L(all3[0])));
-                    }
-                    parts.push(mkP(hairS));
-                }
-
-                // 체형 + 가슴
-                if (body.length || chest.length) {
-                    const bodyStr  = andJoin(body);
-                    const chestStr = andJoin(chest);
-                    let bodyS = '';
-                    if (bodyStr && chestStr) {
-                        bodyS = pick(
-                            `${bodyStr}에 ${chestStr}의 인물입니다.`,
-                            `${chestStr}의 ${bodyStr}이 특징적입니다.`.replace('이 특', ip(L(bodyStr))+' 특')
-                        );
-                    } else {
-                        const s = bodyStr || chestStr;
-                        bodyS = pick(
-                            `${s}의 인물입니다.`,
-                            `${s}이 눈에 띕니다.`.replace('이 눈', ip(L(s))+' 눈')
-                        );
-                    }
-                    parts.push(mkP(bodyS));
-                }
-
-                // 피부 + 신체 디테일
-                if (skin.length || bdet.length) {
-                    const all = [...skin, ...bdet];
-                    const s = andJoin(all);
-                    parts.push(mkP(pick(
-                        `${s}이 특징적입니다.`.replace('이 특', ip(L(s))+' 특'),
-                        `${s}의 인물입니다.`,
-                        `피부와 신체 디테일로 ${s}이 눈에 들어옵니다.`.replace('이 눈', ip(L(s))+' 눈')
-                    )));
-                }
-
-                // 얼굴형 + 눈동자
-                if (face.length || eye.length) {
-                    const faceStr = andJoin(face), eyeStr = andJoin(eye);
-                    let faceS = '';
-                    if (faceStr && eyeStr) {
-                        faceS = pick(
-                            `${faceStr}에 ${eyeStr}이 어울립니다.`.replace('이 어', ip(L(eyeStr))+' 어'),
-                            `${eyeStr}의 ${faceStr}이 인상적입니다.`.replace('이 인', ip(L(faceStr))+' 인'),
-                            `${faceStr}, ${eyeStr}의 조합이 독특합니다.`
-                        );
-                    } else {
-                        const s = faceStr || eyeStr;
-                        faceS = `${s}이 인상적입니다.`.replace('이 인', ip(L(s))+' 인');
-                    }
-                    parts.push(mkP(faceS));
-                }
-
-                // 표정 + 시선
-                if (exp.length || gaze.length) {
-                    const expStr  = andJoin(exp), gazeStr = andJoin(gaze);
-                    let expS = '';
-                    if (expStr && gazeStr) {
-                        expS = pick(
-                            `${expStr}${rp(L(expStr))} ${gazeStr}의 시선이 인상 깊습니다.`,
-                            `${gazeStr}하며 ${expStr}의 표정을 짓고 있습니다.`,
-                            `${expStr} 채 ${gazeStr}는 모습이 자연스럽습니다.`
-                        );
-                    } else if (expStr) {
-                        expS = pick(
-                            `${expStr}의 표정이 매력적입니다.`,
-                            `${expStr}${rp(L(expStr))} 자신을 표현하고 있습니다.`
-                        );
-                    } else {
-                        expS = pick(
-                            `${gazeStr}하는 시선이 인상적입니다.`,
-                            `${gazeStr}의 눈빛이 화면을 사로잡습니다.`
-                        );
-                    }
-                    parts.push(mkP(expS));
-                }
-
-                // 메이크업
-                if (mkup.length) {
-                    const ms = andJoin(mkup);
-                    parts.push(mkP(pick(
-                        `${ms}${rp(L(ms))} 포인트를 줬습니다.`,
-                        `${ms}이 스타일을 완성합니다.`.replace('이 스', ip(L(ms))+' 스'),
-                        `메이크업으로 ${ms}을 선택했습니다.`.replace('을 선', op(L(ms))+' 선')
+                        `${mkupNP}${rp(L(mkupNP))} 포인트를 줬습니다.`,
+                        `메이크업으로 ${mkupNP}${op(L(mkupNP))} 더했습니다.`
                     )));
                 }
             }
