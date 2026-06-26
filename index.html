@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.1 &nbsp;·&nbsp; 2026-06-26 — 내설정 다운로드 한글 깨짐 수정</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.2 &nbsp;·&nbsp; 2026-06-26 — 프롬프트 가져오기→계층 자동 배치</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -888,7 +888,9 @@
             </div>
 
             <div class="panel-header" style="background-color: var(--bg-base); border-bottom-color: var(--border-dim);">
-                <span style="display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-layer-group"></i> <span id="current-context-title">에디터</span> <button onclick="clearCurrentContext()" style="background:transparent;border:1px solid var(--border-dim);color:var(--text-dim);border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;font-family:var(--font-ui);" title="현재 탭 비우기"><i class="fa-solid fa-trash"></i> 비우기</button></span>
+                <span style="display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-layer-group"></i> <span id="current-context-title">에디터</span>
+                    <button onclick="openPromptImportModal()" style="background:transparent;border:1px solid #38bdf8;color:#38bdf8;border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;font-family:var(--font-ui);" title="완성된 프롬프트를 붙여넣어 계층별로 자동 배치"><i class="fa-solid fa-file-import"></i> 가져오기</button>
+                    <button onclick="clearCurrentContext()" style="background:transparent;border:1px solid var(--border-dim);color:var(--text-dim);border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;font-family:var(--font-ui);" title="현재 탭 비우기"><i class="fa-solid fa-trash"></i> 비우기</button></span>
                 <div class="view-toggle">
                     <button class="view-btn active" id="btn-view-visual" onclick="switchViewMode('visual')">🎨 캡슐 뷰</button>
                     <button class="view-btn" id="btn-view-text" onclick="switchViewMode('text')">📝 텍스트 뷰</button>
@@ -5893,6 +5895,109 @@
                 }
                 showToast("탭이 비워졌습니다.", "info");
             });
+        }
+
+        // 토큰 하나의 계층 추정: 활성맵 → 사전 → 퍼지 → 폴백
+        function _classifyTokenLayer(token) {
+            let core = String(token).trim();
+            // 가중치/강조 구문 제거: (tag:1.2), (tag), [tag], tag:1.1
+            core = core.replace(/^[\(\[]+/, '').replace(/[\)\]]+$/, '').replace(/:\s*[\d.]+\s*$/, '').trim();
+            if (!core) return null;
+            const lc = core.toLowerCase();
+            if (activeTagsMap[core]) return activeTagsMap[core].layer;
+            if (activeTagsMap[lc]) return activeTagsMap[lc].layer;
+            const dict = _tagDictLookup(lc);
+            if (dict) return dict.l;
+            const fz = (typeof _fuzzyFindLayer === 'function') ? _fuzzyFindLayer(lc) : null;
+            if (fz && fz.lid) return fz.lid;
+            return null; // 미분류
+        }
+
+        function openPromptImportModal() {
+            const prev = document.getElementById('__prompt-import');
+            if (prev) prev.remove();
+            const overlay = document.createElement('div');
+            overlay.id = '__prompt-import';
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:100004;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;';
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+            const box = document.createElement('div');
+            box.className = 'modal-content';
+            box.style.cssText = 'width:min(560px,96vw);max-height:88vh;padding:20px;border-radius:18px;display:flex;flex-direction:column;gap:14px;';
+            box.innerHTML = `<div style="font-size:15px;font-weight:800;font-family:var(--font-heading);"><i class="fa-solid fa-file-import" style="color:#38bdf8;margin-right:6px;"></i>프롬프트 가져오기 → 계층 배치</div>
+                <div style="font-size:12px;color:var(--text-dim);line-height:1.6;">완성된 프롬프트(쉼표 구분)를 붙여넣으세요. 각 태그를 사전·DB 기준으로 <b>계층별로 자동 배치</b>합니다. 가중치 <code>(tag:1.2)</code> 표기도 그대로 유지됩니다.</div>`;
+            const ta = document.createElement('textarea');
+            ta.placeholder = 'score_9, 1girl, long hair, cowboy shot, looking at viewer, white shirt, outdoors, ...';
+            ta.style.cssText = 'width:100%;min-height:140px;background:var(--input-bg);border:1px solid var(--border-dim);border-radius:10px;padding:12px;color:var(--text-main);font-family:var(--font-code);font-size:13px;outline:none;resize:vertical;';
+            box.appendChild(ta);
+            // 모드
+            const modeWrap = document.createElement('div');
+            modeWrap.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
+            let mode = 'replace';
+            const mkPill = (val, label) => {
+                const b = document.createElement('button');
+                b.className = 'io-pill' + (val === mode ? ' active' : '');
+                b.style.cssText = '--pc:#38bdf8;';
+                b.textContent = label;
+                b.onclick = () => { mode = val; modeWrap.querySelectorAll('.io-pill').forEach(x => x.classList.remove('active')); b.classList.add('active'); };
+                return b;
+            };
+            modeWrap.append(mkPill('replace', '현재 탭 덮어쓰기'), mkPill('append', '현재 내용에 추가'));
+            box.appendChild(modeWrap);
+            const status = document.createElement('div');
+            status.style.cssText = 'font-size:12px;color:var(--text-dim);min-height:16px;';
+            box.appendChild(status);
+            // 버튼
+            const btnRow = document.createElement('div');
+            btnRow.style.cssText = 'display:flex;justify-content:flex-end;gap:8px;';
+            const cancel = document.createElement('button');
+            cancel.textContent = '취소';
+            cancel.style.cssText = 'background:transparent;border:1px solid var(--border-dim);color:var(--text-dim);border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;';
+            cancel.onclick = () => overlay.remove();
+            const apply = document.createElement('button');
+            apply.className = 'btn-add-db';
+            apply.style.cssText = 'border:none;padding:8px 20px;';
+            apply.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> 배치';
+            apply.onclick = () => {
+                const tokens = ta.value.split(',').map(s => s.trim()).filter(Boolean);
+                if (!tokens.length) { status.textContent = '붙여넣은 프롬프트가 없습니다.'; return; }
+                const n = importPromptToEditor(tokens, mode);
+                overlay.remove();
+                showToast(`${n.total}개 태그를 배치했습니다. (미분류 ${n.unknown}개는 5계층)`, 'success', 3500);
+            };
+            btnRow.append(cancel, apply);
+            box.appendChild(btnRow);
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+            setTimeout(() => ta.focus(), 50);
+        }
+
+        // 토큰들을 계층별로 배치해 현재 에디터 탭에 반영
+        function importPromptToEditor(tokens, mode) {
+            saveStateToUndoStack();
+            if (!contextStates[currentContext]) contextStates[currentContext] = ["", "", "", "", "", "", ""];
+            // 시작 상태: 덮어쓰기면 빈 배열, 추가면 기존 토큰
+            const buckets = [[], [], [], [], [], [], []];
+            if (mode === 'append') {
+                for (let i = 0; i < 7; i++) {
+                    (contextStates[currentContext][i] || '').split(',').map(s => s.trim()).filter(Boolean).forEach(t => buckets[i].push(t));
+                }
+            }
+            let unknown = 0;
+            const FALLBACK = 5; // 미분류 → 5계층(액션/디테일)
+            tokens.forEach(tok => {
+                let layer = _classifyTokenLayer(tok);
+                if (!layer) { layer = FALLBACK; unknown++; }
+                const arr = buckets[layer - 1];
+                if (!arr.some(x => x.toLowerCase() === tok.toLowerCase())) arr.push(tok);
+            });
+            for (let i = 0; i < 7; i++) {
+                contextStates[currentContext][i] = buckets[i].join(', ');
+                const taEl = document.getElementById(`layer-${i + 1}`);
+                if (taEl) taEl.value = contextStates[currentContext][i];
+            }
+            for (let i = 1; i <= 7; i++) syncFromManualInput(i);
+            if (typeof updateMasterOutput === 'function') updateMasterOutput();
+            return { total: tokens.length, unknown };
         }
 
         function switchViewMode(mode) {
