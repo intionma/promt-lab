@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.2 &nbsp;·&nbsp; 2026-06-26 — 프롬프트 가져오기→계층 자동 배치</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.3 &nbsp;·&nbsp; 2026-06-26 — 라이브 단계 미리보기 (베이스/디테일러/업스케일)</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -1279,7 +1279,14 @@
                 <!-- 전송 워크플로우 점검 결과 -->
                 <div id="comfy-wf-preview" style="display:none; border:1px solid var(--border-dim); border-radius:8px; padding:12px; background:var(--bg-base);"></div>
 
-                <!-- 이미지 미리보기 -->
+                <!-- 라이브 미리보기 (단계별, 저장 안 함, 매 실행 갱신) -->
+                <div id="comfy-live-wrap" style="display:none;">
+                    <div style="font-size:11px; color:var(--text-dim); font-weight:700; margin-bottom:6px;"><i class="fa-solid fa-bolt" style="color:#eab308;"></i> 라이브 단계 미리보기 <span style="font-weight:500;">(베이스 → 디테일러 → 업스케일 · 저장 안 됨)</span></div>
+                    <div id="comfy-live-thumbs" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
+                </div>
+
+                <!-- 저장된 결과 이미지 -->
+                <div style="font-size:11px; color:var(--text-dim); font-weight:700;"><i class="fa-solid fa-floppy-disk" style="color:#22c55e;"></i> 저장된 결과</div>
                 <div id="comfy-gallery" style="display:flex; flex-wrap:wrap; gap:10px; min-height:40px;"></div>
             </div>
         </div>
@@ -2072,12 +2079,14 @@
             const d = msg.data || {};
             if (msg.type === 'executing') {
                 if (d.node === null) {
-                    // 한 prompt 실행 종료 → 결과 수집
-                    if (d.prompt_id && _comfyJobs[d.prompt_id]) _comfyFetchResult(d.prompt_id);
+                    // 한 prompt 실행 종료 → 최종 저장본 수집
+                    if (d.prompt_id && _comfyJobs[d.prompt_id]) _comfyFinalize(d.prompt_id);
                     _comfyRunningPid = null;
                 } else if (d.prompt_id && _comfyJobs[d.prompt_id]) {
+                    const job = _comfyJobs[d.prompt_id];
                     _comfyRunningPid = d.prompt_id;
-                    _comfyInlineTarget = _comfyJobs[d.prompt_id].inline; // 진행바를 해당 탭으로
+                    _comfyInlineTarget = job.inline;
+                    if (!job.cleared) { _comfyClearLive(job.inline); job.cleared = true; } // 새 실행 → 라이브 초기화
                     _comfySetProgress(5, `${_comfyQ()}생성 중...`);
                 }
             } else if (msg.type === 'progress') {
@@ -2085,7 +2094,77 @@
                 const { value, max } = d;
                 if (max) _comfySetProgress((value / max) * 100, `${_comfyQ()}${value}/${max} 스텝`);
             } else if (msg.type === 'executed' && d.output && d.output.images && d.prompt_id && _comfyJobs[d.prompt_id]) {
-                _comfyShowImagesFor(d.prompt_id, d.output.images);
+                // 각 노드(베이스/디테일러/업스케일)가 끝날 때마다 라이브 단계 미리보기에 추가
+                _comfyStageImages(d.prompt_id, d.output.images);
+            }
+        }
+
+        function _comfyImgUrl(img) {
+            return `${_comfyBase()}/view?filename=${encodeURIComponent(img.filename)}&subfolder=${encodeURIComponent(img.subfolder || '')}&type=${encodeURIComponent(img.type || 'output')}`;
+        }
+
+        // 라이브 단계 미리보기 초기화 (모달 + 해당 인라인 탭)
+        function _comfyClearLive(inline) {
+            const lw = document.getElementById('comfy-live-wrap');
+            const lt = document.getElementById('comfy-live-thumbs');
+            if (lw) lw.style.display = 'block';
+            if (lt) lt.innerHTML = '';
+            if (inline) { const t = document.getElementById('comfy-inline-thumbs-' + inline); if (t) t.innerHTML = ''; }
+        }
+
+        function _comfyThumb(url, h) {
+            const a = document.createElement('a'); a.href = url; a.target = '_blank';
+            const im = document.createElement('img'); im.src = url;
+            im.style.cssText = `height:${h}px; border-radius:8px; border:1px solid var(--border-dim); cursor:zoom-in;`;
+            a.appendChild(im); return a;
+        }
+
+        // 단계별 라이브 미리보기 (저장 안 함, 매 실행 갱신)
+        function _comfyStageImages(pid, images) {
+            const job = _comfyJobs[pid];
+            const inline = job ? job.inline : null;
+            if (job && !job.cleared) { _comfyClearLive(inline); job.cleared = true; }
+            const live = document.getElementById('comfy-live-thumbs');
+            const lw = document.getElementById('comfy-live-wrap');
+            if (lw) lw.style.display = 'block';
+            images.forEach(img => {
+                const url = _comfyImgUrl(img);
+                if (live) live.appendChild(_comfyThumb(url, 120));            // 단계 순서대로 → 뒤에 추가
+                if (inline) { const t = document.getElementById('comfy-inline-thumbs-' + inline); if (t) t.appendChild(_comfyThumb(url, 96)); }
+            });
+        }
+
+        // 실행 종료 → 저장본(type:output)만 영구 갤러리에 추가
+        async function _comfyFinalize(pid) {
+            const job = _comfyJobs[pid];
+            if (!job || job.done) return;
+            job.done = true;
+            try {
+                const res = await fetch(_comfyBase() + '/history/' + pid);
+                const hist = await res.json();
+                const outputs = (hist[pid] && hist[pid].outputs) || {};
+                const gallery = document.getElementById('comfy-gallery');
+                let sawStage = !!(document.getElementById('comfy-live-thumbs') && document.getElementById('comfy-live-thumbs').children.length);
+                for (const nodeId in outputs) {
+                    (outputs[nodeId].images || []).forEach(img => {
+                        const url = _comfyImgUrl(img);
+                        // 웹소켓 단계 이벤트를 못 받았으면(폴백) 라이브에도 표시
+                        if (!sawStage) _comfyStageImages(pid, [img]);
+                        if ((img.type || 'output') === 'output') {
+                            if (gallery) gallery.prepend(_comfyThumb(url, 240));
+                            galleryAddImage(url); // 결과 갤러리 탭에 영구 저장
+                        }
+                    });
+                }
+            } catch (e) {}
+            delete _comfyJobs[pid];
+            _comfyQueueCount = Math.max(0, _comfyQueueCount - 1);
+            if (_comfyQueueCount > 0) {
+                _comfySetProgress(100, `${_comfyQ()}완료 · 다음 대기`);
+            } else {
+                _comfySetProgress(100, '✅ 모두 완료');
+                document.getElementById('comfy-interrupt-btn').style.display = 'none';
+                _comfyRunningPid = null;
             }
         }
 
@@ -2111,7 +2190,7 @@
                 if (!res.ok) { const txt = await res.text(); throw new Error('HTTP ' + res.status + ' ' + txt.slice(0, 200)); }
                 const data = await res.json();
                 const pid = data.prompt_id;
-                _comfyJobs[pid] = { inline, shown: false };
+                _comfyJobs[pid] = { inline, cleared: false, done: false };
                 _comfyQueueCount++;
                 if (inline) _comfyInlineTarget = inline;
                 _comfySetProgress(3, `${_comfyQ()}큐 등록됨`);
@@ -2126,68 +2205,17 @@
 
         async function _comfyPollResult(pid, tries) {
             if (tries > 1200) return;                 // 최대 ~10분
-            if (!_comfyJobs[pid] || _comfyJobs[pid].shown) return; // 이미 처리됨
+            if (!_comfyJobs[pid] || _comfyJobs[pid].done) return; // 이미 처리됨
             try {
                 const res = await fetch(_comfyBase() + '/history/' + pid);
                 if (res.ok) {
                     const hist = await res.json();
-                    if (hist[pid]) {
-                        const outputs = hist[pid].outputs || {};
-                        for (const nodeId in outputs) {
-                            if (outputs[nodeId].images) { _comfyShowImagesFor(pid, outputs[nodeId].images); return; }
-                        }
+                    if (hist[pid] && hist[pid].outputs && Object.keys(hist[pid].outputs).length) {
+                        _comfyFinalize(pid); return;
                     }
                 }
             } catch (e) {}
             setTimeout(() => _comfyPollResult(pid, tries + 1), 500);
-        }
-
-        async function _comfyFetchResult(pid) {
-            try {
-                const res = await fetch(_comfyBase() + '/history/' + pid);
-                const hist = await res.json();
-                const outputs = hist[pid] && hist[pid].outputs || {};
-                for (const nodeId in outputs) {
-                    if (outputs[nodeId].images) { _comfyShowImagesFor(pid, outputs[nodeId].images); return; }
-                }
-            } catch (e) {}
-        }
-
-        function _comfyShowImagesFor(pid, images) {
-            const job = _comfyJobs[pid];
-            if (job && job.shown) return;     // 중복 방지
-            if (job) job.shown = true;
-            const inline = job ? job.inline : null;
-            const gallery = document.getElementById('comfy-gallery');
-            images.forEach(img => {
-                const url = `${_comfyBase()}/view?filename=${encodeURIComponent(img.filename)}&subfolder=${encodeURIComponent(img.subfolder || '')}&type=${encodeURIComponent(img.type || 'output')}`;
-                const a = document.createElement('a');
-                a.href = url; a.target = '_blank';
-                const el = document.createElement('img');
-                el.src = url;
-                el.style.cssText = 'max-width:240px; max-height:340px; border-radius:10px; border:1px solid var(--border-dim); cursor:zoom-in;';
-                a.appendChild(el);
-                if (gallery) gallery.prepend(a);
-                galleryAddImage(url); // 결과 갤러리 탭에도 누적
-                if (inline) {
-                    const thumbs = document.getElementById('comfy-inline-thumbs-' + inline);
-                    if (thumbs) {
-                        const ta = document.createElement('a'); ta.href = url; ta.target = '_blank';
-                        const ti = document.createElement('img'); ti.src = url;
-                        ti.style.cssText = 'height:96px; border-radius:8px; border:1px solid var(--border-dim); cursor:zoom-in;';
-                        ta.appendChild(ti); thumbs.prepend(ta);
-                    }
-                }
-            });
-            // 작업 완료 처리
-            if (_comfyJobs[pid]) { delete _comfyJobs[pid]; _comfyQueueCount = Math.max(0, _comfyQueueCount - 1); }
-            if (_comfyQueueCount > 0) {
-                _comfySetProgress(100, `${_comfyQ()}완료 · 다음 대기`);
-            } else {
-                _comfySetProgress(100, '✅ 모두 완료');
-                document.getElementById('comfy-interrupt-btn').style.display = 'none';
-                _comfyRunningPid = null;
-            }
         }
 
         // ── 이미지 갤러리 탭 ──────────────────────────────────────────
