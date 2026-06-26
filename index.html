@@ -381,6 +381,8 @@
         .fixed-weight-toolbar button.reset-btn { color: var(--text-dim); font-size: 11px; }
 
         /* 특수 기능 패널 버튼 */
+        .comfy-num { width:100%; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:9px 12px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none; box-sizing:border-box; }
+        .comfy-num:focus { border-color:#38bdf8; }
         .io-pill { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:20px; border:1.5px solid; font-size:12px; font-weight:700; font-family:var(--font-ui); cursor:pointer; transition:.15s; user-select:none; }
         .io-pill.active { background:color-mix(in srgb, var(--pc,#a78bfa) 18%, transparent); border-color:var(--pc,#a78bfa); color:var(--pc,#a78bfa); }
         .io-pill:not(.active) { background:transparent; border-color:var(--border-dim); color:var(--text-dim); }
@@ -808,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v8.3 &nbsp;·&nbsp; 2026-06-26 — 버전 툴팁 노출 수정 · DB검사 개선</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v8.4 &nbsp;·&nbsp; 2026-06-26 — ComfyUI 전송 패널 추가</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -823,6 +825,10 @@
             <button class="gt-btn" style="--gc:#22c55e;" onclick="reorganizeTagsByDB()" title="레이어 재배치 — 에디터 태그를 올바른 계층으로"><i class="fa-solid fa-shuffle"></i><span class="gt-label">재배치</span></button>
             <button class="gt-btn" style="--gc:#f59e0b;" onclick="openDedupHelper()" title="중복 감지 — 현재 에디터 내 중복 프롬프트"><i class="fa-solid fa-clone"></i><span class="gt-label">중복 감지</span></button>
             <button class="gt-btn" style="--gc:#38bdf8;" onclick="window.__previzOpen && window.__previzOpen()" title="Prompt Preview Studio"><i class="fa-solid fa-camera-movie"></i><span class="gt-label">미리보기</span></button>
+        </div>
+        <div class="gt-divider"></div>
+        <div class="gt-group">
+            <button class="gt-btn" style="--gc:#38bdf8; border-color:#38bdf8; color:#38bdf8;" onclick="openComfyModal()" title="ComfyUI로 프롬프트 전송 → 이미지 생성"><i class="fa-solid fa-paper-plane"></i><span class="gt-label">ComfyUI</span></button>
         </div>
         <div class="gt-spacer"></div>
         <div class="gt-group">
@@ -1085,6 +1091,71 @@
         </div>
     </div>
 
+    <!-- ── ComfyUI 전송 패널 ── -->
+    <div class="modal-overlay" id="comfy-modal">
+        <div class="modal-content" style="width:min(880px,96vw); max-height:92vh;">
+            <div class="modal-header">
+                <span class="modal-title"><i class="fa-solid fa-paper-plane" style="color:#38bdf8;"></i> ComfyUI 전송</span>
+                <button class="action-btn" onclick="document.getElementById('comfy-modal').style.display='none'; comfyCloseSocket();"><i class="fa-solid fa-xmark"></i> 닫기</button>
+            </div>
+            <div style="padding:18px 22px; overflow-y:auto; display:flex; flex-direction:column; gap:16px;">
+                <!-- 연결 -->
+                <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:220px;">
+                        <label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:5px;">ComfyUI 주소</label>
+                        <input id="comfy-url" type="text" placeholder="http://127.0.0.1:8188" style="width:100%; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:9px 12px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;">
+                    </div>
+                    <button class="action-btn" onclick="comfyLoadCheckpoints()" style="color:#38bdf8; border-color:#38bdf8; height:38px;"><i class="fa-solid fa-rotate"></i> 연결 확인 · 모델 불러오기</button>
+                    <span id="comfy-conn-status" style="font-size:12px; color:var(--text-dim); align-self:center;"></span>
+                </div>
+
+                <!-- 생성 파라미터 -->
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px;">
+                    <div style="grid-column:1/-1;">
+                        <label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:5px;">체크포인트 (모델 파일명)</label>
+                        <input id="comfy-ckpt" list="comfy-ckpt-list" type="text" placeholder="ponyRealism_v23.safetensors" style="width:100%; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:9px 12px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;">
+                        <datalist id="comfy-ckpt-list"></datalist>
+                    </div>
+                    <div><label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Steps</label><input id="comfy-steps" type="number" value="28" min="1" max="150" class="comfy-num"></div>
+                    <div><label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">CFG</label><input id="comfy-cfg" type="number" value="7" min="1" max="30" step="0.5" class="comfy-num"></div>
+                    <div><label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Width</label><input id="comfy-w" type="number" value="1024" min="64" step="8" class="comfy-num"></div>
+                    <div><label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Height</label><input id="comfy-h" type="number" value="1024" min="64" step="8" class="comfy-num"></div>
+                    <div>
+                        <label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Sampler</label>
+                        <select id="comfy-sampler" class="comfy-num">
+                            <option>euler</option><option>euler_ancestral</option><option selected>dpmpp_2m</option><option>dpmpp_2m_sde</option><option>dpmpp_3m_sde</option><option>dpmpp_sde</option><option>ddim</option><option>uni_pc</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Scheduler</label>
+                        <select id="comfy-scheduler" class="comfy-num">
+                            <option selected>karras</option><option>normal</option><option>exponential</option><option>sgm_uniform</option><option>simple</option><option>ddim_uniform</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Seed</label>
+                        <div style="display:flex; gap:6px;">
+                            <input id="comfy-seed" type="number" value="-1" class="comfy-num" style="flex:1;">
+                            <button class="action-btn" onclick="document.getElementById('comfy-seed').value=-1;" title="랜덤(-1)" style="padding:0 10px;"><i class="fa-solid fa-dice"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <p style="font-size:11px; color:var(--text-dim); margin:-6px 0 0;">Seed = -1 이면 매번 랜덤. 긍정/부정 프롬프트는 현재 결과 패널 내용을 자동으로 사용합니다.</p>
+
+                <!-- 전송 + 진행률 -->
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <button id="comfy-send-btn" class="btn-add-db" style="border:none; padding:12px 28px;" onclick="comfyGenerate()"><i class="fa-solid fa-paper-plane"></i> 생성 전송</button>
+                    <button class="action-btn" id="comfy-interrupt-btn" onclick="comfyInterrupt()" style="color:var(--accent-danger); border-color:var(--accent-danger); display:none;"><i class="fa-solid fa-stop"></i> 중단</button>
+                    <div style="flex:1; height:8px; background:var(--bg-surface); border-radius:5px; overflow:hidden;"><div id="comfy-progress" style="height:100%; width:0%; background:linear-gradient(90deg,#38bdf8,#a78bfa); transition:width .2s;"></div></div>
+                    <span id="comfy-status" style="font-size:12px; color:var(--text-dim); min-width:90px; text-align:right;"></span>
+                </div>
+
+                <!-- 이미지 미리보기 -->
+                <div id="comfy-gallery" style="display:flex; flex-wrap:wrap; gap:10px; min-height:40px;"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- 모바일 하단 탭바 -->
     <nav id="mobile-tabbar"></nav>
 
@@ -1155,6 +1226,234 @@
                 btn.innerHTML = '<i class="fa-solid fa-sun"></i>';
                 localStorage.setItem('pro_prompt_theme', 'dark');
             }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // ComfyUI 연동
+        // ─────────────────────────────────────────────────────────────
+        const COMFY_KEY = 'comfy_settings_v1';
+        let _comfySocket = null;
+        let _comfyClientId = null;
+        let _comfyCurPromptId = null;
+
+        function _comfyBase() {
+            let u = (document.getElementById('comfy-url').value || '').trim();
+            if (!u) u = 'http://127.0.0.1:8188';
+            return u.replace(/\/+$/, '');
+        }
+
+        function _comfySaveSettings() {
+            try {
+                localStorage.setItem(COMFY_KEY, JSON.stringify({
+                    url: document.getElementById('comfy-url').value,
+                    ckpt: document.getElementById('comfy-ckpt').value,
+                    steps: document.getElementById('comfy-steps').value,
+                    cfg: document.getElementById('comfy-cfg').value,
+                    w: document.getElementById('comfy-w').value,
+                    h: document.getElementById('comfy-h').value,
+                    sampler: document.getElementById('comfy-sampler').value,
+                    scheduler: document.getElementById('comfy-scheduler').value,
+                }));
+            } catch (e) {}
+        }
+
+        function openComfyModal() {
+            // 저장된 설정 복원
+            try {
+                const s = JSON.parse(localStorage.getItem(COMFY_KEY) || '{}');
+                if (s.url) document.getElementById('comfy-url').value = s.url;
+                if (s.ckpt) document.getElementById('comfy-ckpt').value = s.ckpt;
+                if (s.steps) document.getElementById('comfy-steps').value = s.steps;
+                if (s.cfg) document.getElementById('comfy-cfg').value = s.cfg;
+                if (s.w) document.getElementById('comfy-w').value = s.w;
+                if (s.h) document.getElementById('comfy-h').value = s.h;
+                if (s.sampler) document.getElementById('comfy-sampler').value = s.sampler;
+                if (s.scheduler) document.getElementById('comfy-scheduler').value = s.scheduler;
+            } catch (e) {}
+            if (!document.getElementById('comfy-url').value) document.getElementById('comfy-url').value = 'http://127.0.0.1:8188';
+            document.getElementById('comfy-modal').style.display = 'flex';
+        }
+
+        function comfyCloseSocket() {
+            if (_comfySocket) { try { _comfySocket.close(); } catch (e) {} _comfySocket = null; }
+        }
+
+        async function comfyLoadCheckpoints() {
+            const statusEl = document.getElementById('comfy-conn-status');
+            statusEl.textContent = '연결 중...';
+            statusEl.style.color = 'var(--text-dim)';
+            try {
+                const res = await fetch(_comfyBase() + '/object_info/CheckpointLoaderSimple');
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                const names = data?.CheckpointLoaderSimple?.input?.required?.ckpt_name?.[0] || [];
+                const dl = document.getElementById('comfy-ckpt-list');
+                dl.innerHTML = '';
+                names.forEach(n => { const o = document.createElement('option'); o.value = n; dl.appendChild(o); });
+                // 현재 입력이 비어있고 ponyRealism 류가 있으면 자동 선택
+                const ckptInp = document.getElementById('comfy-ckpt');
+                if (!ckptInp.value && names.length) {
+                    const pony = names.find(n => /pony/i.test(n));
+                    ckptInp.value = pony || names[0];
+                }
+                statusEl.textContent = `✅ 연결됨 · 모델 ${names.length}개`;
+                statusEl.style.color = 'var(--accent-green)';
+                _comfySaveSettings();
+            } catch (e) {
+                statusEl.innerHTML = '❌ 연결 실패 — ComfyUI를 <code>--enable-cors-header</code> 로 실행했는지 확인';
+                statusEl.style.color = 'var(--accent-danger)';
+            }
+        }
+
+        function _comfyBuildWorkflow(pos, neg) {
+            const seedInput = parseInt(document.getElementById('comfy-seed').value);
+            const seed = (isNaN(seedInput) || seedInput < 0) ? Math.floor(Math.random() * 1e15) : seedInput;
+            return {
+                "3": { "class_type": "KSampler", "inputs": {
+                    "seed": seed,
+                    "steps": parseInt(document.getElementById('comfy-steps').value) || 28,
+                    "cfg": parseFloat(document.getElementById('comfy-cfg').value) || 7,
+                    "sampler_name": document.getElementById('comfy-sampler').value,
+                    "scheduler": document.getElementById('comfy-scheduler').value,
+                    "denoise": 1,
+                    "model": ["4", 0], "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["5", 0]
+                }},
+                "4": { "class_type": "CheckpointLoaderSimple", "inputs": { "ckpt_name": document.getElementById('comfy-ckpt').value } },
+                "5": { "class_type": "EmptyLatentImage", "inputs": {
+                    "width": parseInt(document.getElementById('comfy-w').value) || 1024,
+                    "height": parseInt(document.getElementById('comfy-h').value) || 1024,
+                    "batch_size": 1
+                }},
+                "6": { "class_type": "CLIPTextEncode", "inputs": { "text": pos, "clip": ["4", 1] } },
+                "7": { "class_type": "CLIPTextEncode", "inputs": { "text": neg, "clip": ["4", 1] } },
+                "8": { "class_type": "VAEDecode", "inputs": { "samples": ["3", 0], "vae": ["4", 2] } },
+                "9": { "class_type": "SaveImage", "inputs": { "filename_prefix": "PromptLab", "images": ["8", 0] } }
+            };
+        }
+
+        function _comfyUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+            });
+        }
+
+        function _comfySetProgress(pct, text) {
+            document.getElementById('comfy-progress').style.width = Math.max(0, Math.min(100, pct)) + '%';
+            if (text !== undefined) document.getElementById('comfy-status').textContent = text;
+        }
+
+        async function comfyGenerate() {
+            const pos = (document.getElementById('final-positive').value || '').trim();
+            const neg = (document.getElementById('final-negative').value || '').trim();
+            if (!pos) { showToast('긍정 프롬프트가 비어 있습니다.', 'error'); return; }
+            if (!document.getElementById('comfy-ckpt').value.trim()) { showToast('체크포인트(모델 파일명)를 입력하세요.', 'error'); return; }
+            _comfySaveSettings();
+
+            const sendBtn = document.getElementById('comfy-send-btn');
+            sendBtn.disabled = true; sendBtn.style.opacity = '0.5';
+            document.getElementById('comfy-interrupt-btn').style.display = 'inline-flex';
+            _comfySetProgress(2, '전송 중...');
+
+            // 클라이언트 ID + 웹소켓 (진행률/완료 수신)
+            _comfyClientId = _comfyUUID();
+            comfyCloseSocket();
+            try {
+                const wsBase = _comfyBase().replace(/^http/, 'ws');
+                _comfySocket = new WebSocket(`${wsBase}/ws?clientId=${_comfyClientId}`);
+                _comfySocket.onmessage = (ev) => {
+                    if (typeof ev.data !== 'string') return;
+                    let msg; try { msg = JSON.parse(ev.data); } catch (e) { return; }
+                    if (msg.type === 'progress') {
+                        const { value, max } = msg.data;
+                        _comfySetProgress((value / max) * 100, `${value}/${max} 스텝`);
+                    } else if (msg.type === 'executing' && msg.data.node === null && msg.data.prompt_id === _comfyCurPromptId) {
+                        // 실행 완료
+                        _comfyFetchResult(_comfyCurPromptId);
+                    } else if (msg.type === 'executed' && msg.data?.output?.images) {
+                        _comfyShowImages(msg.data.output.images);
+                    }
+                };
+            } catch (e) { /* 웹소켓 실패해도 폴링으로 폴백 */ }
+
+            // /prompt 전송
+            try {
+                const body = JSON.stringify({ prompt: _comfyBuildWorkflow(pos, neg), client_id: _comfyClientId });
+                const res = await fetch(_comfyBase() + '/prompt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+                if (!res.ok) {
+                    const txt = await res.text();
+                    throw new Error('HTTP ' + res.status + ' ' + txt.slice(0, 200));
+                }
+                const data = await res.json();
+                _comfyCurPromptId = data.prompt_id;
+                _comfySetProgress(5, '큐 등록됨 · 생성 대기...');
+                // 웹소켓이 안 붙는 경우 대비 폴링 폴백
+                _comfyPollResult(_comfyCurPromptId, 0);
+            } catch (e) {
+                _comfyFinish();
+                document.getElementById('comfy-status').textContent = '전송 실패';
+                showToast('전송 실패: ' + e.message + ' (CORS/주소 확인)', 'error', 5000);
+            }
+        }
+
+        async function _comfyPollResult(pid, tries) {
+            if (tries > 600) return; // 최대 ~5분
+            // 이미 표시됐으면 중단
+            if (document.getElementById('comfy-gallery').dataset.pid === pid) return;
+            try {
+                const res = await fetch(_comfyBase() + '/history/' + pid);
+                if (res.ok) {
+                    const hist = await res.json();
+                    if (hist[pid]) {
+                        const outputs = hist[pid].outputs || {};
+                        for (const nodeId in outputs) {
+                            if (outputs[nodeId].images) { _comfyShowImages(outputs[nodeId].images); return; }
+                        }
+                    }
+                }
+            } catch (e) {}
+            setTimeout(() => _comfyPollResult(pid, tries + 1), 500);
+        }
+
+        async function _comfyFetchResult(pid) {
+            try {
+                const res = await fetch(_comfyBase() + '/history/' + pid);
+                const hist = await res.json();
+                const outputs = hist[pid]?.outputs || {};
+                for (const nodeId in outputs) {
+                    if (outputs[nodeId].images) { _comfyShowImages(outputs[nodeId].images); return; }
+                }
+            } catch (e) {}
+        }
+
+        function _comfyShowImages(images) {
+            const gallery = document.getElementById('comfy-gallery');
+            if (gallery.dataset.pid === _comfyCurPromptId) return; // 중복 방지
+            gallery.dataset.pid = _comfyCurPromptId;
+            images.forEach(img => {
+                const url = `${_comfyBase()}/view?filename=${encodeURIComponent(img.filename)}&subfolder=${encodeURIComponent(img.subfolder || '')}&type=${encodeURIComponent(img.type || 'output')}`;
+                const a = document.createElement('a');
+                a.href = url; a.target = '_blank';
+                const el = document.createElement('img');
+                el.src = url;
+                el.style.cssText = 'max-width:240px; max-height:340px; border-radius:10px; border:1px solid var(--border-dim); cursor:zoom-in;';
+                a.appendChild(el);
+                gallery.prepend(a);
+            });
+            _comfySetProgress(100, '✅ 완료');
+            _comfyFinish();
+        }
+
+        function _comfyFinish() {
+            const sendBtn = document.getElementById('comfy-send-btn');
+            sendBtn.disabled = false; sendBtn.style.opacity = '1';
+            document.getElementById('comfy-interrupt-btn').style.display = 'none';
+            comfyCloseSocket();
+        }
+
+        async function comfyInterrupt() {
+            try { await fetch(_comfyBase() + '/interrupt', { method: 'POST' }); } catch (e) {}
+            _comfyFinish();
+            _comfySetProgress(0, '중단됨');
         }
 
         // 초기 테마 로드
