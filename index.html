@@ -810,7 +810,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v8.7 &nbsp;·&nbsp; 2026-06-26 — 메모 상단바 · 번역 접기 · 빠른전송 · 전송대상</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v8.8 &nbsp;·&nbsp; 2026-06-26 — 노드 토글 그룹 (LoRA·디테일러 ON/OFF)</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
@@ -1158,6 +1158,23 @@
                         <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--text-main);">
                             <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="comfy-wf-randseed" checked> 매번 시드 랜덤</label>
                         </div>
+
+                        <!-- 노드 토글 그룹 (LoRA / 얼굴 디테일러 등 ON·OFF) -->
+                        <div style="border-top:1px dashed var(--border-dim); padding-top:10px;">
+                            <label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:6px;">노드 토글 그룹 — LoRA·얼굴 디테일러 등 묶어서 끄고 켜기</label>
+                            <div id="comfy-group-list" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px;"></div>
+                            <details style="background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px;">
+                                <summary style="cursor:pointer; font-size:12px; color:var(--text-main); font-weight:700;"><i class="fa-solid fa-plus"></i> 새 토글 그룹 만들기</summary>
+                                <div style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
+                                    <div style="font-size:11px; color:var(--text-dim);">끄고 켜고 싶은 노드를 선택하세요. (예: FaceDetailer, LoraLoader). OFF 시 해당 노드를 우회(bypass)합니다.</div>
+                                    <div id="comfy-node-list" style="max-height:160px; overflow-y:auto; display:flex; flex-direction:column; gap:3px; background:var(--bg-base); border:1px solid var(--border-dim); border-radius:6px; padding:6px;"></div>
+                                    <div style="display:flex; gap:6px;">
+                                        <input id="comfy-group-name" type="text" placeholder="그룹 이름 (예: 얼굴 디테일러)" style="flex:1; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:6px; padding:7px 10px; color:var(--text-main); font-size:12px; outline:none;">
+                                        <button class="action-btn" onclick="comfyCreateGroup()" style="color:#22c55e; border-color:#22c55e;"><i class="fa-solid fa-check"></i> 그룹 추가</button>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
                     </div>
                 </div>
 
@@ -1356,6 +1373,7 @@
                     wfRandSeed: document.getElementById('comfy-wf-randseed').checked,
                     target: _comfyTarget,
                     connectedOnce: _comfyConnectedOnce,
+                    groups: _comfyGroups,
                 }));
             } catch (e) {}
         }
@@ -1391,9 +1409,11 @@
                 if (s.scheduler) document.getElementById('comfy-scheduler').value = s.scheduler;
                 if (s.wfJson) document.getElementById('comfy-wf-json').value = s.wfJson;
                 if (s.wfRandSeed !== undefined) document.getElementById('comfy-wf-randseed').checked = s.wfRandSeed;
+                if (Array.isArray(s.groups)) _comfyGroups = s.groups;
                 comfySetWfMode(s.wfMode || 'basic');
                 comfySetTarget(s.target || 'both');
                 if ((s.wfMode === 'custom') && s.wfJson) comfyAnalyzeWorkflow(true);
+                comfyRenderGroups();
             } catch (e) {}
             if (!document.getElementById('comfy-url').value) document.getElementById('comfy-url').value = 'http://127.0.0.1:8188';
             document.getElementById('comfy-modal').style.display = 'flex';
@@ -1470,7 +1490,115 @@
                 statusEl.innerHTML = `✅ 노드 ${ids.length}개 · 프롬프트 노드 ${clipNodes.length}개${auto}`;
                 statusEl.style.color = 'var(--accent-green)';
             }
+
+            // 토글 그룹용 노드 체크리스트 채우기
+            const nodeList = document.getElementById('comfy-node-list');
+            if (nodeList) {
+                nodeList.innerHTML = '';
+                ids.forEach(id => {
+                    const title = wf[id]._meta?.title;
+                    const lbl = document.createElement('label');
+                    lbl.style.cssText = 'display:flex; align-items:center; gap:7px; font-size:11px; color:var(--text-main); cursor:pointer; padding:2px 4px;';
+                    lbl.innerHTML = `<input type="checkbox" value="${id}" style="flex-shrink:0;"><span style="font-family:var(--font-code);">#${id}</span> <span style="color:var(--accent-blue);">${wf[id].class_type}</span>${title ? ` <span style="color:var(--text-dim);">· ${title}</span>` : ''}`;
+                    nodeList.appendChild(lbl);
+                });
+            }
+            comfyRenderGroups();
             _comfySaveSettings();
+        }
+
+        // ── 노드 토글 그룹 ────────────────────────────────────────────
+        let _comfyGroups = [];   // [{name, nodeIds:[], enabled}]
+        let _comfyObjectInfo = null;
+
+        async function _comfyEnsureObjectInfo() {
+            if (_comfyObjectInfo) return _comfyObjectInfo;
+            try { const r = await fetch(_comfyBase() + '/object_info'); _comfyObjectInfo = await r.json(); }
+            catch (e) { _comfyObjectInfo = {}; }
+            return _comfyObjectInfo;
+        }
+
+        function comfyCreateGroup() {
+            const name = (document.getElementById('comfy-group-name').value || '').trim();
+            const checked = Array.from(document.querySelectorAll('#comfy-node-list input:checked')).map(c => c.value);
+            if (!name) { showToast('그룹 이름을 입력하세요.', 'error'); return; }
+            if (!checked.length) { showToast('노드를 1개 이상 선택하세요.', 'error'); return; }
+            _comfyGroups.push({ name, nodeIds: checked, enabled: true });
+            document.getElementById('comfy-group-name').value = '';
+            document.querySelectorAll('#comfy-node-list input:checked').forEach(c => c.checked = false);
+            comfyRenderGroups();
+            _comfySaveSettings();
+            showToast(`'${name}' 그룹 추가됨 (${checked.length}개 노드)`, 'success');
+        }
+
+        function comfyToggleGroup(idx) {
+            if (!_comfyGroups[idx]) return;
+            _comfyGroups[idx].enabled = !_comfyGroups[idx].enabled;
+            comfyRenderGroups();
+            _comfySaveSettings();
+        }
+
+        function comfyDeleteGroup(idx) {
+            _comfyGroups.splice(idx, 1);
+            comfyRenderGroups();
+            _comfySaveSettings();
+        }
+
+        function comfyRenderGroups() {
+            const wrap = document.getElementById('comfy-group-list');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+            if (!_comfyGroups.length) {
+                wrap.innerHTML = '<span style="font-size:11px; color:var(--text-dim);">아직 토글 그룹이 없습니다.</span>';
+                return;
+            }
+            _comfyGroups.forEach((g, i) => {
+                const on = g.enabled;
+                const chip = document.createElement('div');
+                chip.style.cssText = `display:inline-flex; align-items:center; gap:7px; padding:6px 10px; border-radius:18px; border:1.5px solid ${on ? '#22c55e' : 'var(--border-dim)'}; background:${on ? 'color-mix(in srgb,#22c55e 16%,transparent)' : 'transparent'}; font-size:12px; font-weight:700;`;
+                const btn = document.createElement('span');
+                btn.style.cssText = `cursor:pointer; color:${on ? '#22c55e' : 'var(--text-dim)'};`;
+                btn.innerHTML = `<i class="fa-solid fa-${on ? 'toggle-on' : 'toggle-off'}"></i> ${g.name} <span style="opacity:0.6; font-weight:500;">(${g.nodeIds.length})</span>`;
+                btn.onclick = () => comfyToggleGroup(i);
+                const del = document.createElement('span');
+                del.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                del.style.cssText = 'cursor:pointer; color:var(--text-dim); opacity:0.6;';
+                del.title = '그룹 삭제';
+                del.onclick = () => comfyDeleteGroup(i);
+                chip.append(btn, del);
+                wrap.appendChild(chip);
+            });
+        }
+
+        // API 워크플로우에서 노드 하나를 우회(bypass)하고 제거 — 소비처를 노드의 입력으로 재연결
+        function _comfyBypassNode(wf, id, oi) {
+            const node = wf[id];
+            if (!node) return;
+            const cls = oi && oi[node.class_type];
+            const outTypes = (cls && cls.output) || [];
+            const inputDefs = cls ? Object.assign({}, cls.input?.required || {}, cls.input?.optional || {}) : {};
+            // 링크(배열)로 연결된 입력들 수집
+            const linkInputs = [];
+            for (const k in node.inputs) {
+                if (Array.isArray(node.inputs[k])) {
+                    const def = inputDefs[k];
+                    const type = (def && typeof def[0] === 'string') ? def[0] : null;
+                    linkInputs.push({ name: k, type, link: node.inputs[k] });
+                }
+            }
+            // 이 노드의 출력을 참조하는 모든 소비처를, 타입이 맞는 입력 링크로 재연결
+            for (const cid in wf) {
+                const cin = wf[cid].inputs || {};
+                for (const k in cin) {
+                    if (Array.isArray(cin[k]) && String(cin[k][0]) === String(id)) {
+                        const outIdx = cin[k][1];
+                        const outType = outTypes[outIdx];
+                        let repl = (outType && linkInputs.find(li => li.type === outType)) || linkInputs[outIdx] || linkInputs[0];
+                        if (repl) cin[k] = repl.link; // 우회 연결
+                    }
+                }
+            }
+            delete wf[id];
         }
 
         function comfyCloseSocket() {
@@ -1595,6 +1723,13 @@
             if (_comfyWfMode === 'custom') {
                 workflow = _comfyBuildCustomWorkflow(pos, neg);
                 if (!workflow) return; // 내부에서 에러 토스트 처리
+                // 꺼진 토글 그룹의 노드 우회(bypass)
+                const offGroups = _comfyGroups.filter(g => !g.enabled);
+                if (offGroups.length) {
+                    const oi = await _comfyEnsureObjectInfo();
+                    const offIds = [...new Set(offGroups.flatMap(g => g.nodeIds))];
+                    offIds.forEach(id => _comfyBypassNode(workflow, id, oi));
+                }
             } else {
                 if (!document.getElementById('comfy-ckpt').value.trim()) { showToast('체크포인트(모델 파일명)를 입력하세요.', 'error'); return; }
                 workflow = _comfyBuildWorkflow(pos, neg);
