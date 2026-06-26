@@ -1688,30 +1688,39 @@
                     const sep = document.createElement('div'); sep.className = 'ctx-separator'; ctxMenu.appendChild(sep);
                 } else if (item.label && item.isHeader) {
                     const lbl = document.createElement('div'); lbl.className = 'ctx-label'; lbl.textContent = item.label; ctxMenu.appendChild(lbl);
-                } else if (item.isWeightRow) {
+                } else if (item.isWeightRow || item.isWeightRowUnified) {
                     // stays open, no auto-close
                     const row = document.createElement('div');
                     row.className = 'ctx-weight-row';
-                    row.dataset.prompt = item.promptText;
                     const label = document.createElement('span');
                     label.className = 'ctx-weight-label';
                     label.textContent = item.label;
-                    label.title = item.promptText;
+                    label.title = item.isWeightRowUnified ? item.prompts.join(', ') : item.promptText;
                     const valEl = document.createElement('span');
                     valEl.className = 'ctx-weight-val';
-                    valEl.textContent = getTagWeight(item.tagText, item.promptText).toFixed(1);
+                    const _getVal = () => item.isWeightRowUnified
+                        ? Math.max(...item.prompts.map(p => getTagWeight(item.tagText, p))).toFixed(1)
+                        : getTagWeight(item.tagText, item.promptText).toFixed(1);
+                    valEl.textContent = _getVal();
                     const mkBtn = (txt, cls, delta) => {
                         const b = document.createElement('button');
                         b.className = 'ctx-weight-btn' + (cls ? ' ' + cls : '');
                         b.textContent = txt;
                         b.addEventListener('click', (e) => {
                             e.stopPropagation();
-                            let cur = getTagWeight(item.tagText, item.promptText);
-                            if (delta === 0) cur = 1.0;
-                            else cur += delta;
-                            setTagWeight(item.tagText, item.promptText, cur);
-                            valEl.textContent = getTagWeight(item.tagText, item.promptText).toFixed(1);
-                            updateTagBtnDisplay(item.tagText, item.promptText);
+                            if (item.isWeightRowUnified) {
+                                const curBase = parseFloat(valEl.textContent);
+                                const next = delta === 0 ? 1.0 : curBase + delta;
+                                item.prompts.forEach(p => { setTagWeight(item.tagText, p, next); });
+                                valEl.textContent = _getVal();
+                                item.prompts.forEach(p => updateTagBtnDisplay(item.tagText, p));
+                            } else {
+                                let cur = getTagWeight(item.tagText, item.promptText);
+                                if (delta === 0) cur = 1.0; else cur += delta;
+                                setTagWeight(item.tagText, item.promptText, cur);
+                                valEl.textContent = _getVal();
+                                updateTagBtnDisplay(item.tagText, item.promptText);
+                            }
                         });
                         return b;
                     };
@@ -1897,9 +1906,11 @@
                     'sep',
                     { label: '기본 가중치 설정', isHeader: true },
                 ];
-                prompts.forEach(p => {
-                    menuItems.push({ isWeightRow: true, tagText, promptText: p, label: p });
-                });
+                if (prompts.length === 1) {
+                    menuItems.push({ isWeightRow: true, tagText, promptText: prompts[0], label: prompts[0] });
+                } else {
+                    menuItems.push({ isWeightRowUnified: true, tagText, prompts, label: `전체 토큰 (${prompts.length}개)` });
+                }
                 // 간편 조합에 추가 / 프롬프트 복사
                 menuItems.push('sep');
                 menuItems.push({ label: '간편 조합에 추가', icon: 'fa-solid fa-puzzle-piece', action: () => {
@@ -1910,6 +1921,9 @@
                 }});
                 if (foundFolder !== null) {
                     menuItems.push('sep');
+                    menuItems.push({ label: '다른 폴더/레이어로 이동', icon: 'fa-solid fa-arrow-right-arrow-left', action: () => {
+                        openMoveTagDialog(tagText, layerId, foundFolder, foundIndex);
+                    }});
                     menuItems.push({ label: 'DB에서 태그 수정', icon: 'fa-solid fa-pencil', action: () => {
                         const data = promptDB[layerId][foundFolder][foundIndex];
                         openTagInlinePopup(dbTagBtn, {
@@ -2121,21 +2135,16 @@
 
                 // 레이어 7 하단에 실험적 기능 버튼 삽입
                 if (i === 7) {
+                    const _footBtn = (id, icon, label, onclick, hoverColor='var(--accent-blue)') =>
+                        `<button id="${id}" onclick="${onclick}" style="flex:1;padding:8px 4px;border-radius:7px;background:transparent;border:1px solid var(--border-dim);color:var(--text-dim);font-family:var(--font-ui);font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;transition:.2s;opacity:.65;" onmouseover="this.style.borderColor='${hoverColor}';this.style.color='${hoverColor}';this.style.opacity='1'" onmouseout="this.style.borderColor='var(--border-dim)';this.style.color='var(--text-dim)';this.style.opacity='.65'"><i class="fa-solid ${icon}" style="font-size:10px;"></i>${label}</button>`;
                     const previzFooter = document.createElement('div');
-                    previzFooter.style.cssText = 'padding:10px 12px 4px;';
-                    previzFooter.innerHTML = `<button id="btn-previz" onclick="window.__previzOpen && window.__previzOpen()" style="
-                        width:100%;padding:8px 0;border-radius:7px;
-                        background:transparent;
-                        border:1px solid var(--border-dim);
-                        color:var(--text-dim);font-family:var(--font-ui);font-size:11px;
-                        cursor:pointer;display:flex;align-items:center;justify-content:center;
-                        gap:6px;transition:border-color 0.2s,color 0.2s,background 0.2s;
-                        letter-spacing:0.3px;opacity:0.65;
-                    " onmouseover="this.style.borderColor='var(--accent-blue)';this.style.color='var(--accent-blue)';this.style.background='rgba(59,130,246,0.06)';this.style.opacity='1'"
-                       onmouseout="this.style.borderColor='var(--border-dim)';this.style.color='var(--text-dim)';this.style.background='transparent';this.style.opacity='0.65'">
-                        <i class="fa-solid fa-camera-movie" style="font-size:10px;"></i>
-                        Prompt Preview Studio (실험적)
-                    </button>`;
+                    previzFooter.style.cssText = 'padding:10px 12px 6px;display:flex;flex-direction:column;gap:5px;';
+                    previzFooter.innerHTML =
+                        _footBtn('btn-previz', 'fa-camera-movie', 'Prompt Preview Studio (실험적)', "window.__previzOpen && window.__previzOpen()") +
+                        `<div style="display:flex;gap:5px;">` +
+                        _footBtn('btn-reorganize', 'fa-shuffle', '레이어 재배치', 'reorganizeTagsByDB()', 'var(--accent-green)') +
+                        _footBtn('btn-dedup', 'fa-copy', '중복 감지', 'openDedupHelper()', '#f59e0b') +
+                        `</div>`;
                     groupContent.appendChild(previzFooter);
                 }
 
@@ -4252,6 +4261,8 @@
                 const chip = document.createElement('div');
                 chip.className = 'prompt-chip' + (isMulti ? ' multi-prompt-chip' : '');
                 chip.draggable = true;
+                chip.dataset.rawStart = rawStart;
+                chip.dataset.rawCount = rawSlice.length;
 
                 const tagData = activeTagsMap[mapKey];
                 if (tagData) {
@@ -4819,6 +4830,177 @@
                 textarea.value = joined;
                 contextStates[currentContext][layerIndex - 1] = joined;
             }
+        }
+
+        // ─── 태그 이동 다이얼로그 ─────────────────────────────────────────────────
+        function openMoveTagDialog(tagText, srcLayerId, srcFolder, srcIndex) {
+            const prev = document.getElementById('__move-tag-dialog');
+            if (prev) prev.remove();
+            const overlay = document.createElement('div');
+            overlay.id = '__move-tag-dialog';
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:100002;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;';
+            const box = document.createElement('div');
+            box.className = 'modal-content';
+            box.style.cssText = 'width:340px;padding:20px;border-radius:18px;display:flex;flex-direction:column;gap:14px;';
+            const options = [];
+            layerMeta.forEach(layer => {
+                if (!promptDB[layer.id]) return;
+                Object.keys(promptDB[layer.id]).forEach(fKey => {
+                    if (layer.id === srcLayerId && fKey === srcFolder) return;
+                    options.push({ layerId: layer.id, folderKey: fKey, label: `${layer.id}. ${layer.title} → ${fKey.split('|')[0]}` });
+                });
+            });
+            const sel = document.createElement('select');
+            sel.style.cssText = 'width:100%;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);color:var(--text-main);border-radius:8px;padding:8px 10px;font-size:13px;';
+            options.forEach((o, i) => { const opt = document.createElement('option'); opt.value = i; opt.textContent = o.label; sel.appendChild(opt); });
+            const btnRow = document.createElement('div');
+            btnRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
+            const btnOk = document.createElement('button');
+            btnOk.style.cssText = 'background:var(--accent-blue);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;';
+            btnOk.textContent = '이동';
+            btnOk.onclick = () => {
+                const chosen = options[parseInt(sel.value)];
+                if (!chosen) return;
+                const tagData = promptDB[srcLayerId]?.[srcFolder];
+                if (!tagData) return;
+                const idx = tagData.findIndex(d => d.t === tagText);
+                if (idx === -1) return;
+                saveStateToUndoStack();
+                const [moved] = tagData.splice(idx, 1);
+                if (!promptDB[chosen.layerId]) promptDB[chosen.layerId] = {};
+                if (!promptDB[chosen.layerId][chosen.folderKey]) promptDB[chosen.layerId][chosen.folderKey] = [];
+                promptDB[chosen.layerId][chosen.folderKey].push(moved);
+                safeSetStorage('pro_prompt_db_v7_0', promptDB);
+                initApp();
+                overlay.remove();
+                showToast(`"${tagText}" → ${chosen.label}`, 'success', 2000);
+            };
+            const btnCancel = document.createElement('button');
+            btnCancel.style.cssText = 'background:transparent;border:1px solid rgba(255,255,255,0.15);color:var(--text-dim);border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer;';
+            btnCancel.textContent = '취소';
+            btnCancel.onclick = () => overlay.remove();
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+            btnRow.append(btnCancel, btnOk);
+            box.innerHTML = `<div style="font-size:15px;font-weight:800;font-family:var(--font-heading);">태그 이동</div><div style="font-size:12px;color:var(--text-dim);">"${tagText}"을 이동할 위치 선택:</div>`;
+            box.append(sel, btnRow);
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+        }
+
+        // ─── 레이어 재배치 (DB 기준 자동 정리) ──────────────────────────────────
+        function reorganizeTagsByDB() {
+            saveStateToUndoStack();
+            let moved = 0;
+            // 각 레이어의 텍스트에서 토큰 추출 → DB 기준 적합 레이어와 비교
+            for (let layerIndex = 1; layerIndex <= 7; layerIndex++) {
+                const ta = document.getElementById(`layer-${layerIndex}`);
+                if (!ta) continue;
+                const raw = ta.value.split(',').map(s => s.trim()).filter(Boolean);
+                const kept = [];
+                raw.forEach(token => {
+                    const m = token.match(/^\((.+):[\d.]+\)$/);
+                    const core = m ? m[1] : token;
+                    const info = activeTagsMap[core];
+                    if (info && info.layer !== layerIndex) {
+                        // 다른 레이어로 이동
+                        const tgt = document.getElementById(`layer-${info.layer}`);
+                        if (tgt) {
+                            tgt.value = tgt.value ? `${tgt.value}, ${token}` : token;
+                            contextStates[currentContext][info.layer - 1] = tgt.value;
+                            moved++;
+                        } else {
+                            kept.push(token);
+                        }
+                    } else {
+                        kept.push(token);
+                    }
+                });
+                ta.value = kept.join(', ');
+                contextStates[currentContext][layerIndex - 1] = ta.value;
+            }
+            for (let i = 1; i <= 7; i++) {
+                sortLayerByDB(i);
+                const ta = document.getElementById(`layer-${i}`);
+                if (ta) contextStates[currentContext][i - 1] = ta.value;
+                syncFromManualInput(i);
+            }
+            showToast(moved > 0 ? `${moved}개 태그를 DB 기준 레이어로 재배치했습니다.` : '이미 올바른 레이어에 배치되어 있습니다.', 'info', 3000);
+        }
+
+        // ─── 중복/유사 프롬프트 감지 도우미 ─────────────────────────────────────
+        function openDedupHelper() {
+            const allTokens = [];
+            for (let i = 1; i <= 7; i++) {
+                const ta = document.getElementById(`layer-${i}`);
+                if (!ta) continue;
+                ta.value.split(',').map(s => s.trim()).filter(Boolean).forEach(token => {
+                    const m = token.match(/^\((.+):[\d.]+\)$/);
+                    const core = (m ? m[1] : token).toLowerCase();
+                    allTokens.push({ raw: token, core, layer: i });
+                });
+            }
+            const seen = new Map(); // core → first occurrence
+            const dups = [];
+            allTokens.forEach(t => {
+                if (seen.has(t.core)) {
+                    dups.push({ first: seen.get(t.core), second: t });
+                } else {
+                    seen.set(t.core, t);
+                }
+            });
+            const prev = document.getElementById('__dedup-dialog');
+            if (prev) prev.remove();
+            const overlay = document.createElement('div');
+            overlay.id = '__dedup-dialog';
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:100002;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;';
+            const box = document.createElement('div');
+            box.className = 'modal-content';
+            box.style.cssText = 'width:420px;max-height:80vh;padding:20px;border-radius:18px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;';
+            if (dups.length === 0) {
+                box.innerHTML = `<div style="font-size:15px;font-weight:800;font-family:var(--font-heading);">중복 감지 결과</div><div style="color:var(--text-dim);font-size:13px;">중복 프롬프트가 없습니다. ✨</div><button onclick="document.getElementById('__dedup-dialog').remove()" style="align-self:flex-end;background:var(--accent-blue);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;">닫기</button>`;
+            } else {
+                const title = document.createElement('div');
+                title.style.cssText = 'font-size:15px;font-weight:800;font-family:var(--font-heading);';
+                title.textContent = `중복 감지 결과 (${dups.length}건)`;
+                const list = document.createElement('div');
+                list.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
+                dups.forEach(d => {
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px;font-size:12px;';
+                    row.innerHTML = `<span style="flex:1;color:var(--text-main);font-family:var(--font-code);">${d.first.raw}<span style="color:var(--text-dim)"> (레이어${d.first.layer})</span></span><span style="color:var(--text-dim)">↔</span><span style="flex:1;color:var(--text-main);font-family:var(--font-code);">${d.second.raw}<span style="color:var(--text-dim)"> (레이어${d.second.layer})</span></span>`;
+                    const btn = document.createElement('button');
+                    btn.textContent = '두 번째 삭제';
+                    btn.style.cssText = 'background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0;';
+                    btn.onclick = () => {
+                        saveStateToUndoStack();
+                        const ta = document.getElementById(`layer-${d.second.layer}`);
+                        if (ta) {
+                            const parts = ta.value.split(',').map(s => s.trim()).filter(Boolean);
+                            const removeIdx = parts.findIndex(p => (p.match(/^\((.+):[\d.]+\)$/) ? p.match(/^\((.+):[\d.]+\)$/)[1] : p).toLowerCase() === d.second.core);
+                            if (removeIdx !== -1) parts.splice(removeIdx, 1);
+                            ta.value = parts.join(', ');
+                            contextStates[currentContext][d.second.layer - 1] = ta.value;
+                            syncFromManualInput(d.second.layer);
+                        }
+                        row.style.opacity = '0.35';
+                        row.style.pointerEvents = 'none';
+                        btn.textContent = '삭제됨';
+                    };
+                    row.appendChild(btn);
+                    list.appendChild(row);
+                });
+                const btnRow = document.createElement('div');
+                btnRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;margin-top:4px;';
+                const btnClose = document.createElement('button');
+                btnClose.textContent = '닫기';
+                btnClose.style.cssText = 'background:transparent;border:1px solid rgba(255,255,255,0.15);color:var(--text-dim);border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;';
+                btnClose.onclick = () => overlay.remove();
+                btnRow.appendChild(btnClose);
+                box.append(title, list, btnRow);
+            }
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
         }
 
         function syncFromManualInput(layerIndex) {
