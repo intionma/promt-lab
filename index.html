@@ -843,7 +843,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.23 &nbsp;·&nbsp; 2026-06-26 — 쉬운 모드: 소설체 문장 카드 + 모바일 스와이프</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.24 &nbsp;·&nbsp; 2026-06-26 — 쉬운 모드: 새로고침 버튼 제목 옆 · 친화적 단계명</span></span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
         <button class="gt-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i id="btn-theme-icon" class="fa-solid fa-sun"></i></button>
@@ -1577,10 +1577,19 @@
                     const tags = (arr || []).map(d => ({ t: (d.t || '').trim(), kor: (d.k || '').trim() || (d.t || '').trim() })).filter(x => x.t);
                     if (tags.length) folders.push({ name: fk.split('|')[0], tags });
                 });
-                if (folders.length) cats.push({ layer: lm.id, title: (lm.title || '').replace(/^\d+\.\s*/, ''), icon: lm.icon, color: lm.color, folders });
+                if (folders.length) cats.push({ layer: lm.id, title: (_NB_TITLES[lm.id] || (lm.title || '').replace(/^\d+\.\s*/, '')), icon: lm.icon, color: lm.color, folders });
             });
             return cats;
         }
+        // 뉴비 친화 단계 이름
+        const _NB_TITLES = {
+            2: '어떻게 찍을까',
+            3: '누가 나올까',
+            4: '무엇을 입을까',
+            5: '무엇을 할까',
+            6: '어디에 있을까',
+            7: '분위기는 어떻게',
+        };
 
         // 각 폴더(국적/체형/가슴 등)에서 하나씩 뽑아 "묶음" 여러 개 생성
         function _nbGen(cat, n) {
@@ -1690,7 +1699,21 @@
             const bundles = _nbBundles[cat.layer] || [];
             const head = document.createElement('div');
             head.style.cssText = 'margin-bottom:14px;';
-            head.innerHTML = `<div style="font-size:19px; font-weight:800; font-family:var(--font-heading); color:${cat.color};"><i class="fa-solid ${cat.icon}"></i> ${cat.title}</div><div style="font-size:12px; color:var(--text-dim); margin-top:4px;">마음에 드는 <b>조합</b>을 골라보세요. 여러 개 선택 가능 · 마음에 안 들면 🎲 새 조합 보기</div>`;
+            const titleRow = document.createElement('div');
+            titleRow.style.cssText = 'display:flex; align-items:center; gap:10px; flex-wrap:wrap;';
+            titleRow.innerHTML = `<div style="font-size:20px; font-weight:800; font-family:var(--font-heading); color:${cat.color}; flex:1; min-width:0;"><i class="fa-solid ${cat.icon}"></i> ${cat.title}</div>`;
+            const refresh = document.createElement('button');
+            refresh.className = 'nb-btn';
+            refresh.style.cssText = `background:color-mix(in srgb,${cat.color} 16%,transparent); border:1px solid ${cat.color}; color:${cat.color}; padding:8px 16px; font-size:13px;`;
+            refresh.innerHTML = '<i class="fa-solid fa-rotate"></i> 새로고침';
+            refresh.title = '다른 조합으로 새로 뽑기';
+            refresh.onclick = () => { _nbBundles[cat.layer] = _nbGen(cat); _nbSelB[cat.layer] = new Set(); _nbRender(); };
+            titleRow.appendChild(refresh);
+            head.appendChild(titleRow);
+            const hint = document.createElement('div');
+            hint.style.cssText = 'font-size:12px; color:var(--text-dim); margin-top:4px;';
+            hint.innerHTML = '마음에 드는 <b>조합</b>을 골라보세요. 여러 개 선택 가능 · 마음에 안 들면 <b style="color:' + cat.color + ';">새로고침</b>';
+            head.appendChild(hint);
             body.appendChild(head);
 
             const grid = document.createElement('div');
@@ -1722,15 +1745,6 @@
             prev.disabled = _nbStep === 0; prev.style.opacity = _nbStep === 0 ? '0.4' : '1';
             prev.onclick = () => { if (_nbStep > 0) { _nbStep--; _nbRender(); } };
             footer.appendChild(prev);
-
-            const cat = _nbCats[_nbStep];
-            if (cat) {
-                const rnd = document.createElement('button');
-                rnd.className = 'nb-btn'; rnd.style.cssText = 'background:rgba(168,139,250,0.15); border:1px solid #a78bfa; color:#a78bfa;';
-                rnd.innerHTML = '🎲 새 조합 보기';
-                rnd.onclick = () => { _nbBundles[cat.layer] = _nbGen(cat); _nbSelB[cat.layer] = new Set(); _nbRender(); };
-                footer.appendChild(rnd);
-            }
 
             const spacer = document.createElement('div'); spacer.style.flex = '1'; footer.appendChild(spacer);
             const totalSel = Object.values(_nbSelB).reduce((s, set) => s + set.size, 0);
