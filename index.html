@@ -734,19 +734,44 @@
             .panel.mobile-active #sidebar-content-combo {
                 flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column;
             }
-            .panel.mobile-active .combo-grid {
-                flex: 1; overflow-y: scroll !important; -webkit-overflow-scrolling: touch !important;
+            /* combo 모드에서 panel-content 자체 스크롤 비활성 (combo-grid가 직접 스크롤) */
+            .panel.mobile-active .panel-content.combo-mode {
+                overflow-y: hidden !important;
+                padding: 0 !important;
             }
-            /* 모바일: 폴더 블록이 그리드 행 높이 0으로 무너지는 현상 방지 */
-            .panel.mobile-active .combo-folder-block {
-                display: block !important;
+            /* 모바일: combo-grid를 flexbox로 전환 (grid의 행 높이 0 버그 우회) */
+            .panel.mobile-active .combo-grid {
+                display: flex !important;
+                flex-direction: row !important;
+                flex-wrap: wrap !important;
+                align-content: flex-start !important;
+                align-items: flex-start !important;
+                flex: 1;
+                overflow-y: scroll !important;
+                -webkit-overflow-scrolling: touch !important;
+            }
+            /* 카드: 2열 배치 */
+            .panel.mobile-active .combo-grid > .combo-item {
+                width: calc(50% - 5px) !important;
+                flex: 0 0 calc(50% - 5px) !important;
+                box-sizing: border-box !important;
+            }
+            /* 폴더: 전체 너비 */
+            .panel.mobile-active .combo-grid > .combo-folder-block {
                 width: 100% !important;
-                grid-column: 1 / -1 !important;
+                flex: 0 0 100% !important;
+                box-sizing: border-box !important;
+                display: block !important;
             }
             .panel.mobile-active .combo-folder-header-row {
                 min-height: 44px !important;
                 display: flex !important;
                 align-items: center !important;
+            }
+            /* 폴더 내부 카드 그리드는 그대로 유지 */
+            .panel.mobile-active .combo-folder-contents.open {
+                display: grid !important;
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important;
             }
 
             /* ── 기타 UI 축소 ── */
@@ -6644,14 +6669,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 document.getElementById('sidebar-content-combo').style.display = 'none';
                 document.getElementById('sidebar-search-box').style.display = 'block';
                 document.getElementById('sidebar-sticky-bar').style.display = 'flex';
-                if (panelContent) { panelContent.style.overflowY = 'auto'; panelContent.style.display = ''; panelContent.style.flexDirection = ''; panelContent.style.minHeight = ''; }
+                if (panelContent) { panelContent.style.overflowY = 'auto'; panelContent.style.display = ''; panelContent.style.flexDirection = ''; panelContent.style.minHeight = ''; panelContent.classList.remove('combo-mode'); }
             } else {
                 document.getElementById('sidebar-content-detail').style.display = 'none';
                 document.getElementById('sidebar-content-combo').style.display = 'flex';
                 document.getElementById('sidebar-search-box').style.display = 'none';
                 document.getElementById('sidebar-sticky-bar').style.display = 'none';
-                // combo 모드: panel-content가 flex 컨테이너가 되어 combo-fs가 나머지 공간 채움
-                if (panelContent) { panelContent.style.overflowY = 'hidden'; panelContent.style.display = 'flex'; panelContent.style.flexDirection = 'column'; panelContent.style.padding = '0'; panelContent.style.minHeight = '0'; }
+                // combo 모드: panel-content가 flex 컨테이너, combo-grid가 직접 스크롤
+                if (panelContent) {
+                    panelContent.style.overflowY = 'hidden';
+                    panelContent.style.display = 'flex';
+                    panelContent.style.flexDirection = 'column';
+                    panelContent.style.padding = '0';
+                    panelContent.style.minHeight = '0';
+                    panelContent.classList.add('combo-mode');
+                }
                 renderCombos();
             }
         }
