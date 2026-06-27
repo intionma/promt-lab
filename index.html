@@ -829,7 +829,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.18 &nbsp;·&nbsp; 2026-06-26 — 메뉴 항목 꾹 눌러 상단 단축 고정</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.19 &nbsp;·&nbsp; 2026-06-26 — 간편조합: 폴더로 이동 메뉴 + 드래그 리스너 중복 수정</span></span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
         <button class="gt-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i id="btn-theme-icon" class="fa-solid fa-sun"></i></button>
@@ -4041,6 +4041,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 showComboCtxMenu(e, [
                     { icon: 'fa-pen', label: '이름 변경', action: () => { startInlineFolderRename(header, folder); } },
                     { icon: 'fa-plus', label: '새 조합 추가', action: () => { openComboCreateModal(folder.id); } },
+                    { icon: 'fa-folder-tree', label: '폴더로 이동…', action: () => openComboMovePicker(e, folder.id) },
                     { sep: true },
                     { icon: 'fa-eraser', label: '폴더 비우기', action: () => {
                         const kids = [...(folder.children || [])];
@@ -4145,8 +4146,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         saveComboFS(); renderCombos(); showToast('복제됨', 'success');
                     }},
                 ];
+                menuItems.push({ sep: true });
+                menuItems.push({ icon: 'fa-folder-tree', label: '폴더로 이동…', action: () => openComboMovePicker(e, combo.id) });
                 if (parentFolderId) {
-                    menuItems.push({ sep: true });
                     menuItems.push({ icon: 'fa-arrow-up-from-bracket', label: '폴더에서 꺼내기', action: () => {
                         removeFsItemFromParent(combo.id);
                         comboFS.root.push(combo.id);
@@ -4388,6 +4390,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         function setupGridDropZone(container) {
+            if (container._dropZoneBound) return; // 렌더마다 리스너 중복 등록 방지
+            container._dropZoneBound = true;
             let _gridDropAfterEl = null; // tracks where to drop
 
             container.addEventListener('dragover', (e) => {
@@ -4467,6 +4471,39 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (item.type === 'folder' && item.children) item.children = item.children.filter(c => c !== id);
             });
             comboFS.root = comboFS.root.filter(c => c !== id);
+        }
+
+        // 드래그 없이 메뉴로 폴더 이동 (모바일/터치에서도 확실히 동작)
+        function moveFsItemTo(id, targetFolderId) {
+            if (id === targetFolderId) return;
+            if (targetFolderId && _isAncestor(id, targetFolderId)) { showToast('자기 하위 폴더로는 이동할 수 없습니다.', 'error'); return; }
+            removeFsItemFromParent(id);
+            if (targetFolderId && comboFS.items[targetFolderId]) {
+                const f = comboFS.items[targetFolderId];
+                if (!f.children) f.children = [];
+                f.children.push(id);
+                _openFolders.add(targetFolderId);
+            } else {
+                comboFS.root.push(id);
+            }
+            saveComboFS();
+            renderCombos();
+            const where = targetFolderId && comboFS.items[targetFolderId] ? `'${comboFS.items[targetFolderId].title}'` : '최상위';
+            showToast(`${where}(으)로 이동`, 'success', 1600);
+        }
+
+        // 이동 대상 폴더 선택 메뉴
+        function openComboMovePicker(e, id) {
+            const folders = Object.values(comboFS.items).filter(it => it.type === 'folder' && it.id !== id && !_isAncestor(id, it.id));
+            const items = [{ icon: 'fa-arrow-up-from-bracket', label: '📤 최상위로', action: () => moveFsItemTo(id, null) }];
+            if (folders.length) {
+                items.push({ sep: true });
+                folders.forEach(f => items.push({ icon: 'fa-folder', label: f.title, action: () => moveFsItemTo(id, f.id) }));
+            } else {
+                items.push({ sep: true });
+                items.push({ icon: 'fa-circle-info', label: '(만들어진 폴더가 없습니다)', action: () => {} });
+            }
+            showComboCtxMenu(e, items);
         }
 
         function saveNewCombo() {
