@@ -3623,7 +3623,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             window.openLightboxFromEl = function (el) {
                 const url = el.src || el.dataset.src || '';
                 if (!url) return;
-                const parent = el.closest('#result-gallery-grid, #comfy-live-thumbs, [data-lb-group]') || el.parentNode;
+                const parent = el.closest('#result-gallery-grid, #comfy-live-thumbs, #comfy-gallery, #comfy-inline-thumbs-pos, #comfy-inline-thumbs-neg, .lb-group') || el.parentNode;
                 const siblings = parent ? Array.from(parent.querySelectorAll('img[src]')).filter(i => i.src) : [];
                 const urls = siblings.length > 1 ? siblings.map(i => i.src) : [url];
                 const idx  = siblings.length > 1 ? Math.max(0, siblings.indexOf(el)) : 0;
