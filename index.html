@@ -2372,18 +2372,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         let _comfyConnectedOnce = false;
         try { _comfyConnectedOnce = !!(JSON.parse(localStorage.getItem('comfy_settings_v1') || '{}').connectedOnce); } catch (e) {}
 
-        // ── 탭/앱 복귀 시 WebSocket 재연결 + 진행 중 작업 재폴링 ──────────
+        // ── 탭/앱 복귀 시 WebSocket 재연결 + 서버 큐 동기화 ──────────────
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) return;
-            // 페이지가 다시 보이면 WebSocket 재연결
             _comfyEnsureSocket();
-            // 진행 중인 작업이 있으면 즉시 상태 확인
-            const pendingPids = Object.keys(_comfyJobs).filter(pid => !_comfyJobs[pid].done);
-            if (pendingPids.length === 0) return;
-            showToast('생성이 진행 중입니다. 결과 확인 중...', 'info', 2500);
-            document.getElementById('comfy-status').textContent = '복귀 후 결과 확인 중...';
-            // 각 pending 작업 즉시 폴링 재시작 (이미 폴링 중인 건 _comfyPollResult 내부에서 중복 방지)
-            pendingPids.forEach(pid => _comfyPollResult(pid, 0));
+            // 서버 큐와 전체 동기화 (새로고침 없이도 항상 정확한 상태 유지)
+            _comfySyncQueue();
         });
 
         // 결과 패널의 'ComfyUI 전송' 빠른 버튼 표시 여부 갱신
@@ -3024,11 +3018,80 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         // ── 큐 기반 생성 ───────────────────────────────────────────────
+        const COMFY_JOBS_KEY = 'comfy_jobs_v1';
         let _comfyJobs = {};        // prompt_id -> { inline:'pos'|'neg'|null, cleared, done, seq, label }
         let _comfySendingFor = new Set(); // 전송 중복 방지 ('pos'|'neg'|'modal')
         let _comfyQueueCount = 0;
         let _comfyRunningPid = null;
         let _comfyPollActive = new Set(); // 중복 폴링 방지
+
+        // _comfyJobs 변경 시마다 localStorage에 저장 (새로고침 복원용)
+        function _comfySaveJobs() {
+            try {
+                const toSave = {};
+                Object.entries(_comfyJobs).forEach(([pid, job]) => {
+                    if (!job.done) toSave[pid] = { inline: job.inline, seq: job.seq, label: job.label, cleared: job.cleared, done: false };
+                });
+                localStorage.setItem(COMFY_JOBS_KEY, JSON.stringify({ jobs: toSave, seq: _comfyJobSeq, ts: Date.now() }));
+            } catch (e) {}
+        }
+
+        // ComfyUI /queue 와 /history 를 조회해서 _comfyJobs 를 실제 서버 상태와 동기화
+        async function _comfySyncQueue() {
+            try {
+                const [qRes, hRes] = await Promise.all([
+                    fetch(_comfyBase() + '/queue', { signal: AbortSignal.timeout(5000) }),
+                    fetch(_comfyBase() + '/history?max_items=64', { signal: AbortSignal.timeout(5000) })
+                ]);
+                if (!qRes.ok) return;
+                const qData = await qRes.json();
+                const history = hRes.ok ? await hRes.json() : {};
+
+                // 서버에서 실제 실행 중/대기 중인 pid 목록
+                const runningPid  = (qData.queue_running  || []).map(e => e[1]).filter(Boolean);
+                const pendingPids = (qData.queue_pending  || []).map(e => e[1]).filter(Boolean);
+                const livePids    = new Set([...runningPid, ...pendingPids]);
+
+                // 1) _comfyJobs 에 있는데 서버엔 없고 history에도 없으면 → 이미 완료됐거나 사라진 job
+                for (const pid of Object.keys(_comfyJobs)) {
+                    if (_comfyJobs[pid].done) continue;
+                    if (!livePids.has(pid)) {
+                        if (history[pid] && history[pid].outputs && Object.keys(history[pid].outputs).length) {
+                            _comfyFinalize(pid); // 완료됨 → 결과 수집
+                        } else {
+                            // 서버에서 사라진 job (취소됐거나 ComfyUI 재시작) → 정리
+                            delete _comfyJobs[pid];
+                            _comfyQueueCount = Math.max(0, _comfyQueueCount - 1);
+                        }
+                    }
+                }
+
+                // 2) 서버에 있는데 _comfyJobs 에 없는 pid → 새로고침으로 유실된 job 복원
+                for (const pid of livePids) {
+                    if (!_comfyJobs[pid]) {
+                        _comfyJobs[pid] = { inline: null, cleared: false, done: false, seq: ++_comfyJobSeq, label: pid.slice(0, 8) + '…' };
+                        _comfyQueueCount++;
+                    }
+                }
+
+                // 3) 현재 running pid 반영
+                if (runningPid.length > 0) _comfyRunningPid = runningPid[0];
+
+                comfyRenderQueue();
+                _comfySaveJobs();
+
+                // 4) pending job 들 폴링 시작 (웹소켓 미연결 대비)
+                for (const pid of livePids) {
+                    if (!_comfyJobs[pid]?.done) _comfyPollResult(pid, 0);
+                }
+
+                if (livePids.size > 0) {
+                    const intBtn = document.getElementById('comfy-interrupt-btn');
+                    if (intBtn) intBtn.style.display = 'inline-flex';
+                    _comfySetProgress(5, `${_comfyQ()}서버에서 복원됨`);
+                }
+            } catch (e) {}
+        }
 
         function _comfyEnsureSocket() {
             if (_comfySocket && _comfySocket.readyState <= 1) return; // 연결됨/연결중
@@ -3046,6 +3109,28 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         let _comfyJobSeq = 0;
         let _comfyQueueOpen = false;
+
+        // 페이지 로드 시 localStorage → _comfyJobs 복원, 이후 서버와 동기화
+        (function _comfyRestoreJobs() {
+            try {
+                const raw = localStorage.getItem(COMFY_JOBS_KEY);
+                if (!raw) return;
+                const saved = JSON.parse(raw);
+                // 1시간 이상 된 데이터는 무시
+                if (!saved || Date.now() - (saved.ts || 0) > 3600000) return;
+                const jobs = saved.jobs || {};
+                let restored = 0;
+                Object.entries(jobs).forEach(([pid, job]) => {
+                    if (!job.done) { _comfyJobs[pid] = { ...job }; _comfyQueueCount++; restored++; }
+                });
+                if (saved.seq) _comfyJobSeq = Math.max(_comfyJobSeq, saved.seq);
+                if (restored > 0) {
+                    // 복원 후 서버 상태와 교차 검증 (ComfyUI가 연결 가능한 경우에만)
+                    comfyRenderQueue();
+                    setTimeout(_comfySyncQueue, 800); // DOM 안정화 후
+                }
+            } catch (e) {}
+        })();
 
         // 대기열 라벨용: 핵심 태그 3~5개를 한글 번역으로 추려 짧은 문장처럼 표기 (품질/score 제외)
         function _comfyKorLabel(text) {
@@ -3146,6 +3231,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } catch (e) {}
             if (_comfyJobs[pid]) { delete _comfyJobs[pid]; _comfyQueueCount = Math.max(0, _comfyQueueCount - 1); }
             if (running) _comfyRunningPid = null;
+            _comfySaveJobs();
             comfyRenderQueue();
             if (_comfyQueueCount === 0) _comfyOnAllDone();
         }
@@ -3163,6 +3249,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { await fetch(_comfyBase() + '/interrupt', { method: 'POST' }); } catch (e) {}
             try { await fetch(_comfyBase() + '/queue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clear: true }) }); } catch (e) {}
             _comfyJobs = {}; _comfyQueueCount = 0; _comfyRunningPid = null;
+            _comfySaveJobs();
             comfyRenderQueue();
             _comfyOnAllDone();
             showToast('대기열을 모두 취소했습니다.', 'info');
@@ -3509,6 +3596,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } catch (e) {}
             delete _comfyJobs[pid];
             _comfyQueueCount = Math.max(0, _comfyQueueCount - 1);
+            _comfySaveJobs();
             comfyRenderQueue();
             if (_comfyQueueCount > 0) {
                 _comfySetProgress(100, `${_comfyQ()}완료 · 다음 대기`, jobInline);
@@ -3573,6 +3661,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const pid = data.prompt_id;
                     _comfyJobs[pid] = { inline, cleared: false, done: false, seq: ++_comfyJobSeq, label };
                     _comfyQueueCount++;
+                    _comfySaveJobs();
                     _comfySetProgress(3, `${_comfyQ()}큐 등록됨`, inline);
                     comfyRenderQueue();
                     _comfyPollResult(pid, 0); // 웹소켓 미동작 대비 폴백
