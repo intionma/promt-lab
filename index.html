@@ -214,7 +214,7 @@
         .combo-folder-block:hover > .combo-folder-header-row { background: var(--folder-hover); }
         .combo-folder-block.open { border-color: var(--accent-blue); }
         .combo-folder-header-row { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--folder-bg); cursor: pointer; transition: background 0.15s; user-select: none; }
-        .combo-drag-handle { font-size: 14px; color: var(--text-dim); cursor: grab; padding: 0 2px; flex-shrink: 0; opacity: 0.4; transition: opacity 0.15s; }
+        .combo-drag-handle { font-size: 14px; color: var(--text-dim); cursor: grab; padding: 4px 6px; margin: -4px -2px; flex-shrink: 0; opacity: 0.4; transition: opacity 0.15s; touch-action: none; }
         .combo-drag-handle:hover { opacity: 1; }
         .combo-folder-header-row:hover .combo-drag-handle { opacity: 0.7; }
         .combo-drop-indicator { height: 3px; background: var(--accent-blue); border-radius: 2px; margin: 1px 4px; display: none; }
@@ -4660,8 +4660,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         function setupFsItemDrag(el, id) {
-            el.draggable = true;
+            // draggable은 드래그 핸들 위에 포인터가 있을 때만 활성화 (모바일 탭 오인식 방지)
+            const handle = el.querySelector('.combo-drag-handle');
+            el.draggable = false;
+            if (handle) {
+                handle.addEventListener('mousedown', () => { el.draggable = true; });
+                handle.addEventListener('touchstart', () => { el.draggable = true; }, { passive: true });
+            }
             el.addEventListener('dragstart', (e) => {
+                if (!e.target.closest('.combo-drag-handle') && handle) { e.preventDefault(); return; }
                 e.stopPropagation();
                 _fsDragging = { id };
                 el.classList.add('dnd-dragging-fs');
@@ -4669,6 +4676,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 e.dataTransfer.setData('text/plain', id);
             });
             el.addEventListener('dragend', () => {
+                el.draggable = false;
                 el.classList.remove('dnd-dragging-fs');
                 _cleanupDragVisuals();
                 _fsDragging = null;
