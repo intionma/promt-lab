@@ -3039,81 +3039,109 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         // ── 큐 기반 생성 ───────────────────────────────────────────────
-        const COMFY_JOBS_KEY = 'comfy_jobs_v1';
         let _comfyJobs = {};        // prompt_id -> { inline:'pos'|'neg'|null, cleared, done, seq, label }
         let _comfySendingFor = new Set(); // 전송 중복 방지 ('pos'|'neg'|'modal')
         let _comfyQueueCount = 0;
         let _comfyRunningPid = null;
         let _comfyPollActive = new Set(); // 중복 폴링 방지
 
-        // _comfyJobs 변경 시마다 localStorage에 저장 (새로고침 복원용)
-        function _comfySaveJobs() {
+        // 워크플로우 JSON에서 긍정 프롬프트 추출 → 한글 라벨 반환
+        function _comfyLabelFromWorkflow(workflow) {
+            if (!workflow || typeof workflow !== 'object') return '';
+            // KSampler의 positive 입력에 연결된 CLIPTextEncode 노드를 우선 찾음
+            let posText = '';
             try {
-                const toSave = {};
-                Object.entries(_comfyJobs).forEach(([pid, job]) => {
-                    if (!job.done) toSave[pid] = { inline: job.inline, seq: job.seq, label: job.label, cleared: job.cleared, done: false };
-                });
-                localStorage.setItem(COMFY_JOBS_KEY, JSON.stringify({ jobs: toSave, seq: _comfyJobSeq, ts: Date.now() }));
+                // KSampler / KSamplerAdvanced 의 positive 링크 추적
+                const samplers = Object.values(workflow).filter(n => /ksampler/i.test(n.class_type || ''));
+                let posNodeId = null;
+                for (const s of samplers) {
+                    const posLink = s.inputs?.positive;
+                    if (Array.isArray(posLink)) { posNodeId = String(posLink[0]); break; }
+                }
+                if (posNodeId && workflow[posNodeId]?.class_type === 'CLIPTextEncode') {
+                    posText = workflow[posNodeId].inputs?.text || '';
+                }
+                // 못 찾으면 가장 긴 CLIPTextEncode 텍스트를 긍정으로 간주
+                if (!posText) {
+                    const clips = Object.values(workflow).filter(n => n.class_type === 'CLIPTextEncode');
+                    clips.sort((a, b) => (b.inputs?.text?.length || 0) - (a.inputs?.text?.length || 0));
+                    posText = clips[0]?.inputs?.text || '';
+                }
             } catch (e) {}
+            return posText ? _comfyKorLabel(posText) : '';
         }
 
-        // ComfyUI /queue 와 /history 를 조회해서 _comfyJobs 를 실제 서버 상태와 동기화
+        // ComfyUI /queue 를 직접 조회해 _comfyJobs 를 서버 실제 상태로 동기화
+        // localStorage 불필요 — 어떤 브라우저/클라이언트에서 보낸 job도 모두 표시
+        let _comfySyncTimer = null;
         async function _comfySyncQueue() {
             try {
-                const [qRes, hRes] = await Promise.all([
-                    fetch(_comfyBase() + '/queue', { signal: AbortSignal.timeout(5000) }),
-                    fetch(_comfyBase() + '/history?max_items=200', { signal: AbortSignal.timeout(5000) })
-                ]);
-                if (!qRes.ok) return; // 연결 실패 → 로컬 상태 그대로 유지
+                const qRes = await fetch(_comfyBase() + '/queue', { signal: AbortSignal.timeout(5000) });
+                if (!qRes.ok) return;
                 const qData = await qRes.json();
-                const history = hRes.ok ? await hRes.json() : {};
 
-                // 서버에서 실제 실행 중/대기 중인 pid 목록
-                const runningList = (qData.queue_running || []).map(e => e[1]).filter(Boolean);
-                const pendingList = (qData.queue_pending || []).map(e => e[1]).filter(Boolean);
-                const livePids    = new Set([...runningList, ...pendingList]);
+                const runningEntries = qData.queue_running || [];
+                const pendingEntries = qData.queue_pending || [];
+                const allEntries     = [...runningEntries, ...pendingEntries];
+                const livePids       = new Set(allEntries.map(e => e[1]).filter(Boolean));
 
-                // 안전 검증: livePids가 비어있고 history도 비어있으면
-                // ComfyUI가 막 시작됐거나 응답이 이상한 것일 수 있으므로 로컬 jobs는 건드리지 않음
-                const totalServer = livePids.size + Object.keys(history).length;
-                const totalLocal  = Object.keys(_comfyJobs).filter(p => !_comfyJobs[p].done).length;
-                if (totalServer === 0 && totalLocal > 0) return; // 의심스러운 빈 응답 → 무시
-
-                // 1) history에 있는 완료된 job → finalize (이미지 수집)
+                // 1) 서버 큐에 없는 로컬 job → 완료됐거나 취소됨 → finalize 시도 후 제거
                 for (const pid of Object.keys(_comfyJobs)) {
                     if (_comfyJobs[pid].done) continue;
-                    if (!livePids.has(pid) && history[pid]?.outputs && Object.keys(history[pid].outputs).length) {
-                        _comfyFinalize(pid);
+                    if (!livePids.has(pid)) {
+                        // history 확인해서 완료면 finalize, 아니면 조용히 제거
+                        try {
+                            const hr = await fetch(_comfyBase() + '/history/' + pid, { signal: AbortSignal.timeout(3000) });
+                            if (hr.ok) {
+                                const h = await hr.json();
+                                if (h[pid]?.outputs && Object.keys(h[pid].outputs).length) { _comfyFinalize(pid); continue; }
+                            }
+                        } catch (e) {}
+                        delete _comfyJobs[pid];
+                        _comfyQueueCount = Math.max(0, _comfyQueueCount - 1);
+                        _comfyBatchTotal = Math.max(0, _comfyBatchTotal - 1);
                     }
-                    // 서버 큐에도 없고 history에도 없으면 → 폴링에 맡김 (강제 삭제 금지)
                 }
 
-                // 2) 서버에 있는데 _comfyJobs 에 없는 pid → 새로고침으로 유실된 job 복원
-                for (const pid of livePids) {
+                // 2) 서버에 있는데 로컬에 없는 job → 추가 (다른 브라우저/ComfyUI 웹 포함)
+                for (const entry of allEntries) {
+                    const pid      = entry[1];
+                    const workflow = entry[2]; // 전체 워크플로우 JSON
+                    if (!pid) continue;
                     if (!_comfyJobs[pid]) {
-                        _comfyJobs[pid] = { inline: null, cleared: false, done: false, seq: ++_comfyJobSeq, label: pid.slice(0, 8) + '…' };
+                        const label = _comfyLabelFromWorkflow(workflow) || pid.slice(0, 8) + '…';
+                        _comfyJobs[pid] = { inline: null, cleared: false, done: false, seq: ++_comfyJobSeq, label };
                         _comfyQueueCount++;
+                        _comfyBatchTotal++;
+                        _comfyPollResult(pid, 0);
                     }
                 }
 
-                // 3) 현재 running pid 반영
-                if (runningList.length > 0) _comfyRunningPid = runningList[0];
+                // 3) running pid 반영
+                _comfyRunningPid = runningEntries[0]?.[1] || null;
 
                 comfyRenderQueue();
-                // _comfySaveJobs는 finalize 내부에서 호출되므로 여기서는 별도 저장 불필요
-
-                // 4) 살아있는 job들 폴링 시작 (웹소켓 미연결 대비)
-                const allPending = Object.keys(_comfyJobs).filter(p => !_comfyJobs[p].done);
-                allPending.forEach(pid => _comfyPollResult(pid, 0));
-
-                if (allPending.length > 0) {
+                if (_comfyQueueCount > 0) {
+                    _comfyEnsureSocket();
                     const intBtn = document.getElementById('comfy-interrupt-btn');
                     if (intBtn) intBtn.style.display = 'inline-flex';
-                    _comfyEnsureSocket();
-                    _comfySetProgress(5, `${_comfyQ()}서버에서 복원됨`);
+                } else if (_comfyQueueCount === 0) {
+                    _comfyOnAllDone();
                 }
-            } catch (e) {} // 네트워크 오류 → 로컬 상태 그대로
+            } catch (e) {} // 연결 실패 시 무시
         }
+
+        // 주기적 큐 폴링 (3초마다) — 다른 브라우저 job도 실시간 반영
+        function _comfyStartSyncLoop() {
+            if (_comfySyncTimer) return;
+            _comfySyncTimer = setInterval(_comfySyncQueue, 3000);
+        }
+        function _comfyStopSyncLoop() {
+            if (_comfySyncTimer) { clearInterval(_comfySyncTimer); _comfySyncTimer = null; }
+        }
+
+        // 더 이상 필요 없는 localStorage 저장 함수 (하위 호환 호출부만 유지, 내용 비움)
+        function _comfySaveJobs() {}
 
         function _comfyEnsureSocket() {
             if (_comfySocket && _comfySocket.readyState <= 1) return; // 연결됨/연결중
@@ -3134,27 +3162,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         let _comfyBatchTotal = 0;
         let _comfyBatchDone  = 0;
 
-        // 페이지 로드 시 localStorage → _comfyJobs 복원, 이후 서버와 동기화
-        (function _comfyRestoreJobs() {
-            try {
-                const raw = localStorage.getItem(COMFY_JOBS_KEY);
-                if (!raw) return;
-                const saved = JSON.parse(raw);
-                // 1시간 이상 된 데이터는 무시
-                if (!saved || Date.now() - (saved.ts || 0) > 3600000) return;
-                const jobs = saved.jobs || {};
-                let restored = 0;
-                Object.entries(jobs).forEach(([pid, job]) => {
-                    if (!job.done) { _comfyJobs[pid] = { ...job }; _comfyQueueCount++; restored++; }
-                });
-                if (saved.seq) _comfyJobSeq = Math.max(_comfyJobSeq, saved.seq);
-                if (restored > 0) {
-                    // 복원 후 서버 상태와 교차 검증 (ComfyUI가 연결 가능한 경우에만)
-                    comfyRenderQueue();
-                    setTimeout(_comfySyncQueue, 800); // DOM 안정화 후
-                }
-            } catch (e) {}
-        })();
+        // 페이지 로드 시 ComfyUI /queue API로 대기열 초기화
+        setTimeout(_comfySyncQueue, 500);
 
         // 대기열 라벨용: 핵심 태그 3~5개를 한글 번역으로 추려 짧은 문장처럼 표기 (품질/score 제외)
         function _comfyKorLabel(text) {
@@ -3242,6 +3251,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             badge.textContent = n;
             fab.style.display = n > 0 ? 'flex' : 'none';
             _comfyUpdateFabWater();
+            if (n > 0) { _comfyStartSyncLoop(); } else { _comfyStopSyncLoop(); }
             if (n === 0) { _comfyQueueOpen = false; list.style.display = 'none'; list.style.transform = 'scale(0.5)'; list.style.opacity = '0'; return; }
             if (!_comfyQueueOpen) return; // 펼쳐졌을 때만 내용 갱신
             list.innerHTML = `<div style="display:flex; align-items:center; margin-bottom:8px;"><span style="flex:1; font-size:13px; font-weight:800; font-family:var(--font-heading);"><i class="fa-solid fa-layer-group" style="color:#38bdf8;"></i> 전송 대기열 ${n}</span><button onclick="comfyCancelAllQueue()" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#f87171; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer;">전체 취소</button></div>`;
