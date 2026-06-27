@@ -843,7 +843,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.20 &nbsp;·&nbsp; 2026-06-26 — 쉬운 모드(뉴비) 위저드</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.21 &nbsp;·&nbsp; 2026-06-26 — 쉬운 모드: 조합 묶음 선택형</span></span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
         <button class="gt-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i id="btn-theme-icon" class="fa-solid fa-sun"></i></button>
@@ -1563,55 +1563,71 @@
         })();
 
         // ─────────────────────────────────────────────────────────────
-        // 쉬운 모드 (뉴비) — 카드 골라서 프롬프트 완성하는 위저드
+        // 쉬운 모드 (뉴비) — 미리 조합된 "묶음"을 골라 완성하는 위저드
         // ─────────────────────────────────────────────────────────────
-        let _nbCats = [], _nbStep = 0, _nbSel = {};
+        let _nbCats = [], _nbStep = 0, _nbBundles = {}, _nbSelB = {};
 
         function _nbGatherCats() {
             const cats = [];
             (layerMeta || []).forEach(lm => {
-                if (lm.id === 1) return; // 화질은 자동
-                const seen = new Set(); const tags = [];
+                if (lm.id === 1) return; // 화질은 필수로 자동 포함
                 const layer = promptDB[lm.id] || {};
-                Object.values(layer).forEach(arr => (arr || []).forEach(d => {
-                    const t = (d.t || '').trim(); if (!t) return;
-                    const key = t.toLowerCase(); if (seen.has(key)) return; seen.add(key);
-                    tags.push({ t, kor: (d.k || '').trim() || t });
-                }));
-                if (tags.length) cats.push({ layer: lm.id, title: (lm.title || '').replace(/^\d+\.\s*/, ''), icon: lm.icon, color: lm.color, tags });
+                const folders = [];
+                Object.entries(layer).forEach(([fk, arr]) => {
+                    const tags = (arr || []).map(d => ({ t: (d.t || '').trim(), kor: (d.k || '').trim() || (d.t || '').trim() })).filter(x => x.t);
+                    if (tags.length) folders.push({ name: fk.split('|')[0], tags });
+                });
+                if (folders.length) cats.push({ layer: lm.id, title: (lm.title || '').replace(/^\d+\.\s*/, ''), icon: lm.icon, color: lm.color, folders });
             });
             return cats;
+        }
+
+        // 각 폴더(국적/체형/가슴 등)에서 하나씩 뽑아 "묶음" 여러 개 생성
+        function _nbGen(cat, n) {
+            n = n || 6;
+            const fts = cat.folders.map(f => f.tags).filter(a => a.length);
+            const bundles = [];
+            for (let i = 0; i < n * 3 && bundles.length < n; i++) {
+                const tags = [], kors = [], seen = new Set();
+                fts.forEach(ft => {
+                    if (fts.length > 2 && Math.random() < 0.25) return; // 가끔 일부 생략 → 다양성
+                    const p = ft[Math.floor(Math.random() * ft.length)];
+                    if (p && !seen.has(p.t.toLowerCase())) { seen.add(p.t.toLowerCase()); tags.push(p.t); kors.push(p.kor); }
+                });
+                if (!tags.length) continue;
+                const key = tags.slice().sort().join('|');
+                if (bundles.some(b => b.key === key)) continue;
+                bundles.push({ tags, kors, key });
+            }
+            return bundles;
         }
 
         function _nbQuality() {
             const l1 = promptDB[1] || {}; const arr = [];
             Object.values(l1).forEach(a => (a || []).forEach(d => { if (d.t) arr.push(d.t.trim()); }));
-            return arr.length ? arr.slice(0, 6).join(', ') : 'masterpiece, best quality, highres';
+            return arr.length ? arr.slice(0, 8).join(', ') : 'masterpiece, best quality, highres';
         }
 
         function openNewbieMode() {
             _nbCats = _nbGatherCats();
-            _nbStep = 0;
-            _nbSel = {};
-            if (!_nbCats.length) { showToast('먼저 태그를 DB에 추가해 주세요. (쉬운 모드는 내 태그를 골라 조합합니다)', 'warning', 4000); return; }
+            if (!_nbCats.length) { showToast('먼저 태그를 DB에 추가해 주세요. (쉬운 모드는 내 태그를 묶어서 보여줍니다)', 'warning', 4000); return; }
+            _nbStep = 0; _nbBundles = {}; _nbSelB = {};
+            _nbCats.forEach(c => { _nbBundles[c.layer] = _nbGen(c); _nbSelB[c.layer] = new Set(); });
             document.getElementById('newbie-mode').style.display = 'flex';
             _nbRender();
         }
         function closeNewbieMode() { document.getElementById('newbie-mode').style.display = 'none'; }
 
-        function _nbSelSet(layer) { if (!_nbSel[layer]) _nbSel[layer] = new Set(); return _nbSel[layer]; }
-
         function _nbRender() {
             const total = _nbCats.length;
             const isResult = _nbStep >= total;
-            // 진행 표시
             const prog = document.getElementById('nb-progress');
             prog.innerHTML = '';
             _nbCats.forEach((c, i) => {
                 const d = document.createElement('button');
-                const cnt = (_nbSel[c.layer] && _nbSel[c.layer].size) || 0;
+                const cnt = (_nbSelB[c.layer] && _nbSelB[c.layer].size) || 0;
                 d.className = 'nb-step-dot' + (i === _nbStep && !isResult ? ' active' : (cnt ? ' done' : ''));
-                d.textContent = `${c.title}${cnt ? ' ' + cnt : ''}`;
+                d.textContent = `${c.title}${cnt ? ' ✓' : ''}`;
                 d.onclick = () => { _nbStep = i; _nbRender(); };
                 prog.appendChild(d);
             });
@@ -1622,33 +1638,27 @@
             prog.appendChild(rd);
 
             const body = document.getElementById('nb-body');
-            const footer = document.getElementById('nb-footer');
-            body.innerHTML = ''; footer.innerHTML = '';
-
-            if (isResult) { _nbRenderResult(body, footer); return; }
+            body.innerHTML = '';
+            if (isResult) { _nbRenderResult(body, document.getElementById('nb-footer')); return; }
 
             const cat = _nbCats[_nbStep];
-            const sel = _nbSelSet(cat.layer);
+            const sel = _nbSelB[cat.layer];
+            const bundles = _nbBundles[cat.layer] || [];
             const head = document.createElement('div');
             head.style.cssText = 'margin-bottom:14px;';
-            head.innerHTML = `<div style="font-size:19px; font-weight:800; font-family:var(--font-heading); color:${cat.color};"><i class="fa-solid ${cat.icon}"></i> ${cat.title}</div><div style="font-size:12px; color:var(--text-dim); margin-top:4px;">마음에 드는 걸 골라보세요. 여러 개 선택 가능 · 건너뛰어도 돼요.</div>`;
+            head.innerHTML = `<div style="font-size:19px; font-weight:800; font-family:var(--font-heading); color:${cat.color};"><i class="fa-solid ${cat.icon}"></i> ${cat.title}</div><div style="font-size:12px; color:var(--text-dim); margin-top:4px;">마음에 드는 <b>조합</b>을 골라보세요. 여러 개 선택 가능 · 마음에 안 들면 🎲 새 조합 보기</div>`;
             body.appendChild(head);
 
             const grid = document.createElement('div');
             grid.className = 'nb-grid';
-            cat.tags.forEach(tag => {
+            grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(190px,1fr))';
+            bundles.forEach((b, idx) => {
                 const card = document.createElement('div');
-                card.className = 'nb-card' + (sel.has(tag.t) ? ' sel' : '');
-                card.style.cssText = `--nbc:${cat.color};`;
-                card.innerHTML = `<i class="fa-solid fa-circle-check nb-check"></i><div class="nb-kor">${tag.kor}</div><div class="nb-en">${tag.t}</div>`;
-                card.onclick = () => {
-                    if (sel.has(tag.t)) sel.delete(tag.t); else sel.add(tag.t);
-                    card.classList.toggle('sel');
-                    _nbRenderFooter();
-                    // 진행 dot 숫자 갱신
-                    const dots = document.querySelectorAll('#nb-progress .nb-step-dot');
-                    if (dots[_nbStep]) dots[_nbStep].textContent = `${cat.title}${sel.size ? ' ' + sel.size : ''}`;
-                };
+                card.className = 'nb-card' + (sel.has(idx) ? ' sel' : '');
+                card.style.cssText = `--nbc:${cat.color}; text-align:left;`;
+                card.innerHTML = `<i class="fa-solid fa-circle-check nb-check"></i>` +
+                    b.kors.map(k => `<span style="display:inline-block; background:color-mix(in srgb,${cat.color} 16%,transparent); color:var(--text-main); border-radius:7px; padding:3px 8px; margin:2px 3px 2px 0; font-size:12px; font-weight:700;">${k}</span>`).join('');
+                card.onclick = () => { if (sel.has(idx)) sel.delete(idx); else sel.add(idx); _nbRender(); };
                 grid.appendChild(card);
             });
             body.appendChild(grid);
@@ -1660,7 +1670,6 @@
             const footer = document.getElementById('nb-footer');
             const total = _nbCats.length;
             footer.innerHTML = '';
-            // 왼쪽: 이전
             const prev = document.createElement('button');
             prev.className = 'nb-btn'; prev.style.cssText = 'background:var(--bg-surface); border:1px solid var(--border-dim); color:var(--text-dim);';
             prev.innerHTML = '<i class="fa-solid fa-arrow-left"></i> 이전';
@@ -1668,31 +1677,22 @@
             prev.onclick = () => { if (_nbStep > 0) { _nbStep--; _nbRender(); } };
             footer.appendChild(prev);
 
-            // 랜덤 추천 (고르는 재미)
             const cat = _nbCats[_nbStep];
             if (cat) {
                 const rnd = document.createElement('button');
                 rnd.className = 'nb-btn'; rnd.style.cssText = 'background:rgba(168,139,250,0.15); border:1px solid #a78bfa; color:#a78bfa;';
-                rnd.innerHTML = '🎲 랜덤';
-                rnd.onclick = () => {
-                    const sel = _nbSelSet(cat.layer);
-                    const pick = cat.tags[Math.floor(Math.random() * cat.tags.length)];
-                    if (pick) sel.add(pick.t);
-                    _nbRender();
-                };
+                rnd.innerHTML = '🎲 새 조합 보기';
+                rnd.onclick = () => { _nbBundles[cat.layer] = _nbGen(cat); _nbSelB[cat.layer] = new Set(); _nbRender(); };
                 footer.appendChild(rnd);
             }
 
             const spacer = document.createElement('div'); spacer.style.flex = '1'; footer.appendChild(spacer);
-
-            // 선택 개수
-            const totalSel = Object.values(_nbSel).reduce((s, set) => s + set.size, 0);
+            const totalSel = Object.values(_nbSelB).reduce((s, set) => s + set.size, 0);
             const cnt = document.createElement('span');
             cnt.style.cssText = 'font-size:12px; color:var(--text-dim);';
-            cnt.textContent = `선택 ${totalSel}개`;
+            cnt.textContent = `선택 ${totalSel}묶음`;
             footer.appendChild(cnt);
 
-            // 오른쪽: 다음 / 완성
             const next = document.createElement('button');
             next.className = 'nb-btn'; next.style.cssText = 'background:#22c55e; color:#fff;';
             if (_nbStep >= total - 1) { next.innerHTML = '✨ 완성 보기'; next.onclick = () => { _nbStep = total; _nbRender(); }; }
@@ -1701,23 +1701,24 @@
         }
 
         function _nbResultPrompt() {
-            const parts = [];
-            const q = _nbQuality(); if (q) parts.push(q);
-            _nbCats.forEach(c => { (_nbSel[c.layer] || new Set()).forEach(t => parts.push(t)); });
+            const parts = [], seen = new Set();
+            const add = (t) => { const k = t.toLowerCase(); if (!seen.has(k)) { seen.add(k); parts.push(t); } };
+            (_nbQuality().split(',').map(s => s.trim()).filter(Boolean)).forEach(add);
+            _nbCats.forEach(c => { (_nbSelB[c.layer] || new Set()).forEach(idx => { const b = (_nbBundles[c.layer] || [])[idx]; if (b) b.tags.forEach(add); }); });
             return parts.join(', ');
         }
 
         function _nbRenderResult(body, footer) {
-            const totalSel = Object.values(_nbSel).reduce((s, set) => s + set.size, 0);
+            const totalSel = Object.values(_nbSelB).reduce((s, set) => s + set.size, 0);
             const prompt = _nbResultPrompt();
-            // 한글 요약
             const korParts = [];
-            _nbCats.forEach(c => { (_nbSel[c.layer] || new Set()).forEach(t => { const tag = c.tags.find(x => x.t === t); if (tag) korParts.push(tag.kor); }); });
+            _nbCats.forEach(c => { (_nbSelB[c.layer] || new Set()).forEach(idx => { const b = (_nbBundles[c.layer] || [])[idx]; if (b) korParts.push(...b.kors); }); });
             body.innerHTML = `
                 <div style="text-align:center; padding:10px 0 18px;">
                     <div style="font-size:40px;">🎨</div>
-                    <div style="font-size:20px; font-weight:800; font-family:var(--font-heading); margin-top:6px;">${totalSel ? '완성! 이렇게 만들어졌어요' : '아직 고른 게 없어요'}</div>
-                    <div style="font-size:13px; color:var(--text-dim); margin-top:6px; line-height:1.7;">${korParts.length ? korParts.join(' · ') : '위 단계에서 카드를 골라보세요.'}</div>
+                    <div style="font-size:20px; font-weight:800; font-family:var(--font-heading); margin-top:6px;">${totalSel ? '완성! 이렇게 만들어졌어요' : '아직 고른 조합이 없어요'}</div>
+                    <div style="font-size:13px; color:var(--text-dim); margin-top:6px; line-height:1.7;">${korParts.length ? korParts.join(' · ') : '위 단계에서 조합을 골라보세요.'}</div>
+                    <div style="font-size:11px; color:var(--accent-green); margin-top:8px;">✓ 필수 품질 태그는 자동 포함됩니다</div>
                 </div>
                 <div style="font-size:11px; color:var(--text-dim); font-weight:700; margin-bottom:6px;">완성된 프롬프트</div>
                 <textarea readonly style="width:100%; min-height:120px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:10px; padding:12px; color:var(--text-main); font-family:var(--font-code); font-size:13px; line-height:1.6; resize:vertical;">${prompt}</textarea>
@@ -1752,7 +1753,7 @@
                 send.innerHTML = '<i class="fa-solid fa-paper-plane"></i> ComfyUI 생성';
                 send.onclick = () => {
                     importPromptToEditor(prompt.split(',').map(s => s.trim()).filter(Boolean), 'replace');
-                    comfySetTarget && comfySetTarget('both');
+                    if (typeof comfySetTarget === 'function') comfySetTarget('both');
                     closeNewbieMode();
                     comfyQuickSend('pos');
                 };
