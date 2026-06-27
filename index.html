@@ -2989,9 +2989,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (bar) bar.style.width = w;
                 if (st && text !== undefined) st.textContent = text;
             }
-            // FAB 버튼 물 차오르기
-            const water = document.getElementById('comfy-queue-water');
-            if (water) water.style.height = Math.max(0, Math.min(100, pct)) + '%';
         }
 
         // 현재 모드/설정으로 실제 전송될 워크플로우를 조립 (생성·미리보기 공용)
@@ -3221,6 +3218,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (_comfyQueueOpen) comfyCloseQueuePanel(); else comfyOpenQueuePanel();
         }
 
+        // FAB 물 높이 업데이트: 전체 배치 기준 진행률 (완료 job / 전체 job)
+        // _comfyJobSeqTotal: 이번 배치 시작 시 등록된 총 job 수 추적
+        let _comfyBatchTotal = 0;
+        let _comfyBatchDone  = 0;
+        function _comfyUpdateFabWater() {
+            const water = document.getElementById('comfy-queue-water');
+            if (!water) return;
+            const pending = Object.keys(_comfyJobs).filter(p => !_comfyJobs[p].done).length;
+            if (pending === 0) { water.style.height = '0%'; return; }
+            // 전체 중 완료 비율로 계산 (최소 12% 보장 — 버튼에서 보이게)
+            const ratio = _comfyBatchTotal > 0 ? _comfyBatchDone / _comfyBatchTotal : 0;
+            const pct   = Math.max(12, Math.min(97, ratio * 100));
+            water.style.height = pct + '%';
+        }
+
         function comfyRenderQueue() {
             const fab = document.getElementById('comfy-queue-fab');
             const badge = document.getElementById('comfy-queue-badge');
@@ -3230,6 +3242,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const n = jobs.length;
             badge.textContent = n;
             fab.style.display = n > 0 ? 'flex' : 'none';
+            _comfyUpdateFabWater();
             if (n === 0) { _comfyQueueOpen = false; list.style.display = 'none'; list.style.transform = 'scale(0.5)'; list.style.opacity = '0'; return; }
             if (!_comfyQueueOpen) return; // 펼쳐졌을 때만 내용 갱신
             list.innerHTML = `<div style="display:flex; align-items:center; margin-bottom:8px;"><span style="flex:1; font-size:13px; font-weight:800; font-family:var(--font-heading);"><i class="fa-solid fa-layer-group" style="color:#38bdf8;"></i> 전송 대기열 ${n}</span><button onclick="comfyCancelAllQueue()" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#f87171; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer;">전체 취소</button></div>`;
@@ -3254,11 +3267,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (running) await fetch(_comfyBase() + '/interrupt', { method: 'POST' });
                 else await fetch(_comfyBase() + '/queue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ delete: [pid] }) });
             } catch (e) {}
-            if (_comfyJobs[pid]) { delete _comfyJobs[pid]; _comfyQueueCount = Math.max(0, _comfyQueueCount - 1); }
+            if (_comfyJobs[pid]) { delete _comfyJobs[pid]; _comfyQueueCount = Math.max(0, _comfyQueueCount - 1); _comfyBatchTotal = Math.max(0, _comfyBatchTotal - 1); }
             if (running) _comfyRunningPid = null;
             _comfySaveJobs();
             comfyRenderQueue();
-            if (_comfyQueueCount === 0) _comfyOnAllDone();
+            if (_comfyQueueCount === 0) { _comfyBatchTotal = 0; _comfyBatchDone = 0; _comfyOnAllDone(); }
         }
 
         // 현재 진행 중인 것만 중지 (대기열의 나머지는 유지 → 다음 작업 자동 진행)
@@ -3273,7 +3286,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         async function comfyCancelAllQueue() {
             try { await fetch(_comfyBase() + '/interrupt', { method: 'POST' }); } catch (e) {}
             try { await fetch(_comfyBase() + '/queue', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clear: true }) }); } catch (e) {}
-            _comfyJobs = {}; _comfyQueueCount = 0; _comfyRunningPid = null;
+            _comfyJobs = {}; _comfyQueueCount = 0; _comfyRunningPid = null; _comfyBatchTotal = 0; _comfyBatchDone = 0;
             _comfySaveJobs();
             comfyRenderQueue();
             _comfyOnAllDone();
@@ -3294,8 +3307,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const prog = document.getElementById('comfy-inline-prog-' + t);
                     if (prog) prog.style.display = 'none';
                 });
-                const water = document.getElementById('comfy-queue-water');
-                if (water) water.style.height = '0%';
             }, 1600);
         }
 
@@ -3623,13 +3634,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } catch (e) {}
             delete _comfyJobs[pid];
             _comfyQueueCount = Math.max(0, _comfyQueueCount - 1);
+            _comfyBatchDone++;
             _comfySaveJobs();
-            comfyRenderQueue();
+            comfyRenderQueue(); // _comfyUpdateFabWater 내부 호출
             if (_comfyQueueCount > 0) {
                 _comfySetProgress(100, `${_comfyQ()}완료 · 다음 대기`, jobInline);
             } else {
                 _comfySetProgress(100, '✅ 모두 완료', jobInline);
                 _comfyRunningPid = null;
+                _comfyBatchTotal = 0; _comfyBatchDone = 0; // 배치 리셋
                 _comfyOnAllDone(); // 진행바 정리
             }
         }
@@ -3688,6 +3701,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const pid = data.prompt_id;
                     _comfyJobs[pid] = { inline, cleared: false, done: false, seq: ++_comfyJobSeq, label };
                     _comfyQueueCount++;
+                    _comfyBatchTotal++;
                     _comfySaveJobs();
                     _comfySetProgress(3, `${_comfyQ()}큐 등록됨`, inline);
                     comfyRenderQueue();
