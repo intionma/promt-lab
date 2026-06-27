@@ -523,11 +523,8 @@
         .result-label { font-size: 14px; font-weight: 800; font-family: var(--font-heading); display: flex; justify-content: space-between; align-items: center;}
 
         .result-textarea { width: 100%; min-height: 100px; background-color: var(--input-bg); border: 1px solid var(--border-dim); border-radius: 8px; padding: 16px; color: var(--text-main); font-family: var(--font-code); font-size: 14px; line-height: 1.6; resize: vertical; transition:0.3s;}
-        /* 라이트박스 화살표 hover */
-        #img-lightbox-prev:hover .lb-arrow-icon,
-        #img-lightbox-next:hover .lb-arrow-icon { opacity: 1 !important; }
-        #img-lightbox-prev:hover { background: linear-gradient(to right, rgba(0,0,0,0.25), transparent); }
-        #img-lightbox-next:hover { background: linear-gradient(to left, rgba(0,0,0,0.25), transparent); }
+        /* 라이트박스 화살표 버튼 hover */
+        #lb-btn-prev:hover, #lb-btn-next:hover { background: rgba(255,255,255,0.28) !important; }
         .preview-box { background-color: var(--folder-bg); border: 1px dashed var(--border-dim); border-radius: 8px; padding: 16px; color: var(--text-dim); font-size: 14px; line-height: 1.6; min-height: 60px; }
 
         .copy-btn-group { display: flex; gap: 12px; margin-top: auto; flex-shrink: 0; }
@@ -1432,13 +1429,9 @@
         <button onclick="closeLightbox()" title="닫기 (Esc)" style="position:absolute; top:16px; right:18px; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:20px; cursor:pointer; z-index:10;"><i class="fa-solid fa-xmark"></i></button>
         <!-- 카운터 -->
         <span id="img-lightbox-counter" style="position:absolute; top:22px; left:50%; transform:translateX(-50%); color:#fff; font-size:13px; font-family:var(--font-ui); background:rgba(0,0,0,0.4); padding:4px 12px; border-radius:14px; z-index:10; display:none; pointer-events:none;"></span>
-        <!-- 좌우 클릭 영역 (세로 전체, 양쪽 30%) -->
-        <div id="img-lightbox-prev" onclick="lightboxNav(-1)" style="position:absolute; left:0; top:0; width:30%; height:100%; z-index:5; cursor:pointer; display:none; align-items:center; justify-content:flex-start; padding-left:18px;">
-            <span class="lb-arrow-icon" style="font-size:36px; color:rgba(255,255,255,0.7); pointer-events:none; opacity:0; transition:opacity 0.18s; text-shadow:0 2px 12px rgba(0,0,0,0.7);">&#8592;</span>
-        </div>
-        <div id="img-lightbox-next" onclick="lightboxNav(1)" style="position:absolute; right:0; top:0; width:30%; height:100%; z-index:5; cursor:pointer; display:none; align-items:center; justify-content:flex-end; padding-right:18px;">
-            <span class="lb-arrow-icon" style="font-size:36px; color:rgba(255,255,255,0.7); pointer-events:none; opacity:0; transition:opacity 0.18s; text-shadow:0 2px 12px rgba(0,0,0,0.7);">&#8594;</span>
-        </div>
+        <!-- 좌우 화살표 버튼 (이미지 양옆) -->
+        <button id="lb-btn-prev" onclick="lightboxNav(-1)" style="display:none; position:absolute; left:16px; top:50%; transform:translateY(-50%); z-index:10; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.15); backdrop-filter:blur(6px); color:#fff; font-size:22px; cursor:pointer; transition:background 0.15s;">&#8592;</button>
+        <button id="lb-btn-next" onclick="lightboxNav(1)"  style="display:none; position:absolute; right:16px; top:50%; transform:translateY(-50%); z-index:10; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.15); backdrop-filter:blur(6px); color:#fff; font-size:22px; cursor:pointer; transition:background 0.15s;">&#8594;</button>
         <!-- 이미지 트랙 -->
         <div id="img-lightbox-track" style="position:absolute; inset:0; display:flex; align-items:center; will-change:transform;">
             <!-- JS가 동적으로 슬롯 3개 생성: prev / current / next -->
@@ -3235,216 +3228,188 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             document.querySelectorAll('.preview-size-slider').forEach(s => s.value = v);
         })();
 
-        // ── 풀스크린 이미지 뷰어 (드래그/스와이프로 이전·다음) ──
+        // ── 풀스크린 이미지 뷰어 ──
         let _lbUrls = [], _lbIdx = 0;
 
-        // ── 라이트박스 (슬라이드 트랙 방식) ────────────────────────────────
         (function () {
-            const SNAP_RATIO = 0.25;   // 25% 이상 → 페이지 전환
-            const RUBBER_K   = 0.18;   // 엣지 rubber band 저항
+            const SNAP_RATIO = 0.25;
+            const RUBBER_K   = 0.18;
             const ANIM_MS    = 280;
             const EASE       = 'cubic-bezier(0.25,0.46,0.45,0.94)';
 
-            const box      = document.getElementById('img-lightbox');
-            const track    = document.getElementById('img-lightbox-track');
-            const counter  = document.getElementById('img-lightbox-counter');
-            const prevZone = document.getElementById('img-lightbox-prev');
-            const nextZone = document.getElementById('img-lightbox-next');
+            const box     = document.getElementById('img-lightbox');
+            const track   = document.getElementById('img-lightbox-track');
+            const counter = document.getElementById('img-lightbox-counter');
+            const btnPrev = document.getElementById('lb-btn-prev');
+            const btnNext = document.getElementById('lb-btn-next');
             if (!box || !track) return;
 
-            // 슬롯 3개 (prev / cur / next) 생성
-            const SLOTS = [-1, 0, 1].map(() => {
+            // 슬롯 3개: [0]=prev [1]=cur [2]=next
+            const SLOTS = [0, 1, 2].map(() => {
                 const slot = document.createElement('div');
                 slot.style.cssText = 'flex:0 0 100vw; width:100vw; height:100%; display:flex; align-items:center; justify-content:center;';
                 const img = document.createElement('img');
                 img.draggable = false;
-                img.style.cssText = 'max-width:94vw; max-height:92vh; border-radius:8px; object-fit:contain; user-select:none; pointer-events:none;';
+                img.style.cssText = 'max-width:90vw; max-height:90vh; border-radius:8px; object-fit:contain; user-select:none; pointer-events:none;';
                 slot.appendChild(img);
                 track.appendChild(slot);
-                return { slot, img };
+                return img;
             });
 
             const VW = () => window.innerWidth;
-            let _animating = false;
+            let _busy = false;
 
-            // 트랙을 중앙 슬롯으로 (transition 없이)
-            function _snap() {
+            // 트랙을 cur(슬롯1)에 즉시 맞춤
+            function _center() {
                 track.style.transition = 'none';
                 track.style.transform  = `translateX(-${VW()}px)`;
             }
 
-            // 트랙을 targetX까지 animate → 완료 후 콜백
-            function _animTo(targetX, cb) {
-                if (_animating) return;
-                _animating = true;
+            // targetX까지 슬라이드 애니메이션 후 콜백
+            function _slideTo(targetX, cb) {
+                _busy = true;
                 track.style.transition = `transform ${ANIM_MS}ms ${EASE}`;
                 track.style.transform  = `translateX(${targetX}px)`;
-                setTimeout(() => {
-                    _animating = false;
-                    _snap();
-                    if (cb) cb();
-                }, ANIM_MS + 16);
+                setTimeout(() => { _busy = false; _center(); if (cb) cb(); }, ANIM_MS + 20);
             }
 
             function _loadSlots() {
                 const n = _lbUrls.length;
-                if (n === 0) return;
-                // [0]=prev, [1]=cur, [2]=next
-                SLOTS[1].img.src = _lbUrls[_lbIdx] || '';
-                SLOTS[0].img.src = (_lbIdx > 0)     ? _lbUrls[_lbIdx - 1] : '';
-                SLOTS[2].img.src = (_lbIdx < n - 1) ? _lbUrls[_lbIdx + 1] : '';
+                SLOTS[1].src = _lbUrls[_lbIdx] || '';
+                SLOTS[0].src = _lbIdx > 0     ? _lbUrls[_lbIdx - 1] : '';
+                SLOTS[2].src = _lbIdx < n - 1 ? _lbUrls[_lbIdx + 1] : '';
             }
 
             function _updateUI() {
-                const n = _lbUrls.length;
-                const multi = n > 1;
-                counter.style.display  = multi ? 'block' : 'none';
-                counter.textContent    = `${_lbIdx + 1} / ${n}`;
-                prevZone.style.display = (multi && _lbIdx > 0)     ? 'flex' : 'none';
-                nextZone.style.display = (multi && _lbIdx < n - 1) ? 'flex' : 'none';
+                const n = _lbUrls.length, multi = n > 1;
+                counter.style.display = multi ? 'block' : 'none';
+                counter.textContent   = `${_lbIdx + 1} / ${n}`;
+                if (btnPrev) btnPrev.style.display = (multi && _lbIdx > 0)     ? 'block' : 'none';
+                if (btnNext) btnNext.style.display = (multi && _lbIdx < n - 1) ? 'block' : 'none';
             }
 
-            // ── 공용 포인터 상태 (touch + mouse 통합) ──────────────────
-            let ptX = null, ptY = null, ptLocked = null, ptMoved = false;
+            // ── 드래그/스와이프 공용 상태 ────────────────────────────────
+            let ptX = null, ptY = null, ptAxis = null, ptDragged = false;
 
-            function _ptStart(x, y) {
-                if (_animating) return;
-                ptX = x; ptY = y; ptLocked = null; ptMoved = false;
+            function _start(x, y) {
+                if (_busy) return;
+                ptX = x; ptY = y; ptAxis = null; ptDragged = false;
                 track.style.transition = 'none';
             }
 
-            function _ptMove(x, y, prevent) {
-                if (ptX === null) return false;
-                const dx = x - ptX, dy = y - ptY;
-                if (ptLocked === null) {
-                    if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return false;
-                    ptLocked = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
-                }
-                if (ptLocked !== 'h') return false;
-                if (prevent) prevent();
-                ptMoved = true;
-                const n = _lbUrls.length;
-                const base = -VW();
-                let offset = base + dx;
-                if (_lbIdx === 0     && dx > 0) offset = base + dx * RUBBER_K;
-                if (_lbIdx === n - 1 && dx < 0) offset = base + dx * RUBBER_K;
-                track.style.transform = `translateX(${offset}px)`;
-                return true;
-            }
-
-            function _ptEnd(x, y) {
+            function _move(x, y, cancelFn) {
                 if (ptX === null) return;
                 const dx = x - ptX, dy = y - ptY;
-                const wasMoved = ptMoved;
-                ptX = null; ptY = null; ptLocked = null; ptMoved = false;
+                if (!ptAxis) {
+                    if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+                    ptAxis = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
+                }
+                if (ptAxis !== 'h') return;
+                if (cancelFn) cancelFn();
+                ptDragged = true;
+                const n = _lbUrls.length;
+                let off = -VW() + dx;
+                // rubber band at edges
+                if (_lbIdx === 0     && dx > 0) off = -VW() + dx * RUBBER_K;
+                if (_lbIdx === n - 1 && dx < 0) off = -VW() + dx * RUBBER_K;
+                track.style.transform = `translateX(${off}px)`;
+            }
 
-                if (!wasMoved) {
-                    // 탭/클릭 → 중앙이면 닫기
-                    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-                        if (x > VW() * 0.3 && x < VW() * 0.7) closeLightbox();
-                    }
+            function _end(x, y) {
+                if (ptX === null) return;
+                const dx = x - ptX, dy = y - ptY;
+                const dragged = ptDragged;
+                ptX = null; ptY = null; ptAxis = null; ptDragged = false;
+
+                if (!dragged) {
+                    // 단순 탭/클릭 → 중앙 40% 영역이면 닫기
+                    if (Math.abs(dx) < 10 && Math.abs(dy) < 10 &&
+                        x > VW() * 0.3 && x < VW() * 0.7) closeLightbox();
                     return;
                 }
 
-                const threshold = VW() * SNAP_RATIO;
                 const n = _lbUrls.length;
+                const threshold = VW() * SNAP_RATIO;
 
                 if (dx < -threshold && _lbIdx < n - 1) {
-                    // → 다음 이미지
-                    _lbIdx++;
-                    _loadSlots();     // 슬롯 내용 먼저 갱신 (cur이 새 이미지가 됨)
-                    _snap();          // 새 슬롯 배치 기준으로 즉시 위치: cur이 오른쪽에 있어야 함
-                    // 현재 위치를 오른쪽(다음 슬롯)처럼 보이게 설정 후 cur로 animate
-                    track.style.transition = 'none';
-                    track.style.transform  = `translateX(-${VW() * 2}px)`;
-                    requestAnimationFrame(() => {
-                        _animTo(-VW(), _updateUI);
+                    // 왼쪽으로 충분히 스와이프 → 다음 이미지로
+                    // 현재 드래그 위치에서 next슬롯(slot2) 위치까지 animate
+                    _slideTo(-VW() * 2, () => {
+                        _lbIdx++;
+                        _loadSlots();
+                        _updateUI();
                     });
                 } else if (dx > threshold && _lbIdx > 0) {
-                    // → 이전 이미지
-                    _lbIdx--;
-                    _loadSlots();
-                    _snap();
-                    track.style.transition = 'none';
-                    track.style.transform  = `translateX(0px)`;
-                    requestAnimationFrame(() => {
-                        _animTo(-VW(), _updateUI);
+                    // 오른쪽으로 충분히 스와이프 → 이전 이미지로
+                    _slideTo(0, () => {
+                        _lbIdx--;
+                        _loadSlots();
+                        _updateUI();
                     });
                 } else {
-                    // spring back
-                    _animTo(-VW(), null);
+                    // 임계값 미달 → 원위치
+                    _slideTo(-VW(), null);
                 }
             }
 
-            // ── 터치 이벤트 ───────────────────────────────────────────────
-            box.addEventListener('touchstart', (e) => {
+            // ── 터치 ──────────────────────────────────────────────────────
+            box.addEventListener('touchstart', e => {
                 if (e.touches.length !== 1) return;
-                _ptStart(e.touches[0].clientX, e.touches[0].clientY);
+                _start(e.touches[0].clientX, e.touches[0].clientY);
             }, { passive: true });
-
-            box.addEventListener('touchmove', (e) => {
-                _ptMove(e.touches[0].clientX, e.touches[0].clientY, () => e.preventDefault());
+            box.addEventListener('touchmove', e => {
+                _move(e.touches[0].clientX, e.touches[0].clientY, () => e.preventDefault());
             }, { passive: false });
-
-            box.addEventListener('touchend', (e) => {
-                _ptEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+            box.addEventListener('touchend', e => {
+                _end(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
             }, { passive: true });
 
-            // ── 마우스 드래그 (PC) ─────────────────────────────────────────
-            let _mouseDown = false;
-
-            box.addEventListener('mousedown', (e) => {
-                if (e.button !== 0) return;
-                // 닫기 버튼, 카운터 등 z-index 높은 요소 제외
-                if (e.target.closest('button, #img-lightbox-counter')) return;
-                _mouseDown = true;
-                _ptStart(e.clientX, e.clientY);
+            // ── 마우스 드래그 (PC) ────────────────────────────────────────
+            let _md = false;
+            box.addEventListener('mousedown', e => {
+                if (e.button !== 0 || e.target.closest('button, #img-lightbox-counter')) return;
+                _md = true;
+                _start(e.clientX, e.clientY);
                 e.preventDefault();
             });
-
-            window.addEventListener('mousemove', (e) => {
-                if (!_mouseDown) return;
-                const moved = _ptMove(e.clientX, e.clientY, null);
-                if (moved) box.style.cursor = 'grabbing';
+            window.addEventListener('mousemove', e => {
+                if (!_md) return;
+                _move(e.clientX, e.clientY, null);
+                if (ptDragged) box.style.cursor = 'grabbing';
             });
-
-            window.addEventListener('mouseup', (e) => {
-                if (!_mouseDown) return;
-                _mouseDown = false;
+            window.addEventListener('mouseup', e => {
+                if (!_md) return;
+                _md = false;
                 box.style.cursor = '';
-                _ptEnd(e.clientX, e.clientY);
+                _end(e.clientX, e.clientY);
             });
 
             // ── 공개 API ──────────────────────────────────────────────────
             window.openLightbox = function (url, urls, idx) {
-                _lbUrls = (Array.isArray(urls) && urls.length) ? urls : [url];
-                _lbIdx  = (typeof idx === 'number' && idx >= 0 && idx < _lbUrls.length)
+                _lbUrls = Array.isArray(urls) && urls.length ? urls : [url];
+                _lbIdx  = typeof idx === 'number' && idx >= 0 && idx < _lbUrls.length
                           ? idx : Math.max(0, _lbUrls.indexOf(url));
                 box.style.display = 'block';
                 _loadSlots();
-                _snap();
+                _center();
                 _updateUI();
             };
 
+            // 화살표 버튼: 즉시 전환 (애니메이션 없음)
             window.lightboxNav = function (dir) {
-                if (_animating) return;
+                if (_busy) return;
                 const n = _lbUrls.length;
-                if (n < 2) return;
                 const newIdx = _lbIdx + dir;
                 if (newIdx < 0 || newIdx >= n) return;
                 _lbIdx = newIdx;
                 _loadSlots();
-                _snap();
-                // animate: dir=1 → 오른쪽 슬롯으로 (from 0px), dir=-1 → 왼쪽 슬롯으로 (from -2*VW)
-                const fromX = dir > 0 ? -VW() * 2 : 0;
-                track.style.transition = 'none';
-                track.style.transform  = `translateX(${fromX}px)`;
-                requestAnimationFrame(() => { _animTo(-VW(), _updateUI); });
+                _center();
+                _updateUI();
             };
 
             window.closeLightbox = function () {
                 box.style.display = 'none';
-                SLOTS.forEach(({ img }) => { img.src = ''; });
+                SLOTS.forEach(img => { img.src = ''; });
                 _lbUrls = []; _lbIdx = 0;
             };
 
@@ -3458,8 +3423,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 openLightbox(url, urls, idx);
             };
 
-            // ── 키보드 ────────────────────────────────────────────────────
-            document.addEventListener('keydown', (e) => {
+            document.addEventListener('keydown', e => {
                 if (box.style.display === 'none') return;
                 if (e.key === 'Escape')          closeLightbox();
                 else if (e.key === 'ArrowLeft')  lightboxNav(-1);
