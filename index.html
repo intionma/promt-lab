@@ -843,7 +843,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.21 &nbsp;·&nbsp; 2026-06-26 — 쉬운 모드: 조합 묶음 선택형</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.22 &nbsp;·&nbsp; 2026-06-26 — 쉬운 모드: 평평한 DB도 묶음 생성 · 매번 새 조합</span></span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
         <button class="gt-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i id="btn-theme-icon" class="fa-solid fa-sun"></i></button>
@@ -1586,14 +1586,24 @@
         function _nbGen(cat, n) {
             n = n || 6;
             const fts = cat.folders.map(f => f.tags).filter(a => a.length);
+            const multiFolder = fts.length >= 2;
             const bundles = [];
-            for (let i = 0; i < n * 3 && bundles.length < n; i++) {
+            for (let i = 0; i < n * 4 && bundles.length < n; i++) {
                 const tags = [], kors = [], seen = new Set();
-                fts.forEach(ft => {
-                    if (fts.length > 2 && Math.random() < 0.25) return; // 가끔 일부 생략 → 다양성
-                    const p = ft[Math.floor(Math.random() * ft.length)];
-                    if (p && !seen.has(p.t.toLowerCase())) { seen.add(p.t.toLowerCase()); tags.push(p.t); kors.push(p.kor); }
-                });
+                const push = (p) => { if (p && !seen.has(p.t.toLowerCase())) { seen.add(p.t.toLowerCase()); tags.push(p.t); kors.push(p.kor); } };
+                if (multiFolder) {
+                    // 폴더(서브카테고리)별로 하나씩 → 일본인·아담한 체형·중간 가슴 식
+                    fts.forEach(ft => {
+                        if (fts.length > 2 && Math.random() < 0.25) return; // 가끔 일부 생략 → 다양성
+                        push(ft[Math.floor(Math.random() * ft.length)]);
+                    });
+                } else {
+                    // 폴더가 하나뿐(평평한 DB)이면 한 폴더에서 여러 개를 뽑아 묶음 구성
+                    const pool = fts[0].slice();
+                    for (let k = pool.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1));[pool[k], pool[j]] = [pool[j], pool[k]]; }
+                    const take = Math.min(pool.length, 2 + Math.floor(Math.random() * 3)); // 2~4개
+                    for (let k = 0; k < take; k++) push(pool[k]);
+                }
                 if (!tags.length) continue;
                 const key = tags.slice().sort().join('|');
                 if (bundles.some(b => b.key === key)) continue;
