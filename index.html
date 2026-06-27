@@ -843,7 +843,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.26 &nbsp;·&nbsp; 2026-06-26 — 쉬운 모드: 여성 1/2명 고정, 남성 태그 제외</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.27 &nbsp;·&nbsp; 2026-06-26 — 쉬운 모드: 드래그 따라 움직이는 스와이프</span></span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
         <button class="gt-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i id="btn-theme-icon" class="fa-solid fa-sun"></i></button>
@@ -1671,20 +1671,51 @@
             const body = document.getElementById('nb-body');
             if (!body || body._swipeBound) return;
             body._swipeBound = true;
-            let sx = 0, sy = 0, t0 = 0;
-            body.addEventListener('touchstart', (e) => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; t0 = Date.now(); }, { passive: true });
-            body.addEventListener('touchend', (e) => {
-                const t = e.changedTouches[0];
-                const dx = t.clientX - sx, dy = t.clientY - sy;
-                if (Date.now() - t0 < 600 && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.8) {
-                    _nbStepBy(dx < 0 ? 1 : -1); // 왼쪽으로 밀면 다음
-                }
+            let sx = 0, sy = 0, t0 = 0, lock = null, dragging = false;
+            const total = () => _nbCats.length;
+            body.addEventListener('touchstart', (e) => {
+                if (e.touches.length !== 1) return;
+                const t = e.touches[0]; sx = t.clientX; sy = t.clientY; t0 = Date.now(); lock = null; dragging = true;
+                body.style.transition = 'none';
             }, { passive: true });
+            body.addEventListener('touchmove', (e) => {
+                if (!dragging) return;
+                const t = e.touches[0];
+                let dx = t.clientX - sx; const dy = t.clientY - sy;
+                if (lock === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) lock = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+                if (lock !== 'h') return;
+                e.preventDefault(); // 가로 드래그 중엔 세로 스크롤 막기
+                // 끝 단계에서 더 끌면 저항감
+                if ((dx > 0 && _nbStep === 0) || (dx < 0 && _nbStep >= total())) dx *= 0.3;
+                body.style.transform = `translateX(${dx}px)`;
+                body.style.opacity = String(Math.max(0.5, 1 - Math.abs(dx) / 600));
+            }, { passive: false });
+            const endFn = (e) => {
+                if (!dragging) return; dragging = false;
+                const t = (e.changedTouches && e.changedTouches[0]) || {};
+                const dx = (t.clientX || sx) - sx, dy = (t.clientY || sy) - sy;
+                body.style.transition = 'transform .18s ease, opacity .18s ease';
+                const fast = Date.now() - t0 < 500;
+                const go = lock === 'h' && Math.abs(dx) > Math.abs(dy) * 1.5 && (Math.abs(dx) > 70 || (fast && Math.abs(dx) > 40));
+                const dir = dx < 0 ? 1 : -1;
+                const canGo = go && !((dir === -1 && _nbStep === 0) || (dir === 1 && _nbStep >= total()));
+                if (canGo) {
+                    body.style.transform = `translateX(${dir < 0 ? '110%' : '-110%'})`;
+                    body.style.opacity = '0';
+                    setTimeout(() => { _nbStepBy(dir); }, 150); // _nbRender가 transform 초기화
+                } else {
+                    body.style.transform = ''; body.style.opacity = '';
+                }
+            };
+            body.addEventListener('touchend', endFn, { passive: true });
+            body.addEventListener('touchcancel', endFn, { passive: true });
         }
 
         function _nbRender() {
             const total = _nbCats.length;
             const isResult = _nbStep >= total;
+            const _b = document.getElementById('nb-body');
+            if (_b) { _b.style.transition = 'none'; _b.style.transform = ''; _b.style.opacity = ''; }
             const prog = document.getElementById('nb-progress');
             prog.innerHTML = '';
             // 인원 선택 (여성 1명/2명 고정)
