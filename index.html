@@ -2195,6 +2195,20 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         let _comfyConnectedOnce = false;
         try { _comfyConnectedOnce = !!(JSON.parse(localStorage.getItem('comfy_settings_v1') || '{}').connectedOnce); } catch (e) {}
 
+        // ── 탭/앱 복귀 시 WebSocket 재연결 + 진행 중 작업 재폴링 ──────────
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) return;
+            // 페이지가 다시 보이면 WebSocket 재연결
+            _comfyEnsureSocket();
+            // 진행 중인 작업이 있으면 즉시 상태 확인
+            const pendingPids = Object.keys(_comfyJobs).filter(pid => !_comfyJobs[pid].done);
+            if (pendingPids.length === 0) return;
+            showToast('생성이 진행 중입니다. 결과 확인 중...', 'info', 2500);
+            document.getElementById('comfy-status').textContent = '복귀 후 결과 확인 중...';
+            // 각 pending 작업 즉시 폴링 재시작
+            pendingPids.forEach(pid => _comfyPollResult(pid, 0));
+        });
+
         // 결과 패널의 'ComfyUI 전송' 빠른 버튼 표시 여부 갱신
         function comfyUpdateQuickButtons() {
             const show = _comfyConnectedOnce;
