@@ -829,36 +829,36 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.17 &nbsp;·&nbsp; 2026-06-26 — 햄버거 메뉴</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.18 &nbsp;·&nbsp; 2026-06-26 — 메뉴 항목 꾹 눌러 상단 단축 고정</span></span>
         <div class="gt-spacer"></div>
-        <button class="gt-btn" style="--gc:var(--accent-green);" onclick="openComfyModal()" title="ComfyUI로 프롬프트 전송"><i class="fa-solid fa-paper-plane"></i><span class="gt-label">ComfyUI</span></button>
+        <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
         <button class="gt-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i id="btn-theme-icon" class="fa-solid fa-sun"></i></button>
-        <button class="gt-btn" id="gt-menu-btn" style="--gc:#a78bfa;" onclick="toggleGtMenu()" title="메뉴"><i class="fa-solid fa-bars"></i><span class="gt-label">메뉴</span></button>
+        <button class="gt-btn" id="gt-menu-btn" style="--gc:#a78bfa;" onclick="toggleGtMenu()" title="메뉴 (항목을 꾹 누르면 상단 고정)"><i class="fa-solid fa-bars"></i><span class="gt-label">메뉴</span></button>
 
         <div id="gt-menu">
             <div class="gt-menu-sec">프롬프트 · DB 도구</div>
-            <button class="gt-menu-item" style="--gc:#a78bfa;" onclick="closeGtMenu();openPromptClassifyModal()"><i class="fa-solid fa-wand-magic-sparkles"></i><span>자동 분류</span><small>붙여넣기 → 계층 추정 → DB 추가</small></button>
-            <button class="gt-menu-item" style="--gc:#ec4899;" onclick="closeGtMenu();openDBAuditModal()"><i class="fa-solid fa-clipboard-check"></i><span>DB 검사</span><small>계층 검증 · 중복 감지</small></button>
-            <button class="gt-menu-item" style="--gc:#f97316;" onclick="closeGtMenu();openTranslationSessionModal()"><i class="fa-solid fa-language"></i><span>번역 세션</span><small>미번역 태그 일괄 번역</small></button>
-            <button class="gt-menu-item" style="--gc:var(--accent-blue);" onclick="closeGtMenu();openDBManager()"><i class="fa-solid fa-database"></i><span>DB 관리</span></button>
-            <button class="gt-menu-item" style="--gc:var(--accent-green);" onclick="closeGtMenu();openDBTextEditor()"><i class="fa-solid fa-code"></i><span>코드 편집</span></button>
+            <button class="gt-menu-item" data-tool="classify" style="--gc:#a78bfa;" onclick="closeGtMenu();openPromptClassifyModal()"><i class="fa-solid fa-wand-magic-sparkles"></i><span>자동 분류</span><small>붙여넣기 → 계층 추정 → DB 추가</small></button>
+            <button class="gt-menu-item" data-tool="audit" style="--gc:#ec4899;" onclick="closeGtMenu();openDBAuditModal()"><i class="fa-solid fa-clipboard-check"></i><span>DB 검사</span><small>계층 검증 · 중복 감지</small></button>
+            <button class="gt-menu-item" data-tool="translate" style="--gc:#f97316;" onclick="closeGtMenu();openTranslationSessionModal()"><i class="fa-solid fa-language"></i><span>번역 세션</span><small>미번역 태그 일괄 번역</small></button>
+            <button class="gt-menu-item" data-tool="dbmanager" style="--gc:var(--accent-blue);" onclick="closeGtMenu();openDBManager()"><i class="fa-solid fa-database"></i><span>DB 관리</span></button>
+            <button class="gt-menu-item" data-tool="dbtext" style="--gc:var(--accent-green);" onclick="closeGtMenu();openDBTextEditor()"><i class="fa-solid fa-code"></i><span>코드 편집</span></button>
 
             <div class="gt-menu-sec">에디터</div>
-            <button class="gt-menu-item" style="--gc:#22c55e;" onclick="closeGtMenu();reorganizeTagsByDB()"><i class="fa-solid fa-shuffle"></i><span>레이어 재배치</span></button>
-            <button class="gt-menu-item" style="--gc:#f59e0b;" onclick="closeGtMenu();openDedupHelper()"><i class="fa-solid fa-clone"></i><span>중복 감지</span></button>
-            <button class="gt-menu-item" style="--gc:#38bdf8;" onclick="closeGtMenu();window.__previzOpen && window.__previzOpen()"><i class="fa-solid fa-camera-movie"></i><span>미리보기 스튜디오</span></button>
-            <button class="gt-menu-item" style="--gc:#eab308;" onclick="closeGtMenu();openMemoModal()"><i class="fa-solid fa-pen-to-square"></i><span>생성 세팅 메모</span></button>
+            <button class="gt-menu-item" data-tool="reorganize" style="--gc:#22c55e;" onclick="closeGtMenu();reorganizeTagsByDB()"><i class="fa-solid fa-shuffle"></i><span>레이어 재배치</span></button>
+            <button class="gt-menu-item" data-tool="dedup" style="--gc:#f59e0b;" onclick="closeGtMenu();openDedupHelper()"><i class="fa-solid fa-clone"></i><span>중복 감지</span></button>
+            <button class="gt-menu-item" data-tool="previz" style="--gc:#38bdf8;" onclick="closeGtMenu();window.__previzOpen && window.__previzOpen()"><i class="fa-solid fa-camera-movie"></i><span>미리보기 스튜디오</span></button>
+            <button class="gt-menu-item" data-tool="memo" style="--gc:#eab308;" onclick="closeGtMenu();openMemoModal()"><i class="fa-solid fa-pen-to-square"></i><span>생성 세팅 메모</span></button>
 
             <div class="gt-menu-sec">생성 · 데이터</div>
-            <button class="gt-menu-item" style="--gc:#38bdf8;" onclick="closeGtMenu();openComfyModal()"><i class="fa-solid fa-paper-plane"></i><span>ComfyUI 전송</span></button>
-            <button class="gt-menu-item" onclick="closeGtMenu();openIOModal('export')"><i class="fa-solid fa-copy"></i><span>내보내기</span></button>
-            <button class="gt-menu-item" onclick="closeGtMenu();openIOModal('import')"><i class="fa-solid fa-paste"></i><span>불러오기 / 복구</span></button>
-            <button class="gt-menu-item" style="--gc:#38bdf8;" onclick="closeGtMenu();downloadAppHtml()"><i class="fa-solid fa-download"></i><span>HTML 저장</span><small>로컬/공유용 다운로드</small></button>
-            <button class="gt-menu-item" style="--gc:var(--accent-green);" onclick="closeGtMenu();openPresetManager()"><i class="fa-solid fa-floppy-disk"></i><span>프리셋 관리</span></button>
+            <button class="gt-menu-item" data-tool="comfy" style="--gc:#38bdf8;" onclick="closeGtMenu();openComfyModal()"><i class="fa-solid fa-paper-plane"></i><span>ComfyUI 전송</span></button>
+            <button class="gt-menu-item" data-tool="export" onclick="closeGtMenu();openIOModal('export')"><i class="fa-solid fa-copy"></i><span>내보내기</span></button>
+            <button class="gt-menu-item" data-tool="import" onclick="closeGtMenu();openIOModal('import')"><i class="fa-solid fa-paste"></i><span>불러오기 / 복구</span></button>
+            <button class="gt-menu-item" data-tool="html" style="--gc:#38bdf8;" onclick="closeGtMenu();downloadAppHtml()"><i class="fa-solid fa-download"></i><span>HTML 저장</span><small>로컬/공유용 다운로드</small></button>
+            <button class="gt-menu-item" data-tool="preset" style="--gc:var(--accent-green);" onclick="closeGtMenu();openPresetManager()"><i class="fa-solid fa-floppy-disk"></i><span>프리셋 관리</span></button>
 
             <div class="gt-menu-sec">기타</div>
-            <button class="gt-menu-item" onclick="closeGtMenu();toggleTheme()"><i class="fa-solid fa-circle-half-stroke"></i><span>테마 변경</span></button>
-            <button class="gt-menu-item" style="--gc:#ef4444;" onclick="closeGtMenu();openShutdownModal()"><i class="fa-solid fa-power-off"></i><span>PC 종료</span><small>도우미 스크립트 필요</small></button>
+            <button class="gt-menu-item" data-tool="theme" onclick="closeGtMenu();toggleTheme()"><i class="fa-solid fa-circle-half-stroke"></i><span>테마 변경</span></button>
+            <button class="gt-menu-item" data-tool="shutdown" style="--gc:#ef4444;" onclick="closeGtMenu();openShutdownModal()"><i class="fa-solid fa-power-off"></i><span>PC 종료</span><small>도우미 스크립트 필요</small></button>
         </div>
     </header>
 
@@ -1469,6 +1469,71 @@
             const m = document.getElementById('gt-menu');
             if (m && m.classList.contains('open') && !m.contains(e.target) && !e.target.closest('#gt-menu-btn')) closeGtMenu();
         });
+
+        // ── 상단바 단축 아이콘 (메뉴 항목 꾹 눌러 고정) ──
+        const GT_TOOLS = {
+            classify:  { icon: 'fa-wand-magic-sparkles', label: '자동 분류', color: '#a78bfa', run: () => openPromptClassifyModal() },
+            audit:     { icon: 'fa-clipboard-check', label: 'DB 검사', color: '#ec4899', run: () => openDBAuditModal() },
+            translate: { icon: 'fa-language', label: '번역', color: '#f97316', run: () => openTranslationSessionModal() },
+            dbmanager: { icon: 'fa-database', label: 'DB 관리', color: 'var(--accent-blue)', run: () => openDBManager() },
+            dbtext:    { icon: 'fa-code', label: '코드 편집', color: 'var(--accent-green)', run: () => openDBTextEditor() },
+            reorganize:{ icon: 'fa-shuffle', label: '재배치', color: '#22c55e', run: () => reorganizeTagsByDB() },
+            dedup:     { icon: 'fa-clone', label: '중복 감지', color: '#f59e0b', run: () => openDedupHelper() },
+            previz:    { icon: 'fa-camera-movie', label: '미리보기', color: '#38bdf8', run: () => window.__previzOpen && window.__previzOpen() },
+            memo:      { icon: 'fa-pen-to-square', label: '메모', color: '#eab308', run: () => openMemoModal() },
+            comfy:     { icon: 'fa-paper-plane', label: 'ComfyUI', color: '#38bdf8', run: () => openComfyModal() },
+            export:    { icon: 'fa-copy', label: '내보내기', color: 'var(--text-main)', run: () => openIOModal('export') },
+            import:    { icon: 'fa-paste', label: '불러오기', color: 'var(--text-main)', run: () => openIOModal('import') },
+            html:      { icon: 'fa-download', label: 'HTML 저장', color: '#38bdf8', run: () => downloadAppHtml() },
+            preset:    { icon: 'fa-floppy-disk', label: '프리셋', color: 'var(--accent-green)', run: () => openPresetManager() },
+            theme:     { icon: 'fa-circle-half-stroke', label: '테마', color: 'var(--text-main)', run: () => toggleTheme() },
+            shutdown:  { icon: 'fa-power-off', label: 'PC 종료', color: '#ef4444', run: () => openShutdownModal() },
+        };
+        let _gtPins = [];
+        try { _gtPins = JSON.parse(localStorage.getItem('gt_pins') || 'null') || ['comfy']; } catch (e) { _gtPins = ['comfy']; }
+
+        function gtRenderPins() {
+            const wrap = document.getElementById('gt-pins');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+            _gtPins.forEach(key => {
+                const t = GT_TOOLS[key];
+                if (!t) return;
+                const b = document.createElement('button');
+                b.className = 'gt-btn gt-pin';
+                b.style.cssText = `--gc:${t.color};`;
+                b.title = t.label + ' (꾹 눌러 고정 해제)';
+                b.dataset.tool = key;
+                b.innerHTML = `<i class="fa-solid ${t.icon}"></i>`;
+                b.onclick = () => t.run();
+                wrap.appendChild(b);
+            });
+        }
+
+        function gtTogglePin(key) {
+            if (!GT_TOOLS[key]) return;
+            const i = _gtPins.indexOf(key);
+            if (i >= 0) { _gtPins.splice(i, 1); showToast(`'${GT_TOOLS[key].label}' 단축 해제`, 'info', 1600); }
+            else { _gtPins.push(key); showToast(`'${GT_TOOLS[key].label}' 상단에 고정됨`, 'success', 1800); }
+            try { localStorage.setItem('gt_pins', JSON.stringify(_gtPins)); } catch (e) {}
+            gtRenderPins();
+        }
+
+        // 길게 누르기 → 핀 토글 (메뉴 항목 추가 / 핀 버튼 제거)
+        (function () {
+            let lpTimer = null, lpFired = false;
+            const startLP = (key) => { lpFired = false; lpTimer = setTimeout(() => { lpFired = true; gtTogglePin(key); if (navigator.vibrate) navigator.vibrate(30); }, 500); };
+            const cancelLP = () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } };
+            const bind = (sel) => {
+                const el = document.querySelector(sel);
+                if (!el) return;
+                el.addEventListener('pointerdown', (e) => { const it = e.target.closest('[data-tool]'); if (it) startLP(it.dataset.tool); });
+                ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => el.addEventListener(ev, cancelLP, true));
+                el.addEventListener('click', (e) => { if (lpFired) { e.preventDefault(); e.stopPropagation(); lpFired = false; } }, true);
+            };
+            const init = () => { bind('#gt-menu'); bind('#gt-pins'); gtRenderPins(); };
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+        })();
 
         function toggleTheme() {
             const body = document.body;
