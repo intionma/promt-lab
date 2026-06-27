@@ -1414,12 +1414,18 @@
     </div>
 
     <!-- ── 이미지 라이트박스 (풀스크린 뷰어, 드래그로 이전/다음) ── -->
-    <div id="img-lightbox" style="display:none; position:fixed; inset:0; z-index:100010; background:rgba(0,0,0,0.92); align-items:center; justify-content:center; touch-action:pan-y;">
-        <button onclick="closeLightbox()" title="닫기 (Esc)" style="position:absolute; top:16px; right:18px; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:20px; cursor:pointer; z-index:2;"><i class="fa-solid fa-xmark"></i></button>
-        <span id="img-lightbox-counter" style="position:absolute; top:22px; left:50%; transform:translateX(-50%); color:#fff; font-size:13px; font-family:var(--font-ui); background:rgba(0,0,0,0.4); padding:4px 12px; border-radius:14px; z-index:2; display:none;"></span>
-        <button id="img-lightbox-prev" onclick="lightboxNav(-1)" title="이전" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); width:46px; height:46px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:20px; cursor:pointer; z-index:2; display:none;"><i class="fa-solid fa-chevron-left"></i></button>
-        <button id="img-lightbox-next" onclick="lightboxNav(1)" title="다음" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); width:46px; height:46px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:20px; cursor:pointer; z-index:2; display:none;"><i class="fa-solid fa-chevron-right"></i></button>
-        <img id="img-lightbox-img" src="" draggable="false" style="max-width:96vw; max-height:94vh; border-radius:8px; object-fit:contain; cursor:grab; user-select:none; transition:transform .12s ease;">
+    <div id="img-lightbox" style="display:none; position:fixed; inset:0; z-index:100010; background:rgba(0,0,0,0.92); overflow:hidden; touch-action:none;">
+        <!-- 닫기 버튼 -->
+        <button onclick="closeLightbox()" title="닫기 (Esc)" style="position:absolute; top:16px; right:18px; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:20px; cursor:pointer; z-index:10;"><i class="fa-solid fa-xmark"></i></button>
+        <!-- 카운터 -->
+        <span id="img-lightbox-counter" style="position:absolute; top:22px; left:50%; transform:translateX(-50%); color:#fff; font-size:13px; font-family:var(--font-ui); background:rgba(0,0,0,0.4); padding:4px 12px; border-radius:14px; z-index:10; display:none; pointer-events:none;"></span>
+        <!-- 좌우 클릭 영역 (세로 전체, 양쪽 30%) -->
+        <div id="img-lightbox-prev" onclick="lightboxNav(-1)" style="position:absolute; left:0; top:0; width:30%; height:100%; z-index:5; cursor:w-resize; display:none;"></div>
+        <div id="img-lightbox-next" onclick="lightboxNav(1)" style="position:absolute; right:0; top:0; width:30%; height:100%; z-index:5; cursor:e-resize; display:none;"></div>
+        <!-- 이미지 트랙 -->
+        <div id="img-lightbox-track" style="position:absolute; inset:0; display:flex; align-items:center; will-change:transform;">
+            <!-- JS가 동적으로 슬롯 3개 생성: prev / current / next -->
+        </div>
     </div>
 
     <!-- ── ComfyUI 전송 대기열 (우측 하단 플로팅) ── -->
@@ -3053,73 +3059,183 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // ── 풀스크린 이미지 뷰어 (드래그/스와이프로 이전·다음) ──
         let _lbUrls = [], _lbIdx = 0;
 
-        function openLightbox(url, urls, idx) {
-            _lbUrls = (Array.isArray(urls) && urls.length) ? urls : [url];
-            _lbIdx = (typeof idx === 'number' && idx >= 0) ? idx : Math.max(0, _lbUrls.indexOf(url));
-            document.getElementById('img-lightbox').style.display = 'flex';
-            _lbShow();
-        }
-
-        // 썸네일 클릭 → 같은 묶음(.lb-group)의 형제 이미지들로 네비게이션
-        function openLightboxFromEl(imgEl) {
-            const group = imgEl.closest('.lb-group');
-            if (group) {
-                const imgs = Array.from(group.querySelectorAll('img'));
-                openLightbox(imgEl.src, imgs.map(i => i.src), imgs.indexOf(imgEl));
-            } else {
-                openLightbox(imgEl.src);
-            }
-        }
-
-        function _lbShow() {
-            const img = document.getElementById('img-lightbox-img');
-            img.style.transform = '';
-            img.src = _lbUrls[_lbIdx] || '';
-            const multi = _lbUrls.length > 1;
-            const counter = document.getElementById('img-lightbox-counter');
-            counter.style.display = multi ? 'block' : 'none';
-            counter.textContent = `${_lbIdx + 1} / ${_lbUrls.length}`;
-            document.getElementById('img-lightbox-prev').style.display = multi ? 'flex' : 'none';
-            document.getElementById('img-lightbox-next').style.display = multi ? 'flex' : 'none';
-        }
-
-        function lightboxNav(dir) {
-            if (_lbUrls.length < 2) return;
-            _lbIdx = (_lbIdx + dir + _lbUrls.length) % _lbUrls.length;
-            _lbShow();
-        }
-
-        function closeLightbox() {
-            document.getElementById('img-lightbox').style.display = 'none';
-            document.getElementById('img-lightbox-img').src = '';
-        }
-
-        document.addEventListener('keydown', (e) => {
-            if (document.getElementById('img-lightbox').style.display !== 'flex') return;
-            if (e.key === 'Escape') closeLightbox();
-            else if (e.key === 'ArrowLeft') lightboxNav(-1);
-            else if (e.key === 'ArrowRight') lightboxNav(1);
-        });
-
+        // ── 라이트박스 (슬라이드 트랙 방식) ────────────────────────────────
         (function () {
-            const box = document.getElementById('img-lightbox');
-            const img = document.getElementById('img-lightbox-img');
-            if (!box || !img) return;
-            box.addEventListener('click', (e) => { if (e.target === box) closeLightbox(); });
-            let downX = 0, downY = 0, dragging = false;
-            const start = (x, y) => { downX = x; downY = y; dragging = true; img.style.transition = 'none'; };
-            const move = (x) => { if (dragging) img.style.transform = `translateX(${x - downX}px)`; };
-            const end = (x, y) => {
-                if (!dragging) return; dragging = false;
-                img.style.transition = '';
-                const dx = x - downX, dy = y - downY;
-                if (Math.abs(dx) < 8 && Math.abs(dy) < 8) { closeLightbox(); return; } // 거의 안 움직이면 닫기(클릭)
-                if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) lightboxNav(dx < 0 ? 1 : -1);
-                else _lbShow(); // 원위치
+            const SNAP_RATIO  = 0.30;  // 30% 이상 스와이프 → 페이지 전환
+            const RUBBER_K    = 0.20;  // 엣지 rubber band 저항
+            const ANIM_MS     = 300;
+
+            const box     = document.getElementById('img-lightbox');
+            const track   = document.getElementById('img-lightbox-track');
+            const counter = document.getElementById('img-lightbox-counter');
+            const prevZone = document.getElementById('img-lightbox-prev');
+            const nextZone = document.getElementById('img-lightbox-next');
+            if (!box || !track) return;
+
+            // 슬롯 3개 (prev / cur / next) 생성
+            const SLOTS = [-1, 0, 1].map(offset => {
+                const slot = document.createElement('div');
+                slot.style.cssText = `flex:0 0 100vw; width:100vw; height:100%; display:flex; align-items:center; justify-content:center;`;
+                const img = document.createElement('img');
+                img.draggable = false;
+                img.style.cssText = 'max-width:96vw; max-height:94vh; border-radius:8px; object-fit:contain; user-select:none; pointer-events:none;';
+                slot.appendChild(img);
+                track.appendChild(slot);
+                return { slot, img, offset };
+            });
+
+            const VW = () => window.innerWidth;
+
+            // 트랙을 현재 이미지(슬롯 1, 중앙)로 즉시 맞춤
+            function _trackReset(animate) {
+                track.style.transition = animate ? `transform ${ANIM_MS}ms cubic-bezier(0.25,0.46,0.45,0.94)` : 'none';
+                track.style.transform  = `translateX(-${VW()}px)`;
+            }
+
+            function _loadSlots() {
+                const n = _lbUrls.length;
+                SLOTS.forEach(({ img, offset }) => {
+                    const i = (_lbIdx + offset + n) % n;
+                    img.src = (n > 1 || offset === 0) ? (_lbUrls[i] || '') : '';
+                });
+                // 첫/마지막에서 엣지 슬롯 비우기 (순환 안 할 경우)
+                if (_lbIdx === 0)     SLOTS[0].img.src = '';
+                if (_lbIdx === n - 1) SLOTS[2].img.src = '';
+            }
+
+            function _updateUI() {
+                const multi = _lbUrls.length > 1;
+                counter.style.display = multi ? 'block' : 'none';
+                counter.textContent   = `${_lbIdx + 1} / ${_lbUrls.length}`;
+                prevZone.style.display = (multi && _lbIdx > 0) ? 'block' : 'none';
+                nextZone.style.display = (multi && _lbIdx < _lbUrls.length - 1) ? 'block' : 'none';
+            }
+
+            // 중앙 탭(닫기) 영역
+            const centerZone = document.createElement('div');
+            centerZone.style.cssText = 'position:absolute; left:30%; top:0; width:40%; height:100%; z-index:4; cursor:zoom-out;';
+            centerZone.onclick = (e) => {
+                if (e.target === centerZone) closeLightbox();
             };
-            img.addEventListener('pointerdown', (e) => { start(e.clientX, e.clientY); img.setPointerCapture(e.pointerId); });
-            img.addEventListener('pointermove', (e) => move(e.clientX));
-            img.addEventListener('pointerup', (e) => end(e.clientX, e.clientY));
+            box.appendChild(centerZone);
+
+            window.openLightbox = function (url, urls, idx) {
+                _lbUrls = (Array.isArray(urls) && urls.length) ? urls : [url];
+                _lbIdx  = (typeof idx === 'number' && idx >= 0) ? idx : Math.max(0, _lbUrls.indexOf(url));
+                box.style.display = 'block';
+                _loadSlots();
+                _trackReset(false);
+                _updateUI();
+            };
+
+            window._lbShow = function () {
+                _loadSlots();
+                _trackReset(false);
+                _updateUI();
+            };
+
+            window.lightboxNav = function (dir) {
+                const n = _lbUrls.length;
+                if (n < 2) return;
+                const newIdx = _lbIdx + dir;
+                if (newIdx < 0 || newIdx >= n) return;
+                _lbIdx = newIdx;
+                _loadSlots();
+                _trackReset(false); // 버튼은 즉시
+                _updateUI();
+            };
+
+            window.closeLightbox = function () {
+                box.style.display = 'none';
+                SLOTS.forEach(({ img }) => { img.src = ''; });
+            };
+
+            // ── 터치 스와이프 ────────────────────────────────────────────
+            let swX = null, swY = null, swLocked = null, swActive = false;
+
+            box.addEventListener('touchstart', (e) => {
+                if (e.touches.length !== 1) return;
+                swX = e.touches[0].clientX;
+                swY = e.touches[0].clientY;
+                swLocked = null; swActive = false;
+                track.style.transition = 'none';
+            }, { passive: true });
+
+            box.addEventListener('touchmove', (e) => {
+                if (swX === null) return;
+                const dx = e.touches[0].clientX - swX;
+                const dy = e.touches[0].clientY - swY;
+
+                if (swLocked === null) {
+                    if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+                    swLocked = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+                }
+                if (swLocked !== 'h') return;
+
+                swActive = true;
+                e.preventDefault();
+
+                const n    = _lbUrls.length;
+                const base = -VW(); // 중앙 슬롯 기준
+                let offset = base + dx;
+
+                // rubber band at edges
+                const atLeft  = _lbIdx === 0;
+                const atRight = _lbIdx === n - 1;
+                if (atLeft  && dx > 0) offset = base + dx * RUBBER_K;
+                if (atRight && dx < 0) offset = base + dx * RUBBER_K;
+
+                track.style.transform = `translateX(${offset}px)`;
+            }, { passive: false });
+
+            box.addEventListener('touchend', (e) => {
+                if (swX === null) { swX = null; return; }
+                const dx = e.changedTouches[0].clientX - swX;
+                const dy = e.changedTouches[0].clientY - swY;
+                swX = null;
+
+                if (!swActive) {
+                    // 거의 안 움직임 → 가운데 탭이면 닫기
+                    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) {
+                        const tx = e.changedTouches[0].clientX;
+                        if (tx > VW() * 0.3 && tx < VW() * 0.7) closeLightbox();
+                    }
+                    return;
+                }
+
+                const threshold = VW() * SNAP_RATIO;
+                const n = _lbUrls.length;
+                if (dx < -threshold && _lbIdx < n - 1) {
+                    _lbIdx++;
+                    _loadSlots();
+                    // 트랙을 다음 슬롯으로 animate
+                    track.style.transition = `transform ${ANIM_MS}ms cubic-bezier(0.25,0.46,0.45,0.94)`;
+                    track.style.transform  = `translateX(-${VW() * 2}px)`;
+                    setTimeout(() => { _trackReset(false); _updateUI(); }, ANIM_MS);
+                } else if (dx > threshold && _lbIdx > 0) {
+                    _lbIdx--;
+                    _loadSlots();
+                    track.style.transition = `transform ${ANIM_MS}ms cubic-bezier(0.25,0.46,0.45,0.94)`;
+                    track.style.transform  = `translateX(0px)`;
+                    setTimeout(() => { _trackReset(false); _updateUI(); }, ANIM_MS);
+                } else {
+                    // 원위치 spring back
+                    track.style.transition = `transform ${ANIM_MS}ms cubic-bezier(0.25,0.46,0.45,0.94)`;
+                    _trackReset(false);
+                    // transition 걸어서 돌아오게
+                    track.style.transition = `transform ${ANIM_MS}ms cubic-bezier(0.25,0.46,0.45,0.94)`;
+                    requestAnimationFrame(() => { track.style.transform = `translateX(-${VW()}px)`; });
+                }
+                swActive = false;
+            }, { passive: true });
+
+            // 키보드
+            document.addEventListener('keydown', (e) => {
+                if (box.style.display === 'none') return;
+                if (e.key === 'Escape')      closeLightbox();
+                else if (e.key === 'ArrowLeft')  lightboxNav(-1);
+                else if (e.key === 'ArrowRight') lightboxNav(1);
+            });
         })();
 
         function _comfyImgUrl(img) {
