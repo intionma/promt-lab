@@ -85,6 +85,23 @@
         .gt-btn .gt-label { font-size: 12px; }
         @media (max-width: 1100px) { .gt-btn .gt-label { display: none; } }
 
+        /* 햄버거 드롭다운 메뉴 */
+        #gt-menu {
+            position: absolute; top: calc(100% + 6px); right: 10px; z-index: 60;
+            width: 260px; max-height: 78vh; overflow-y: auto;
+            background: var(--glass-bg); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border: 1px solid var(--glass-border); border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+            padding: 8px; display: none; transform-origin: top right; transform: scale(0.95); opacity: 0;
+            transition: transform .16s cubic-bezier(.2,.9,.3,1.05), opacity .14s ease;
+        }
+        #gt-menu.open { display: block; transform: scale(1); opacity: 1; }
+        .gt-menu-sec { font-size: 10px; font-weight: 800; color: var(--text-dim); text-transform: uppercase; letter-spacing: .6px; padding: 10px 10px 5px; }
+        .gt-menu-item { display: flex; align-items: center; gap: 11px; flex-wrap: wrap; width: 100%; padding: 9px 11px; border-radius: 9px; background: transparent; border: none; color: var(--text-main); font-family: var(--font-ui); font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; transition: .12s; }
+        .gt-menu-item:hover { background: color-mix(in srgb, var(--gc, var(--accent-blue)) 15%, transparent); }
+        .gt-menu-item > i { font-size: 15px; color: var(--gc, var(--text-main)); width: 20px; text-align: center; flex-shrink: 0; }
+        .gt-menu-item > span { flex: 1; min-width: 0; }
+        .gt-menu-item > small { width: 100%; padding-left: 31px; font-size: 10px; font-weight: 500; color: var(--text-dim); }
+
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--text-dim); border-radius: 4px; opacity: 0.4;}
@@ -709,13 +726,11 @@
             .panel-header { padding: 10px 12px; font-size: 13px; flex-wrap: wrap; gap: 6px; }
             .header-actions { flex-wrap: wrap; gap: 5px; }
             .action-btn { padding: 5px 8px !important; font-size: 11px !important; }
-            /* 모바일: 상단바를 여러 줄로 줄바꿈해 모든 버튼이 보이고 눌리게 */
-            #global-topbar { height: auto; min-height: 46px; gap: 6px; padding: 6px 8px; flex-wrap: wrap; align-items: center; overflow: visible; }
-            .gt-scroll { flex: 1 1 100%; overflow: visible; flex-wrap: wrap; gap: 6px; }
-            .gt-spacer { display: none; }
-            .gt-divider { display: none; }
+            /* 모바일: 제목 + 소수 버튼 + 햄버거 (한 줄에 충분) */
+            #global-topbar { height: 50px; gap: 6px; padding: 0 10px; }
             .gt-brand { font-size: 13px; }
-            .gt-btn { padding: 7px 9px; }
+            .gt-btn { padding: 8px 10px; }
+            #gt-menu { width: min(280px, 92vw); }
             .combo-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important; }
             .combo-create-modal-overlay { align-items: flex-end !important; }
             .combo-create-modal { width: 100vw !important; border-radius: 20px 20px 0 0 !important; max-height: 88vh !important; }
@@ -812,39 +827,38 @@
         </div>
     </div>
 
-    <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
+    <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.16 &nbsp;·&nbsp; 2026-06-26 — 모바일 상단바 줄바꿈(버튼 다 보이게)</span></span>
-        <div class="gt-divider"></div>
-        <div class="gt-scroll">
-        <div class="gt-group">
-            <button class="gt-btn" style="--gc:#a78bfa;" onclick="openPromptClassifyModal()" title="프롬프트 붙여넣기 → 자동 분류 → DB 추가"><i class="fa-solid fa-wand-magic-sparkles"></i><span class="gt-label">자동 분류</span></button>
-            <button class="gt-btn" style="--gc:#ec4899;" onclick="openDBAuditModal()" title="DB 검사 — Pony/Danbooru 사전 기준 계층 검증 + 중복 감지"><i class="fa-solid fa-clipboard-check"></i><span class="gt-label">DB 검사</span></button>
-            <button class="gt-btn" style="--gc:#f97316;" onclick="openTranslationSessionModal()" title="한국어 번역 세션 — 미번역 태그 일괄 번역"><i class="fa-solid fa-language"></i><span class="gt-label">번역</span></button>
-            <button class="gt-btn" style="--gc:var(--accent-blue);" onclick="openDBManager()" title="DB 관리"><i class="fa-solid fa-database"></i><span class="gt-label">DB 관리</span></button>
-            <button class="gt-btn" style="--gc:var(--accent-green);" onclick="openDBTextEditor()" title="텍스트로 DB 편집"><i class="fa-solid fa-code"></i><span class="gt-label">코드 편집</span></button>
-        </div>
-        <div class="gt-divider"></div>
-        <div class="gt-group">
-            <button class="gt-btn" style="--gc:#22c55e;" onclick="reorganizeTagsByDB()" title="레이어 재배치 — 에디터 태그를 올바른 계층으로"><i class="fa-solid fa-shuffle"></i><span class="gt-label">재배치</span></button>
-            <button class="gt-btn" style="--gc:#f59e0b;" onclick="openDedupHelper()" title="중복 감지 — 현재 에디터 내 중복 프롬프트"><i class="fa-solid fa-clone"></i><span class="gt-label">중복 감지</span></button>
-            <button class="gt-btn" style="--gc:#38bdf8;" onclick="window.__previzOpen && window.__previzOpen()" title="Prompt Preview Studio"><i class="fa-solid fa-camera-movie"></i><span class="gt-label">미리보기</span></button>
-            <button class="gt-btn" style="--gc:#eab308;" onclick="openMemoModal()" title="생성 세팅 메모 — 시드/샘플러/CFG 등"><i class="fa-solid fa-pen-to-square"></i><span class="gt-label">메모</span></button>
-        </div>
-        <div class="gt-divider"></div>
-        <div class="gt-group">
-            <button class="gt-btn" style="--gc:#38bdf8; border-color:#38bdf8; color:#38bdf8;" onclick="openComfyModal()" title="ComfyUI로 프롬프트 전송 → 이미지 생성"><i class="fa-solid fa-paper-plane"></i><span class="gt-label">ComfyUI</span></button>
-        </div>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.17 &nbsp;·&nbsp; 2026-06-26 — 햄버거 메뉴</span></span>
         <div class="gt-spacer"></div>
-        <div class="gt-group">
-            <button class="gt-btn" onclick="openIOModal('export')" title="내보내기"><i class="fa-solid fa-copy"></i><span class="gt-label">내보내기</span></button>
-            <button class="gt-btn" onclick="openIOModal('import')" title="복구/추가"><i class="fa-solid fa-paste"></i><span class="gt-label">불러오기</span></button>
-            <button class="gt-btn" style="--gc:#38bdf8;" onclick="downloadAppHtml()" title="이 앱을 HTML 파일로 다운로드 (로컬/공유용)"><i class="fa-solid fa-download"></i><span class="gt-label">HTML 저장</span></button>
-            <div class="gt-divider"></div>
-            <button class="gt-btn" style="--gc:var(--accent-green);" onclick="openPresetManager()" title="프리셋 관리"><i class="fa-solid fa-floppy-disk"></i></button>
-            <button class="gt-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i class="fa-solid fa-sun"></i></button>
-            <button class="gt-btn" style="--gc:#ef4444;" onclick="openShutdownModal()" title="PC 종료 (도우미 스크립트 필요)"><i class="fa-solid fa-power-off"></i></button>
-        </div>
+        <button class="gt-btn" style="--gc:var(--accent-green);" onclick="openComfyModal()" title="ComfyUI로 프롬프트 전송"><i class="fa-solid fa-paper-plane"></i><span class="gt-label">ComfyUI</span></button>
+        <button class="gt-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i id="btn-theme-icon" class="fa-solid fa-sun"></i></button>
+        <button class="gt-btn" id="gt-menu-btn" style="--gc:#a78bfa;" onclick="toggleGtMenu()" title="메뉴"><i class="fa-solid fa-bars"></i><span class="gt-label">메뉴</span></button>
+
+        <div id="gt-menu">
+            <div class="gt-menu-sec">프롬프트 · DB 도구</div>
+            <button class="gt-menu-item" style="--gc:#a78bfa;" onclick="closeGtMenu();openPromptClassifyModal()"><i class="fa-solid fa-wand-magic-sparkles"></i><span>자동 분류</span><small>붙여넣기 → 계층 추정 → DB 추가</small></button>
+            <button class="gt-menu-item" style="--gc:#ec4899;" onclick="closeGtMenu();openDBAuditModal()"><i class="fa-solid fa-clipboard-check"></i><span>DB 검사</span><small>계층 검증 · 중복 감지</small></button>
+            <button class="gt-menu-item" style="--gc:#f97316;" onclick="closeGtMenu();openTranslationSessionModal()"><i class="fa-solid fa-language"></i><span>번역 세션</span><small>미번역 태그 일괄 번역</small></button>
+            <button class="gt-menu-item" style="--gc:var(--accent-blue);" onclick="closeGtMenu();openDBManager()"><i class="fa-solid fa-database"></i><span>DB 관리</span></button>
+            <button class="gt-menu-item" style="--gc:var(--accent-green);" onclick="closeGtMenu();openDBTextEditor()"><i class="fa-solid fa-code"></i><span>코드 편집</span></button>
+
+            <div class="gt-menu-sec">에디터</div>
+            <button class="gt-menu-item" style="--gc:#22c55e;" onclick="closeGtMenu();reorganizeTagsByDB()"><i class="fa-solid fa-shuffle"></i><span>레이어 재배치</span></button>
+            <button class="gt-menu-item" style="--gc:#f59e0b;" onclick="closeGtMenu();openDedupHelper()"><i class="fa-solid fa-clone"></i><span>중복 감지</span></button>
+            <button class="gt-menu-item" style="--gc:#38bdf8;" onclick="closeGtMenu();window.__previzOpen && window.__previzOpen()"><i class="fa-solid fa-camera-movie"></i><span>미리보기 스튜디오</span></button>
+            <button class="gt-menu-item" style="--gc:#eab308;" onclick="closeGtMenu();openMemoModal()"><i class="fa-solid fa-pen-to-square"></i><span>생성 세팅 메모</span></button>
+
+            <div class="gt-menu-sec">생성 · 데이터</div>
+            <button class="gt-menu-item" style="--gc:#38bdf8;" onclick="closeGtMenu();openComfyModal()"><i class="fa-solid fa-paper-plane"></i><span>ComfyUI 전송</span></button>
+            <button class="gt-menu-item" onclick="closeGtMenu();openIOModal('export')"><i class="fa-solid fa-copy"></i><span>내보내기</span></button>
+            <button class="gt-menu-item" onclick="closeGtMenu();openIOModal('import')"><i class="fa-solid fa-paste"></i><span>불러오기 / 복구</span></button>
+            <button class="gt-menu-item" style="--gc:#38bdf8;" onclick="closeGtMenu();downloadAppHtml()"><i class="fa-solid fa-download"></i><span>HTML 저장</span><small>로컬/공유용 다운로드</small></button>
+            <button class="gt-menu-item" style="--gc:var(--accent-green);" onclick="closeGtMenu();openPresetManager()"><i class="fa-solid fa-floppy-disk"></i><span>프리셋 관리</span></button>
+
+            <div class="gt-menu-sec">기타</div>
+            <button class="gt-menu-item" onclick="closeGtMenu();toggleTheme()"><i class="fa-solid fa-circle-half-stroke"></i><span>테마 변경</span></button>
+            <button class="gt-menu-item" style="--gc:#ef4444;" onclick="closeGtMenu();openShutdownModal()"><i class="fa-solid fa-power-off"></i><span>PC 종료</span><small>도우미 스크립트 필요</small></button>
         </div>
     </header>
 
@@ -1438,6 +1452,24 @@
         }
 
         // 💡 기능 3: 테마 토글 로직
+        function toggleGtMenu() {
+            const m = document.getElementById('gt-menu');
+            if (!m) return;
+            if (m.classList.contains('open')) { closeGtMenu(); return; }
+            m.style.display = 'block';
+            requestAnimationFrame(() => m.classList.add('open'));
+        }
+        function closeGtMenu() {
+            const m = document.getElementById('gt-menu');
+            if (!m) return;
+            m.classList.remove('open');
+            setTimeout(() => { if (!m.classList.contains('open')) m.style.display = 'none'; }, 180);
+        }
+        document.addEventListener('click', (e) => {
+            const m = document.getElementById('gt-menu');
+            if (m && m.classList.contains('open') && !m.contains(e.target) && !e.target.closest('#gt-menu-btn')) closeGtMenu();
+        });
+
         function toggleTheme() {
             const body = document.body;
             const btn = document.getElementById('btn-theme-toggle');
