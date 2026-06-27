@@ -1504,14 +1504,14 @@
     <nav id="mobile-tabbar"></nav>
 
     <!-- 업데이트 내역 모달 -->
-    <div id="changelog-overlay" onclick="if(event.target===this)closeChangelogModal()" style="display:none;position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px;">
-        <div style="background:var(--bg-panel);border:1px solid var(--border-dim);border-radius:16px;width:min(520px,96vw);max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.5);">
-            <div style="display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border-dim);flex-shrink:0;">
+    <div id="changelog-overlay" onclick="if(event.target===this)closeChangelogModal()" style="display:none;position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);display:none;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;">
+        <div style="background:var(--bg-panel);border:1px solid var(--border-dim);border-radius:16px;width:min(560px,96vw);margin:auto;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.5);">
+            <div style="display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border-dim);flex-shrink:0;position:sticky;top:0;background:var(--bg-panel);z-index:1;border-radius:16px 16px 0 0;">
                 <i class="fa-solid fa-clock-rotate-left" style="color:var(--accent-blue);"></i>
                 <span style="font-size:15px;font-weight:800;font-family:var(--font-heading);flex:1;">업데이트 내역</span>
                 <button onclick="closeChangelogModal()" style="background:none;border:none;color:var(--text-dim);font-size:18px;cursor:pointer;padding:4px;"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div id="changelog-body" style="overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px;"></div>
+            <div id="changelog-body" style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;"></div>
         </div>
     </div>
 
@@ -1615,45 +1615,103 @@
                 version: 'v9.0.0', date: '2026-06-25', time: '전체',
                 tag: 'refactor',
                 items: [
-                    '[3D 프리뷰] VRM 스타일 캐릭터 + 스튜디오 UI로 전면 재설계',
-                    '[3D 프리뷰] 인체 스켈레톤 기반 — 포즈/의상/표정/날씨/시간대 모든 파라미터가 하나의 골격에서 파생',
-                    '[3D 프리뷰] 홀로그램 프리비주얼 → 실제 메시 렌더링으로 전환',
-                    '[3D 프리뷰] VRM에 없는 헤어/의상/액세서리를 프로시저럴 지오메트리로 생성·부착',
-                    '[3D 프리뷰] 기본 태그 DB가 포즈/표정/의상/색상/카메라/배경/조명/파티클에 실시간 반응',
+                    '[3D 프리뷰] P0 — Three.js 기반 홀로그램 프리비주얼 골격 추가 (버튼, 뷰 전환, 태그 브릿지)',
+                    '[3D 프리뷰] P1 — 단면 보간 방식 애니 인체 재설계 + 베지어 보간 머리카락',
+                    '[3D 프리뷰] P2 — 바디파트 클릭 → 컨트롤 패널 열기, 태그 브릿지 수정',
+                    '[3D 프리뷰] P3+P4 — 포즈/의상/환경/날씨/시간대/HUD/글로우/localStorage 완성',
+                    '[3D 프리뷰] 홀로그램 포인트클라우드 → 실제 메시 렌더링으로 전면 전환',
+                    '[3D 프리뷰] 인체 스켈레톤 기반 재설계 — 포즈/의상/표정/날씨/시간대 모든 파라미터가 하나의 골격에서 파생',
                     '[3D 프리뷰] 마우스: 우클릭=회전, 휠클릭=팬, 좌클릭=Raycaster 부위 선택',
+                    '[3D 프리뷰] VRM 스타일 캐릭터 + 스튜디오 UI로 전면 재설계',
+                    '[3D 프리뷰] VRM에 없는 헤어/의상/액세서리를 프로시저럴 지오메트리로 생성·부착',
+                    '[3D 프리뷰] 기본 태그 DB가 포즈/표정/의상/색상/카메라/배경/조명/파티클에 실시간 반응 — Pony Realism 최적화로 전면 재구성',
                     '[3D 프리뷰] Callout 오버레이 + 양방향 태그 동기화 + DB 자동 추가',
-                    '[3D 프리뷰] 포즈/파라미터/날씨 전체 동작 버그 수정 + 디자인 개선',
+                    '[3D 프리뷰] 포즈/파라미터/날씨 전체 동작 버그 수정 (팔 포즈 이중반전, localStorage 타입 충돌, 꽃잎 날씨 버그 등)',
                     '[3D 프리뷰] 렌더링 최적화 — 파티클/블룸 경량화, 데드코드 제거',
-                    '[UI] 전 창에 Apple Liquid Glass 효과 적용',
-                    '[태그] 컨텍스트 메뉴 + 칩 드래그 + 태그 이동/재배치/중복 감지 추가',
-                    '[번역] 한글 번역을 자연어 장면 묘사로 교체 (연결어미 흐름체)',
-                    '[간편조합] 스크롤·렉·드래그 버그 종합 수정',
-                    '[에디터] 모두닫기 폴더 상태 리셋, 기본 태그 DB 추가',
+                    '[UI] 팝업창 전체에 Apple Liquid Glass 효과 전면 적용 (진짜 반투명 유리 느낌)',
+                    '[UI] 태블릿 반응형 + 모달 헤더 세로 깨짐 수정',
+                    '[모바일] 반응형 레이아웃 추가 — 하단 탭바, 단일 패널 뷰, 터치 친화적 CSS',
+                    '[모바일] 검은 화면 버그 수정, 폴더 삭제 시 자동 접기, 간편조합 모드 유지',
                     '[모바일] 칩 더블탭 오발동 버그 수정',
-                    '[DB 가이드] 전면 업데이트 + 서브카테고리 우클릭 관리',
-                    '[모바일] 검은 화면 버그 수정, 폴더 삭제 시 접기, 간편조합 모드 유지',
-                    '[번역] 모달 querySelector 취약점 제거, 클립보드, z-index 전면 재작성',
-                    '[자동분류] 도메인 키워드 맵 + Dice/Jaccard/LCS 스코어링 엔진 v2',
+                    '[태그] 다중 선택 칩 (Ctrl/Shift/드래그) + 우클릭 컨텍스트 메뉴',
+                    '[태그] 태그 이동/재배치/중복 감지 + 우클릭 삭제 즉시 실행',
                     '[태그] 선택된 태그만 보기 토글 + 레이어 아이콘·색상 추가',
-                    '[결과] 자동수정 — 가중치 숫자 오류 처리 + 경고 박스 오버플로 방지',
+                    '[태그] 계층 아이콘, 쉼표 기본값 적용',
+                    '[번역] 한글 번역창을 자연어 장면 묘사로 교체 (연결어미 흐름체)',
+                    '[번역] 한글 씬 묘사 엔진 v3 — 의미 분류 기반 완전 재작성',
+                    '[번역] 번역 세션 모달 — DB·간편조합 포함 전체 소스 번역, querySelector 취약점 제거',
+                    '[번역] 커스텀 한글맵 칩 반영, DB/콤보 접두어 번역 복사에서 제거',
+                    '[자동분류] 도메인 키워드 맵 + Dice/Jaccard/LCS 스코어링 엔진 v2 완전 재작성',
+                    '[자동분류] 분류 결과를 레이어/폴더 기준으로 정렬, NSFW 키워드 도메인맵 추가',
+                    '[자동분류] L2~L7 레이어 매핑 오프셋 버그 수정 (+1씩 밀리던 문제)',
+                    '[자동분류] ESC 키로 분류/가이드/간편조합 모달 닫기, 모두닫기 서브폴더 접기',
+                    '[간편조합] 폴더 내 위치 기반 드롭 + 태그 추가 스크롤/플래시 효과',
+                    '[간편조합] 스크롤·렉·드래그 버그 종합 수정',
+                    '[간편조합] 콤보 중복 버그 수정, 삭제 확인창 제거 (즉시 삭제)',
+                    '[에디터] 모두닫기 시 폴더 상태 리셋, 기본 태그 DB 추가',
+                    '[에디터] 태그 더블클릭 편집 토글 버그 수정, 연속 선택 오발동 해결',
+                    '[결과] 자동수정 — 중복 토큰·가중치 숫자 오류·괄호 불일치 자동 교정',
                     '[결과] 괄호 불일치 경고 — 개수·위치 표시',
+                    '[PC UI] 슬림 헤더, 아이콘 버튼, 결과 탭, 여백 최적화 전면 개편',
+                    '[상단바] 전체 폭 글로벌 상단 바 + 모든 도구 버튼 통합',
+                    '[DB 가이드] AI 가이드 섹션 코드 필드 JS 버그 수정 + 전면 업데이트',
+                    '[DB 가이드] 서브카테고리 우클릭 관리, 폴더 내 서브카테고리 그룹핑',
                 ]
             },
             // ── 2026-06-25 이전 (초기 개발) ───────────────────────────────
             {
-                version: 'v1.0 ~ v8.x', date: '2026-06-25 이전', time: '초기 개발',
+                version: 'v8.x', date: '2026-06-25 이전', time: '초기 개발 후기',
+                tag: 'feat',
+                items: [
+                    '[태그DB] 내장 Pony/Danbooru 태그 사전(TAG_DICT) — 584 → 1074개, 자동 분류·번역 엔진 추가',
+                    '[태그DB] DB 검사 기능 — 계층 오분류·중복 태그 자동 감지·정규화·일괄 수정',
+                    '[태그DB] Pony Realism / Danbooru SFW~NSFW 태그 대폭 확장',
+                    '[태그DB] 포즈 부정확 교정, 소품 위치 본 회전 버그 해결',
+                    '[번역] 결과창 한글 번역 자연스러운 흐름체 개선 + 커스텀 태그 대응',
+                    '[번역] 소설체 산문 엔진 — 연결어미로 잇는 한 문장 흐름',
+                    '[상단바] 모든 도구 버튼을 상단 바로 이동 + DB 검사 모달 스크롤 수정',
+                    '[상단바] 특수 기능 접이식 패널 + 모바일 롱프레스 우클릭 + 즐겨찾기 메뉴 개선',
+                    '[상단바] IO 모달 개편 — 현대적 pill 토글, 한글 번역맵 내보내기 추가',
+                    '[상단바] 버전 툴팁 클리핑 수정 (상단 바 overflow 충돌)',
+                    '[태그] 우클릭 컨텍스트 메뉴/태그 팝업 위치 버그 수정 (glass 그룹 규칙 충돌)',
+                    '[태그] 간편조합 칩 그룹화 수정 (renderChips 재작성)',
+                    '[태그] 우클릭 메뉴 + 칩 드래그 + 이동/재배치/중복 감지 기능 추가',
+                ]
+            },
+            {
+                version: 'v6.x ~ v7.x', date: '2026-06-25 이전', time: '중기 개발',
+                tag: 'feat',
+                items: [
+                    '[간편조합] 폴더 클릭 시 인라인 확장 방식으로 전면 개편 (모달 팝업 제거)',
+                    '[간편조합] 폴더 내 항목 드래그 핸들로 순서 변경',
+                    '[간편조합] 콤보 편집 모달 — 모드 탭 하이라이트, 태그 미리로드, 이름 자동입력 수정',
+                    '[간편조합] 알 수 없는 프롬프트 DB 추가 후 즉시 태그 버튼 재렌더',
+                    '[태그] DnD 순서 변경 감도·정확도 개선',
+                    '[태그] 즐겨찾기·최근사용 필터, 층별 색상 코딩',
+                    '[에디터] 레이어 입력창 가중치 수식 ((tag:1.2)) 지원',
+                    '[에디터] BREAK 구분자로 레이어 분리 출력',
+                    '[모바일] 스크롤 버그 수정 — JS로 패널 높이 고정, panel-content overflow-y auto',
+                    '[모바일] 상단 바 버튼 줄바꿈 처리 (한 줄 넘침 방지)',
+                    '[모바일] 탭바 위치 버그 수정 — nav 요소를 script 앞으로 이동',
+                ]
+            },
+            {
+                version: 'v1.0 ~ v5.x', date: '2026-06-25 이전', time: '초기 개발',
                 tag: 'refactor',
                 items: [
-                    '[기반] 순수 HTML/CSS/JS 단일 파일 앱 구조 설계 — 설치 없이 브라우저에서 바로 실행',
+                    '[기반] 순수 HTML/CSS/JS 단일 파일 앱 구조 — 설치 없이 브라우저에서 바로 실행, GitHub Pages 호스팅',
                     '[태그] 레이어 기반 태그 에디터 — 최대 7단계 계층 구조로 프롬프트 조립',
-                    '[태그] 태그 버튼 선택/해제, 즐겨찾기, 최근 사용 기록',
-                    '[태그] 태그 DB 편집기 — 커스텀 태그·폴더·계층 추가/수정/삭제',
-                    '[간편조합] 자주 쓰는 태그 묶음을 폴더로 저장·관리',
-                    '[결과] 긍정·부정 프롬프트 분리 출력, 토큰 수 표시, BREAK 지원',
-                    '[결과] 한글 번역 미리보기',
-                    '[에디터] 레이어별 가중치·수식 조절, 드래그로 순서 변경',
-                    '[가져오기/내보내기] 태그 DB·설정 JSON 백업 및 복원',
-                    '[GitHub Pages] 앱을 GitHub Pages로 호스팅 — 브라우저로 언제든 접근',
+                    '[태그] 태그 버튼 선택/해제, 즐겨찾기 토글, 최근 사용 기록',
+                    '[태그] 태그 DB 편집기 — 커스텀 태그·폴더·계층 추가/수정/삭제/재정렬',
+                    '[태그] 자동 분류 기능 — 붙여넣은 프롬프트를 레이어별로 자동 배치',
+                    '[간편조합] 자주 쓰는 태그 묶음을 폴더로 저장·관리·불러오기',
+                    '[결과] 긍정·부정 프롬프트 분리 출력, 토큰 수 표시, BREAK 구분자 지원',
+                    '[결과] 한글 번역 미리보기 (긍정/부정 각각)',
+                    '[결과] 긍정 복사·부정 복사 버튼, 클립보드 지원',
+                    '[에디터] 레이어별 가중치·수식 조절, 드래그로 레이어 순서 변경',
+                    '[에디터] 레이어 잠금, 숨기기, 색상 설정',
+                    '[가져오기/내보내기] 태그 DB·설정·간편조합 JSON 백업 및 복원',
+                    '[설정] 다크모드 기본 적용, CSS 변수 기반 테마 시스템',
                 ]
             },
         ];
@@ -1670,7 +1728,7 @@
             const TAG_LABEL = { feat:'NEW', fix:'FIX', refactor:'개편' };
             CHANGELOG.forEach(entry => {
                 const block = document.createElement('div');
-                block.style.cssText = 'border:1px solid var(--border-dim);border-radius:10px;overflow:hidden;';
+                block.style.cssText = 'border:1px solid var(--border-dim);border-radius:10px;';
                 const tagStyle = TAG_STYLE[entry.tag] || TAG_STYLE.feat;
                 const tagLabel = TAG_LABEL[entry.tag] || 'UPD';
                 const header = document.createElement('div');
