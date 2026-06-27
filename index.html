@@ -3131,6 +3131,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         let _comfyJobSeq = 0;
         let _comfyQueueOpen = false;
+        let _comfyBatchTotal = 0;
+        let _comfyBatchDone  = 0;
 
         // 페이지 로드 시 localStorage → _comfyJobs 복원, 이후 서버와 동기화
         (function _comfyRestoreJobs() {
@@ -3219,9 +3221,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         // FAB 물 높이 업데이트: 전체 배치 기준 진행률 (완료 job / 전체 job)
-        // _comfyJobSeqTotal: 이번 배치 시작 시 등록된 총 job 수 추적
-        let _comfyBatchTotal = 0;
-        let _comfyBatchDone  = 0;
         function _comfyUpdateFabWater() {
             const water = document.getElementById('comfy-queue-water');
             if (!water) return;
