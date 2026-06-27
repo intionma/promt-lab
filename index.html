@@ -11404,12 +11404,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 appContainer.appendChild(track);
             }
 
-            let currentIdx = 0;
+            const PANEL_IDX_KEY = 'mobile_panel_idx';
+            let savedIdx = 0;
+            try { savedIdx = parseInt(localStorage.getItem(PANEL_IDX_KEY) || '0', 10) || 0; } catch (e) {}
+            let currentIdx = Math.max(0, Math.min(PANELS.length - 1, savedIdx));
             let isMobile = window.innerWidth <= MOBILE_BP;
 
             // 트랜지션 없이 즉시 이동 (탭바 버튼용)
             function snapToIndex(idx, animate) {
                 currentIdx = Math.max(0, Math.min(PANELS.length - 1, idx));
+                try { localStorage.setItem(PANEL_IDX_KEY, currentIdx); } catch (e) {}
                 track.style.transition = animate ? 'transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none';
                 track.style.transform = `translateX(${-currentIdx * 100}vw)`;
                 // 탭바 하이라이트
@@ -11431,7 +11435,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             PANELS.forEach((p, i) => {
                 const btn = document.createElement('button');
                 btn.innerHTML = `<i class="fa-solid ${p.icon}"></i><span>${p.label}</span>`;
-                if (i === 0) btn.classList.add('active');
+                if (i === currentIdx) btn.classList.add('active');
                 btn.onclick = () => { if (isMobile) snapToIndex(i, false); };
                 tabbar.appendChild(btn);
             });
