@@ -843,7 +843,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.25 &nbsp;·&nbsp; 2026-06-26 — 쉬운 모드 카드: 핵심 제목 + 작은 문장 설명</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.26 &nbsp;·&nbsp; 2026-06-26 — 쉬운 모드: 여성 1/2명 고정, 남성 태그 제외</span></span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
         <button class="gt-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i id="btn-theme-icon" class="fa-solid fa-sun"></i></button>
@@ -1565,7 +1565,17 @@
         // ─────────────────────────────────────────────────────────────
         // 쉬운 모드 (뉴비) — 미리 조합된 "묶음"을 골라 완성하는 위저드
         // ─────────────────────────────────────────────────────────────
-        let _nbCats = [], _nbStep = 0, _nbBundles = {}, _nbSelB = {};
+        let _nbCats = [], _nbStep = 0, _nbBundles = {}, _nbSelB = {}, _nbGirls = 1;
+
+        // 남성/성별·인원 태그는 뉴비 모드에서 제외 (여성 1~2명 고정)
+        function _nbExcluded(t) {
+            const lc = t.toLowerCase().trim();
+            if (/\b(1boy|2boys|3boys|multiple boys|boys|male focus|mature male|old man|1other)\b/.test(lc)) return true;
+            if (/^(boy|man|male|men)$/.test(lc)) return true;
+            // 인원/성별 카운트는 상단 선택으로 처리하므로 묶음에서 제외
+            if (/^(1girl|2girls|3girls|4girls|multiple girls|solo|solo focus)$/.test(lc)) return true;
+            return false;
+        }
 
         function _nbGatherCats() {
             const cats = [];
@@ -1574,7 +1584,7 @@
                 const layer = promptDB[lm.id] || {};
                 const folders = [];
                 Object.entries(layer).forEach(([fk, arr]) => {
-                    const tags = (arr || []).map(d => ({ t: (d.t || '').trim(), kor: (d.k || '').trim() || (d.t || '').trim() })).filter(x => x.t);
+                    const tags = (arr || []).map(d => ({ t: (d.t || '').trim(), kor: (d.k || '').trim() || (d.t || '').trim() })).filter(x => x.t && !_nbExcluded(x.t));
                     if (tags.length) folders.push({ name: fk.split('|')[0], tags });
                 });
                 if (folders.length) cats.push({ layer: lm.id, title: (_NB_TITLES[lm.id] || (lm.title || '').replace(/^\d+\.\s*/, '')), icon: lm.icon, color: lm.color, folders });
@@ -1677,6 +1687,15 @@
             const isResult = _nbStep >= total;
             const prog = document.getElementById('nb-progress');
             prog.innerHTML = '';
+            // 인원 선택 (여성 1명/2명 고정)
+            [[1, '👩 여성 1명'], [2, '👩‍👩 여성 2명']].forEach(([v, lbl]) => {
+                const g = document.createElement('button');
+                g.className = 'nb-step-dot' + (_nbGirls === v ? ' active' : '');
+                g.textContent = lbl;
+                g.onclick = () => { _nbGirls = v; _nbRender(); };
+                prog.appendChild(g);
+            });
+            const gsep = document.createElement('span'); gsep.style.cssText = 'width:1px; align-self:stretch; background:var(--border-dim); margin:2px 4px;'; prog.appendChild(gsep);
             _nbCats.forEach((c, i) => {
                 const d = document.createElement('button');
                 const cnt = (_nbSelB[c.layer] && _nbSelB[c.layer].size) || 0;
@@ -1766,6 +1785,8 @@
             const parts = [], seen = new Set();
             const add = (t) => { const k = t.toLowerCase(); if (!seen.has(k)) { seen.add(k); parts.push(t); } };
             (_nbQuality().split(',').map(s => s.trim()).filter(Boolean)).forEach(add);
+            // 인원 고정 (여성 1~2명)
+            if (_nbGirls === 2) { add('2girls'); } else { add('1girl'); add('solo'); }
             _nbCats.forEach(c => { (_nbSelB[c.layer] || new Set()).forEach(idx => { const b = (_nbBundles[c.layer] || [])[idx]; if (b) b.tags.forEach(add); }); });
             return parts.join(', ');
         }
