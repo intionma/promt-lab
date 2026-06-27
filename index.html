@@ -10722,10 +10722,49 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
             applyMobileLayout();
             window.addEventListener('resize', () => { applyMobileLayout(); });
-            // visualViewport 대응 (키보드 올라올 때 높이 재계산)
-            if (window.visualViewport) {
-                // visualViewport resize handled by CSS calc(100dvh)
-            }
+
+            // ── 스와이프로 패널 전환 (모바일 전용) ──────────────────────────
+            let _swX = null, _swY = null, _swLocked = null;
+            const SWIPE_THRESHOLD = 50;  // px
+            const IGNORE_SEL = 'input, textarea, select, [contenteditable], .combo-grid, .nb-body, .panel-content.left-panel-wrapper';
+
+            document.addEventListener('touchstart', (e) => {
+                if (window.innerWidth > 1024) return;
+                const t = e.touches[0];
+                _swX = t.clientX; _swY = t.clientY; _swLocked = null;
+            }, { passive: true });
+
+            document.addEventListener('touchmove', (e) => {
+                if (_swX === null || window.innerWidth > 1024) return;
+                const t = e.touches[0];
+                const dx = t.clientX - _swX;
+                const dy = t.clientY - _swY;
+                if (_swLocked === null) {
+                    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+                    _swLocked = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+                }
+                if (_swLocked !== 'h') return;
+                // 수평 스와이프 확인됐으면 스크롤 막기
+                if (e.target.closest(IGNORE_SEL) && Math.abs(dy) < 10) {
+                    // 스크롤 컨테이너 안이라도 수평이 우세하면 막음
+                }
+            }, { passive: true });
+
+            document.addEventListener('touchend', (e) => {
+                if (_swX === null || window.innerWidth > 1024 || _swLocked !== 'h') {
+                    _swX = _swY = null; return;
+                }
+                // 무시 대상 확인 (텍스트 입력 중 등)
+                if (e.target.closest('input, textarea, select, [contenteditable]')) {
+                    _swX = _swY = null; return;
+                }
+                const dx = e.changedTouches[0].clientX - _swX;
+                _swX = _swY = null;
+                if (Math.abs(dx) < SWIPE_THRESHOLD) return;
+                const idx = PANELS.findIndex(p => p.id === currentPanel);
+                if (dx < 0 && idx < PANELS.length - 1) switchMobilePanel(PANELS[idx + 1].id);
+                else if (dx > 0 && idx > 0) switchMobilePanel(PANELS[idx - 1].id);
+            }, { passive: true });
         })();
         // ────────────────────────────────────────────────────────────────────
     </script>
