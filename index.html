@@ -3830,7 +3830,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const el = document.createElement('div');
                     el.className = 'ctx-item' + (item.danger ? ' danger' : '');
                     el.innerHTML = `<span class="ctx-icon"><i class="${item.icon}"></i></span><span>${item.label}</span>`;
-                    el.addEventListener('click', () => { hideCtxMenu(); item.action(); });
+                    const _doAction = (e) => { e.stopPropagation(); hideCtxMenu(); item.action(); };
+                    el.addEventListener('click', _doAction);
+                    el.addEventListener('touchend', (e) => { e.preventDefault(); _doAction(e); });
                     ctxMenu.appendChild(el);
                 }
             });
@@ -3866,7 +3868,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (Math.abs(touch.clientX - lpStartX) > LP_MOVE_TOL || Math.abs(touch.clientY - lpStartY) > LP_MOVE_TOL) clear();
             }, { passive: true });
             document.addEventListener('touchend', (e) => {
-                if (lpFired) { e.preventDefault(); } // 롱프레스 후 클릭 방지
+                if (lpFired) {
+                    lpFired = false; // 다음 탭(메뉴 아이템 클릭 등)은 정상 처리
+                    e.preventDefault(); // 롱프레스 직후 tap-as-click 방지
+                }
                 clear();
             });
             document.addEventListener('touchcancel', clear);
