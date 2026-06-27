@@ -3141,10 +3141,19 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     if (!pid) continue;
                     if (!_comfyJobs[pid]) {
                         const label = _comfyLabelFromWorkflow(workflow) || pid.slice(0, 8) + '…';
-                        _comfyJobs[pid] = { inline: null, cleared: false, done: false, seq: ++_comfyJobSeq, label };
+                        _comfyJobs[pid] = { inline: null, cleared: false, done: false, seq: ++_comfyJobSeq, label, _wf: workflow };
                         _comfyQueueCount++;
                         _comfyBatchTotal++;
                         _comfyPollResult(pid, 0);
+                    } else {
+                        // 이미 있는 job이지만 라벨이 pid 폴백(…로 끝남)이면 재시도 — DB 로드 타이밍 문제 해결
+                        const job = _comfyJobs[pid];
+                        if (job && job.label && job.label.endsWith('…') && job.label.length <= 10) {
+                            const wf = workflow || job._wf;
+                            const newLabel = _comfyLabelFromWorkflow(wf);
+                            if (newLabel) { job.label = newLabel; job._wf = null; }
+                            else if (workflow) job._wf = workflow;
+                        }
                     }
                 }
 
