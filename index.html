@@ -745,6 +745,14 @@
                 min-height: 80px;
                 height: auto !important;
             }
+            /* 결과 패널 프롬프트 textarea는 스크롤 허용 */
+            .panel.mobile-active .result-textarea {
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                min-height: 100px !important;
+                max-height: 40vh !important;
+                height: auto !important;
+            }
             .panel.mobile-active #sidebar-content-combo {
                 flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column;
             }
