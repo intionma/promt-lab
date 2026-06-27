@@ -2369,7 +2369,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         const COMFY_KEY = 'comfy_settings_v1';
         let _comfySocket = null;
         let _comfyClientId = null;
-        let _comfyCurPromptId = null;
         let _comfyConnectedOnce = false;
         try { _comfyConnectedOnce = !!(JSON.parse(localStorage.getItem('comfy_settings_v1') || '{}').connectedOnce); } catch (e) {}
 
@@ -2383,7 +2382,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (pendingPids.length === 0) return;
             showToast('생성이 진행 중입니다. 결과 확인 중...', 'info', 2500);
             document.getElementById('comfy-status').textContent = '복귀 후 결과 확인 중...';
-            // 각 pending 작업 즉시 폴링 재시작
+            // 각 pending 작업 즉시 폴링 재시작 (이미 폴링 중인 건 _comfyPollResult 내부에서 중복 방지)
             pendingPids.forEach(pid => _comfyPollResult(pid, 0));
         });
 
@@ -2397,12 +2396,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         // 긍정/부정 탭에서 바로 전송 — 모달 없이 인라인 진행바·미리보기로 실행
-        let _comfyInlineTarget = null; // 'pos' | 'neg' | null (모달)
         function comfyQuickSend(target) {
             _comfyRestoreSettings();      // 저장된 설정을 숨겨진 폼에 복원
             comfySetTarget(target);
             const t = (target === 'neg') ? 'neg' : 'pos';
-            _comfyInlineTarget = t;
             // 해당 탭의 인라인 영역 표시 + 초기화
             const box = document.getElementById('comfy-inline-' + t);
             if (box) {
@@ -2960,14 +2957,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             });
         }
 
-        function _comfySetProgress(pct, text) {
+        function _comfySetProgress(pct, text, inline) {
             const w = Math.max(0, Math.min(100, pct)) + '%';
             document.getElementById('comfy-progress').style.width = w;
             if (text !== undefined) document.getElementById('comfy-status').textContent = text;
             // 인라인(긍정/부정 탭) 진행바도 동기화
-            if (_comfyInlineTarget) {
-                const bar = document.getElementById('comfy-inline-bar-' + _comfyInlineTarget);
-                const st = document.getElementById('comfy-inline-status-' + _comfyInlineTarget);
+            const inlineKey = inline || (_comfyRunningPid && _comfyJobs[_comfyRunningPid] ? _comfyJobs[_comfyRunningPid].inline : null);
+            if (inlineKey) {
+                const bar = document.getElementById('comfy-inline-bar-' + inlineKey);
+                const st = document.getElementById('comfy-inline-status-' + inlineKey);
                 if (bar) bar.style.width = w;
                 if (st && text !== undefined) st.textContent = text;
             }
@@ -3012,18 +3010,19 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 (!hasLora && !hasDetailer ? `<div style="margin-top:8px; font-size:11px; color:#f59e0b;">⚠ LoRA·디테일러가 안 보입니다. ① '내 워크플로우' 모드인지 ② 최신 <code>Save (API Format)</code> JSON을 다시 붙여넣고 분석했는지 ③ 토글 그룹이 OFF가 아닌지 확인하세요.</div>` : '');
         }
 
-        function _comfyAbortInline(msg) {
-            if (_comfyInlineTarget) {
-                const st = document.getElementById('comfy-inline-status-' + _comfyInlineTarget);
+        function _comfyAbortInline(msg, inline) {
+            const key = inline || (_comfyRunningPid && _comfyJobs[_comfyRunningPid] ? _comfyJobs[_comfyRunningPid].inline : null);
+            if (key) {
+                const st = document.getElementById('comfy-inline-status-' + key);
                 if (st) st.textContent = msg || '취소됨';
-                _comfyInlineTarget = null;
             }
         }
 
         // ── 큐 기반 생성 ───────────────────────────────────────────────
-        let _comfyJobs = {};        // prompt_id -> { inline:'pos'|'neg'|null, shown:false }
-        let _comfyQueueCount = 0;   // 우리가 보낸 미완료 작업 수
+        let _comfyJobs = {};        // prompt_id -> { inline:'pos'|'neg'|null, cleared, done, seq, label }
+        let _comfyQueueCount = 0;
         let _comfyRunningPid = null;
+        let _comfyPollActive = new Set(); // 중복 폴링 방지
 
         function _comfyEnsureSocket() {
             if (_comfySocket && _comfySocket.readyState <= 1) return; // 연결됨/연결중
@@ -3191,13 +3190,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 } else if (d.prompt_id && _comfyJobs[d.prompt_id]) {
                     const job = _comfyJobs[d.prompt_id];
                     _comfyRunningPid = d.prompt_id;
-                    _comfyInlineTarget = job.inline;
                     // 라이브는 '새 이미지가 도착할 때' 비움(_comfyStageImages) → 이전 미리보기가 교체 직전까지 유지됨
-                    _comfySetProgress(5, `${_comfyQ()}생성 중...`);
+                    _comfySetProgress(5, `${_comfyQ()}생성 중...`, job.inline);
                     comfyRenderQueue();
                 }
             } else if (msg.type === 'progress') {
-                if (_comfyRunningPid && _comfyJobs[_comfyRunningPid]) _comfyInlineTarget = _comfyJobs[_comfyRunningPid].inline;
                 const { value, max } = d;
                 if (max) _comfySetProgress((value / max) * 100, `${_comfyQ()}${value}/${max} 스텝`);
             } else if (msg.type === 'executed' && d.output && d.output.images && d.prompt_id && _comfyJobs[d.prompt_id]) {
@@ -3557,8 +3554,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const pid = data.prompt_id;
                 _comfyJobs[pid] = { inline, cleared: false, done: false, seq: ++_comfyJobSeq, label };
                 _comfyQueueCount++;
-                if (inline) _comfyInlineTarget = inline;
-                _comfySetProgress(3, `${_comfyQ()}큐 등록됨`);
+                _comfySetProgress(3, `${_comfyQ()}큐 등록됨`, inline);
                 comfyRenderQueue();
                 _comfyPollResult(pid, 0); // 웹소켓 미동작 대비 폴백
             } catch (e) {
@@ -3569,13 +3565,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         async function _comfyPollResult(pid, tries) {
-            if (tries > 1200) return;                 // 최대 ~10분
-            if (!_comfyJobs[pid] || _comfyJobs[pid].done) return; // 이미 처리됨
+            if (tries === 0) {
+                if (_comfyPollActive.has(pid)) return; // 중복 폴링 방지
+                _comfyPollActive.add(pid);
+            }
+            if (tries > 1200) { _comfyPollActive.delete(pid); return; } // 최대 ~10분
+            if (!_comfyJobs[pid] || _comfyJobs[pid].done) { _comfyPollActive.delete(pid); return; }
             try {
                 const res = await fetch(_comfyBase() + '/history/' + pid);
                 if (res.ok) {
                     const hist = await res.json();
                     if (hist[pid] && hist[pid].outputs && Object.keys(hist[pid].outputs).length) {
+                        _comfyPollActive.delete(pid);
                         _comfyFinalize(pid); return;
                     }
                 }
@@ -3636,7 +3637,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         async function comfyInterrupt() {
             await comfyCancelAllQueue();
             _comfySetProgress(0, '중단됨');
-            _comfyInlineTarget = null;
         }
 
         // 초기 테마 로드
