@@ -2865,6 +2865,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } catch (e) {
                 statusEl.innerHTML = '❌ 연결 실패 — ComfyUI를 <code>--enable-cors-header</code> 로 실행했는지 확인';
                 statusEl.style.color = 'var(--accent-danger)';
+                _comfyConnectedOnce = false;
+                comfyUpdateQuickButtons();
+                _comfySaveSettings();
             }
         }
 
@@ -2959,8 +2962,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         function _comfySetProgress(pct, text, inline) {
             const w = Math.max(0, Math.min(100, pct)) + '%';
-            document.getElementById('comfy-progress').style.width = w;
-            if (text !== undefined) document.getElementById('comfy-status').textContent = text;
+            const bar = document.getElementById('comfy-progress');
+            const st  = document.getElementById('comfy-status');
+            if (bar) bar.style.width = w;
+            if (st && text !== undefined) st.textContent = text;
             // 인라인(긍정/부정 탭) 진행바도 동기화
             const inlineKey = inline || (_comfyRunningPid && _comfyJobs[_comfyRunningPid] ? _comfyJobs[_comfyRunningPid].inline : null);
             if (inlineKey) {
@@ -3164,7 +3169,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         // 모든 작업 종료 → 진행바 정리
         function _comfyOnAllDone() {
-            document.getElementById('comfy-interrupt-btn').style.display = 'none';
+            const intBtn = document.getElementById('comfy-interrupt-btn');
+            if (intBtn) intBtn.style.display = 'none';
             setTimeout(() => {
                 if (_comfyQueueCount > 0) return; // 그새 새 작업 들어옴
                 const bar = document.getElementById('comfy-progress');
@@ -3486,7 +3492,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const hist = await res.json();
                 const outputs = (hist[pid] && hist[pid].outputs) || {};
                 const gallery = document.getElementById('comfy-gallery');
-                let sawStage = !!(document.getElementById('comfy-live-thumbs') && document.getElementById('comfy-live-thumbs').children.length);
+                let sawStage = !!(job && job.cleared); // job.cleared는 이 pid의 websocket stage 이벤트를 받았을 때만 true
                 for (const nodeId in outputs) {
                     (outputs[nodeId].images || []).forEach(img => {
                         const url = _comfyImgUrl(img);
@@ -3522,7 +3528,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try {
                 statusEl.textContent = '연결 확인 중...';
                 statusEl.style.color = 'var(--text-dim)';
-                const pingRes = await fetch(_comfyBase() + '/queue', { signal: AbortSignal.timeout(4000) });
+                const pingRes = await fetch(_comfyBase() + '/system_stats', { signal: AbortSignal.timeout(4000) });
                 if (!pingRes.ok) throw new Error('HTTP ' + pingRes.status);
                 statusEl.textContent = '✅ 연결됨';
                 statusEl.style.color = 'var(--accent-green)';
@@ -3542,7 +3548,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const inline = (inlineTarget === 'pos' || inlineTarget === 'neg') ? inlineTarget : null;
             _comfyEnsureSocket();
             if (!_comfyClientId) _comfyClientId = _comfyUUID();
-            document.getElementById('comfy-interrupt-btn').style.display = 'inline-flex';
+            const _intBtn = document.getElementById('comfy-interrupt-btn');
+            if (_intBtn) _intBtn.style.display = 'inline-flex';
             if (inline) { const prog = document.getElementById('comfy-inline-prog-' + inline); if (prog) prog.style.display = 'flex'; }
             const label = (_comfyTarget === 'neg' ? '[부정] ' : '') + _comfyKorLabel(_comfyTarget === 'neg' ? neg : pos);
 
