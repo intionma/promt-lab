@@ -3062,24 +3062,55 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // 워크플로우 JSON에서 긍정 프롬프트 추출 → 한글 라벨 반환
         function _comfyLabelFromWorkflow(workflow) {
             if (!workflow || typeof workflow !== 'object') return '';
-            // KSampler의 positive 입력에 연결된 CLIPTextEncode 노드를 우선 찾음
             let posText = '';
             try {
-                // KSampler / KSamplerAdvanced 의 positive 링크 추적
+                // 링크([node_id, slot])를 재귀로 따라가 실제 텍스트 반환
+                function resolveText(nodeId, depth) {
+                    if (depth > 5) return '';
+                    const node = workflow[String(nodeId)];
+                    if (!node) return '';
+                    const t = node.inputs?.text;
+                    if (typeof t === 'string') return t;
+                    if (Array.isArray(t)) return resolveText(t[0], depth + 1);
+                    return '';
+                }
+
+                // 1) KSampler positive → CLIPTextEncode 경로
                 const samplers = Object.values(workflow).filter(n => /ksampler/i.test(n.class_type || ''));
-                let posNodeId = null;
                 for (const s of samplers) {
                     const posLink = s.inputs?.positive;
-                    if (Array.isArray(posLink)) { posNodeId = String(posLink[0]); break; }
+                    if (!Array.isArray(posLink)) continue;
+                    let nid = String(posLink[0]);
+                    // Conditioning 중간 노드 건너뛰기 (ConditioningCombine 등)
+                    for (let i = 0; i < 4; i++) {
+                        const node = workflow[nid];
+                        if (!node) break;
+                        if (node.class_type === 'CLIPTextEncode') { posText = resolveText(nid, 0); break; }
+                        const firstLink = Object.values(node.inputs || {}).find(v => Array.isArray(v));
+                        if (firstLink) nid = String(firstLink[0]); else break;
+                    }
+                    if (posText) break;
                 }
-                if (posNodeId && workflow[posNodeId]?.class_type === 'CLIPTextEncode') {
-                    posText = workflow[posNodeId].inputs?.text || '';
-                }
-                // 못 찾으면 가장 긴 CLIPTextEncode 텍스트를 긍정으로 간주
+
+                // 2) 못 찾으면 CLIPTextEncode 노드 중 텍스트가 가장 긴 것
                 if (!posText) {
-                    const clips = Object.values(workflow).filter(n => n.class_type === 'CLIPTextEncode');
-                    clips.sort((a, b) => (b.inputs?.text?.length || 0) - (a.inputs?.text?.length || 0));
-                    posText = clips[0]?.inputs?.text || '';
+                    const clips = Object.entries(workflow)
+                        .filter(([, n]) => n.class_type === 'CLIPTextEncode')
+                        .map(([id]) => resolveText(id, 0))
+                        .filter(t => t);
+                    clips.sort((a, b) => b.length - a.length);
+                    posText = clips[0] || '';
+                }
+
+                // 3) 절대 폴백: 노드 inputs에서 20자 이상 문자열 중 가장 긴 것
+                if (!posText) {
+                    let longest = '';
+                    for (const node of Object.values(workflow)) {
+                        for (const val of Object.values(node.inputs || {})) {
+                            if (typeof val === 'string' && val.length > longest.length) longest = val;
+                        }
+                    }
+                    if (longest.length >= 20) posText = longest;
                 }
             } catch (e) {}
             return posText ? _comfyKorLabel(posText) : '';
@@ -3139,6 +3170,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const rj = _comfyJobs[_comfyRunningPid];
                     if (rj.pct == null) rj.pct = 0;
                     _comfySetProgress(rj.pct, `${_comfyQ()}생성 중...`, rj.inline);
+                    // 라이브 미리보기 영역 미리 표시 (이후 WebSocket executed 이벤트가 채움)
+                    const lw = document.getElementById('comfy-live-wrap');
+                    if (lw) lw.style.display = 'block';
                 }
 
                 comfyRenderQueue();
