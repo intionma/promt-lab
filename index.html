@@ -843,7 +843,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.22 &nbsp;·&nbsp; 2026-06-26 — 쉬운 모드: 평평한 DB도 묶음 생성 · 매번 새 조합</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.23 &nbsp;·&nbsp; 2026-06-26 — 쉬운 모드: 소설체 문장 카드 + 모바일 스와이프</span></span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
         <button class="gt-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i id="btn-theme-icon" class="fa-solid fa-sun"></i></button>
@@ -1612,6 +1612,17 @@
             return bundles;
         }
 
+        // 묶음 태그를 소설체 한글 문장으로 (긍정 번역 엔진 재사용)
+        function _nbBundleSentence(layer, tags) {
+            try {
+                const state = ["", "", "", "", "", "", ""];
+                state[layer - 1] = tags.join(', ');
+                const html = _buildKoreanScene(state);
+                if (html && !/등록된 태그가 없습니다/.test(html)) return html;
+            } catch (e) {}
+            return tags.join(', ');
+        }
+
         function _nbQuality() {
             const l1 = promptDB[1] || {}; const arr = [];
             Object.values(l1).forEach(a => (a || []).forEach(d => { if (d.t) arr.push(d.t.trim()); }));
@@ -1625,8 +1636,31 @@
             _nbCats.forEach(c => { _nbBundles[c.layer] = _nbGen(c); _nbSelB[c.layer] = new Set(); });
             document.getElementById('newbie-mode').style.display = 'flex';
             _nbRender();
+            _nbBindSwipe();
         }
         function closeNewbieMode() { document.getElementById('newbie-mode').style.display = 'none'; }
+
+        // 모바일: 좌우 스와이프로 단계 이동
+        function _nbStepBy(dir) {
+            const total = _nbCats.length;
+            const nx = _nbStep + dir;
+            if (nx < 0 || nx > total) return;
+            _nbStep = nx; _nbRender();
+        }
+        function _nbBindSwipe() {
+            const body = document.getElementById('nb-body');
+            if (!body || body._swipeBound) return;
+            body._swipeBound = true;
+            let sx = 0, sy = 0, t0 = 0;
+            body.addEventListener('touchstart', (e) => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; t0 = Date.now(); }, { passive: true });
+            body.addEventListener('touchend', (e) => {
+                const t = e.changedTouches[0];
+                const dx = t.clientX - sx, dy = t.clientY - sy;
+                if (Date.now() - t0 < 600 && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.8) {
+                    _nbStepBy(dx < 0 ? 1 : -1); // 왼쪽으로 밀면 다음
+                }
+            }, { passive: true });
+        }
 
         function _nbRender() {
             const total = _nbCats.length;
@@ -1661,13 +1695,15 @@
 
             const grid = document.createElement('div');
             grid.className = 'nb-grid';
-            grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(190px,1fr))';
+            grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(230px,1fr))';
             bundles.forEach((b, idx) => {
                 const card = document.createElement('div');
                 card.className = 'nb-card' + (sel.has(idx) ? ' sel' : '');
                 card.style.cssText = `--nbc:${cat.color}; text-align:left;`;
+                const sentence = _nbBundleSentence(cat.layer, b.tags);
                 card.innerHTML = `<i class="fa-solid fa-circle-check nb-check"></i>` +
-                    b.kors.map(k => `<span style="display:inline-block; background:color-mix(in srgb,${cat.color} 16%,transparent); color:var(--text-main); border-radius:7px; padding:3px 8px; margin:2px 3px 2px 0; font-size:12px; font-weight:700;">${k}</span>`).join('');
+                    `<div style="font-size:13.5px; line-height:1.65; color:var(--text-main); font-weight:600; padding-right:14px;">${sentence}</div>` +
+                    `<div style="font-size:10px; color:var(--text-dim); margin-top:7px;">${b.kors.join(' · ')}</div>`;
                 card.onclick = () => { if (sel.has(idx)) sel.delete(idx); else sel.add(idx); _nbRender(); };
                 grid.appendChild(card);
             });
