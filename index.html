@@ -922,7 +922,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.36 &nbsp;·&nbsp; 2026-06-27 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.40 &nbsp;·&nbsp; 2026-06-27 — 클릭하면 업데이트 내역 보기</span></span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
         <button class="gt-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i id="btn-theme-icon" class="fa-solid fa-sun"></i></button>
@@ -1542,6 +1542,19 @@
         // ── 업데이트 내역 ────────────────────────────────────────────────────
         const CHANGELOG = [
             // ── 2026-06-27 ──────────────────────────────────────────────────
+            {
+                version: 'v9.9.40', date: '2026-06-27', time: '오후',
+                tag: 'feat',
+                items: [
+                    '[ComfyUI] 대기열 지속성 전면 개편 — localStorage 방식 제거, ComfyUI /queue API 직접 폴링으로 교체',
+                    '[ComfyUI] 새로고침·다른 탭 복귀 후에도 대기열 자동 복원 (ComfyUI에 있는 모든 작업 반영)',
+                    '[ComfyUI] 다른 브라우저·ComfyUI 웹에서 생성한 작업도 대기열에 자동 표시',
+                    '[ComfyUI] 외부 작업의 한글 라벨 자동 추출 — 워크플로우 JSON → KSampler → CLIPTextEncode → DB 한글 태그 대조',
+                    '[ComfyUI] 작업 활성 시 3초마다 서버 동기화 루프 자동 시작, 완료 시 자동 정지',
+                    '[ComfyUI] 대기열 패널 생성 중 항목에 왼쪽→오른쪽 액체 차오르는 애니메이션 추가 (실제 step 진행도 반영)',
+                    '[ComfyUI] 좌하단 FAB 아이콘 물 차오르는 애니메이션 — 배치 비율 대신 실시간 step 진행도 연동, 최소 15% 보장으로 항상 가시화',
+                ]
+            },
             {
                 version: 'v9.9.36', date: '2026-06-27', time: '오전 03:40',
                 tag: 'fix',
