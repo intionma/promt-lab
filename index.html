@@ -319,6 +319,14 @@
             0%   { transform: translateX(0); }
             100% { transform: translateX(-50%); }
         }
+        @keyframes comfy-wave-h {
+            0%   { transform: translateY(0); }
+            100% { transform: translateY(50%); }
+        }
+        @keyframes comfy-wave-h2 {
+            0%   { transform: translateY(0); }
+            100% { transform: translateY(-50%); }
+        }
         @keyframes layerFlash {
             0%   { border-color: var(--border-dim); box-shadow: inset 0 0 0px 0 transparent; }
             20%  { border-color: var(--flash-color, #60a5fa); box-shadow: inset 0 0 18px 0 var(--flash-color, #60a5fa44); }
@@ -2976,7 +2984,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         function _comfySetProgress(pct, text, inline) {
-            const w = Math.max(0, Math.min(100, pct)) + '%';
+            const clamped = Math.max(0, Math.min(100, pct));
+            const w = clamped + '%';
             const bar = document.getElementById('comfy-progress');
             const st  = document.getElementById('comfy-status');
             if (bar) bar.style.width = w;
@@ -2988,6 +2997,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const st = document.getElementById('comfy-inline-status-' + inlineKey);
                 if (bar) bar.style.width = w;
                 if (st && text !== undefined) st.textContent = text;
+            }
+            // 대기열 row 물 애니메이션 진행도 업데이트
+            if (_comfyRunningPid && _comfyJobs[_comfyRunningPid]) {
+                _comfyJobs[_comfyRunningPid].pct = clamped;
+                const rowWater = document.getElementById('comfy-row-water-' + _comfyRunningPid);
+                if (rowWater) rowWater.style.width = w;
             }
         }
 
@@ -3258,11 +3273,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             jobs.forEach(([pid, job]) => {
                 const running = (pid === _comfyRunningPid);
                 const row = document.createElement('div');
-                row.style.cssText = `display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:8px; margin-bottom:5px; background:${running ? 'color-mix(in srgb,#38bdf8 14%,transparent)' : 'var(--bg-base)'}; border:1px solid ${running ? '#38bdf8' : 'var(--border-dim)'};`;
-                row.innerHTML = `<span style="flex:1; min-width:0;"><span style="font-size:11px; font-weight:700; color:${running ? '#38bdf8' : 'var(--text-main)'};">${running ? '▶ 생성 중' : '⏳ 대기'} · #${job.seq}</span><br><span style="font-size:10px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;">${(job.label || '').replace(/</g,'&lt;')}</span></span>`;
+                row.style.cssText = `position:relative; overflow:hidden; display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:8px; margin-bottom:5px; background:${running ? 'color-mix(in srgb,#38bdf8 14%,transparent)' : 'var(--bg-base)'}; border:1px solid ${running ? '#38bdf8' : 'var(--border-dim)'};`;
+                const initPct = (running && job.pct != null) ? job.pct : 0;
+                const waterHtml = running ? `<div id="comfy-row-water-${pid}" style="position:absolute; left:0; top:0; height:100%; width:${initPct}%; pointer-events:none; z-index:0; transition:width 0.4s ease; overflow:hidden; border-radius:8px;">
+                    <svg viewBox="0 0 10 104" preserveAspectRatio="none" style="position:absolute; right:100%; top:-50%; height:200%; width:10px; animation:comfy-wave-h 2.2s linear infinite;"><path d="M5,0 C0,13 10,26 5,39 C0,52 10,65 5,78 C0,91 10,104 5,104 L10,104 L10,0 Z" fill="rgba(56,189,248,0.35)"/></svg>
+                    <svg viewBox="0 0 10 104" preserveAspectRatio="none" style="position:absolute; right:100%; top:-50%; height:200%; width:10px; margin-right:-4px; animation:comfy-wave-h2 3.1s linear infinite;"><path d="M5,0 C10,13 0,26 5,39 C10,52 0,65 5,78 C10,91 0,104 5,104 L10,104 L10,0 Z" fill="rgba(56,189,248,0.18)"/></svg>
+                    <div style="position:absolute; inset:0; background:rgba(56,189,248,0.13);"></div>
+                </div>` : '';
+                row.innerHTML = waterHtml + `<span style="position:relative; z-index:1; flex:1; min-width:0;"><span style="font-size:11px; font-weight:700; color:${running ? '#38bdf8' : 'var(--text-main)'};">${running ? '▶ 생성 중' : '⏳ 대기'} · #${job.seq}</span><br><span style="font-size:10px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;">${(job.label || '').replace(/</g,'&lt;')}</span></span>`;
                 const x = document.createElement('button');
                 x.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-                x.style.cssText = 'flex-shrink:0; background:transparent; border:1px solid var(--border-dim); color:var(--text-dim); border-radius:6px; width:26px; height:26px; cursor:pointer;';
+                x.style.cssText = 'position:relative; z-index:1; flex-shrink:0; background:transparent; border:1px solid var(--border-dim); color:var(--text-dim); border-radius:6px; width:26px; height:26px; cursor:pointer;';
                 x.title = '이 작업 취소';
                 x.onclick = () => comfyCancelJob(pid);
                 row.appendChild(x);
