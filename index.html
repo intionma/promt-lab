@@ -3222,6 +3222,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 SLOTS.forEach(({ img }) => { img.src = ''; });
             };
 
+            // 클릭된 img/el과 같은 컨테이너 안의 모든 이미지를 모아 라이트박스 열기
+            window.openLightboxFromEl = function (el) {
+                const url = el.src || el.dataset.src || '';
+                if (!url) return;
+                // 같은 grid/container 안에 있는 형제 이미지들 수집
+                const parent = el.closest('#result-gallery-grid, #comfy-live-thumbs, .comfy-inline-thumbs, [data-lb-group]') || el.parentNode;
+                const siblings = parent ? Array.from(parent.querySelectorAll('img[src]')).filter(i => i.src) : [];
+                const urls = siblings.length > 1 ? siblings.map(i => i.src) : [url];
+                const idx  = siblings.length > 1 ? Math.max(0, siblings.indexOf(el)) : 0;
+                openLightbox(url, urls, idx);
+            };
+
             // ── 터치 스와이프 ────────────────────────────────────────────
             let swX = null, swY = null, swLocked = null, swActive = false;
 
