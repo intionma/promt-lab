@@ -311,21 +311,13 @@
         .fav-recent-box:not(.collapsed) .box-header { border-radius: 8px 8px 0 0 !important; border-bottom: 1px solid var(--border-dim); }
 
         .layer-group { background: var(--bg-surface); border-radius: 10px; border: 1px solid var(--border-dim); overflow: hidden; flex-shrink: 0; transition: border-color 0.3s, opacity 0.3s; }
-        @keyframes comfy-wave {
-            0%   { transform: translateX(0); }
-            100% { transform: translateX(50%); }
+        @keyframes comfy-water-spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
         }
-        @keyframes comfy-wave2 {
-            0%   { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-        }
-        @keyframes comfy-wave-h {
-            0%   { transform: translateY(0); }
-            100% { transform: translateY(50%); }
-        }
-        @keyframes comfy-wave-h2 {
-            0%   { transform: translateY(0); }
-            100% { transform: translateY(-50%); }
+        @keyframes comfy-wave-row {
+            from { transform: translateY(0); }
+            to   { transform: translateY(33.33%); }
         }
         @keyframes layerFlash {
             0%   { border-color: var(--border-dim); box-shadow: inset 0 0 0px 0 transparent; }
@@ -1457,25 +1449,16 @@
     <!-- ── ComfyUI 전송 대기열 (우측 하단 플로팅) ── -->
     <div id="comfy-queue-fab" style="position:fixed; right:18px; bottom:74px; z-index:100002; display:none; flex-direction:column; align-items:flex-end; gap:8px;">
         <div id="comfy-queue-list" style="display:none; width:min(300px,86vw); max-height:50vh; overflow-y:auto; background:var(--glass-bg); backdrop-filter:blur(40px) saturate(180%); -webkit-backdrop-filter:blur(40px) saturate(180%); border:1px solid var(--glass-border); border-radius:14px; box-shadow:0 16px 48px rgba(0,0,0,0.5); padding:12px; transform-origin:bottom right; transform:scale(0.5); opacity:0; transition:transform .24s cubic-bezier(.2,.9,.25,1.1), opacity .18s ease;"></div>
-        <div style="position:relative; width:52px; height:52px;">
-            <button onclick="comfyToggleQueuePanel()" title="전송 대기열" style="width:52px; height:52px; border-radius:50%; border:none; background:linear-gradient(135deg,#38bdf8,#a78bfa); color:#fff; font-size:19px; cursor:pointer; box-shadow:0 6px 20px rgba(56,189,248,0.45); overflow:hidden; position:relative;">
-                <!-- 물 차오르기 레이어 -->
-                <div id="comfy-queue-water" style="position:absolute; bottom:0; left:0; width:100%; height:0%; pointer-events:none; z-index:0; transition:height 0.25s ease;">
-                    <!-- 물결 레이어 1 -->
-                    <svg viewBox="0 0 104 10" preserveAspectRatio="none" style="position:absolute; bottom:100%; left:-50%; width:200%; height:10px; animation:comfy-wave 2.2s linear infinite;">
-                        <path d="M0,5 C13,0 26,10 39,5 C52,0 65,10 78,5 C91,0 104,10 104,5 L104,10 L0,10 Z" fill="rgba(255,255,255,0.28)"/>
-                    </svg>
-                    <!-- 물결 레이어 2 (반대방향, 위상 다름) -->
-                    <svg viewBox="0 0 104 10" preserveAspectRatio="none" style="position:absolute; bottom:100%; left:-50%; width:200%; height:10px; margin-bottom:-4px; animation:comfy-wave2 3.1s linear infinite;">
-                        <path d="M0,5 C13,10 26,0 39,5 C52,10 65,0 78,5 C91,10 104,0 104,5 L104,10 L0,10 Z" fill="rgba(255,255,255,0.15)"/>
-                    </svg>
-                    <!-- 채워진 물 본체 -->
-                    <div style="position:absolute; inset:0; background:rgba(255,255,255,0.22);"></div>
-                </div>
-                <i class="fa-solid fa-layer-group" style="position:relative; z-index:1;"></i>
-            </button>
-            <span id="comfy-queue-badge" style="position:absolute; top:-4px; right:-4px; min-width:20px; height:20px; padding:0 5px; border-radius:11px; background:#ef4444; color:#fff; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid var(--bg-base); pointer-events:none;">0</span>
-        </div>
+        <button onclick="comfyToggleQueuePanel()" title="전송 대기열" style="position:relative; width:52px; height:52px; border-radius:50%; border:none; background:linear-gradient(135deg,#38bdf8,#a78bfa); color:#fff; font-size:19px; cursor:pointer; box-shadow:0 6px 20px rgba(56,189,248,0.45); overflow:hidden;">
+            <!-- 물 차오르기 레이어 (회전 타원 기법) -->
+            <div id="comfy-queue-water" style="position:absolute; bottom:0; left:0; width:100%; height:0%; pointer-events:none; z-index:0; transition:height 0.5s ease; overflow:hidden;">
+                <div style="position:absolute; width:220%; height:220%; bottom:-10%; left:-60%; border-radius:40%; background:rgba(255,255,255,0.30); animation:comfy-water-spin 3s linear infinite;"></div>
+                <div style="position:absolute; width:220%; height:220%; bottom:-18%; left:-60%; border-radius:45%; background:rgba(255,255,255,0.16); animation:comfy-water-spin 4.8s linear infinite reverse;"></div>
+                <div style="position:absolute; inset:0; background:rgba(255,255,255,0.08);"></div>
+            </div>
+            <i class="fa-solid fa-layer-group" style="position:relative; z-index:1;"></i>
+            <span id="comfy-queue-badge" style="position:absolute; top:-4px; right:-4px; min-width:20px; height:20px; padding:0 5px; border-radius:11px; background:#ef4444; color:#fff; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid var(--bg-base); z-index:2;">0</span>
+        </button>
     </div>
 
     <!-- ── PC 종료 ── -->
@@ -3141,19 +3124,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     if (!pid) continue;
                     if (!_comfyJobs[pid]) {
                         const label = _comfyLabelFromWorkflow(workflow) || pid.slice(0, 8) + '…';
-                        _comfyJobs[pid] = { inline: null, cleared: false, done: false, seq: ++_comfyJobSeq, label, _wf: workflow };
+                        _comfyJobs[pid] = { inline: null, cleared: false, done: false, seq: ++_comfyJobSeq, label };
                         _comfyQueueCount++;
                         _comfyBatchTotal++;
                         _comfyPollResult(pid, 0);
-                    } else {
-                        // 이미 있는 job이지만 라벨이 pid 폴백(…로 끝남)이면 재시도 — DB 로드 타이밍 문제 해결
-                        const job = _comfyJobs[pid];
-                        if (job && job.label && job.label.endsWith('…') && job.label.length <= 10) {
-                            const wf = workflow || job._wf;
-                            const newLabel = _comfyLabelFromWorkflow(wf);
-                            if (newLabel) { job.label = newLabel; job._wf = null; }
-                            else if (workflow) job._wf = workflow;
-                        }
                     }
                 }
 
@@ -3305,9 +3279,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 row.style.cssText = `position:relative; overflow:hidden; display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:8px; margin-bottom:5px; background:${running ? 'color-mix(in srgb,#38bdf8 14%,transparent)' : 'var(--bg-base)'}; border:1px solid ${running ? '#38bdf8' : 'var(--border-dim)'};`;
                 const initPct = (running && job.pct != null) ? job.pct : 0;
                 const waterHtml = running ? `<div id="comfy-row-water-${pid}" style="position:absolute; left:0; top:0; height:100%; width:${initPct}%; pointer-events:none; z-index:0; transition:width 0.4s ease; overflow:hidden; border-radius:8px;">
-                    <svg viewBox="0 0 10 104" preserveAspectRatio="none" style="position:absolute; right:100%; top:-50%; height:200%; width:10px; animation:comfy-wave-h 2.2s linear infinite;"><path d="M5,0 C0,13 10,26 5,39 C0,52 10,65 5,78 C0,91 10,104 5,104 L10,104 L10,0 Z" fill="rgba(56,189,248,0.35)"/></svg>
-                    <svg viewBox="0 0 10 104" preserveAspectRatio="none" style="position:absolute; right:100%; top:-50%; height:200%; width:10px; margin-right:-4px; animation:comfy-wave-h2 3.1s linear infinite;"><path d="M5,0 C10,13 0,26 5,39 C10,52 0,65 5,78 C10,91 0,104 5,104 L10,104 L10,0 Z" fill="rgba(56,189,248,0.18)"/></svg>
-                    <div style="position:absolute; inset:0; background:rgba(56,189,248,0.13);"></div>
+                    <div style="position:absolute; inset:0; background:rgba(56,189,248,0.18);"></div>
+                    <div style="position:absolute; right:-1px; top:0; width:14px; height:100%; overflow:hidden;">
+                        <svg viewBox="0 0 14 90" preserveAspectRatio="none" style="position:absolute; right:0; top:-100%; width:14px; height:300%; animation:comfy-wave-row 1.8s linear infinite;"><path d="M7,0 C2,10 12,20 7,30 C2,40 12,50 7,60 C2,70 12,80 7,90 L14,90 L14,0 Z" fill="rgba(56,189,248,0.55)"/></svg>
+                        <svg viewBox="0 0 14 90" preserveAspectRatio="none" style="position:absolute; right:0; top:-133%; width:14px; height:300%; animation:comfy-wave-row 2.7s linear infinite;"><path d="M7,0 C12,10 2,20 7,30 C12,40 2,50 7,60 C12,70 2,80 7,90 L14,90 L14,0 Z" fill="rgba(56,189,248,0.30)"/></svg>
+                    </div>
                 </div>` : '';
                 row.innerHTML = waterHtml + `<span style="position:relative; z-index:1; flex:1; min-width:0;"><span style="font-size:11px; font-weight:700; color:${running ? '#38bdf8' : 'var(--text-main)'};">${running ? '▶ 생성 중' : '⏳ 대기'} · #${job.seq}</span><br><span style="font-size:10px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;">${(job.label || '').replace(/</g,'&lt;')}</span></span>`;
                 const x = document.createElement('button');
