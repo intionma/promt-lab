@@ -3568,8 +3568,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _move(e.touches[0].clientX, e.touches[0].clientY, () => e.preventDefault());
             }, { passive: false });
             box.addEventListener('touchend', e => {
-                _end(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-            }, { passive: true });
+                const t = e.changedTouches[0];
+                const dx = ptX !== null ? t.clientX - ptX : 0;
+                const dy = ptY !== null ? t.clientY - ptY : 0;
+                const isTap = !ptDragged && Math.abs(dx) < 10 && Math.abs(dy) < 10;
+                _end(t.clientX, t.clientY);
+                // 탭으로 라이트박스를 닫을 때 뒤 요소에 click 전달 방지
+                if (isTap) e.preventDefault();
+            }, { passive: false });
 
             // ── 마우스 드래그 (PC) ────────────────────────────────────────
             let _md = false;
