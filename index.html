@@ -2998,11 +2998,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (bar) bar.style.width = w;
                 if (st && text !== undefined) st.textContent = text;
             }
-            // 대기열 row 물 애니메이션 진행도 업데이트
+            // 대기열 row + FAB 물 애니메이션 진행도 업데이트
             if (_comfyRunningPid && _comfyJobs[_comfyRunningPid]) {
                 _comfyJobs[_comfyRunningPid].pct = clamped;
                 const rowWater = document.getElementById('comfy-row-water-' + _comfyRunningPid);
                 if (rowWater) rowWater.style.width = w;
+                _comfyUpdateFabWater();
             }
         }
 
@@ -3250,9 +3251,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!water) return;
             const pending = Object.keys(_comfyJobs).filter(p => !_comfyJobs[p].done).length;
             if (pending === 0) { water.style.height = '0%'; return; }
-            // 전체 중 완료 비율로 계산 (최소 12% 보장 — 버튼에서 보이게)
-            const ratio = _comfyBatchTotal > 0 ? _comfyBatchDone / _comfyBatchTotal : 0;
-            const pct   = Math.max(12, Math.min(97, ratio * 100));
+            // 현재 생성 중인 작업의 step 진행도를 우선 사용 (더 실시간)
+            const runPct = (_comfyRunningPid && _comfyJobs[_comfyRunningPid]?.pct != null)
+                ? _comfyJobs[_comfyRunningPid].pct : 0;
+            // 완료된 배치 비율과 현재 step을 합산 (배치가 여러 개일 때 누적 느낌)
+            const batchBase = _comfyBatchTotal > 1 ? (_comfyBatchDone / _comfyBatchTotal) * 100 : 0;
+            const combined = batchBase + (runPct / Math.max(1, _comfyBatchTotal));
+            const pct = Math.max(15, Math.min(97, combined));
             water.style.height = pct + '%';
         }
 
