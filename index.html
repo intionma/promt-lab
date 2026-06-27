@@ -678,11 +678,11 @@
                 width: 100vw !important;
                 min-width: 0 !important;   /* panel-mid inline min-width 무력화 */
                 max-width: 100vw !important;
-                /* JS 없이 CSS만으로 높이 결정 (상단바 46px + 하단탭 56px 제외) */
-                height: calc(100vh - 56px - 46px) !important;
-                height: calc(100dvh - 56px - 46px) !important; /* dvh: 모바일 브라우저 크롬 제외 */
+                /* 상단바가 줄바꿈으로 높이가 변하므로 고정 계산 대신 flex로 남은 공간 채움 */
+                flex: 1 1 auto !important;
+                min-height: 0 !important;
+                height: auto !important;
                 overflow: hidden !important;
-                flex: none !important;
             }
             .panel.mobile-active .panel-content {
                 flex: 1 !important;
@@ -709,9 +709,13 @@
             .panel-header { padding: 10px 12px; font-size: 13px; flex-wrap: wrap; gap: 6px; }
             .header-actions { flex-wrap: wrap; gap: 5px; }
             .action-btn { padding: 5px 8px !important; font-size: 11px !important; }
-            #global-topbar { height: 46px; gap: 8px; padding: 0 10px; }
+            /* 모바일: 상단바를 여러 줄로 줄바꿈해 모든 버튼이 보이고 눌리게 */
+            #global-topbar { height: auto; min-height: 46px; gap: 6px; padding: 6px 8px; flex-wrap: wrap; align-items: center; overflow: visible; }
+            .gt-scroll { flex: 1 1 100%; overflow: visible; flex-wrap: wrap; gap: 6px; }
+            .gt-spacer { display: none; }
+            .gt-divider { display: none; }
             .gt-brand { font-size: 13px; }
-            .gt-btn { padding: 5px 8px; }
+            .gt-btn { padding: 7px 9px; }
             .combo-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important; }
             .combo-create-modal-overlay { align-items: flex-end !important; }
             .combo-create-modal { width: 100vw !important; border-radius: 20px 20px 0 0 !important; max-height: 88vh !important; }
@@ -810,7 +814,7 @@
 
     <!-- ── 전역 상단바 (앱 최상단 가로 전체) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.15 &nbsp;·&nbsp; 2026-06-26 — 미리보기 크기 슬라이더 모달에도 (항상 표시)</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.16 &nbsp;·&nbsp; 2026-06-26 — 모바일 상단바 줄바꿈(버튼 다 보이게)</span></span>
         <div class="gt-divider"></div>
         <div class="gt-scroll">
         <div class="gt-group">
