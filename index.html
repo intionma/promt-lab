@@ -3600,6 +3600,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _loadSlots();
                 _center();
                 _updateUI();
+                // 뒤로가기로 닫을 수 있도록 히스토리 스택에 추가
+                history.pushState({ lightbox: true }, '');
             };
 
             // 화살표 버튼: 즉시 전환 (애니메이션 없음)
@@ -3615,10 +3617,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             };
 
             window.closeLightbox = function () {
+                if (box.style.display === 'none') return;
                 box.style.display = 'none';
                 SLOTS.forEach(img => { img.src = ''; });
                 _lbUrls = []; _lbIdx = 0;
+                // pushState로 쌓은 히스토리 항목 제거 (패널 이동 없이)
+                if (history.state && history.state.lightbox) history.go(-1);
             };
+
+            // 뒤로가기 → 라이트박스만 닫기
+            window.addEventListener('popstate', e => {
+                if (box.style.display !== 'none') {
+                    box.style.display = 'none';
+                    SLOTS.forEach(img => { img.src = ''; });
+                    _lbUrls = []; _lbIdx = 0;
+                }
+            });
 
             window.openLightboxFromEl = function (el) {
                 const url = el.src || el.dataset.src || '';
@@ -11536,6 +11550,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             document.addEventListener('touchstart', (e) => {
                 if (!isMobile) return;
                 if (e.touches.length !== 1) return;
+                // 라이트박스가 열려있으면 패널 스와이프 무시
+                const lb = document.getElementById('img-lightbox');
+                if (lb && lb.style.display !== 'none') return;
                 // 텍스트 입력 중 무시
                 if (e.target.closest('input, textarea, select, [contenteditable]')) return;
                 swStartX = e.touches[0].clientX;
