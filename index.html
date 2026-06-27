@@ -3000,7 +3000,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (_comfyRunningPid && _comfyJobs[_comfyRunningPid]) {
                 _comfyJobs[_comfyRunningPid].pct = clamped;
                 const rowWater = document.getElementById('comfy-row-water-' + _comfyRunningPid);
-                if (rowWater) rowWater.style.width = w;
+                if (rowWater) rowWater.style.width = Math.max(20, clamped) + '%';
                 _comfyUpdateFabWater();
             }
         }
@@ -3133,6 +3133,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
                 // 3) running pid 반영
                 _comfyRunningPid = runningEntries[0]?.[1] || null;
+
+                // 4) 실행 중 job이 있고 pct가 없으면 진행 중 UI 즉시 표시 (WebSocket 재연결 전 공백 방지)
+                if (_comfyRunningPid && _comfyJobs[_comfyRunningPid]) {
+                    const rj = _comfyJobs[_comfyRunningPid];
+                    if (rj.pct == null) rj.pct = 0;
+                    _comfySetProgress(rj.pct, `${_comfyQ()}생성 중...`, rj.inline);
+                }
 
                 comfyRenderQueue();
                 if (_comfyQueueCount > 0) {
@@ -3277,7 +3284,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const running = (pid === _comfyRunningPid);
                 const row = document.createElement('div');
                 row.style.cssText = `position:relative; overflow:hidden; display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:8px; margin-bottom:5px; background:${running ? 'color-mix(in srgb,#38bdf8 14%,transparent)' : 'var(--bg-base)'}; border:1px solid ${running ? '#38bdf8' : 'var(--border-dim)'};`;
-                const initPct = (running && job.pct != null) ? job.pct : 0;
+                const initPct = running ? Math.max(20, job.pct ?? 0) : 0;
                 const waterHtml = running ? `<div id="comfy-row-water-${pid}" style="position:absolute; left:0; top:0; height:100%; width:${initPct}%; pointer-events:none; z-index:0; transition:width 0.4s ease; overflow:hidden; border-radius:8px;">
                     <div style="position:absolute; inset:0; background:rgba(56,189,248,0.18);"></div>
                     <div style="position:absolute; right:-1px; top:0; width:14px; height:100%; overflow:hidden;">
