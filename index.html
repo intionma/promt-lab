@@ -3771,20 +3771,33 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (inline) { const prog = document.getElementById('comfy-inline-prog-' + inline); if (prog) prog.style.display = 'flex'; }
                 const label = (_comfyTarget === 'neg' ? '[부정] ' : '') + _comfyKorLabel(_comfyTarget === 'neg' ? neg : pos);
 
+                // 전송 전 임시 job으로 FAB 즉시 표시
+                const tmpKey = '_tmp_' + lockKey;
+                const tmpSeq = ++_comfyJobSeq;
+                _comfyJobs[tmpKey] = { inline, cleared: false, done: false, seq: tmpSeq, label: '전송 중…', _tmp: true };
+                _comfyQueueCount++;
+                _comfyBatchTotal++;
+                comfyRenderQueue();
+
                 try {
                     const body = JSON.stringify({ prompt: workflow, client_id: _comfyClientId });
                     const res = await fetch(_comfyBase() + '/prompt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
                     if (!res.ok) { const txt = await res.text(); throw new Error('HTTP ' + res.status + ' ' + txt.slice(0, 200)); }
                     const data = await res.json();
                     const pid = data.prompt_id;
-                    _comfyJobs[pid] = { inline, cleared: false, done: false, seq: ++_comfyJobSeq, label };
-                    _comfyQueueCount++;
-                    _comfyBatchTotal++;
+                    // 임시 job → 실제 pid로 교체 (카운트 유지)
+                    delete _comfyJobs[tmpKey];
+                    _comfyJobs[pid] = { inline, cleared: false, done: false, seq: tmpSeq, label };
                     _comfySaveJobs();
                     _comfySetProgress(3, `${_comfyQ()}큐 등록됨`, inline);
                     comfyRenderQueue();
                     _comfyPollResult(pid, 0); // 웹소켓 미동작 대비 폴백
                 } catch (e) {
+                    // 전송 실패 시 임시 job 제거
+                    delete _comfyJobs[tmpKey];
+                    _comfyQueueCount = Math.max(0, _comfyQueueCount - 1);
+                    _comfyBatchTotal = Math.max(0, _comfyBatchTotal - 1);
+                    comfyRenderQueue();
                     _comfyAbortInline('전송 실패');
                     const stEl = document.getElementById('comfy-status');
                     if (stEl) stEl.textContent = '전송 실패';
