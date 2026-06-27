@@ -3867,8 +3867,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (!t) return;
                 const touch = e.touches[0];
                 lpStartX = touch.clientX; lpStartY = touch.clientY; lpTarget = e.target; lpFired = false;
+                window._lpFired = false;
                 lpTimer = setTimeout(() => {
                     lpFired = true;
+                    window._lpFired = true;
                     if (navigator.vibrate) { try { navigator.vibrate(15); } catch(_){} }
                     const ev = new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: lpStartX, clientY: lpStartY });
                     lpTarget.dispatchEvent(ev);
@@ -3881,7 +3883,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }, { passive: true });
             document.addEventListener('touchend', (e) => {
                 if (lpFired) {
-                    lpFired = false; // 다음 탭(메뉴 아이템 클릭 등)은 정상 처리
+                    lpFired = false;
+                    window._lpFired = false; // 다음 탭(메뉴 아이템 클릭 등)은 정상 처리
                     e.preventDefault(); // 롱프레스 직후 tap-as-click 방지
                 }
                 clear();
@@ -6576,6 +6579,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             btn.appendChild(star);
 
             btn.onclick = () => handleTagToggle(btn, tagText, data.neg, data.layer);
+
+            // 모바일: touchend에서 즉시 실행 (onclick보다 50~100ms 빠름)
+            btn.addEventListener('touchend', (e) => {
+                if (e.target.closest('.tag-fav-icon')) return; // 별 아이콘은 제외
+                if (e.changedTouches.length !== 1) return;
+                if (window._lpFired) return; // 롱프레스로 메뉴가 뜬 경우 제외
+                e.preventDefault(); // onclick 중복 방지
+                handleTagToggle(btn, tagText, data.neg, data.layer);
+            }, { passive: false });
 
             const textarea = document.getElementById(`layer-${data.layer}`);
             if(textarea && getRegexForTag(tagText).test(textarea.value)) {
