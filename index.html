@@ -131,6 +131,10 @@
             min-width: 200px;
             overflow: hidden;
         }
+        /* 데스크탑: 트랙은 그냥 flex 컨테이너로 패널 나란히 표시 */
+        #mobile-panel-track {
+            display: contents; /* 트랙이 없는 것처럼 자식 패널이 app-container의 직접 자식처럼 동작 */
+        }
         .panel-resize-handle {
             width: 5px;
             flex-shrink: 0;
@@ -701,22 +705,32 @@
                 overflow: hidden;
             }
 
-            /* ── 패널 처리: 기본 숨김, active만 표시 ── */
+            /* ── 패널: 가로 슬라이드 트랙 ── */
+            .app-container {
+                position: relative;
+                overflow: hidden;
+            }
+            #mobile-panel-track {
+                display: flex;
+                flex-direction: row;
+                width: 300vw;
+                height: 100%;
+                will-change: transform;
+            }
             .panel {
-                display: none !important;
+                display: flex !important;
+                flex-direction: column !important;
+                flex: 0 0 100vw !important;
+                width: 100vw !important;
+                min-width: 0 !important;
+                max-width: 100vw !important;
+                height: 100% !important;
+                min-height: 0 !important;
+                overflow: hidden !important;
                 border-right: none !important;
             }
             .panel.mobile-active {
-                display: flex !important;
-                flex-direction: column !important;
-                width: 100vw !important;
-                min-width: 0 !important;   /* panel-mid inline min-width 무력화 */
-                max-width: 100vw !important;
-                /* 상단바가 줄바꿈으로 높이가 변하므로 고정 계산 대신 flex로 남은 공간 채움 */
-                flex: 1 1 auto !important;
-                min-height: 0 !important;
-                height: auto !important;
-                overflow: hidden !important;
+                /* 슬라이드 방식에서는 active 클래스가 탭바 하이라이트용으로만 쓰임 */
             }
             .panel.mobile-active .panel-content {
                 flex: 1 !important;
@@ -10740,8 +10754,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             });
         })();
 
-        // ── 모바일 탭 전환 ──────────────────────────────────────────────────
+        // ── 모바일 탭 전환 + 스와이프 슬라이드 ─────────────────────────────
         (function initMobileNav() {
+            const MOBILE_BP = 1024;
             const PANELS = [
                 { id: 'panel-left',  label: '태그',   icon: 'fa-tags' },
                 { id: 'panel-mid',   label: '에디터', icon: 'fa-layer-group' },
@@ -10750,46 +10765,65 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const tabbar = document.getElementById('mobile-tabbar');
             if (!tabbar) return;
 
-            let currentPanel = 'panel-left';
-
-            function switchMobilePanel(id) {
-                currentPanel = id;
+            // ── 패널 3개를 트랙으로 감싸기 (모바일 전용) ───────────────────
+            const appContainer = document.getElementById('app-container');
+            let track = document.getElementById('mobile-panel-track');
+            if (!track) {
+                track = document.createElement('div');
+                track.id = 'mobile-panel-track';
+                // 패널 3개를 트랙 안으로 이동
                 PANELS.forEach(p => {
                     const el = document.getElementById(p.id);
-                    if (!el) return;
-                    if (p.id === id) {
-                        el.classList.add('mobile-active');
-                        el.style.height = ''; // CSS calc()에 맡김
-                    } else {
-                        el.classList.remove('mobile-active');
-                        el.style.height = '';
-                    }
+                    if (el) track.appendChild(el);
                 });
-                tabbar.querySelectorAll('button').forEach((btn, i) => {
-                    btn.classList.toggle('active', PANELS[i].id === id);
-                });
-                const activePanel = document.getElementById(id);
-                if (activePanel) {
-                    const pc = activePanel.querySelector('.panel-content');
-                    if (pc) pc.scrollTop = 0;
-                }
+                appContainer.appendChild(track);
             }
 
-            PANELS.forEach(p => {
+            let currentIdx = 0;
+            let isMobile = window.innerWidth <= MOBILE_BP;
+
+            // 트랜지션 없이 즉시 이동 (탭바 버튼용)
+            function snapToIndex(idx, animate) {
+                currentIdx = Math.max(0, Math.min(PANELS.length - 1, idx));
+                track.style.transition = animate ? 'transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none';
+                track.style.transform = `translateX(${-currentIdx * 100}vw)`;
+                // 탭바 하이라이트
+                tabbar.querySelectorAll('button').forEach((btn, i) => btn.classList.toggle('active', i === currentIdx));
+                // mobile-active 클래스 동기화 (다른 코드가 참조하는 경우 대비)
+                PANELS.forEach((p, i) => {
+                    const el = document.getElementById(p.id);
+                    if (el) el.classList.toggle('mobile-active', i === currentIdx);
+                });
+            }
+
+            function switchMobilePanel(id, animate = false) {
+                const idx = PANELS.findIndex(p => p.id === id);
+                if (idx < 0) return;
+                snapToIndex(idx, animate);
+            }
+
+            // 탭바 버튼 생성 (즉시 전환, 애니메이션 없음)
+            PANELS.forEach((p, i) => {
                 const btn = document.createElement('button');
                 btn.innerHTML = `<i class="fa-solid ${p.icon}"></i><span>${p.label}</span>`;
-                if (p.id === currentPanel) btn.classList.add('active');
-                btn.onclick = () => switchMobilePanel(p.id);
+                if (i === 0) btn.classList.add('active');
+                btn.onclick = () => { if (isMobile) snapToIndex(i, false); };
                 tabbar.appendChild(btn);
             });
 
-            // 초기화: 모바일/태블릿이면 첫 패널 활성화 (CSS 브레이크포인트 1024와 동기화)
-            const MOBILE_BP = 1024;
+            // 전역 노출 (다른 코드에서 switchMobilePanel 호출 가능하도록)
+            window.switchMobilePanel = switchMobilePanel;
+
             function applyMobileLayout() {
-                if (window.innerWidth <= MOBILE_BP) {
-                    switchMobilePanel(currentPanel);
+                isMobile = window.innerWidth <= MOBILE_BP;
+                if (isMobile) {
+                    track.style.display = 'flex';
+                    snapToIndex(currentIdx, false);
                 } else {
-                    // 데스크탑: 모든 패널 표시
+                    // 데스크탑: 트랙 해제, 패널 모두 표시
+                    track.style.display = '';
+                    track.style.transform = '';
+                    track.style.transition = '';
                     PANELS.forEach(p => {
                         const el = document.getElementById(p.id);
                         if (el) el.classList.remove('mobile-active');
@@ -10798,50 +10832,92 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
 
             applyMobileLayout();
-            window.addEventListener('resize', () => { applyMobileLayout(); });
+            window.addEventListener('resize', applyMobileLayout);
 
-            // ── 스와이프로 패널 전환 (모바일 전용) ──────────────────────────
-            let _swX = null, _swY = null, _swLocked = null;
-            const SWIPE_THRESHOLD = 50;  // px
-            const IGNORE_SEL = 'input, textarea, select, [contenteditable], .combo-grid, .nb-body, .panel-content.left-panel-wrapper';
+            // ── 스와이프: 손가락에 패널이 따라옴 ──────────────────────────
+            const SNAP_RATIO   = 0.3;   // 화면 30% 넘으면 다음 패널로
+            const RUBBER_K     = 0.25;  // 엣지 rubber band 저항 계수
+            const VW = () => window.innerWidth;
+
+            let swStartX = null, swStartY = null, swLocked = null, swDragging = false;
+
+            // 현재 track의 베이스 offset (px)
+            const baseOffset = () => -currentIdx * VW();
+
+            // transition 없이 즉각 이동
+            function setTrackX(x) {
+                track.style.transition = 'none';
+                track.style.transform = `translateX(${x}px)`;
+            }
+
+            // transition 붙여 스냅
+            function springTo(targetIdx) {
+                snapToIndex(targetIdx, true);
+            }
 
             document.addEventListener('touchstart', (e) => {
-                if (window.innerWidth > 1024) return;
-                const t = e.touches[0];
-                _swX = t.clientX; _swY = t.clientY; _swLocked = null;
+                if (!isMobile) return;
+                if (e.touches.length !== 1) return;
+                // 텍스트 입력 중 무시
+                if (e.target.closest('input, textarea, select, [contenteditable]')) return;
+                swStartX = e.touches[0].clientX;
+                swStartY = e.touches[0].clientY;
+                swLocked = null;
+                swDragging = false;
             }, { passive: true });
 
             document.addEventListener('touchmove', (e) => {
-                if (_swX === null || window.innerWidth > 1024) return;
-                const t = e.touches[0];
-                const dx = t.clientX - _swX;
-                const dy = t.clientY - _swY;
-                if (_swLocked === null) {
+                if (!isMobile || swStartX === null) return;
+                const dx = e.touches[0].clientX - swStartX;
+                const dy = e.touches[0].clientY - swStartY;
+
+                // 방향 결정 (8px 이상 움직인 후 락)
+                if (swLocked === null) {
                     if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-                    _swLocked = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+                    swLocked = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
                 }
-                if (_swLocked !== 'h') return;
-                // 수평 스와이프 확인됐으면 스크롤 막기
-                if (e.target.closest(IGNORE_SEL) && Math.abs(dy) < 10) {
-                    // 스크롤 컨테이너 안이라도 수평이 우세하면 막음
+                if (swLocked !== 'h') return;
+
+                swDragging = true;
+
+                // 엣지 rubber band
+                let offset = baseOffset() + dx;
+                const minX = -(PANELS.length - 1) * VW();
+                if (offset > 0) {
+                    // 첫 패널 오른쪽으로 당김
+                    offset = dx * RUBBER_K;
+                } else if (offset < minX) {
+                    // 마지막 패널 왼쪽으로 당김
+                    offset = minX + (offset - minX) * RUBBER_K;
                 }
-            }, { passive: true });
+
+                setTrackX(offset);
+
+                // 세로 스크롤 차단 (수평 드래그 확정 후)
+                try { e.preventDefault(); } catch(_) {}
+            }, { passive: false });
 
             document.addEventListener('touchend', (e) => {
-                if (_swX === null || window.innerWidth > 1024 || _swLocked !== 'h') {
-                    _swX = _swY = null; return;
+                if (!isMobile || swStartX === null || !swDragging) {
+                    swStartX = swStartY = null; swDragging = false; return;
                 }
-                // 무시 대상 확인 (텍스트 입력 중 등)
-                if (e.target.closest('input, textarea, select, [contenteditable]')) {
-                    _swX = _swY = null; return;
-                }
-                const dx = e.changedTouches[0].clientX - _swX;
-                _swX = _swY = null;
-                if (Math.abs(dx) < SWIPE_THRESHOLD) return;
-                const idx = PANELS.findIndex(p => p.id === currentPanel);
-                if (dx < 0 && idx < PANELS.length - 1) switchMobilePanel(PANELS[idx + 1].id);
-                else if (dx > 0 && idx > 0) switchMobilePanel(PANELS[idx - 1].id);
+                const dx = e.changedTouches[0].clientX - swStartX;
+                swStartX = swStartY = null; swDragging = false;
+
+                const threshold = VW() * SNAP_RATIO;
+                let targetIdx = currentIdx;
+                if (dx < -threshold && currentIdx < PANELS.length - 1) targetIdx = currentIdx + 1;
+                else if (dx > threshold && currentIdx > 0) targetIdx = currentIdx - 1;
+
+                springTo(targetIdx);
             }, { passive: true });
+
+            document.addEventListener('touchcancel', () => {
+                if (!isMobile || !swDragging) return;
+                swStartX = swStartY = null; swDragging = false;
+                springTo(currentIdx); // 원위치
+            }, { passive: true });
+
         })();
         // ────────────────────────────────────────────────────────────────────
     </script>
