@@ -843,7 +843,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.24 &nbsp;·&nbsp; 2026-06-26 — 쉬운 모드: 새로고침 버튼 제목 옆 · 친화적 단계명</span></span>
+        <span class="gt-brand"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.25 &nbsp;·&nbsp; 2026-06-26 — 쉬운 모드 카드: 핵심 제목 + 작은 문장 설명</span></span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
         <button class="gt-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i id="btn-theme-icon" class="fa-solid fa-sun"></i></button>
@@ -1600,18 +1600,19 @@
             for (let i = 0; i < n * 4 && bundles.length < n; i++) {
                 const tags = [], kors = [], seen = new Set();
                 const push = (p) => { if (p && !seen.has(p.t.toLowerCase())) { seen.add(p.t.toLowerCase()); tags.push(p.t); kors.push(p.kor); } };
+                const MAX = 4; // 핵심만 → 문장 짧고 자연스럽게 (최대 4개)
                 if (multiFolder) {
-                    // 폴더(서브카테고리)별로 하나씩 → 일본인·아담한 체형·중간 가슴 식
-                    fts.forEach(ft => {
-                        if (fts.length > 2 && Math.random() < 0.25) return; // 가끔 일부 생략 → 다양성
-                        push(ft[Math.floor(Math.random() * ft.length)]);
-                    });
+                    // 폴더(서브카테고리)를 섞어 최대 MAX개만 골라 하나씩 → 일본인·아담한 체형·중간 가슴 식
+                    const order = fts.slice();
+                    for (let k = order.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1));[order[k], order[j]] = [order[j], order[k]]; }
+                    const useFolders = order.slice(0, 2 + Math.floor(Math.random() * (MAX - 1))); // 2~MAX 폴더
+                    useFolders.forEach(ft => push(ft[Math.floor(Math.random() * ft.length)]));
                 } else {
                     // 폴더가 하나뿐(평평한 DB)이면 한 폴더에서 여러 개를 뽑아 묶음 구성
                     const pool = fts[0].slice();
                     for (let k = pool.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1));[pool[k], pool[j]] = [pool[j], pool[k]]; }
-                    const take = Math.min(pool.length, 2 + Math.floor(Math.random() * 3)); // 2~4개
-                    for (let k = 0; k < take; k++) push(pool[k]);
+                    const take = Math.min(pool.length, 2 + Math.floor(Math.random() * 2)); // 2~3개
+                    for (let k = 0; k < take && tags.length < MAX; k++) push(pool[k]);
                 }
                 if (!tags.length) continue;
                 const key = tags.slice().sort().join('|');
@@ -1724,9 +1725,10 @@
                 card.className = 'nb-card' + (sel.has(idx) ? ' sel' : '');
                 card.style.cssText = `--nbc:${cat.color}; text-align:left;`;
                 const sentence = _nbBundleSentence(cat.layer, b.tags);
+                const title = b.kors.slice(0, 3).join(' · ') + (b.kors.length > 3 ? ' …' : '');
                 card.innerHTML = `<i class="fa-solid fa-circle-check nb-check"></i>` +
-                    `<div style="font-size:13.5px; line-height:1.65; color:var(--text-main); font-weight:600; padding-right:14px;">${sentence}</div>` +
-                    `<div style="font-size:10px; color:var(--text-dim); margin-top:7px;">${b.kors.join(' · ')}</div>`;
+                    `<div style="font-size:15px; font-weight:800; color:var(--text-main); padding-right:14px; line-height:1.4;">${title}</div>` +
+                    `<div style="font-size:11px; color:var(--text-dim); margin-top:5px; line-height:1.5;">${sentence}</div>`;
                 card.onclick = () => { if (sel.has(idx)) sel.delete(idx); else sel.add(idx); _nbRender(); };
                 grid.appendChild(card);
             });
