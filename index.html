@@ -3065,29 +3065,30 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try {
                 const [qRes, hRes] = await Promise.all([
                     fetch(_comfyBase() + '/queue', { signal: AbortSignal.timeout(5000) }),
-                    fetch(_comfyBase() + '/history?max_items=64', { signal: AbortSignal.timeout(5000) })
+                    fetch(_comfyBase() + '/history?max_items=200', { signal: AbortSignal.timeout(5000) })
                 ]);
-                if (!qRes.ok) return;
+                if (!qRes.ok) return; // 연결 실패 → 로컬 상태 그대로 유지
                 const qData = await qRes.json();
                 const history = hRes.ok ? await hRes.json() : {};
 
                 // 서버에서 실제 실행 중/대기 중인 pid 목록
-                const runningPid  = (qData.queue_running  || []).map(e => e[1]).filter(Boolean);
-                const pendingPids = (qData.queue_pending  || []).map(e => e[1]).filter(Boolean);
-                const livePids    = new Set([...runningPid, ...pendingPids]);
+                const runningList = (qData.queue_running || []).map(e => e[1]).filter(Boolean);
+                const pendingList = (qData.queue_pending || []).map(e => e[1]).filter(Boolean);
+                const livePids    = new Set([...runningList, ...pendingList]);
 
-                // 1) _comfyJobs 에 있는데 서버엔 없고 history에도 없으면 → 이미 완료됐거나 사라진 job
+                // 안전 검증: livePids가 비어있고 history도 비어있으면
+                // ComfyUI가 막 시작됐거나 응답이 이상한 것일 수 있으므로 로컬 jobs는 건드리지 않음
+                const totalServer = livePids.size + Object.keys(history).length;
+                const totalLocal  = Object.keys(_comfyJobs).filter(p => !_comfyJobs[p].done).length;
+                if (totalServer === 0 && totalLocal > 0) return; // 의심스러운 빈 응답 → 무시
+
+                // 1) history에 있는 완료된 job → finalize (이미지 수집)
                 for (const pid of Object.keys(_comfyJobs)) {
                     if (_comfyJobs[pid].done) continue;
-                    if (!livePids.has(pid)) {
-                        if (history[pid] && history[pid].outputs && Object.keys(history[pid].outputs).length) {
-                            _comfyFinalize(pid); // 완료됨 → 결과 수집
-                        } else {
-                            // 서버에서 사라진 job (취소됐거나 ComfyUI 재시작) → 정리
-                            delete _comfyJobs[pid];
-                            _comfyQueueCount = Math.max(0, _comfyQueueCount - 1);
-                        }
+                    if (!livePids.has(pid) && history[pid]?.outputs && Object.keys(history[pid].outputs).length) {
+                        _comfyFinalize(pid);
                     }
+                    // 서버 큐에도 없고 history에도 없으면 → 폴링에 맡김 (강제 삭제 금지)
                 }
 
                 // 2) 서버에 있는데 _comfyJobs 에 없는 pid → 새로고침으로 유실된 job 복원
@@ -3099,22 +3100,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }
 
                 // 3) 현재 running pid 반영
-                if (runningPid.length > 0) _comfyRunningPid = runningPid[0];
+                if (runningList.length > 0) _comfyRunningPid = runningList[0];
 
                 comfyRenderQueue();
-                _comfySaveJobs();
+                // _comfySaveJobs는 finalize 내부에서 호출되므로 여기서는 별도 저장 불필요
 
-                // 4) pending job 들 폴링 시작 (웹소켓 미연결 대비)
-                for (const pid of livePids) {
-                    if (!_comfyJobs[pid]?.done) _comfyPollResult(pid, 0);
-                }
+                // 4) 살아있는 job들 폴링 시작 (웹소켓 미연결 대비)
+                const allPending = Object.keys(_comfyJobs).filter(p => !_comfyJobs[p].done);
+                allPending.forEach(pid => _comfyPollResult(pid, 0));
 
-                if (livePids.size > 0) {
+                if (allPending.length > 0) {
                     const intBtn = document.getElementById('comfy-interrupt-btn');
                     if (intBtn) intBtn.style.display = 'inline-flex';
+                    _comfyEnsureSocket();
                     _comfySetProgress(5, `${_comfyQ()}서버에서 복원됨`);
                 }
-            } catch (e) {}
+            } catch (e) {} // 네트워크 오류 → 로컬 상태 그대로
         }
 
         function _comfyEnsureSocket() {
