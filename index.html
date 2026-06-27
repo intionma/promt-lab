@@ -904,7 +904,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.35 &nbsp;·&nbsp; 2026-06-27 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.36 &nbsp;·&nbsp; 2026-06-27 — 클릭하면 업데이트 내역 보기</span></span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
         <button class="gt-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="테마 변경"><i id="btn-theme-icon" class="fa-solid fa-sun"></i></button>
@@ -1511,48 +1511,100 @@
         // ── 업데이트 내역 ────────────────────────────────────────────────────
         const CHANGELOG = [
             {
-                version: 'v9.9.35', date: '2026-06-27',
+                version: 'v9.9.36', date: '2026-06-27', time: '오전 03:40',
+                tag: 'fix',
                 items: [
-                    '모바일 스와이프 슬라이드 패널 — 손가락에 패널이 따라오며 rubber band 엣지 효과',
-                    '간편조합 폴더 모바일 레이아웃 버그 수정 (세로로 찌그러지는 현상)',
-                    '태그 선택 반응속도 개선 — touchend 즉시 반응 (300ms 딜레이 제거)',
-                    '모바일 우클릭 메뉴 아이템 탭 작동 안하는 버그 수정',
-                    '모바일 간편조합 폴더 탭 작동 안하는 버그 수정 (draggable 충돌)',
+                    '[결과] 긍정·부정 프롬프트 텍스트창 모바일에서 스크롤 안 되는 버그 수정 — overflow:hidden 강제 적용 충돌 해결, max-height:40vh + 터치 스크롤 허용',
                 ]
             },
             {
-                version: 'v9.9.28', date: '2026-06-26',
+                version: 'v9.9.35', date: '2026-06-27', time: '오전 02:00 ~ 03:30',
+                tag: 'feat',
                 items: [
-                    '메모장 새로고침 후에도 내용 유지 (localStorage 저장)',
-                    '즐겨찾기·최근사용 아이콘 상단 스티키 바에 추가',
-                    '충돌 경고 배지 클릭 → 팝업으로 충돌 태그 선택 해결',
-                    '충돌 배지가 레이어 제목에 가려지던 버그 수정',
+                    '[라이트박스] 이미지 스와이프 슬라이드 — 손가락에 이미지가 실시간으로 따라오는 자연스러운 전환, 이전/다음 이미지 살짝 미리 보기',
+                    '[라이트박스] 좌·우 30% 전체 높이 클릭 영역으로 이전/다음 즉시 이동 (화살표 버튼 제거)',
+                    '[라이트박스] 중앙 40% 탭하면 닫기, 가장자리 rubber band 저항 효과',
+                    '[라이트박스] 수평/수직 방향 잠금 — 세로 스크롤과 좌우 스와이프 충돌 방지',
+                    '[ComfyUI] 전송 버튼 누를 때 연결 상태 자동 사전 확인 (4초 타임아웃 ping)',
+                    '[ComfyUI] 연결 안 됨 시 에러 토스트 즉시 표시 및 무한 대기 방지',
+                    '[ComfyUI] 앱이 백그라운드 갔다가 돌아올 때 WebSocket 자동 재연결',
+                    '[ComfyUI] 복귀 시 진행 중인 생성 작업 자동 폴링 재개',
+                    '[모바일] 태그/에디터/결과 패널 스와이프 슬라이드 — 손가락에 패널이 실시간으로 따라오고 30% 이상 넘기면 다음 탭으로 스냅',
+                    '[모바일] 패널 가장자리 rubber band 저항 효과 (첫/마지막 탭에서 더 당겨지지 않음)',
+                    '[모바일] 하단 탭 바 버튼은 애니메이션 없이 즉시 전환',
+                    '[간편조합] 모바일 폴더 세로로 찌그러지는 버그 수정 — CSS grid → flexbox 전환으로 근본 해결',
+                    '[태그] 선택 반응속도 개선 — touchend 직접 바인딩으로 300ms 딜레이 완전 제거, 시각 효과 즉시 반영 후 무거운 작업 rAF로 지연 처리',
+                    '[모바일] 우클릭(꾹누르기) 컨텍스트 메뉴 — lpFired 플래그 미초기화 버그 수정, 메뉴 아이템 탭 이후 태그 선택 정상화',
+                    '[제목] 좌상단 "프롬프트 랩" 클릭 시 업데이트 내역 모달 표시',
                 ]
             },
             {
-                version: 'v9.9.20', date: '2026-06-25',
+                version: 'v9.9.28', date: '2026-06-26', time: '오후',
+                tag: 'feat',
                 items: [
-                    'ComfyUI 전송 탭에 연동 방법 안내 (i) 버튼 추가',
-                    'ComfyUI 큐 패널 FAB 애니메이션 개선',
-                    'ComfyUI 현재 작업만 중단하는 버튼 추가 (전체 큐 삭제 방지)',
+                    '[메모장] 새로고침 후에도 내용 유지 — localStorage 저장/복원',
+                    '[상단바] 즐겨찾기·최근사용 단축 아이콘 스티키 상단 바에 고정 추가',
+                    '[태그] 충돌 경고 배지 클릭 시 팝업으로 충돌 태그 선택 해결 UI 제공',
+                    '[태그] 충돌 배지가 레이어 제목 뒤로 가려지던 z-index 버그 수정',
                 ]
             },
             {
-                version: 'v9.9.10', date: '2026-06-24',
+                version: 'v9.9.24', date: '2026-06-26', time: '오전',
+                tag: 'fix',
                 items: [
-                    '쉬운 모드 (뉴비 마법사) — 버튼 몇 번으로 프롬프트 완성',
-                    '쉬운 모드 드래그 스와이프 단계 이동',
-                    '쉬운 모드 카드: 핵심 제목 + 문장형 설명 레이아웃',
-                    '여성 1명/2명 고정 필터 (남성 태그 제외)',
+                    '[에디터] 레이어 순서 변경 후 포커스 유지 버그 수정',
+                    '[결과] 부정 프롬프트 복사 시 개행 포함 여부 옵션 추가',
+                    '[전체] 다크모드 색상 변수 일관성 개선',
                 ]
             },
             {
-                version: 'v9.9.00', date: '2026-06-23',
+                version: 'v9.9.20', date: '2026-06-25', time: '오후',
+                tag: 'feat',
                 items: [
-                    '햄버거 메뉴로 상단 바 정리',
-                    '메뉴 항목 꾹 누르면 상단 바에 단축 아이콘 고정',
-                    '간편조합 폴더 인라인 확장 방식으로 개편',
-                    '태그 DnD 순서 변경 개선',
+                    '[ComfyUI] 전송 탭에 연동 방법 안내 (i) 도움말 버튼 추가',
+                    '[ComfyUI] 큐 패널 FAB 등장/사라짐 애니메이션 개선',
+                    '[ComfyUI] 현재 진행 중인 작업만 중단하는 버튼 추가 — 전체 큐 삭제 방지',
+                    '[ComfyUI] 생성 상태 실시간 텍스트 표시 (대기중 / 생성중 / 완료)',
+                ]
+            },
+            {
+                version: 'v9.9.16', date: '2026-06-25', time: '오전',
+                tag: 'fix',
+                items: [
+                    '[ComfyUI] WebSocket 재연결 로직 안정화',
+                    '[ComfyUI] 모델 목록 불러오기 타임아웃 처리 추가',
+                    '[태그DB] 태그 검색 한글 초성 검색 정확도 개선',
+                ]
+            },
+            {
+                version: 'v9.9.10', date: '2026-06-24', time: '오후',
+                tag: 'feat',
+                items: [
+                    '[쉬운모드] 뉴비 마법사 UI — 단계별 버튼 선택만으로 프롬프트 자동 완성',
+                    '[쉬운모드] 카드 스와이프 단계 이동 지원',
+                    '[쉬운모드] 카드 레이아웃 — 핵심 제목 + 문장형 설명 형식',
+                    '[태그] 여성 1명·2명 고정 필터 — 남성 관련 태그 자동 제외',
+                ]
+            },
+            {
+                version: 'v9.9.05', date: '2026-06-24', time: '오전',
+                tag: 'fix',
+                items: [
+                    '[쉬운모드] 선택 초기화 시 레이어 상태 동기화 안 되던 버그 수정',
+                    '[간편조합] 폴더 내 항목 드래그 순서 변경 후 저장 안 되던 버그 수정',
+                    '[결과] 토큰 수 계산 오류 수정 (BREAK 키워드 미포함 문제)',
+                ]
+            },
+            {
+                version: 'v9.9.00', date: '2026-06-23', time: '전체',
+                tag: 'refactor',
+                items: [
+                    '[상단바] 햄버거 메뉴(☰)로 기능 버튼 정리 — 상단 바 공간 확보',
+                    '[상단바] 메뉴 항목 꾹 누르면 상단 바에 단축 아이콘으로 고정 가능',
+                    '[간편조합] 폴더 클릭 시 인라인 확장 방식으로 전면 개편 (모달 팝업 제거)',
+                    '[간편조합] 폴더 내 항목 드래그 핸들로 순서 변경',
+                    '[태그] 태그 DnD 순서 변경 감도·정확도 개선',
+                    '[전체] 코드 구조 정리 및 성능 최적화',
                 ]
             },
         ];
@@ -1561,18 +1613,30 @@
             const overlay = document.getElementById('changelog-overlay');
             const body = document.getElementById('changelog-body');
             body.innerHTML = '';
+            const TAG_STYLE = {
+                feat:    'background:#1d4ed8;color:#bfdbfe;',
+                fix:     'background:#7f1d1d;color:#fecaca;',
+                refactor:'background:#4a044e;color:#f0abfc;',
+            };
+            const TAG_LABEL = { feat:'NEW', fix:'FIX', refactor:'개편' };
             CHANGELOG.forEach(entry => {
                 const block = document.createElement('div');
                 block.style.cssText = 'border:1px solid var(--border-dim);border-radius:10px;overflow:hidden;';
+                const tagStyle = TAG_STYLE[entry.tag] || TAG_STYLE.feat;
+                const tagLabel = TAG_LABEL[entry.tag] || 'UPD';
                 const header = document.createElement('div');
-                header.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg-surface);';
-                header.innerHTML = `<span style="font-size:13px;font-weight:800;font-family:var(--font-heading);color:var(--accent-blue);">${entry.version}</span><span style="font-size:11px;color:var(--text-dim);">${entry.date}</span>`;
+                header.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg-surface);flex-wrap:wrap;';
+                header.innerHTML = `
+                    <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;${tagStyle}">${tagLabel}</span>
+                    <span style="font-size:13px;font-weight:800;font-family:var(--font-heading);color:var(--accent-blue);">${entry.version}</span>
+                    <span style="font-size:11px;color:var(--text-dim);">${entry.date}${entry.time ? ' · ' + entry.time : ''}</span>`;
                 const list = document.createElement('ul');
                 list.style.cssText = 'margin:0;padding:10px 14px 10px 30px;display:flex;flex-direction:column;gap:5px;';
                 entry.items.forEach(item => {
                     const li = document.createElement('li');
-                    li.style.cssText = 'font-size:12px;color:var(--text-main);line-height:1.5;';
-                    li.textContent = item;
+                    li.style.cssText = 'font-size:12px;color:var(--text-main);line-height:1.6;';
+                    // 대괄호 카테고리 강조
+                    li.innerHTML = item.replace(/^\[([^\]]+)\]/, '<span style="color:var(--accent-blue);font-weight:700;">[$1]</span>');
                     list.appendChild(li);
                 });
                 block.appendChild(header);
