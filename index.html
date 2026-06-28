@@ -1214,10 +1214,12 @@
                     <div id="io-export-size" style="font-size:11px;color:var(--text-dim);margin-top:10px;font-family:var(--font-ui);"></div>
                 </div>
                 <textarea class="io-textarea" id="io-textarea"></textarea>
-                <div style="display:flex; gap:10px; margin-top:18px; align-items:center;">
+                <div style="display:flex; gap:10px; margin-top:18px; align-items:center; flex-wrap:wrap;">
                     <div id="io-size-label" style="font-size:11px;color:var(--text-dim);font-family:var(--font-ui);flex:1;"></div>
+                    <button class="btn-add-db" id="io-file-btn" style="border:1.5px solid var(--border-dim); background:transparent; color:var(--text-main); padding:12px 18px;" onclick="executeIOFile()"></button>
                     <button class="btn-add-db" style="border:none; padding:12px 28px;" id="io-action-btn" onclick="executeIO()"></button>
                 </div>
+                <input type="file" id="io-file-input" accept="application/json,.json,.txt" style="display:none;" onchange="importIOFromFile(event)">
             </div>
         </div>
     </div>
@@ -10081,6 +10083,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const desc = document.getElementById('io-desc');
             const textarea = document.getElementById('io-textarea');
             const btn = document.getElementById('io-action-btn');
+            const fileBtn = document.getElementById('io-file-btn');
             const exportOpts = document.getElementById('io-export-options');
             if (type === 'export') {
                 title.innerHTML = '<i class="fa-solid fa-copy"></i> 데이터 내보내기';
@@ -10092,6 +10095,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 textarea.readOnly = true;
                 btn.innerText = "선택 항목 복사하기";
                 btn.style.backgroundColor = "var(--accent-blue)";
+                if (fileBtn) fileBtn.innerHTML = '<i class="fa-solid fa-file-arrow-down"></i> 파일로 저장';
             } else {
                 title.innerHTML = '<i class="fa-solid fa-paste"></i> 복구/추가';
                 desc.innerHTML = `백업해둔 코드를 붙여넣기 하세요.<br>
@@ -10106,6 +10110,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 window._importMode = 'restore';
                 btn.innerText = "복구 실행";
                 btn.style.backgroundColor = "var(--accent-green)";
+                if (fileBtn) fileBtn.innerHTML = '<i class="fa-solid fa-file-arrow-up"></i> 파일에서 불러오기';
             }
             modal.style.display = 'flex';
         }
@@ -10428,6 +10433,41 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     showToast("잘못된 코드 형식입니다.", "error");
                 }
             }
+        }
+
+        // 파일로 내보내기 / 파일에서 불러오기 (텍스트 방식과 별개, 동일 데이터 형식)
+        function executeIOFile() {
+            if (currentIOType === 'export') {
+                const text = buildExportData();
+                try {
+                    const blob = new Blob([text], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    const ts = new Date().toISOString().slice(0, 10);
+                    a.href = url;
+                    a.download = `프롬프트랩_백업_${ts}.json`;
+                    document.body.appendChild(a); a.click(); a.remove();
+                    setTimeout(() => URL.revokeObjectURL(url), 2000);
+                    showToast('파일로 저장했습니다.', 'success');
+                } catch (e) { showToast('파일 저장 실패', 'error'); }
+            } else {
+                const inp = document.getElementById('io-file-input');
+                if (inp) inp.click();
+            }
+        }
+
+        function importIOFromFile(event) {
+            const file = event.target.files && event.target.files[0];
+            event.target.value = ''; // 같은 파일 재선택 가능하도록 초기화
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                const ta = document.getElementById('io-textarea');
+                if (ta) ta.value = String(reader.result || '');
+                executeIO(); // 기존 복구/병합 로직 재사용 (현재 선택된 모드 적용)
+            };
+            reader.onerror = () => showToast('파일을 읽지 못했습니다.', 'error');
+            reader.readAsText(file);
         }
 
         function openDBManager() { renderDBTable(); renderDBLayerTabs(); document.getElementById('db-manager-modal').style.display = 'flex'; }
