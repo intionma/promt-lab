@@ -949,7 +949,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.56 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.58 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1589,7 +1589,18 @@
         const CHANGELOG = [
             // ── 2026-06-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.9.56', date: '2026-06-28', time: '저녁 (최신)',
+                version: 'v9.9.58', date: '2026-06-28', time: '밤 (최신)',
+                tag: 'feat',
+                items: [
+                    '[라이트박스] 더블클릭/더블탭으로 확대·복귀 (탭한 지점 중심, 부드러운 애니메이션)',
+                    '[라이트박스] 확대 상태에서 드래그로 이동(팬), 경계 클램프',
+                    '[라이트박스] 핀치 줌(모바일 두 손가락)·마우스 휠 줌 — 최대 5배, 원래 크기로 줄이면 줌 자동 해제',
+                    '[라이트박스] 확대 중엔 넘기기/닫기 비활성화, 다른 이미지로 가거나 닫으면 줌 초기화',
+                    '[결과] 긍정 프롬프트 복사·전송 버튼을 상단에 고정(sticky)',
+                ]
+            },
+            {
+                version: 'v9.9.56', date: '2026-06-28', time: '저녁',
                 tag: 'feat',
                 items: [
                     '[추천] 추천 조합(⚡) — 별도 창 없이 태그 패널 상단에 인라인 표시, 토글 ON/OFF (기본 OFF)',
@@ -3702,7 +3713,73 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             });
 
             const VW = () => window.innerWidth;
+            const VH = () => window.innerHeight;
             let _busy = false;
+
+            // ── 줌/팬 상태 ────────────────────────────────────────────────
+            const ZMAX = 5, ZDBL = 2.5, ZEASE = 'cubic-bezier(.22,.61,.36,1)';
+            let _zoom = 1, _zx = 0, _zy = 0;        // 배율 / 이동(px)
+            let _panning = false, _panLX = 0, _panLY = 0;
+            let _pinch = null;                       // {lastDist, lastMX, lastMY}
+            let _lastTapT = 0, _lastTapX = 0, _lastTapY = 0;
+            const _isZoomed = () => _zoom > 1.01;
+
+            // 줌 배율 배지
+            const _zoomBadge = document.createElement('div');
+            _zoomBadge.style.cssText = 'position:absolute; top:16px; left:18px; z-index:11; background:rgba(0,0,0,0.55); color:#fff; font-size:12px; font-weight:700; padding:4px 10px; border-radius:20px; opacity:0; transition:opacity .2s; pointer-events:none;';
+            box.appendChild(_zoomBadge);
+
+            function _imgBase() {
+                const im = SLOTS[1];
+                return { w: im.clientWidth || im.naturalWidth || VW(), h: im.clientHeight || im.naturalHeight || VH() };
+            }
+            function _clampPan() {
+                const b = _imgBase();
+                const mx = Math.max(0, (b.w * _zoom - VW()) / 2);
+                const my = Math.max(0, (b.h * _zoom - VH()) / 2);
+                _zx = Math.max(-mx, Math.min(mx, _zx));
+                _zy = Math.max(-my, Math.min(my, _zy));
+            }
+            function _applyZoom(animate) {
+                const im = SLOTS[1];
+                im.style.transition = animate ? `transform .28s ${ZEASE}` : 'none';
+                im.style.transform = `translate(${_zx}px, ${_zy}px) scale(${_zoom})`;
+                _zoomBadge.style.opacity = _isZoomed() ? '1' : '0';
+                _zoomBadge.textContent = _zoom.toFixed(1) + 'x';
+            }
+            function _resetZoom(animate) { _zoom = 1; _zx = 0; _zy = 0; _applyZoom(!!animate); }
+            // 한 점(cx,cy) 고정하며 배율 곱하기 — 휠·핀치·더블탭 공용
+            function _zoomBy(factor, cx, cy, animate) {
+                const nz = Math.max(1, Math.min(ZMAX, _zoom * factor));
+                const ratio = nz / _zoom;
+                const px = cx - VW() / 2, py = cy - VH() / 2;
+                _zx = px - ratio * (px - _zx);
+                _zy = py - ratio * (py - _zy);
+                _zoom = nz;
+                if (_zoom <= 1.01) { _zoom = 1; _zx = 0; _zy = 0; } // 최소(원래 크기) 도달 → 줌 해제 판정
+                else _clampPan();
+                _applyZoom(animate);
+            }
+            function _toggleZoomAt(cx, cy) {
+                if (_isZoomed()) _resetZoom(true);
+                else _zoomBy(ZDBL, cx, cy, true);
+            }
+            // 더블탭/더블클릭과 충돌 방지: 단순 탭 닫기는 300ms 지연 후 실행
+            let _closeTimer = null;
+            const _cancelClose = () => { if (_closeTimer) { clearTimeout(_closeTimer); _closeTimer = null; } };
+            const _scheduleClose = () => { _cancelClose(); _closeTimer = setTimeout(() => { _closeTimer = null; closeLightbox(); }, 300); };
+            // 탭/클릭 1회 처리 — 더블이면 줌 토글, 아니면 (중앙·비줌) 닫기 예약
+            function _handleTapEnd(x, y, target) {
+                const onCtl = target && target.closest && target.closest('button, #img-lightbox-counter, a');
+                const now = Date.now();
+                if (now - _lastTapT < 300 && Math.abs(x - _lastTapX) < 40 && Math.abs(y - _lastTapY) < 40 && !onCtl) {
+                    _cancelClose(); _lastTapT = 0;
+                    _toggleZoomAt(x, y);
+                    return;
+                }
+                _lastTapT = now; _lastTapX = x; _lastTapY = y;
+                if (!_isZoomed() && !onCtl && x > VW() * 0.3 && x < VW() * 0.7) _scheduleClose();
+            }
 
             // 트랙을 cur(슬롯1)에 즉시 맞춤
             function _center() {
@@ -3723,6 +3800,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 SLOTS[1].src = _lbUrls[_lbIdx] || '';
                 SLOTS[0].src = _lbIdx > 0     ? _lbUrls[_lbIdx - 1] : '';
                 SLOTS[2].src = _lbIdx < n - 1 ? _lbUrls[_lbIdx + 1] : '';
+                _resetZoom(false); // 다른 이미지로 넘어가면 줌 초기화
             }
 
             function _updateUI() {
@@ -3781,12 +3859,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const dragged = ptDragged;
                 ptX = null; ptY = null; ptAxis = null; ptDragged = false;
 
-                if (!dragged) {
-                    // 단순 탭/클릭 → 중앙 40% 영역이면 닫기
-                    if (Math.abs(dx) < 10 && Math.abs(dy) < 10 &&
-                        x > VW() * 0.3 && x < VW() * 0.7) closeLightbox();
-                    return;
-                }
+                if (!dragged) return; // 단순 탭은 _handleTapEnd 에서 처리
 
                 _lbRefresh(); // 생성 중 새로 추가된 미리보기 반영
                 const n = _lbUrls.length;
@@ -3813,47 +3886,103 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }
             }
 
-            // ── 터치 ──────────────────────────────────────────────────────
+            // ── 터치 (스와이프 / 더블탭 줌 / 핀치 / 팬) ───────────────────
+            const _dist = (a, b) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+            const _mid = (a, b) => ({ x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 });
+
             box.addEventListener('touchstart', e => {
+                if (e.touches.length === 2) {
+                    // 핀치 시작
+                    ptX = null; _panning = false;
+                    const m = _mid(e.touches[0], e.touches[1]);
+                    _pinch = { lastDist: _dist(e.touches[0], e.touches[1]), lastMX: m.x, lastMY: m.y };
+                    return;
+                }
                 if (e.touches.length !== 1) return;
-                _start(e.touches[0].clientX, e.touches[0].clientY);
+                const t = e.touches[0];
+                if (_isZoomed()) { _panning = true; _panLX = t.clientX; _panLY = t.clientY; ptX = null; }
+                else { _start(t.clientX, t.clientY); }
             }, { passive: true });
+
             box.addEventListener('touchmove', e => {
-                _move(e.touches[0].clientX, e.touches[0].clientY, () => e.preventDefault());
+                if (_pinch && e.touches.length === 2) {
+                    e.preventDefault();
+                    const a = e.touches[0], b = e.touches[1];
+                    const d = _dist(a, b), m = _mid(a, b);
+                    _zoomBy(d / _pinch.lastDist, m.x, m.y, false);     // 손가락 사이 중점 기준 확대/축소
+                    _zx += (m.x - _pinch.lastMX); _zy += (m.y - _pinch.lastMY); // 두 손가락 이동 = 팬
+                    _clampPan(); _applyZoom(false);
+                    _pinch.lastDist = d; _pinch.lastMX = m.x; _pinch.lastMY = m.y;
+                    return;
+                }
+                if (_panning && e.touches.length === 1) {
+                    e.preventDefault();
+                    const t = e.touches[0];
+                    _zx += t.clientX - _panLX; _zy += t.clientY - _panLY;
+                    _panLX = t.clientX; _panLY = t.clientY;
+                    _clampPan(); _applyZoom(false);
+                    return;
+                }
+                if (ptX !== null) _move(e.touches[0].clientX, e.touches[0].clientY, () => e.preventDefault());
             }, { passive: false });
+
             box.addEventListener('touchend', e => {
+                // 핀치 종료
+                if (_pinch && e.touches.length < 2) {
+                    _pinch = null;
+                    if (!_isZoomed()) _resetZoom(true); // 원래 크기로 줄었으면 줌 해제(스냅)
+                    return;
+                }
+                if (_panning) { if (e.touches.length === 0) _panning = false; return; }
+
                 const t = e.changedTouches[0];
                 const dx = ptX !== null ? t.clientX - ptX : 0;
                 const dy = ptY !== null ? t.clientY - ptY : 0;
-                // 중앙 영역을 탭해서 닫는 경우에만 click 투과 방지.
-                // 버튼/컨트롤 위의 탭은 onclick이 정상 동작하도록 preventDefault 하지 않음.
-                const isCloseTap = !ptDragged
-                    && Math.abs(dx) < 10 && Math.abs(dy) < 10
-                    && t.clientX > VW() * 0.3 && t.clientX < VW() * 0.7
-                    && !(e.target && e.target.closest('button, #img-lightbox-counter, a'));
-                _end(t.clientX, t.clientY);
-                if (isCloseTap) e.preventDefault();
+                const isTap = !ptDragged && Math.abs(dx) < 10 && Math.abs(dy) < 10;
+
+                if (isTap) {
+                    _handleTapEnd(t.clientX, t.clientY, e.target);
+                    if (!(e.target && e.target.closest('button, #img-lightbox-counter, a'))) e.preventDefault();
+                    ptX = null; ptY = null; ptAxis = null; ptDragged = false;
+                    return;
+                }
+                if (ptX !== null) _end(t.clientX, t.clientY); else { ptX = null; ptY = null; ptAxis = null; ptDragged = false; }
             }, { passive: false });
 
-            // ── 마우스 드래그 (PC) ────────────────────────────────────────
-            let _md = false;
+            // ── 마우스 (PC): 드래그 스와이프 / 줌 시 팬 / 더블클릭 줌 / 휠 줌 ──
+            let _md = false, _mDownX = 0, _mDownY = 0;
             box.addEventListener('mousedown', e => {
                 if (e.button !== 0 || e.target.closest('button, #img-lightbox-counter')) return;
-                _md = true;
-                _start(e.clientX, e.clientY);
+                _md = true; _mDownX = e.clientX; _mDownY = e.clientY;
+                if (_isZoomed()) { _panning = true; _panLX = e.clientX; _panLY = e.clientY; box.style.cursor = 'grabbing'; }
+                else { _start(e.clientX, e.clientY); }
                 e.preventDefault();
             });
             window.addEventListener('mousemove', e => {
                 if (!_md) return;
+                if (_panning) {
+                    _zx += e.clientX - _panLX; _zy += e.clientY - _panLY;
+                    _panLX = e.clientX; _panLY = e.clientY;
+                    _clampPan(); _applyZoom(false);
+                    return;
+                }
                 _move(e.clientX, e.clientY, null);
                 if (ptDragged) box.style.cursor = 'grabbing';
             });
             window.addEventListener('mouseup', e => {
                 if (!_md) return;
-                _md = false;
-                box.style.cursor = '';
-                _end(e.clientX, e.clientY);
+                _md = false; box.style.cursor = '';
+                if (_panning) { _panning = false; return; }
+                const dx = e.clientX - _mDownX, dy = e.clientY - _mDownY;
+                if (!ptDragged && Math.abs(dx) < 6 && Math.abs(dy) < 6) { _handleTapEnd(e.clientX, e.clientY, e.target); ptX = null; return; }
+                if (ptX !== null) _end(e.clientX, e.clientY);
             });
+            // 휠 줌 (커서 기준)
+            box.addEventListener('wheel', e => {
+                if (box.style.display === 'none') return;
+                e.preventDefault();
+                _zoomBy(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX, e.clientY, false);
+            }, { passive: false });
 
             // ── 공개 API ──────────────────────────────────────────────────
             window.openLightbox = function (url, urls, idx) {
@@ -3861,6 +3990,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _lbIdx  = typeof idx === 'number' && idx >= 0 && idx < _lbUrls.length
                           ? idx : Math.max(0, _lbUrls.indexOf(url));
                 _lbParent = null; // 직접 호출은 실시간 갱신 대상 아님 (openLightboxFromEl에서 설정)
+                _resetZoom(false);
                 box.style.display = 'block';
                 _loadSlots();
                 _center();
@@ -3884,6 +4014,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
             window.closeLightbox = function () {
                 if (box.style.display === 'none') return;
+                _cancelClose(); _resetZoom(false);
                 box.style.display = 'none';
                 SLOTS.forEach(img => { img.src = ''; });
                 _lbUrls = []; _lbIdx = 0;
