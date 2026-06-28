@@ -945,6 +945,7 @@
 
             <div class="gt-menu-sec">기타</div>
             <button class="gt-menu-item" data-tool="theme" onclick="closeGtMenu();toggleTheme()"><i class="fa-solid fa-circle-half-stroke"></i><span>테마 변경</span></button>
+            <button class="gt-menu-item" data-tool="mocktest" style="--gc:#a855f7;" onclick="closeGtMenu();comfyMockTest(4)"><i class="fa-solid fa-flask"></i><span>개발자 테스트</span><small>ComfyUI 없이 가상 이미지 4개 생성</small></button>
             <button class="gt-menu-item" data-tool="shutdown" style="--gc:#ef4444;" onclick="closeGtMenu();openShutdownModal()"><i class="fa-solid fa-power-off"></i><span>PC 종료</span><small>도우미 스크립트 필요</small></button>
         </div>
     </header>
@@ -3917,6 +3918,110 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 renderImageGallery();
                 showToast('갤러리를 비웠습니다.', 'success');
             });
+        }
+
+        // ── 개발자용 가상(Mock) 생성 테스트 ───────────────────────────────
+        // ComfyUI 연결 없이 가상 이미지를 생성해 대기열·진행바·라이브 미리보기·갤러리·라이트박스를 테스트
+        let _mockQueue = [];
+        let _mockRunning = false;
+        let _mockSeqCounter = 0;
+
+        function _mockImgDataUrl(num, stage) {
+            const h1 = Math.floor(Math.random() * 360), h2 = (h1 + 55) % 360;
+            const cx = 120 + Math.random() * 270, cy = 180 + Math.random() * 260;
+            const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='512' height='768'>` +
+                `<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>` +
+                `<stop offset='0' stop-color='hsl(${h1},65%,55%)'/>` +
+                `<stop offset='1' stop-color='hsl(${h2},60%,32%)'/></linearGradient></defs>` +
+                `<rect width='512' height='768' fill='url(#g)'/>` +
+                `<circle cx='${cx.toFixed(0)}' cy='${cy.toFixed(0)}' r='110' fill='rgba(255,255,255,0.22)'/>` +
+                `<circle cx='${(512 - cx).toFixed(0)}' cy='${(768 - cy).toFixed(0)}' r='70' fill='rgba(0,0,0,0.15)'/>` +
+                `<text x='256' y='430' font-size='110' font-family='sans-serif' fill='rgba(255,255,255,0.95)' text-anchor='middle' font-weight='bold'>#${num}</text>` +
+                `<text x='256' y='510' font-size='30' font-family='sans-serif' fill='rgba(255,255,255,0.85)' text-anchor='middle' letter-spacing='4'>MOCK</text>` +
+                (stage ? `<text x='256' y='560' font-size='26' font-family='sans-serif' fill='rgba(255,255,255,0.8)' text-anchor='middle'>${stage}</text>` : '') +
+                `</svg>`;
+            return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        }
+
+        function comfyMockTest(count) {
+            count = count || 4;
+            const pos = (document.getElementById('final-positive')?.value || '').trim();
+            const baseLabel = (pos ? _comfyKorLabel(pos) : '') || '테스트 이미지';
+            for (let i = 0; i < count; i++) {
+                const pid = 'mock_' + Date.now() + '_' + (++_mockSeqCounter);
+                _comfyJobs[pid] = { inline: null, cleared: false, done: false, seq: ++_comfyJobSeq, label: baseLabel, _mock: true };
+                _comfyQueueCount++;
+                _comfyBatchTotal++;
+                _mockQueue.push(pid);
+            }
+            const lw = document.getElementById('comfy-live-wrap');
+            if (lw) lw.style.display = 'block';
+            comfyRenderQueue();
+            showToast(`🧪 가상 생성 ${count}개 시작 (ComfyUI 불필요)`, 'info', 2500);
+            _mockDrive();
+        }
+
+        function _mockDrive() {
+            if (_mockRunning) return;
+            let next;
+            while ((next = _mockQueue.shift()) !== undefined) {
+                if (_comfyJobs[next]) break; // 취소된 job 건너뜀
+            }
+            if (next === undefined) return;
+            _mockRunning = true;
+            _mockRunJob(next, () => { _mockRunning = false; _mockDrive(); });
+        }
+
+        function _mockRunJob(pid, onDone) {
+            _comfyRunningPid = pid;
+            const lt = document.getElementById('comfy-live-thumbs');
+            if (lt) lt.innerHTML = '';
+            if (_comfyJobs[pid]) _comfyJobs[pid].cleared = true;
+            comfyRenderQueue();
+            let pct = 0;
+            const stages = { base: false, detail: false };
+            const seq = _comfyJobs[pid] ? _comfyJobs[pid].seq : 0;
+            const timer = setInterval(() => {
+                if (!_comfyJobs[pid]) { clearInterval(timer); onDone(); return; } // 도중 취소됨
+                pct += Math.random() * 11 + 6;
+                if (pct > 100) pct = 100;
+                _comfySetProgress(pct, `🧪 가상 생성 중... ${Math.floor(pct)}%`, null);
+                if (pct > 30 && !stages.base) {
+                    stages.base = true;
+                    if (lt) lt.appendChild(_comfyThumb(_mockImgDataUrl(seq, '베이스'), 160, '베이스'));
+                }
+                if (pct > 65 && !stages.detail) {
+                    stages.detail = true;
+                    if (lt) lt.appendChild(_comfyThumb(_mockImgDataUrl(seq, '얼굴 디테일'), 160, '얼굴 디테일'));
+                }
+                if (pct >= 100) {
+                    clearInterval(timer);
+                    _mockFinalize(pid);
+                    setTimeout(onDone, 400);
+                }
+            }, 320);
+        }
+
+        function _mockFinalize(pid) {
+            const job = _comfyJobs[pid];
+            if (!job || job.done) return;
+            job.done = true;
+            const url = _mockImgDataUrl(job.seq, '완성');
+            const gallery = document.getElementById('comfy-gallery');
+            if (gallery) gallery.prepend(_comfyThumb(url, 240));
+            galleryAddImage(url); // 결과 갤러리 탭에 영구 저장
+            delete _comfyJobs[pid];
+            _comfyQueueCount = Math.max(0, _comfyQueueCount - 1);
+            _comfyBatchDone++;
+            comfyRenderQueue();
+            if (_comfyQueueCount > 0) {
+                _comfySetProgress(100, '완료 · 다음 대기', null);
+            } else {
+                _comfySetProgress(100, '✅ 가상 생성 모두 완료', null);
+                _comfyRunningPid = null;
+                _comfyBatchTotal = 0; _comfyBatchDone = 0;
+                _comfyOnAllDone();
+            }
         }
 
         // 현재 작업 중단 + 대기열 전체 비우기
