@@ -1076,6 +1076,10 @@
 
                 <!-- 긍정 탭 -->
                 <div class="result-tab-content active" id="rtab-content-pos">
+                    <div id="pos-action-row" style="position:sticky; top:0; z-index:5; padding:6px 0 8px; margin-bottom:4px; display:flex; gap:8px; background:var(--bg-panel);">
+                        <button class="btn-copy pos" style="flex:1;" onclick="copyPrompt('pos')"><i class="fa-solid fa-copy"></i> 긍정 복사</button>
+                        <button id="btn-comfy-send-pos" class="btn-copy" style="flex:1; display:none; background:#38bdf8; border-color:#38bdf8;" onclick="comfyQuickSend('pos')"><i class="fa-solid fa-paper-plane"></i> ComfyUI 전송</button>
+                    </div>
                     <div class="result-box-container">
                         <div class="result-label">
                             <div style="display: flex; align-items: center; gap: 10px;">
@@ -1113,10 +1117,6 @@
                             <span style="color: var(--text-dim); font-size:12px;"><i class="fa-solid fa-language"></i> 한글 번역 (긍정)</span>
                         </div>
                         <div class="preview-box" id="korean-preview">태그의 한글 뜻이 표시됩니다.</div>
-                    </div>
-                    <div id="pos-action-row" style="margin-top:auto; padding-top:8px; display:flex; gap:8px;">
-                        <button class="btn-copy pos" style="flex:1;" onclick="copyPrompt('pos')"><i class="fa-solid fa-copy"></i> 긍정 복사</button>
-                        <button id="btn-comfy-send-pos" class="btn-copy" style="flex:1; display:none; background:#38bdf8; border-color:#38bdf8;" onclick="comfyQuickSend('pos')"><i class="fa-solid fa-paper-plane"></i> ComfyUI 전송</button>
                     </div>
                     <div id="comfy-inline-pos" style="display:none; padding-top:10px;">
                         <div id="comfy-inline-prog-pos" style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
