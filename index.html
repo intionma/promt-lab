@@ -1205,6 +1205,7 @@
                         <button class="io-pill active" data-key="kormap" style="--pc:#f97316;" onclick="toggleIOPill(this)"><i class="fa-solid fa-language"></i> 한글 번역맵</button>
                         <button class="io-pill active" data-key="presets" style="--pc:#818cf8;" onclick="toggleIOPill(this)"><i class="fa-solid fa-floppy-disk"></i> 프리셋</button>
                         <button class="io-pill active" data-key="comfy" style="--pc:#38bdf8;" onclick="toggleIOPill(this)"><i class="fa-solid fa-paper-plane"></i> ComfyUI 설정</button>
+                        <button class="io-pill active" data-key="wfjson" style="--pc:#0ea5e9;" onclick="toggleIOPill(this)"><i class="fa-solid fa-diagram-project"></i> 워크플로우 JSON</button>
                         <button class="io-pill active" data-key="gallery" style="--pc:#34d399;" onclick="toggleIOPill(this)"><i class="fa-solid fa-images"></i> 이미지 갤러리</button>
                         <button class="io-pill active" data-key="pins" style="--pc:#fbbf24;" onclick="toggleIOPill(this)"><i class="fa-solid fa-thumbtack"></i> 상단바 핀</button>
                         <button class="io-pill active" data-key="memo" style="--pc:#fb923c;" onclick="toggleIOPill(this)"><i class="fa-solid fa-pen-to-square"></i> 메모장</button>
@@ -10047,7 +10048,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (a.favs !== false) data.favorites = favorites;
             if (a.kormap !== false) data.customKorMap = customKorMap;
             if (a.presets !== false) data.userPresets = userPresets;
-            if (a.comfy !== false) { try { data.comfySettings = JSON.parse(localStorage.getItem(COMFY_KEY) || 'null'); } catch(e) {} }
+            if (a.comfy !== false) { try { const cs = JSON.parse(localStorage.getItem(COMFY_KEY) || 'null'); if (cs && typeof cs === 'object' && a.wfjson === false) delete cs.wfJson; data.comfySettings = cs; } catch(e) {} }
             if (a.etc !== false) {
                 const etc = {};
                 ['pro_prompt_combos_v7_0', 'pro_prompt_theme', 'preview_thumb_h', 'panel_widths_v1', 'ccm_mode', 'kor_preview_pos_collapsed', 'kor_preview_neg_collapsed', 'shutdown_settings_v1'].forEach(k => {
