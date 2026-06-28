@@ -949,7 +949,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.55 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.56 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1004,7 +1004,7 @@
                     <button onclick="collapseAllLayers(true)"><i class="fa-solid fa-angles-up"></i> 모두 닫기</button>
                     <button onclick="collapseAllLayers(false)"><i class="fa-solid fa-angles-down"></i> 모두 열기</button>
                     <div style="flex:1;"></div>
-                    <button id="btn-folder-rec" onclick="openRecommendFlow()" title="추천 조합 (계층별 카드로 빠르게 고르기)" style="color:#a855f7; border-color:rgba(168,85,247,0.4);"><i class="fa-solid fa-bolt"></i></button>
+                    <button id="btn-folder-rec" onclick="toggleRecommend()" title="추천 조합 켜기/끄기" style="color:#a855f7; border-color:rgba(168,85,247,0.4);"><i class="fa-solid fa-bolt"></i></button>
                     <button onclick="focusFavRecent('fav', event)" title="즐겨찾기" style="color:#eab308; border-color:rgba(234,179,8,0.4);"><i class="fa-solid fa-star"></i></button>
                     <button onclick="focusFavRecent('recent', event)" title="최근 사용" style="color:#10b981; border-color:rgba(16,185,129,0.4);"><i class="fa-solid fa-clock-rotate-left"></i></button>
                 </div>
@@ -1589,12 +1589,12 @@
         const CHANGELOG = [
             // ── 2026-06-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.9.55', date: '2026-06-28', time: '저녁 (최신)',
+                version: 'v9.9.56', date: '2026-06-28', time: '저녁 (최신)',
                 tag: 'feat',
                 items: [
-                    '[추천] 추천 조합(⚡) — 쉬운 모드의 세부판. 계층별 카드로 빠르게 고르고 항목별 새로고침(리롤)',
-                    '[추천] DB + 내장 사전(TAG_DICT) 기반으로 후보 확장, 이미 추가한 태그는 자동 제외(선택에 따라 추천 변화)',
-                    '[추천] 고른 추천은 기존 에디터 내용에 추가(덮어쓰기 아님), 품질·인원 강제 없음',
+                    '[추천] 추천 조합(⚡) — 별도 창 없이 태그 패널 상단에 인라인 표시, 토글 ON/OFF (기본 OFF)',
+                    '[추천] 적절한 조합을 자동 생성(인물·의상·배경 위주 + 액션/구도/조명), 카드 한 번 탭하면 에디터에 추가',
+                    '[추천] DB + 내장 사전(TAG_DICT) 기반, 이미 추가한 태그는 제외 → 고를수록 추천이 바뀜. 새로고침으로 다른 조합',
                     '[에디터] 전체 통합 텍스트 뷰 추가 — 캡슐/텍스트/전체 3가지 보기, 전체에서 편집 시 계층 자동 재배치',
                     '[태그] 즐겨찾기·최근 사용 큰 카드 제거 → 상단 아이콘 클릭 시 팝오버로 표시 (공간 절약)',
                 ]
@@ -4856,18 +4856,103 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { return window.matchMedia && window.matchMedia('(pointer: coarse)').matches; } catch (e) { return false; }
         }
 
-        // 상세 추천 카드 플로우 열기 (쉬운 모드의 세부판 — DB+사전 기반, 이미 추가한 태그 반영)
-        function openRecommendFlow() {
-            _nbDetailed = true;
-            const _t = document.getElementById('nb-modal-title');
-            if (_t) _t.innerHTML = '<i class="fa-solid fa-bolt" style="color:#a855f7;"></i> 추천 조합 — 계층별로 빠르게 고르기';
-            _nbCats = _nbGatherCats();
-            if (!_nbCats.length) { showToast('추천할 태그가 없습니다. DB에 태그를 추가해 주세요.', 'warning', 4000); return; }
-            _nbStep = 0; _nbBundles = {}; _nbSelB = {};
-            _nbCats.forEach(c => { _nbBundles[c.layer] = _nbGen(c); _nbSelB[c.layer] = new Set(); });
-            document.getElementById('newbie-mode').style.display = 'flex';
-            _nbRender();
-            _nbBindSwipe();
+        // ── 인라인 추천 조합 (태그 패널 상단) ───────────────────────────
+        // 별도 창 없이, 적절한 조합을 자동으로 띄워 한 번 탭하면 추가. 토글 ON/OFF.
+        let _recommendOn = false;
+        try { _recommendOn = localStorage.getItem('recommend_on') === '1'; } catch (e) {}
+
+        function toggleRecommend() {
+            _recommendOn = !_recommendOn;
+            try { localStorage.setItem('recommend_on', _recommendOn ? '1' : '0'); } catch (e) {}
+            _recUpdateBtn();
+            renderRecommendArea();
+            if (_recommendOn) {
+                const area = document.getElementById('rec-combo-area');
+                if (area) area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+        function _recUpdateBtn() {
+            const btn = document.getElementById('btn-folder-rec');
+            if (!btn) return;
+            btn.style.background = _recommendOn ? 'rgba(168,85,247,0.2)' : '';
+            btn.style.color = _recommendOn ? '#a855f7' : '';
+            btn.style.borderColor = _recommendOn ? '#a855f7' : 'rgba(168,85,247,0.4)';
+        }
+
+        // 한 계층의 후보 풀 (DB + 내장 사전), 이미 추가된 태그 제외
+        function _recPool(layer, added) {
+            const out = [], seen = new Set();
+            const push = (t, kor) => { const lc = (t || '').toLowerCase(); if (!t || seen.has(lc) || added.has(lc)) return; seen.add(lc); out.push({ t: t, kor: kor || t }); };
+            const ld = promptDB[layer] || {};
+            Object.values(ld).forEach(arr => (arr || []).forEach(d => { if (d.t) push(d.t.trim(), (d.k || '').trim()); }));
+            (_dictByLayer()[layer] || []).forEach(x => push(x.t, x.kor));
+            return out;
+        }
+
+        // 적절한 조합 n개 자동 생성 (인물·의상·배경 위주 + 액션/구도/조명 확률적)
+        function _recBuildCombos(n) {
+            n = n || 3;
+            const added = new Set();
+            try { (contextStates[currentContext] || []).forEach(s => (s || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean).forEach(x => added.add(x))); } catch (e) {}
+            const seq = [3, 4, 5, 6, 2, 7]; // 인물·의상·액션·배경·구도·조명
+            const pools = {}; seq.forEach(L => pools[L] = _recPool(L, added));
+            const rand = a => a[Math.floor(Math.random() * a.length)];
+            const combos = [];
+            for (let i = 0; i < n * 5 && combos.length < n; i++) {
+                const tags = [], kors = [], seen = new Set();
+                seq.forEach(L => {
+                    const p = pools[L]; if (!p || !p.length) return;
+                    const always = (L === 3 || L === 4 || L === 6); // 인물/의상/배경은 항상
+                    if (!always && Math.random() < 0.45) return;
+                    const pick = rand(p);
+                    if (pick && !seen.has(pick.t.toLowerCase())) { seen.add(pick.t.toLowerCase()); tags.push(pick.t); kors.push(pick.kor); }
+                });
+                if (tags.length < 2) continue;
+                const key = tags.slice().sort().join('|');
+                if (combos.some(c => c.key === key)) continue;
+                combos.push({ tags, kors, key });
+            }
+            return combos;
+        }
+
+        function renderRecommendArea() {
+            const area = document.getElementById('rec-combo-area');
+            if (!area) return;
+            _recUpdateBtn();
+            if (!_recommendOn) { area.style.display = 'none'; area.innerHTML = ''; return; }
+            const combos = _recBuildCombos(3);
+            area.style.cssText = 'display:block; background:var(--bg-surface); border:1px solid rgba(168,85,247,0.28); border-radius:12px; padding:12px; margin-bottom:14px;';
+            let html = `<div style="display:flex; align-items:center; gap:8px; margin-bottom:9px;">
+                <span style="font-size:13px; font-weight:800; color:#a855f7; font-family:var(--font-heading);"><i class="fa-solid fa-bolt"></i> 추천 조합</span>
+                <span style="font-size:10px; color:var(--text-dim);">탭하면 에디터에 추가</span>
+                <button onclick="renderRecommendArea()" title="다른 조합" style="margin-left:auto; background:rgba(168,85,247,0.12); border:1px solid rgba(168,85,247,0.4); color:#a855f7; border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer;"><i class="fa-solid fa-rotate"></i> 새로고침</button>
+            </div>`;
+            if (!combos.length) {
+                html += `<div style="font-size:12px; color:var(--text-dim); padding:6px 0;">추천할 조합이 부족합니다. DB에 태그를 더 추가해 보세요.</div>`;
+                area.innerHTML = html;
+                return;
+            }
+            html += `<div style="display:flex; flex-direction:column; gap:8px;">`;
+            combos.forEach((c, idx) => {
+                html += `<button class="rec-combo-card" data-idx="${idx}" style="text-align:left; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.3); border-radius:10px; padding:10px 12px; cursor:pointer; display:flex; align-items:center; gap:10px;">
+                    <span style="flex:1; min-width:0;">
+                        <span style="font-size:13px; color:var(--text-main); font-weight:600; display:block; line-height:1.4;">${c.kors.join(' · ').replace(/</g, '&lt;')}</span>
+                        <span style="font-size:10px; color:var(--text-dim);">${c.tags.length}개 태그</span>
+                    </span>
+                    <span style="flex-shrink:0; background:#a855f7; color:#fff; border-radius:8px; padding:5px 11px; font-size:12px; font-weight:700;"><i class="fa-solid fa-plus"></i></span>
+                </button>`;
+            });
+            html += `</div>`;
+            area.innerHTML = html;
+            area.querySelectorAll('.rec-combo-card').forEach(btn => {
+                btn.onclick = () => {
+                    const c = combos[parseInt(btn.dataset.idx)];
+                    if (!c) return;
+                    importPromptToEditor(c.tags, 'append');
+                    showToast('추천 조합을 추가했어요', 'success', 1600);
+                    renderRecommendArea(); // 추가분 반영해 새 추천
+                };
+            });
         }
         let recents = [];
 
@@ -5347,6 +5432,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             sidebarDetail.innerHTML = ''; editor.innerHTML = ''; activeTagsMap = {};
 
             sidebarDetail.innerHTML = `
+                <div id="rec-combo-area" style="display:none;"></div>
             `;
 
             layerMeta.forEach((layer) => {
@@ -5522,6 +5608,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             renderFavorites();
             renderRecents();
             renderCombos();
+            renderRecommendArea();
             renderContextTabs();
 
             const firstTab = contextTabs.find(t => t.id === currentContext);
@@ -12161,6 +12248,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         _restoreGenMemo();      // 메모장 복원 (새로고침 유지)
         comfyUpdateQuickButtons();  // ComfyUI 연동 이력 있으면 전송 버튼 표시
         DevMode.apply();            // 저장된 개발자 모드 상태 → 시각 표시·기능 적용
+        _recUpdateBtn();            // 추천 조합 토글 버튼 상태 복원
         // 한글 번역 미리보기 접힘 상태 복원
         ['pos','neg'].forEach(w => {
             try {
