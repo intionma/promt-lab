@@ -949,7 +949,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.62 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.63 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1638,7 +1638,14 @@
         const CHANGELOG = [
             // ── 2026-06-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.9.62', date: '2026-06-28', time: '밤 (최신)',
+                version: 'v9.9.63', date: '2026-06-28', time: '밤 (최신)',
+                tag: 'feat',
+                items: [
+                    '[프리셋] 프리셋 관리에 "⚡ 생성" 버튼 추가 — 적용+전송 한 번에, 프리셋 창에서 바로 생성',
+                ]
+            },
+            {
+                version: 'v9.9.62', date: '2026-06-28', time: '밤',
                 tag: 'feat',
                 items: [
                     '[다중 생성] 긍정 탭 "다중" 버튼 → 전체화면에서 시드 랜덤·저스텝·디테일러/업스케일 OFF로 여러 장 빠르게 생성',
@@ -10756,6 +10763,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 nameTd.appendChild(editBtn);
 
                 const actionTd = document.createElement('td');
+                const genBtn = document.createElement('button');
+                genBtn.className = 'btn-preset-action';
+                genBtn.style.cssText = 'background:#a855f7; color:#fff; border:none;';
+                genBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> 생성';
+                genBtn.title = '이 프리셋을 적용하고 바로 생성';
+                genBtn.onclick = () => generatePresetFromManager(name);
+
                 const loadBtn = document.createElement('button');
                 loadBtn.className = 'btn-preset-action btn-preset-load';
                 loadBtn.textContent = '✅ 적용';
@@ -10766,6 +10780,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 delBtn.textContent = '🗑️ 삭제';
                 delBtn.onclick = () => deletePresetFromManager(name);
 
+                actionTd.appendChild(genBtn);
                 actionTd.appendChild(loadBtn);
                 actionTd.appendChild(delBtn);
                 tr.appendChild(nameTd);
@@ -10798,6 +10813,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             loadContextState();
             saveGenMemo(); // 프리셋의 메모도 영구 저장에 반영
             document.getElementById('preset-manager-modal').style.display = 'none';
+        }
+
+        // 프리셋 즉시 생성 — 적용 후 바로 ComfyUI 전송 (전송 버튼 누를 필요 없음)
+        function generatePresetFromManager(name) {
+            if (!_comfyConnectedOnce && !DevMode.feature('mockGen')) {
+                showToast('먼저 ComfyUI에 연결하세요. (개발자 모드면 가상 생성)', 'error', 4000);
+                return;
+            }
+            loadPresetFromManager(name);                 // 적용 + 모달 닫기 + 에디터/결과 갱신
+            if (typeof updateMasterOutput === 'function') updateMasterOutput();
+            setTimeout(() => comfyQuickSend('pos'), 60);  // 결과 반영 후 전송
         }
 
         function deletePresetFromManager(name) {
