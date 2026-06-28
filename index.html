@@ -949,7 +949,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.58 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.60 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1541,9 +1541,32 @@
                         <input id="shutdown-token" type="text" placeholder="change-me-1234" style="width:100%; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:9px 12px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;">
                     </div>
                 </div>
-                <div style="display:flex; gap:8px; align-items:center;">
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <button class="action-btn" style="border-color:#38bdf8; color:#38bdf8;" onclick="shutdownCheckConnection()"><i class="fa-solid fa-plug-circle-check"></i> 연결 확인</button>
                     <button class="btn-add-db" style="border:none; padding:11px 22px; background:#ef4444;" onclick="shutdownPC()"><i class="fa-solid fa-power-off"></i> 지금 PC 종료</button>
                     <span id="shutdown-status" style="font-size:12px; color:var(--text-dim);"></span>
+                </div>
+
+                <!-- 타이머 종료 -->
+                <div style="background:var(--input-bg); border:1px solid var(--border-dim); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:10px;">
+                    <div style="font-size:12px; font-weight:800; color:var(--text-main);"><i class="fa-solid fa-clock" style="color:#f59e0b;"></i> 타이머 종료 <span style="font-size:11px; font-weight:600; color:var(--text-dim);">— 지정 시간 뒤 PC가 스스로 종료 (폰이 꺼져도 동작)</span></div>
+                    <div id="shutdown-timer-setup" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <button class="action-btn shutdown-preset" data-min="15" onclick="shutdownSetPreset(15)">15분</button>
+                            <button class="action-btn shutdown-preset" data-min="30" onclick="shutdownSetPreset(30)">30분</button>
+                            <button class="action-btn shutdown-preset" data-min="60" onclick="shutdownSetPreset(60)">1시간</button>
+                            <button class="action-btn shutdown-preset" data-min="120" onclick="shutdownSetPreset(120)">2시간</button>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:5px;">
+                            <input id="shutdown-timer-min" type="number" min="1" max="1440" placeholder="분" style="width:74px; background:var(--bg-base); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;">
+                            <span style="font-size:12px; color:var(--text-dim);">분 후</span>
+                        </div>
+                        <button class="btn-add-db" style="border:none; padding:9px 16px; background:#f59e0b;" onclick="shutdownStartTimer()"><i class="fa-solid fa-hourglass-start"></i> 예약</button>
+                    </div>
+                    <div id="shutdown-timer-active" style="display:none; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <span style="font-size:14px; font-weight:800; color:#f59e0b;"><i class="fa-solid fa-hourglass-half"></i> <span id="shutdown-countdown">--:--</span> 후 종료</span>
+                        <button class="action-btn" style="border-color:var(--accent-danger); color:var(--accent-danger);" onclick="shutdownCancelTimer()"><i class="fa-solid fa-xmark"></i> 예약 취소</button>
+                    </div>
                 </div>
                 <details style="background:var(--input-bg); border:1px solid var(--border-dim); border-radius:10px; padding:12px 14px;">
                     <summary style="cursor:pointer; font-size:12px; font-weight:700; color:var(--text-main);"><i class="fa-solid fa-file-code"></i> 종료 도우미 스크립트 (PC에서 1회 실행)</summary>
@@ -1589,9 +1612,12 @@
         const CHANGELOG = [
             // ── 2026-06-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.9.58', date: '2026-06-28', time: '밤 (최신)',
+                version: 'v9.9.60', date: '2026-06-28', time: '밤 (최신)',
                 tag: 'feat',
                 items: [
+                    '[PC 종료] 연결 확인 버튼 추가 — 종료 전에 도우미가 응답하는지 점검 (최신/구버전 자동 감지)',
+                    '[PC 종료] 타이머 종료 추가 — 15/30/60/120분·직접입력, PC가 직접 예약 종료하므로 폰이 꺼져도 동작, 카운트다운·예약 취소',
+                    '[PC 종료] 도우미 스크립트 v2 — /ping(연결확인)·delay(예약)·/cancel(취소) 지원 (새 스크립트로 1회 재실행 필요)',
                     '[라이트박스] 더블클릭/더블탭으로 확대·복귀 (탭한 지점 중심, 부드러운 애니메이션)',
                     '[라이트박스] 확대 상태에서 드래그로 이동(팬), 경계 클램프',
                     '[라이트박스] 핀치 줌(모바일 두 손가락)·마우스 휠 줌 — 최대 5배, 원래 크기로 줄이면 줌 자동 해제',
@@ -2480,30 +2506,64 @@
         }
 
         // ── PC 종료 도우미 ──
-        const _SHUTDOWN_SCRIPT = `# shutdown_server.py — 프롬프트 랩 PC 종료 도우미
+        const _SHUTDOWN_SCRIPT = `# shutdown_server.py — 프롬프트 랩 PC 종료 도우미 v2
 # 실행: python shutdown_server.py   (PC를 끄려는 컴퓨터에서)
+# 기능: 즉시 종료 / 타이머(예약) 종료 / 예약 취소 / 연결 확인(/ping)
 import http.server, os, platform
 TOKEN = "change-me-1234"   # 앱의 토큰 입력칸과 똑같이 맞추세요
 PORT  = 8189
+IS_WIN = platform.system() == 'Windows'
+
+def _qs(path):
+    d = {}
+    if '?' in path:
+        for kv in path.split('?', 1)[1].split('&'):
+            if '=' in kv:
+                k, v = kv.split('=', 1); d[k] = v
+    return d
+
+def schedule_shutdown(delay_sec):
+    delay_sec = max(0, int(delay_sec))
+    if IS_WIN:
+        os.system('shutdown /a')                      # 기존 예약 있으면 취소
+        os.system('shutdown /s /t ' + str(delay_sec))
+    else:
+        mins = max(0, round(delay_sec / 60))
+        os.system('sudo shutdown -h now' if mins == 0 else 'sudo shutdown -h +' + str(mins))
+
+def cancel_shutdown():
+    os.system('shutdown /a' if IS_WIN else 'sudo shutdown -c')
 
 class H(http.server.BaseHTTPRequestHandler):
     def _cors(self):
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', '*')
+    def _send(self, code, body=b'ok'):
+        self.send_response(code); self._cors(); self.end_headers()
+        try: self.wfile.write(body)
+        except Exception: pass
     def do_OPTIONS(self):
-        self.send_response(204); self._cors(); self.end_headers()
-    def do_POST(self):
-        if self.path.split('?')[0] != '/shutdown' or ('token=' + TOKEN) not in self.path:
-            self.send_response(403); self._cors(); self.end_headers(); self.wfile.write(b'forbidden'); return
-        self.send_response(200); self._cors(); self.end_headers(); self.wfile.write(b'ok')
-        if platform.system() == 'Windows':
-            os.system('shutdown /s /t 5')
+        self._send(204, b'')
+    def do_GET(self):
+        if self.path.split('?')[0] == '/ping':
+            self._send(200, b'promptlab-shutdown v2')   # 연결 확인용 (종료 안 함)
         else:
-            os.system('sudo shutdown -h now')   # 맥/리눅스는 sudo 권한 필요할 수 있음
+            self._send(404, b'not found')
+    def do_POST(self):
+        p = self.path.split('?')[0]; q = _qs(self.path)
+        if q.get('token') != TOKEN:
+            self._send(403, b'forbidden'); return
+        if p == '/cancel':
+            self._send(200, b'cancelled'); cancel_shutdown(); return
+        if p == '/shutdown':
+            try: delay = int(q.get('delay', '0'))
+            except Exception: delay = 0
+            self._send(200, b'ok'); schedule_shutdown(delay); return
+        self._send(404, b'not found')
     def log_message(self, *a): pass
 
-print(f"종료 도우미 실행 중 — 포트 {PORT}, 토큰 '{TOKEN}'")
+print("종료 도우미 v2 실행 중 — 포트 " + str(PORT) + ", 토큰 '" + TOKEN + "'")
 http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 `;
         const SHUTDOWN_KEY = 'shutdown_settings_v1';
@@ -2516,6 +2576,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } catch (e) {}
             document.getElementById('shutdown-script').value = _SHUTDOWN_SCRIPT;
             document.getElementById('shutdown-status').textContent = '';
+            // 타이머 진행 중이면 카운트다운 표시, 아니면 설정 화면
+            if (_shutdownDeadline > Date.now()) _shutdownShowActive();
+            else {
+                document.getElementById('shutdown-timer-active').style.display = 'none';
+                document.getElementById('shutdown-timer-setup').style.display = 'flex';
+            }
             document.getElementById('shutdown-modal').style.display = 'flex';
         }
 
@@ -2554,6 +2620,101 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     st.style.color = 'var(--accent-danger)';
                 }
             });
+        }
+
+        // 종료 도우미 주소/토큰 읽기 + 저장
+        function _shutdownGet() {
+            let url = (document.getElementById('shutdown-url').value || '').trim();
+            const token = (document.getElementById('shutdown-token').value || '').trim();
+            if (!url) return null;
+            if (!/^https?:\/\//i.test(url)) url = 'http://' + url;
+            url = url.replace(/\/+$/, '');
+            try { localStorage.setItem(SHUTDOWN_KEY, JSON.stringify({ url, token })); } catch (e) {}
+            return { url, token };
+        }
+
+        // 1) 연결 확인 — /ping (구버전 스크립트는 OPTIONS로 폴백)
+        async function shutdownCheckConnection() {
+            const cfg = _shutdownGet();
+            const st = document.getElementById('shutdown-status');
+            if (!cfg) { showToast('종료 도우미 주소를 입력하세요.', 'error'); return; }
+            st.textContent = '연결 확인 중...'; st.style.color = 'var(--text-dim)';
+            try {
+                const res = await fetch(`${cfg.url}/ping`, { method: 'GET', signal: AbortSignal.timeout(4000) });
+                if (res.ok) {
+                    const body = await res.text().catch(() => '');
+                    const v2 = /v2|promptlab/i.test(body);
+                    st.innerHTML = v2 ? '✅ 연결됨 (최신 도우미 — 타이머 사용 가능)' : '✅ 연결됨';
+                    st.style.color = 'var(--accent-green)';
+                    return;
+                }
+                throw new Error('http ' + res.status);
+            } catch (e) {
+                // 구버전(/ping 없음) 가능성 → OPTIONS 로 재시도
+                try {
+                    const r2 = await fetch(`${cfg.url}/shutdown`, { method: 'OPTIONS', signal: AbortSignal.timeout(4000) });
+                    if (r2.ok || r2.status === 204) {
+                        st.innerHTML = '✅ 연결됨 (구버전 도우미 — 타이머는 스크립트 업데이트 필요)';
+                        st.style.color = '#f59e0b';
+                        return;
+                    }
+                } catch (e2) {}
+                st.innerHTML = '❌ 응답 없음 — 도우미가 실행 중인지/주소가 맞는지 확인';
+                st.style.color = 'var(--accent-danger)';
+            }
+        }
+
+        // 2) 타이머 종료
+        let _shutdownTimer = null, _shutdownDeadline = 0, _shutdownTick = null;
+        function shutdownSetPreset(min) {
+            const el = document.getElementById('shutdown-timer-min');
+            if (el) el.value = min;
+        }
+        function shutdownStartTimer() {
+            const cfg = _shutdownGet();
+            if (!cfg) { showToast('종료 도우미 주소를 입력하세요.', 'error'); return; }
+            const min = parseInt((document.getElementById('shutdown-timer-min').value || '').trim(), 10);
+            if (!min || min < 1) { showToast('몇 분 후 종료할지 입력하세요.', 'error'); return; }
+            showConfirm(`${min}분 후 PC를 종료하도록 예약할까요? (PC가 직접 예약 종료하므로 폰이 꺼져도 동작)`, async () => {
+                const st = document.getElementById('shutdown-status');
+                st.textContent = '예약 요청 중...'; st.style.color = 'var(--text-dim)';
+                try {
+                    const res = await fetch(`${cfg.url}/shutdown?token=${encodeURIComponent(cfg.token)}&delay=${min * 60}`, { method: 'POST', signal: AbortSignal.timeout(5000) });
+                    if (!res.ok) throw new Error('http ' + res.status);
+                    _shutdownDeadline = Date.now() + min * 60000;
+                    _shutdownShowActive();
+                    st.textContent = ''; showToast(`${min}분 후 종료 예약됨`, 'success', 3500);
+                } catch (e) {
+                    st.innerHTML = '❌ 예약 실패 — 연결/도우미(최신 스크립트) 확인'; st.style.color = 'var(--accent-danger)';
+                }
+            });
+        }
+        function _shutdownShowActive() {
+            document.getElementById('shutdown-timer-setup').style.display = 'none';
+            const act = document.getElementById('shutdown-timer-active'); act.style.display = 'flex';
+            if (_shutdownTick) clearInterval(_shutdownTick);
+            const upd = () => {
+                const left = Math.max(0, _shutdownDeadline - Date.now());
+                const h = Math.floor(left / 3600000), m = Math.floor((left % 3600000) / 60000), s = Math.floor((left % 60000) / 1000);
+                const cd = document.getElementById('shutdown-countdown');
+                if (cd) cd.textContent = (h ? h + ':' : '') + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+                if (left <= 0) { clearInterval(_shutdownTick); _shutdownTick = null; }
+            };
+            upd(); _shutdownTick = setInterval(upd, 1000);
+        }
+        async function shutdownCancelTimer() {
+            const cfg = _shutdownGet();
+            const st = document.getElementById('shutdown-status');
+            try {
+                if (cfg) await fetch(`${cfg.url}/cancel?token=${encodeURIComponent(cfg.token)}`, { method: 'POST', signal: AbortSignal.timeout(5000) });
+                st.textContent = '예약을 취소했습니다.'; st.style.color = 'var(--text-dim)';
+            } catch (e) {
+                st.innerHTML = '⚠️ 취소 요청 실패 — PC에서 직접 확인 필요'; st.style.color = '#f59e0b';
+            }
+            if (_shutdownTick) { clearInterval(_shutdownTick); _shutdownTick = null; }
+            _shutdownDeadline = 0;
+            document.getElementById('shutdown-timer-active').style.display = 'none';
+            document.getElementById('shutdown-timer-setup').style.display = 'flex';
         }
 
         // ─────────────────────────────────────────────────────────────
