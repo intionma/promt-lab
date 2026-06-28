@@ -945,8 +945,7 @@
 
             <div class="gt-menu-sec">기타</div>
             <button class="gt-menu-item" data-tool="theme" onclick="closeGtMenu();toggleTheme()"><i class="fa-solid fa-circle-half-stroke"></i><span>테마 변경</span></button>
-            <button class="gt-menu-item" data-tool="mockmode" style="--gc:#a855f7;" onclick="closeGtMenu();comfyToggleMockMode()"><i class="fa-solid fa-flask"></i><span>개발자 모드</span><small>ComfyUI 없이 결과창 전송 버튼으로 가상 생성</small></button>
-            <button class="gt-menu-item" data-tool="mocktest" style="--gc:#a855f7;" onclick="closeGtMenu();comfyMockTest(4)"><i class="fa-solid fa-vials"></i><span>가상 생성 4개</span><small>대기열·진행바·갤러리 한번에 테스트</small></button>
+            <button class="gt-menu-item" data-tool="mockmode" style="--gc:#a855f7;" onclick="closeGtMenu();comfyToggleMockMode()"><i class="fa-solid fa-flask"></i><span>개발자 모드</span><small>ComfyUI 없이 가상으로 연결·생성</small></button>
             <button class="gt-menu-item" data-tool="shutdown" style="--gc:#ef4444;" onclick="closeGtMenu();openShutdownModal()"><i class="fa-solid fa-power-off"></i><span>PC 종료</span><small>도우미 스크립트 필요</small></button>
         </div>
     </header>
@@ -3977,7 +3976,55 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         let _mockRunning = false;
         let _mockSeqCounter = 0;
 
-        function _mockImgDataUrl(num, stage) {
+        // 한글 받침 여부 → 조사 선택 (을/를, 이/가, 은/는)
+        function _mockBatchim(w) {
+            if (!w) return false;
+            const c = w.charCodeAt(w.length - 1);
+            if (c < 0xAC00 || c > 0xD7A3) return false;
+            return (c - 0xAC00) % 28 !== 0;
+        }
+        function _mockJosa(w, withB, woB) { return w + (_mockBatchim(w) ? withB : woB); }
+
+        // 한글 태그를 조합해 자연스러운 짧은 이미지 설명 문장 생성
+        function _mockDescribe() {
+            const byLayer = {};
+            const add = (kor, layer) => { if (!kor) return; layer = layer || 9; (byLayer[layer] = byLayer[layer] || []).push(kor); };
+            // 1) 현재 긍정 프롬프트에서 한글 태그 수집
+            const pos = (document.getElementById('final-positive')?.value || '').trim();
+            pos.split(',').map(s => s.trim()).filter(Boolean).forEach(t => {
+                const core = t.replace(/^[\(\[]+/, '').replace(/[\)\]]+$/, '').replace(/:\s*[\d.]+\s*$/, '').trim();
+                const lc = core.toLowerCase();
+                const e = activeTagsMap[core] || activeTagsMap[lc];
+                const d = (typeof _tagDictLookup === 'function') ? _tagDictLookup(lc) : null;
+                const kor = (e && e.kor) || customKorMap[core] || customKorMap[lc] || (d && d.k);
+                const layer = (e && e.layer) || (d && d.l);
+                if (kor) add(kor, layer);
+            });
+            // 2) 부족분은 DB에서 랜덤 보충
+            const pool = Object.values(activeTagsMap || {}).filter(v => v && v.kor && v.layer);
+            const rand = arr => arr[Math.floor(Math.random() * arr.length)];
+            const pick = (L) => {
+                if (byLayer[L] && byLayer[L].length) return rand(byLayer[L]);
+                const c = pool.filter(v => v.layer === L);
+                return c.length ? rand(c).kor : null;
+            };
+            const person = pick(3) || rand(['소녀', '여성', '인물', '캐릭터']);
+            const cloth = pick(4);
+            const action = pick(5);
+            const bg = pick(6) || pick(7);
+            // 3) 사용 가능한 조각으로 자연스러운 템플릿 선택
+            const opts = [];
+            if (bg && cloth) opts.push(`${bg} 속 ${cloth} 차림의 ${person}`);
+            if (cloth) opts.push(`${_mockJosa(cloth, '을', '를')} 입은 ${person}`);
+            if (bg) opts.push(`${bg} 배경의 ${person}`, `${bg}에서의 ${person}`);
+            if (action) opts.push(`${action} 분위기의 ${person}`);
+            opts.push(`${person} 일러스트`);
+            let s = rand(opts);
+            if (s.length > 28) s = s.slice(0, 27) + '…';
+            return s;
+        }
+
+        function _mockImgDataUrl(num, stage, desc) {
             const h1 = Math.floor(Math.random() * 360), h2 = (h1 + 55) % 360;
             const cx = 120 + Math.random() * 270, cy = 180 + Math.random() * 260;
             const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='512' height='768'>` +
@@ -3990,8 +4037,19 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 `<text x='256' y='430' font-size='110' font-family='sans-serif' fill='rgba(255,255,255,0.95)' text-anchor='middle' font-weight='bold'>#${num}</text>` +
                 `<text x='256' y='510' font-size='30' font-family='sans-serif' fill='rgba(255,255,255,0.85)' text-anchor='middle' letter-spacing='4'>MOCK</text>` +
                 (stage ? `<text x='256' y='560' font-size='26' font-family='sans-serif' fill='rgba(255,255,255,0.8)' text-anchor='middle'>${stage}</text>` : '') +
+                _mockDescSvg(desc) +
                 `</svg>`;
             return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        }
+
+        // 설명 문장을 SVG 하단에 최대 2줄로 표시 (XML 이스케이프)
+        function _mockDescSvg(desc) {
+            if (!desc) return '';
+            const esc = String(desc).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const lines = esc.match(/.{1,14}/g) || [];
+            return lines.slice(0, 2).map((line, i) =>
+                `<text x='256' y='${620 + i * 34}' font-size='24' font-family='sans-serif' fill='rgba(255,255,255,0.92)' text-anchor='middle'>${line}</text>`
+            ).join('');
         }
 
         function comfyMockTest(count, inline) {
@@ -4003,11 +4061,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 showToast('실제 생성 작업이 진행 중입니다. 완료 후 다시 시도하세요.', 'error', 3000);
                 return;
             }
-            const pos = (document.getElementById('final-positive')?.value || '').trim();
-            const baseLabel = (pos ? _comfyKorLabel(pos) : '') || '테스트 이미지';
             for (let i = 0; i < count; i++) {
                 const pid = 'mock_' + Date.now() + '_' + (++_mockSeqCounter);
-                _comfyJobs[pid] = { inline: inline, cleared: false, done: false, seq: ++_comfyJobSeq, label: baseLabel, _mock: true };
+                const desc = _mockDescribe(); // 한글 태그 조합 설명 문장
+                _comfyJobs[pid] = { inline: inline, cleared: false, done: false, seq: ++_comfyJobSeq, label: desc, desc: desc, _mock: true };
                 _comfyQueueCount++;
                 _comfyBatchTotal++;
                 _mockQueue.push(pid);
@@ -4043,8 +4100,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             let pct = 0;
             const stages = { base: false, detail: false };
             const seq = job ? job.seq : 0;
+            const desc = job ? job.desc : '';
             const stage = (label) => {
-                const url = _mockImgDataUrl(seq, label);
+                const url = _mockImgDataUrl(seq, label, desc);
                 if (lt) lt.appendChild(_comfyThumb(url, 160, label));
                 if (it) it.appendChild(_comfyThumb(url, inline === 'pos' ? 320 : 130, label));
             };
@@ -4068,7 +4126,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!job || job.done) return;
             job.done = true;
             const inline = job.inline;
-            const url = _mockImgDataUrl(job.seq, '완성');
+            const url = _mockImgDataUrl(job.seq, '완성', job.desc);
             const gallery = document.getElementById('comfy-gallery');
             if (gallery) gallery.prepend(_comfyThumb(url, 240));
             if (inline) { const t = document.getElementById('comfy-inline-thumbs-' + inline); if (t) t.appendChild(_comfyThumb(url, inline === 'pos' ? 320 : 130, '완성')); }
