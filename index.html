@@ -4894,7 +4894,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             n = n || 3;
             const added = new Set();
             try { (contextStates[currentContext] || []).forEach(s => (s || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean).forEach(x => added.add(x))); } catch (e) {}
-            const seq = [3, 4, 5, 6, 2, 7]; // 인물·의상·액션·배경·구도·조명
+            const seq = [2, 3, 4, 5, 6, 7]; // 계층 순서: 구도·인물·의상·액션·배경·조명
             const pools = {}; seq.forEach(L => pools[L] = _recPool(L, added));
             const rand = a => a[Math.floor(Math.random() * a.length)];
             const combos = [];
