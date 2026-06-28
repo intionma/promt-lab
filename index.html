@@ -2462,10 +2462,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _comfyMockMode = !_comfyMockMode;
             try { localStorage.setItem('comfy_mock_mode', _comfyMockMode ? '1' : '0'); } catch (e) {}
             comfyUpdateQuickButtons();
-            // 연결 상태 표시도 가상 연결로 갱신
+            // 연결 상태 표시 갱신 (가상 연결 / 실제 연결 / 미연결)
             const statusEl = document.getElementById('comfy-conn-status');
-            if (statusEl && _comfyMockMode) { statusEl.textContent = '🧪 가상 연결됨 (개발자 모드)'; statusEl.style.color = 'var(--accent-green)'; }
-            else if (statusEl && !_comfyMockMode && !_comfyConnectedOnce) { statusEl.textContent = ''; }
+            if (statusEl) {
+                if (_comfyMockMode) { statusEl.textContent = '🧪 가상 연결됨 (개발자 모드)'; statusEl.style.color = 'var(--accent-green)'; }
+                else if (_comfyConnectedOnce) { statusEl.textContent = '✅ 연결됨'; statusEl.style.color = 'var(--accent-green)'; }
+                else { statusEl.textContent = ''; }
+            }
             // 메뉴 항목 상태 라벨 갱신
             const mi = document.querySelector('[data-tool="mockmode"] small');
             if (mi) mi.textContent = _comfyMockMode ? '● ON — 가상으로 연결됨, 가상 생성 실행' : 'ComfyUI 없이 가상으로 연결·생성';
@@ -3669,8 +3672,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _loadSlots();
                 _center();
                 _updateUI();
-                // 뒤로가기로 닫을 수 있도록 히스토리 스택에 추가
-                history.pushState({ lightbox: true }, '');
+                // 뒤로가기로 닫을 수 있도록 히스토리 스택에 추가 (file:// 등에서 throw 방지)
+                try { history.pushState({ lightbox: true }, ''); } catch (e) {}
             };
 
             // 화살표 버튼: 즉시 전환 (애니메이션 없음)
@@ -3691,7 +3694,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 SLOTS.forEach(img => { img.src = ''; });
                 _lbUrls = []; _lbIdx = 0;
                 // pushState로 쌓은 히스토리 항목 제거 (패널 이동 없이)
-                if (history.state && history.state.lightbox) history.go(-1);
+                try { if (history.state && history.state.lightbox) history.go(-1); } catch (e) {}
             };
 
             // 뒤로가기 → 라이트박스만 닫기
@@ -4130,7 +4133,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const gallery = document.getElementById('comfy-gallery');
             if (gallery) gallery.prepend(_comfyThumb(url, 240));
             if (inline) { const t = document.getElementById('comfy-inline-thumbs-' + inline); if (t) t.appendChild(_comfyThumb(url, inline === 'pos' ? 320 : 130, '완성')); }
-            galleryAddImage(url); // 결과 갤러리 탭에 영구 저장
+            // 가상 이미지는 localStorage에 저장하지 않고 화면(세션)에만 표시 — 실데이터·백업 오염 방지
+            if (typeof _galleryRenderOne === 'function') _galleryRenderOne(url, false);
             delete _comfyJobs[pid];
             _comfyQueueCount = Math.max(0, _comfyQueueCount - 1);
             _comfyBatchDone++;
@@ -10168,6 +10172,23 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (typeof gtRenderPins === 'function') gtRenderPins();
             }
 
+            // Merge comfySettings (기존 설정이 없을 때만 채움 — 싱글값이라 덮어쓰지 않음)
+            if (parsed.comfySettings && typeof parsed.comfySettings === 'object') {
+                let cur = null; try { cur = JSON.parse(localStorage.getItem(COMFY_KEY) || 'null'); } catch(e) {}
+                if (!cur) { try { localStorage.setItem(COMFY_KEY, JSON.stringify(parsed.comfySettings)); addedCount++; } catch(e) {} }
+            }
+
+            // Merge generationMemo (기존 메모가 비어있을 때만 추가)
+            if (typeof parsed.generationMemo === 'string' && parsed.generationMemo) {
+                let curMemo = ''; try { curMemo = localStorage.getItem('pro_generation_memo') || ''; } catch(e) {}
+                if (!curMemo.trim()) {
+                    try { localStorage.setItem('pro_generation_memo', parsed.generationMemo); } catch(e) {}
+                    const memoEl = document.getElementById('generation-memo');
+                    if (memoEl) memoEl.value = parsed.generationMemo;
+                    addedCount++;
+                }
+            }
+
             initApp();
             document.getElementById('db-io-modal').style.display = 'none';
 
@@ -10311,6 +10332,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         }
                         if (parsed.comfySettings && typeof parsed.comfySettings === 'object') {
                             try { localStorage.setItem(COMFY_KEY, JSON.stringify(parsed.comfySettings)); } catch(e) {}
+                            // 인메모리 상태·입력칸·버튼도 즉시 동기화 (새로고침 없이 반영)
+                            try {
+                                _comfyConnectedOnce = !!parsed.comfySettings.connectedOnce;
+                                const urlEl = document.getElementById('comfy-url');
+                                if (urlEl && parsed.comfySettings.url) urlEl.value = parsed.comfySettings.url;
+                            } catch(e) {}
+                            comfyUpdateQuickButtons();
                         }
                         if (parsed.galleryUrls && Array.isArray(parsed.galleryUrls)) {
                             _galleryUrls = parsed.galleryUrls;
