@@ -855,10 +855,8 @@
             .modal-header > div { flex-wrap: wrap; justify-content: flex-end; }
             .ccm-header { flex-wrap: wrap; gap: 6px 8px; }
             .ccm-title { white-space: nowrap; min-width: 0; }
-            #db-text-editor-box { min-width: unset !important; }
             .context-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
             #output-format-toggle { font-size: 11px; }
-            #db-text-editor-box { width: 98vw !important; min-width: unset !important; height: 70vh !important; }
         }
 
         /* 하단 모바일 탭바 */
@@ -943,7 +941,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.46 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.50 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -957,8 +955,7 @@
             <button class="gt-menu-item" data-tool="classify" style="--gc:#a78bfa;" onclick="closeGtMenu();openPromptClassifyModal()"><i class="fa-solid fa-wand-magic-sparkles"></i><span>자동 분류</span><small>붙여넣기 → 계층 추정 → DB 추가</small></button>
             <button class="gt-menu-item" data-tool="audit" style="--gc:#ec4899;" onclick="closeGtMenu();openDBAuditModal()"><i class="fa-solid fa-clipboard-check"></i><span>DB 검사</span><small>계층 검증 · 중복 감지</small></button>
             <button class="gt-menu-item" data-tool="translate" style="--gc:#f97316;" onclick="closeGtMenu();openTranslationSessionModal()"><i class="fa-solid fa-language"></i><span>번역 세션</span><small>미번역 태그 일괄 번역</small></button>
-            <button class="gt-menu-item" data-tool="dbmanager" style="--gc:var(--accent-blue);" onclick="closeGtMenu();openDBManager()"><i class="fa-solid fa-database"></i><span>DB 관리</span></button>
-            <button class="gt-menu-item" data-tool="dbtext" style="--gc:var(--accent-green);" onclick="closeGtMenu();openDBTextEditor()"><i class="fa-solid fa-code"></i><span>코드 편집</span></button>
+            <button class="gt-menu-item" data-tool="dbmanager" style="--gc:var(--accent-blue);" onclick="closeGtMenu();openDBManager()"><i class="fa-solid fa-database"></i><span>DB 관리</span><small>표 편집 · 코드 편집 통합</small></button>
 
             <div class="gt-menu-sec">에디터</div>
             <button class="gt-menu-item" data-tool="reorganize" style="--gc:#22c55e;" onclick="closeGtMenu();reorganizeTagsByDB()"><i class="fa-solid fa-shuffle"></i><span>레이어 재배치</span></button>
@@ -1186,33 +1183,61 @@
     </div>
 
     <div class="modal-overlay" id="db-manager-modal">
-        <div class="modal-content" style="width: 900px;">
-            <div class="modal-header">
-                <span class="modal-title"><i class="fa-solid fa-database"></i> 마스터 DB 관리</span>
-                <button class="action-btn" onclick="document.getElementById('db-manager-modal').style.display='none'"><i class="fa-solid fa-xmark"></i> 닫기</button>
-            </div>
-            <div class="db-add-form-container">
-                <div class="db-layer-tabs" id="db-layer-tabs"></div>
-                <div class="db-folder-chips" id="db-folder-chips"><span style="color:var(--text-dim); font-size:13px;">위에서 계층 선택 시 폴더가 표시됩니다.</span></div>
-                <div class="db-add-form">
-                    <div class="input-group">
-                        <label>대상 폴더 (자동입력 or 직접작성)</label>
-                        <input type="text" id="add-folder" list="folder-options" placeholder="예: 2_새폴더">
-                        <datalist id="folder-options"></datalist>
-                    </div>
-                    <div class="input-group"><label>프롬프트 (EN)</label><input type="text" id="add-en" placeholder="cowboy shot"></div>
-                    <div class="input-group"><label>한글 뜻 (KR)</label><input type="text" id="add-kr" placeholder="카우보이 샷"></div>
-                    <div class="input-group"><label>서브카테고리 <span style="opacity:0.5;font-size:10px;">(충돌 그룹)</span></label><input type="text" id="add-conflict" placeholder="예: 구도종류, 앵글"></div>
-                    <button class="btn-add-db" onclick="addNewTag()" id="btn-save-tag">추가</button>
-                    <button class="action-btn" onclick="resetForm()" style="height: 40px; font-size: 14px; padding: 0 20px;">취소</button>
-                    <input type="hidden" id="edit-original-layer"><input type="hidden" id="edit-original-folder"><input type="hidden" id="edit-original-index">
+        <div class="modal-content" style="width: 900px; max-width:95vw; max-height:92vh; display:flex; flex-direction:column;">
+            <div class="modal-header" style="flex-shrink:0;">
+                <span class="modal-title"><i class="fa-solid fa-database"></i> DB 관리</span>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <span id="db-text-status" style="font-size:13px; color:var(--text-dim);"></span>
+                    <button class="action-btn" onclick="document.getElementById('db-manager-modal').style.display='none'"><i class="fa-solid fa-xmark"></i> 닫기</button>
                 </div>
             </div>
-            <div class="db-table-container">
-                <table class="db-table">
-                    <thead><tr><th width="80">계층</th><th width="150">세부 폴더</th><th width="150">프롬프트 (EN)</th><th width="150">한글 뜻 (KR)</th><th width="100">서브카테고리</th><th width="100">액션</th></tr></thead>
-                    <tbody id="db-table-body"></tbody>
-                </table>
+            <!-- 모드 토글: 표 편집 / 코드 편집 -->
+            <div style="display:flex; gap:8px; padding:12px 24px 0; flex-shrink:0;">
+                <button id="db-mode-table" class="io-pill active" style="--pc:var(--accent-blue);" onclick="dbSetMode('table')"><i class="fa-solid fa-table-cells"></i> 표 편집</button>
+                <button id="db-mode-code" class="io-pill" style="--pc:var(--accent-green);" onclick="dbSetMode('code')"><i class="fa-solid fa-code"></i> 코드 편집</button>
+            </div>
+
+            <!-- 표 편집 뷰 -->
+            <div id="db-view-table" style="flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden;">
+                <div class="db-add-form-container">
+                    <div class="db-layer-tabs" id="db-layer-tabs"></div>
+                    <div class="db-folder-chips" id="db-folder-chips"><span style="color:var(--text-dim); font-size:13px;">위에서 계층 선택 시 폴더가 표시됩니다.</span></div>
+                    <div class="db-add-form">
+                        <div class="input-group">
+                            <label>대상 폴더 (자동입력 or 직접작성)</label>
+                            <input type="text" id="add-folder" list="folder-options" placeholder="예: 2_새폴더">
+                            <datalist id="folder-options"></datalist>
+                        </div>
+                        <div class="input-group"><label>프롬프트 (EN)</label><input type="text" id="add-en" placeholder="cowboy shot"></div>
+                        <div class="input-group"><label>한글 뜻 (KR)</label><input type="text" id="add-kr" placeholder="카우보이 샷"></div>
+                        <div class="input-group"><label>서브카테고리 <span style="opacity:0.5;font-size:10px;">(충돌 그룹)</span></label><input type="text" id="add-conflict" placeholder="예: 구도종류, 앵글"></div>
+                        <button class="btn-add-db" onclick="addNewTag()" id="btn-save-tag">추가</button>
+                        <button class="action-btn" onclick="resetForm()" style="height: 40px; font-size: 14px; padding: 0 20px;">취소</button>
+                        <input type="hidden" id="edit-original-layer"><input type="hidden" id="edit-original-folder"><input type="hidden" id="edit-original-index">
+                    </div>
+                </div>
+                <div class="db-table-container">
+                    <table class="db-table">
+                        <thead><tr><th width="80">계층</th><th width="150">세부 폴더</th><th width="150">프롬프트 (EN)</th><th width="150">한글 뜻 (KR)</th><th width="100">서브카테고리</th><th width="100">액션</th></tr></thead>
+                        <tbody id="db-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 코드 편집 뷰 -->
+            <div id="db-view-code" style="flex:1; min-height:0; display:none; flex-direction:column; overflow:hidden;">
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:12px 24px; background:var(--bg-surface); border-bottom:1px solid var(--border-dim); flex-shrink:0;">
+                    <span style="flex:1; font-size:13px; color:var(--text-dim); line-height:1.5;">💡 JSON으로 DB를 직접 편집. <strong style="color:var(--accent-blue);">저장 적용</strong> 시 즉시 반영(잘못된 형식은 저장 안 됨).</span>
+                    <button class="action-btn" onclick="openDBFormatGuide()" title="입력 형식 가이드" style="color:var(--text-dim); border-color:var(--border-dim);"><i class="fa-solid fa-circle-info"></i> ⓘ</button>
+                    <button class="action-btn" onclick="formatDBText()" style="color:var(--accent-blue); border-color:var(--accent-blue);"><i class="fa-solid fa-indent"></i> 정렬</button>
+                    <button class="action-btn" onclick="saveDBText()" style="background:var(--accent-green); color:#fff; border:none;"><i class="fa-solid fa-floppy-disk"></i> 저장 적용</button>
+                    <button class="action-btn" onclick="hardResetAll()" style="background:var(--accent-danger); color:#fff; border:none;"><i class="fa-solid fa-trash-can"></i> 완전 리셋</button>
+                </div>
+                <div style="flex:1; overflow:hidden; display:flex; flex-direction:column; padding: 16px 24px;">
+                    <textarea id="db-text-area" spellcheck="false"
+                        oninput="validateDBText()"
+                        style="flex:1; width:100%; height:100%; background:var(--input-bg); border:1px solid var(--border-dim); color:var(--text-main); font-family:var(--font-code); font-size:13px; line-height:1.7; padding:16px; border-radius:8px; resize:none; outline:none; transition:border-color 0.2s;"></textarea>
+                </div>
             </div>
         </div>
     </div>
@@ -1251,30 +1276,6 @@
                     <button class="btn-add-db" style="border:none; padding:12px 28px;" id="io-action-btn" onclick="executeIO()"></button>
                 </div>
                 <input type="file" id="io-file-input" accept="application/json,.json,.txt" style="display:none;" onchange="importIOFromFile(event)">
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="db-text-editor-modal">
-        <div class="modal-content" id="db-text-editor-box" style="width: min(95vw, 1200px); height: min(90vh, 900px); resize: both; overflow: hidden; display: flex; flex-direction: column; min-width: 500px; min-height: 300px;">
-            <div class="modal-header" id="db-text-editor-drag-handle" style="cursor: move; user-select: none;">
-                <span class="modal-title"><i class="fa-solid fa-code"></i> DB 텍스트 편집기</span>
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <span id="db-text-status" style="font-size:13px; color:var(--text-dim);"></span>
-                    <button class="action-btn" onclick="openDBFormatGuide()" title="입력 형식 가이드" style="color:var(--text-dim); border-color:var(--border-dim);"><i class="fa-solid fa-circle-info"></i> ⓘ</button>
-                    <button class="action-btn" onclick="formatDBText()" style="color:var(--accent-blue); border-color:var(--accent-blue);"><i class="fa-solid fa-indent"></i> 정렬</button>
-                    <button class="action-btn" onclick="saveDBText()" style="background:var(--accent-green); color:#fff; border:none;"><i class="fa-solid fa-floppy-disk"></i> 저장 적용</button>
-                    <button class="action-btn" onclick="hardResetAll()" style="background:var(--accent-danger); color:#fff; border:none;"><i class="fa-solid fa-trash-can"></i> 완전 리셋</button>
-                    <button class="action-btn" onclick="document.getElementById('db-text-editor-modal').style.display='none'"><i class="fa-solid fa-xmark"></i> 닫기</button>
-                </div>
-            </div>
-            <div style="padding: 12px 24px; background:var(--bg-surface); border-bottom:1px solid var(--border-dim); font-size:13px; color:var(--text-dim); line-height:1.6; flex-shrink:0;">
-                💡 JSON 형식으로 DB를 직접 편집할 수 있습니다. <strong style="color:var(--accent-blue);">저장 적용</strong> 버튼을 누르면 즉시 반영됩니다. 잘못된 형식은 저장되지 않습니다.
-            </div>
-            <div style="flex:1; overflow:hidden; display:flex; flex-direction:column; padding: 16px 24px;">
-                <textarea id="db-text-area" spellcheck="false"
-                    oninput="validateDBText()"
-                    style="flex:1; width:100%; height:100%; background:var(--input-bg); border:1px solid var(--border-dim); color:var(--text-main); font-family:var(--font-code); font-size:13px; line-height:1.7; padding:16px; border-radius:8px; resize:none; outline:none; transition:border-color 0.2s;"></textarea>
             </div>
         </div>
     </div>
@@ -1571,7 +1572,24 @@
         const CHANGELOG = [
             // ── 2026-06-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.9.46', date: '2026-06-28', time: '오후 (최신)',
+                version: 'v9.9.50', date: '2026-06-28', time: '오후 (최신)',
+                tag: 'feat',
+                items: [
+                    '[DB] "DB 관리"와 "코드 편집"을 한 메뉴로 통합 — 모달 상단 토글로 표 편집 ↔ 코드 편집 즉시 전환',
+                    '[개발자] 개발자 모드 ON 시 시각 표시 — 상단 경고 배너 · 화면 보라 네온 테두리 · 상단바 DEV 칩',
+                    '[개발자] 개발자 모드를 확장 가능한 구조(DevMode)로 개편 — 기능 추가 용이',
+                    '[태그] 모바일에서 태그 선택 시 해당 계층으로 자동 스크롤되던 동작 제거 (플래시 하이라이트는 유지)',
+                    '[태그] 모바일에서 즐겨찾기 별 오터치로 선택이 안 되던 문제 수정 — 별은 표시만, 즐겨찾기는 롱프레스 메뉴',
+                    '[태그] 태그 선택이 한 박자 느리던 지연 제거 — 즉시 토글 (더블클릭 편집 유지)',
+                    '[모바일] 뒤로가기가 탭을 닫던 문제 — 패널 전환을 히스토리에 연동해 이전 패널로 이동',
+                    '[내보내기] 파일(.json)로 저장/불러오기 추가 (텍스트 복사 방식도 유지)',
+                    '[내보내기] 항목별 용량 비중(원 안 %)·전체 대비 선택 비율 도넛 표시, 토글 시 부드럽게 변화',
+                    '[내보내기] 워크플로우 JSON을 별도 항목으로 분리해 선택 가능, 기타 설정(테마·레이아웃 등)까지 완전 백업',
+                    '[메뉴] 햄버거 메뉴 재정리 — 테마 중복 제거, 백업·데이터 그룹 분리',
+                ]
+            },
+            {
+                version: 'v9.9.46', date: '2026-06-28', time: '오후',
                 tag: 'feat',
                 items: [
                     '[개발자] 햄버거 메뉴 → 기타 → 개발자 테스트 추가 — ComfyUI 연결 없이 가상 이미지 생성',
@@ -10649,7 +10667,33 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             reader.readAsText(file);
         }
 
-        function openDBManager() { renderDBTable(); renderDBLayerTabs(); document.getElementById('db-manager-modal').style.display = 'flex'; }
+        function openDBManager() { dbSetMode('table'); document.getElementById('db-manager-modal').style.display = 'flex'; }
+
+        // 표 편집 / 코드 편집 모드 전환 (같은 DB, 한 모달)
+        function dbSetMode(mode) {
+            const isCode = mode === 'code';
+            const tv = document.getElementById('db-view-table');
+            const cv = document.getElementById('db-view-code');
+            const bt = document.getElementById('db-mode-table');
+            const bc = document.getElementById('db-mode-code');
+            if (tv) tv.style.display = isCode ? 'none' : 'flex';
+            if (cv) cv.style.display = isCode ? 'flex' : 'none';
+            if (bt) bt.classList.toggle('active', !isCode);
+            if (bc) bc.classList.toggle('active', isCode);
+            if (isCode) { _dbFillCodeArea(); }
+            else { renderDBTable(); renderDBLayerTabs(); }
+        }
+
+        // 코드 편집 영역에 현재 데이터 JSON 채우기
+        function _dbFillCodeArea() {
+            const textarea = document.getElementById('db-text-area');
+            if (!textarea) return;
+            const all = { _version: 2, promptDB, comboFS, contextTabs, contextStates, tagDefaultWeights, favorites };
+            textarea.value = JSON.stringify(all, null, 2);
+            textarea.style.borderColor = 'var(--border-dim)';
+            const st = document.getElementById('db-text-status');
+            if (st) st.innerText = '';
+        }
 
         function renderDBLayerTabs() {
             const tabsContainer = document.getElementById('db-layer-tabs'); const chipsContainer = document.getElementById('db-folder-chips'); tabsContainer.innerHTML = '';
@@ -11519,21 +11563,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             document.body.appendChild(overlay);
         }
 
+        // 하위 호환: 코드 편집 모드로 DB 관리 모달 열기
         function openDBTextEditor() {
-            const textarea = document.getElementById('db-text-area');
-            const all = {
-                _version: 2,
-                promptDB,
-                comboFS,
-                contextTabs,
-                contextStates,
-                tagDefaultWeights,
-                favorites,
-            };
-            textarea.value = JSON.stringify(all, null, 2);
-            textarea.style.borderColor = 'var(--border-dim)';
-            document.getElementById('db-text-status').innerText = '';
-            document.getElementById('db-text-editor-modal').style.display = 'flex';
+            document.getElementById('db-manager-modal').style.display = 'flex';
+            dbSetMode('code');
         }
 
         function validateDBText() {
@@ -11595,7 +11628,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }
 
                 initApp();
-                document.getElementById('db-text-editor-modal').style.display = 'none';
+                dbSetMode('table'); // 저장 후 표 편집 뷰로 전환해 결과 확인
                 showToast("저장 및 적용 완료!", "success");
             } catch(e) {
                 showToast("저장 실패: JSON 형식을 확인해주세요. (" + e.message + ")", "error");
@@ -12010,32 +12043,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (localStorage.getItem('kor_preview_' + w + '_collapsed') === '1') toggleKoreanPreview(w);
             } catch (e) {}
         });
-
-        // DB 텍스트 편집기 드래그 이동
-        (function() {
-            const handle = document.getElementById('db-text-editor-drag-handle');
-            const box = document.getElementById('db-text-editor-box');
-            if (!handle || !box) return;
-            let isDragging = false, startX, startY, startLeft, startTop;
-            handle.addEventListener('mousedown', (e) => {
-                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
-                isDragging = true;
-                const rect = box.getBoundingClientRect();
-                startX = e.clientX; startY = e.clientY;
-                startLeft = rect.left; startTop = rect.top;
-                box.style.position = 'fixed';
-                box.style.margin = '0';
-                box.style.left = startLeft + 'px';
-                box.style.top = startTop + 'px';
-                document.body.style.userSelect = 'none';
-            });
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                box.style.left = Math.max(0, startLeft + e.clientX - startX) + 'px';
-                box.style.top = Math.max(0, startTop + e.clientY - startY) + 'px';
-            });
-            document.addEventListener('mouseup', () => { isDragging = false; document.body.style.userSelect = ''; });
-        })();
 
         // 탭 드래그 스크롤
         (function() {
