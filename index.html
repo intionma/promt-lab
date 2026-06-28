@@ -945,7 +945,8 @@
 
             <div class="gt-menu-sec">기타</div>
             <button class="gt-menu-item" data-tool="theme" onclick="closeGtMenu();toggleTheme()"><i class="fa-solid fa-circle-half-stroke"></i><span>테마 변경</span></button>
-            <button class="gt-menu-item" data-tool="mocktest" style="--gc:#a855f7;" onclick="closeGtMenu();comfyMockTest(4)"><i class="fa-solid fa-flask"></i><span>개발자 테스트</span><small>ComfyUI 없이 가상 이미지 4개 생성</small></button>
+            <button class="gt-menu-item" data-tool="mockmode" style="--gc:#a855f7;" onclick="closeGtMenu();comfyToggleMockMode()"><i class="fa-solid fa-flask"></i><span>개발자 모드</span><small>ComfyUI 없이 결과창 전송 버튼으로 가상 생성</small></button>
+            <button class="gt-menu-item" data-tool="mocktest" style="--gc:#a855f7;" onclick="closeGtMenu();comfyMockTest(4)"><i class="fa-solid fa-vials"></i><span>가상 생성 4개</span><small>대기열·진행바·갤러리 한번에 테스트</small></button>
             <button class="gt-menu-item" data-tool="shutdown" style="--gc:#ef4444;" onclick="closeGtMenu();openShutdownModal()"><i class="fa-solid fa-power-off"></i><span>PC 종료</span><small>도우미 스크립트 필요</small></button>
         </div>
     </header>
@@ -2441,13 +2442,30 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _comfySyncQueue();
         });
 
+        // 개발자(가상) 모드 — ComfyUI 연결 없이 결과창 전송 버튼/생성 흐름 테스트
+        let _comfyMockMode = false;
+        try { _comfyMockMode = localStorage.getItem('comfy_mock_mode') === '1'; } catch (e) {}
+
         // 결과 패널의 'ComfyUI 전송' 빠른 버튼 표시 여부 갱신
         function comfyUpdateQuickButtons() {
-            const show = _comfyConnectedOnce;
+            const show = _comfyConnectedOnce || _comfyMockMode;
             const p = document.getElementById('btn-comfy-send-pos');
             const n = document.getElementById('btn-comfy-send-neg');
-            if (p) p.style.display = show ? '' : 'none';
-            if (n) n.style.display = show ? '' : 'none';
+            const label = _comfyMockMode && !_comfyConnectedOnce
+                ? '<i class="fa-solid fa-flask"></i> 가상 생성 (테스트)'
+                : '<i class="fa-solid fa-paper-plane"></i> ComfyUI 전송';
+            if (p) { p.style.display = show ? '' : 'none'; p.innerHTML = label; }
+            if (n) { n.style.display = show ? '' : 'none'; n.innerHTML = label; }
+        }
+
+        // 개발자 모드 토글 (햄버거 메뉴)
+        function comfyToggleMockMode() {
+            _comfyMockMode = !_comfyMockMode;
+            try { localStorage.setItem('comfy_mock_mode', _comfyMockMode ? '1' : '0'); } catch (e) {}
+            comfyUpdateQuickButtons();
+            showToast(_comfyMockMode
+                ? '🧪 개발자 모드 ON — 결과창 전송 버튼이 가상 생성을 실행합니다'
+                : '개발자 모드 OFF', _comfyMockMode ? 'info' : 'success', 3000);
         }
 
         // 긍정/부정 탭에서 바로 전송 — 모달 없이 인라인 진행바·미리보기로 실행
@@ -2462,6 +2480,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 document.getElementById('comfy-inline-bar-' + t).style.width = '2%';
                 document.getElementById('comfy-inline-status-' + t).textContent = '전송 준비...';
             }
+            // 개발자 모드면 실제 대신 가상 생성 실행
+            if (_comfyMockMode && !_comfyConnectedOnce) { comfyMockTest(1, t); return; }
             comfyGenerate(t);
         }
 
@@ -3959,8 +3979,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
         }
 
-        function comfyMockTest(count) {
+        function comfyMockTest(count, inline) {
             count = count || 4;
+            inline = (inline === 'pos' || inline === 'neg') ? inline : null;
             // 실제 ComfyUI 생성 작업이 진행 중이면 카운터/배치 추적이 꼬이므로 차단
             const hasRealJob = Object.values(_comfyJobs).some(j => !j._mock);
             if (hasRealJob) {
@@ -3971,7 +3992,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const baseLabel = (pos ? _comfyKorLabel(pos) : '') || '테스트 이미지';
             for (let i = 0; i < count; i++) {
                 const pid = 'mock_' + Date.now() + '_' + (++_mockSeqCounter);
-                _comfyJobs[pid] = { inline: null, cleared: false, done: false, seq: ++_comfyJobSeq, label: baseLabel, _mock: true };
+                _comfyJobs[pid] = { inline: inline, cleared: false, done: false, seq: ++_comfyJobSeq, label: baseLabel, _mock: true };
                 _comfyQueueCount++;
                 _comfyBatchTotal++;
                 _mockQueue.push(pid);
@@ -3996,26 +4017,29 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         function _mockRunJob(pid, onDone) {
             _comfyRunningPid = pid;
+            const job = _comfyJobs[pid];
+            const inline = job ? job.inline : null;
             const lt = document.getElementById('comfy-live-thumbs');
             if (lt) lt.innerHTML = '';
-            if (_comfyJobs[pid]) _comfyJobs[pid].cleared = true;
+            const it = inline ? document.getElementById('comfy-inline-thumbs-' + inline) : null;
+            if (it) it.innerHTML = '';
+            if (job) job.cleared = true;
             comfyRenderQueue();
             let pct = 0;
             const stages = { base: false, detail: false };
-            const seq = _comfyJobs[pid] ? _comfyJobs[pid].seq : 0;
+            const seq = job ? job.seq : 0;
+            const stage = (label) => {
+                const url = _mockImgDataUrl(seq, label);
+                if (lt) lt.appendChild(_comfyThumb(url, 160, label));
+                if (it) it.appendChild(_comfyThumb(url, inline === 'pos' ? 320 : 130, label));
+            };
             const timer = setInterval(() => {
                 if (!_comfyJobs[pid]) { clearInterval(timer); onDone(); return; } // 도중 취소됨
                 pct += Math.random() * 11 + 6;
                 if (pct > 100) pct = 100;
-                _comfySetProgress(pct, `🧪 가상 생성 중... ${Math.floor(pct)}%`, null);
-                if (pct > 30 && !stages.base) {
-                    stages.base = true;
-                    if (lt) lt.appendChild(_comfyThumb(_mockImgDataUrl(seq, '베이스'), 160, '베이스'));
-                }
-                if (pct > 65 && !stages.detail) {
-                    stages.detail = true;
-                    if (lt) lt.appendChild(_comfyThumb(_mockImgDataUrl(seq, '얼굴 디테일'), 160, '얼굴 디테일'));
-                }
+                _comfySetProgress(pct, `🧪 가상 생성 중... ${Math.floor(pct)}%`, inline);
+                if (pct > 30 && !stages.base) { stages.base = true; stage('베이스'); }
+                if (pct > 65 && !stages.detail) { stages.detail = true; stage('얼굴 디테일'); }
                 if (pct >= 100) {
                     clearInterval(timer);
                     _mockFinalize(pid);
@@ -4028,18 +4052,20 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const job = _comfyJobs[pid];
             if (!job || job.done) return;
             job.done = true;
+            const inline = job.inline;
             const url = _mockImgDataUrl(job.seq, '완성');
             const gallery = document.getElementById('comfy-gallery');
             if (gallery) gallery.prepend(_comfyThumb(url, 240));
+            if (inline) { const t = document.getElementById('comfy-inline-thumbs-' + inline); if (t) t.appendChild(_comfyThumb(url, inline === 'pos' ? 320 : 130, '완성')); }
             galleryAddImage(url); // 결과 갤러리 탭에 영구 저장
             delete _comfyJobs[pid];
             _comfyQueueCount = Math.max(0, _comfyQueueCount - 1);
             _comfyBatchDone++;
             comfyRenderQueue();
             if (_comfyQueueCount > 0) {
-                _comfySetProgress(100, '완료 · 다음 대기', null);
+                _comfySetProgress(100, '완료 · 다음 대기', inline);
             } else {
-                _comfySetProgress(100, '✅ 가상 생성 모두 완료', null);
+                _comfySetProgress(100, '✅ 가상 생성 모두 완료', inline);
                 _comfyRunningPid = null;
                 _comfyBatchTotal = 0; _comfyBatchDone = 0;
                 _comfyOnAllDone();
