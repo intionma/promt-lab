@@ -2476,42 +2476,95 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _comfySyncQueue();
         });
 
-        // 개발자(가상) 모드 — ComfyUI 연결 없이 결과창 전송 버튼/생성 흐름 테스트
-        let _comfyMockMode = false;
-        try { _comfyMockMode = localStorage.getItem('comfy_mock_mode') === '1'; } catch (e) {}
+        // ── 개발자 모드 (확장 가능한 구조) ──────────────────────────────
+        // 새 개발자 기능을 추가하려면 DevMode.FEATURES 에 항목만 넣으면 됨:
+        //   { id, label, desc, default:true, onApply(active){...} }
+        // - DevMode.on            : 개발자 모드 전체 ON/OFF
+        // - DevMode.feature(id)   : 해당 기능이 동작해야 하는지 (모드 ON + 기능 ON)
+        // - DevMode.toggleFeature(id) : 개별 기능 토글 (향후 설정 패널용)
+        const DevMode = {
+            KEY: 'dev_mode_v1',
+            on: false,
+            features: {},   // { featureId: bool }
+            // 등록된 개발자 기능 목록 (여기에 추가하면 자동 확장)
+            FEATURES: [
+                {
+                    id: 'mockGen',
+                    label: '가상 생성',
+                    desc: 'ComfyUI 연결 없이 가상으로 연결·생성',
+                    default: true,
+                    onApply(active) {
+                        // 생성 버튼/연결 상태 UI 갱신
+                        if (typeof comfyUpdateQuickButtons === 'function') comfyUpdateQuickButtons();
+                        const statusEl = document.getElementById('comfy-conn-status');
+                        if (statusEl) {
+                            if (active) { statusEl.textContent = '🧪 가상 연결됨 (개발자 모드)'; statusEl.style.color = 'var(--accent-green)'; }
+                            else if (_comfyConnectedOnce) { statusEl.textContent = '✅ 연결됨'; statusEl.style.color = 'var(--accent-green)'; }
+                            else { statusEl.textContent = ''; }
+                        }
+                    }
+                },
+            ],
+            load() {
+                let saved = null;
+                try { saved = JSON.parse(localStorage.getItem(this.KEY) || 'null'); } catch (e) {}
+                // 구버전(comfy_mock_mode) 마이그레이션
+                if (!saved) {
+                    let legacy = false;
+                    try { legacy = localStorage.getItem('comfy_mock_mode') === '1'; } catch (e) {}
+                    saved = { on: legacy, features: {} };
+                }
+                this.on = !!saved.on;
+                this.features = {};
+                this.FEATURES.forEach(f => {
+                    this.features[f.id] = saved.features && f.id in saved.features ? !!saved.features[f.id] : f.default;
+                });
+            },
+            save() {
+                try { localStorage.setItem(this.KEY, JSON.stringify({ on: this.on, features: this.features })); } catch (e) {}
+            },
+            feature(id) { return this.on && this.features[id] !== false; },
+            // 전체 ON/OFF에 따른 시각/기능 적용
+            apply() {
+                document.body.classList.toggle('dev-mode', this.on);
+                const mi = document.querySelector('[data-tool="mockmode"] small');
+                if (mi) mi.textContent = this.on ? '● ON — 개발자 모드 켜짐' : 'ComfyUI 없이 가상으로 연결·생성';
+                this.FEATURES.forEach(f => { try { f.onApply && f.onApply(this.feature(f.id)); } catch (e) {} });
+            },
+            toggle() {
+                this.on = !this.on;
+                this.save();
+                this.apply();
+                showToast(this.on
+                    ? '🧪 개발자 모드 ON'
+                    : '개발자 모드 OFF', this.on ? 'info' : 'success', 3000);
+            },
+            toggleFeature(id) {
+                this.features[id] = this.features[id] === false ? true : false;
+                this.save();
+                this.apply();
+            }
+        };
+        DevMode.load();
+
+        // 하위 호환: 기존 코드가 참조하는 가상 생성 여부 (모드 ON + mockGen 기능 ON)
+        Object.defineProperty(window, '_comfyMockMode', { get: () => DevMode.feature('mockGen') });
 
         // 결과 패널의 'ComfyUI 전송' 빠른 버튼 표시 여부 갱신
-        // 개발자 모드면 ComfyUI가 연결된 것처럼 버튼을 노출
+        // 가상 생성 기능이 켜져 있으면 ComfyUI가 연결된 것처럼 버튼을 노출
         function comfyUpdateQuickButtons() {
-            const show = _comfyConnectedOnce || _comfyMockMode;
+            const mock = DevMode.feature('mockGen');
+            const show = _comfyConnectedOnce || mock;
             const p = document.getElementById('btn-comfy-send-pos');
             const n = document.getElementById('btn-comfy-send-neg');
             const label = '<i class="fa-solid fa-paper-plane"></i> ComfyUI 전송' +
-                (_comfyMockMode ? ' <span style="font-size:10px;opacity:0.85;">(가상)</span>' : '');
+                (mock ? ' <span style="font-size:10px;opacity:0.85;">(가상)</span>' : '');
             if (p) { p.style.display = show ? '' : 'none'; p.innerHTML = label; }
             if (n) { n.style.display = show ? '' : 'none'; n.innerHTML = label; }
         }
 
-        // 개발자 모드 토글 — ON이면 ComfyUI가 가상으로 연결됐다고 가정하고 모든 생성을 가상 처리
-        function comfyToggleMockMode() {
-            _comfyMockMode = !_comfyMockMode;
-            try { localStorage.setItem('comfy_mock_mode', _comfyMockMode ? '1' : '0'); } catch (e) {}
-            document.body.classList.toggle('dev-mode', _comfyMockMode);
-            comfyUpdateQuickButtons();
-            // 연결 상태 표시 갱신 (가상 연결 / 실제 연결 / 미연결)
-            const statusEl = document.getElementById('comfy-conn-status');
-            if (statusEl) {
-                if (_comfyMockMode) { statusEl.textContent = '🧪 가상 연결됨 (개발자 모드)'; statusEl.style.color = 'var(--accent-green)'; }
-                else if (_comfyConnectedOnce) { statusEl.textContent = '✅ 연결됨'; statusEl.style.color = 'var(--accent-green)'; }
-                else { statusEl.textContent = ''; }
-            }
-            // 메뉴 항목 상태 라벨 갱신
-            const mi = document.querySelector('[data-tool="mockmode"] small');
-            if (mi) mi.textContent = _comfyMockMode ? '● ON — 가상으로 연결됨, 가상 생성 실행' : 'ComfyUI 없이 가상으로 연결·생성';
-            showToast(_comfyMockMode
-                ? '🧪 개발자 모드 ON — ComfyUI 가상 연결됨. 모든 생성이 가상으로 동작합니다'
-                : '개발자 모드 OFF', _comfyMockMode ? 'info' : 'success', 3000);
-        }
+        // 메뉴에서 호출 — 개발자 모드 전체 토글
+        function comfyToggleMockMode() { DevMode.toggle(); }
 
         // 긍정/부정 탭에서 바로 전송 — 모달 없이 인라인 진행바·미리보기로 실행
         function comfyQuickSend(target) {
@@ -11949,11 +12002,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         renderImageGallery();   // 저장된 생성 이미지 갤러리 복원
         _restoreGenMemo();      // 메모장 복원 (새로고침 유지)
         comfyUpdateQuickButtons();  // ComfyUI 연동 이력 있으면 전송 버튼 표시
-        if (_comfyMockMode) {       // 개발자 모드 저장돼 있으면 시각 표시·메뉴 라벨 반영
-            document.body.classList.add('dev-mode');
-            const mi = document.querySelector('[data-tool="mockmode"] small');
-            if (mi) mi.textContent = '● ON — 가상으로 연결됨, 가상 생성 실행';
-        }
+        DevMode.apply();            // 저장된 개발자 모드 상태 → 시각 표시·기능 적용
         // 한글 번역 미리보기 접힘 상태 복원
         ['pos','neg'].forEach(w => {
             try {
