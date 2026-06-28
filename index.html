@@ -9926,6 +9926,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     if (!existing.has(url)) { _galleryUrls.push(url); existing.add(url); addedCount++; }
                 }
                 try { localStorage.setItem(GALLERY_KEY, JSON.stringify(_galleryUrls)); } catch(e) {}
+                if (typeof renderImageGallery === 'function') renderImageGallery();
             }
 
             // Merge gtPins
@@ -9934,6 +9935,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     if (!_gtPins.includes(pin)) { _gtPins.push(pin); addedCount++; }
                 }
                 try { localStorage.setItem('gt_pins', JSON.stringify(_gtPins)); } catch(e) {}
+                if (typeof gtRenderPins === 'function') gtRenderPins();
             }
 
             initApp();
@@ -10083,10 +10085,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         if (parsed.galleryUrls && Array.isArray(parsed.galleryUrls)) {
                             _galleryUrls = parsed.galleryUrls;
                             try { localStorage.setItem(GALLERY_KEY, JSON.stringify(_galleryUrls)); } catch(e) {}
+                            if (typeof renderImageGallery === 'function') renderImageGallery();
                         }
                         if (parsed.gtPins && Array.isArray(parsed.gtPins)) {
                             _gtPins = parsed.gtPins;
                             try { localStorage.setItem('gt_pins', JSON.stringify(_gtPins)); } catch(e) {}
+                            if (typeof gtRenderPins === 'function') gtRenderPins();
                         }
                         if (typeof parsed.generationMemo === 'string') {
                             try { localStorage.setItem('pro_generation_memo', parsed.generationMemo); } catch(e) {}
