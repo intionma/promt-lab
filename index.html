@@ -934,17 +934,18 @@
             <button class="gt-menu-item" data-tool="reorganize" style="--gc:#22c55e;" onclick="closeGtMenu();reorganizeTagsByDB()"><i class="fa-solid fa-shuffle"></i><span>레이어 재배치</span></button>
             <button class="gt-menu-item" data-tool="dedup" style="--gc:#f59e0b;" onclick="closeGtMenu();openDedupHelper()"><i class="fa-solid fa-clone"></i><span>중복 감지</span></button>
             <button class="gt-menu-item" data-tool="previz" style="--gc:#38bdf8;" onclick="closeGtMenu();window.__previzOpen && window.__previzOpen()"><i class="fa-solid fa-camera-movie"></i><span>미리보기 스튜디오</span></button>
+
+            <div class="gt-menu-sec">생성</div>
+            <button class="gt-menu-item" data-tool="comfy" style="--gc:#38bdf8;" onclick="closeGtMenu();openComfyModal()"><i class="fa-solid fa-paper-plane"></i><span>ComfyUI 전송</span></button>
             <button class="gt-menu-item" data-tool="memo" style="--gc:#eab308;" onclick="closeGtMenu();openMemoModal()"><i class="fa-solid fa-pen-to-square"></i><span>생성 세팅 메모</span></button>
 
-            <div class="gt-menu-sec">생성 · 데이터</div>
-            <button class="gt-menu-item" data-tool="comfy" style="--gc:#38bdf8;" onclick="closeGtMenu();openComfyModal()"><i class="fa-solid fa-paper-plane"></i><span>ComfyUI 전송</span></button>
+            <div class="gt-menu-sec">백업 · 데이터</div>
             <button class="gt-menu-item" data-tool="export" onclick="closeGtMenu();openIOModal('export')"><i class="fa-solid fa-copy"></i><span>내보내기</span></button>
             <button class="gt-menu-item" data-tool="import" onclick="closeGtMenu();openIOModal('import')"><i class="fa-solid fa-paste"></i><span>불러오기 / 복구</span></button>
             <button class="gt-menu-item" data-tool="html" style="--gc:#38bdf8;" onclick="closeGtMenu();downloadAppHtml()"><i class="fa-solid fa-download"></i><span>HTML 저장</span><small>로컬/공유용 다운로드</small></button>
             <button class="gt-menu-item" data-tool="preset" style="--gc:var(--accent-green);" onclick="closeGtMenu();openPresetManager()"><i class="fa-solid fa-floppy-disk"></i><span>프리셋 관리</span></button>
 
             <div class="gt-menu-sec">기타</div>
-            <button class="gt-menu-item" data-tool="theme" onclick="closeGtMenu();toggleTheme()"><i class="fa-solid fa-circle-half-stroke"></i><span>테마 변경</span></button>
             <button class="gt-menu-item" data-tool="mockmode" style="--gc:#a855f7;" onclick="closeGtMenu();comfyToggleMockMode()"><i class="fa-solid fa-flask"></i><span>개발자 모드</span><small>ComfyUI 없이 가상으로 연결·생성</small></button>
             <button class="gt-menu-item" data-tool="shutdown" style="--gc:#ef4444;" onclick="closeGtMenu();openShutdownModal()"><i class="fa-solid fa-power-off"></i><span>PC 종료</span><small>도우미 스크립트 필요</small></button>
         </div>
