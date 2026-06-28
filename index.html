@@ -949,7 +949,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.76 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.78 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1595,60 +1595,65 @@
 
     <!-- ── 다중 결과 생성 (전체화면) ── -->
     <div id="multigen-modal" style="display:none; position:fixed; inset:0; z-index:100009; background:var(--bg-base); flex-direction:column;">
+        <!-- 헤더 (상단 고정) -->
         <div style="flex-shrink:0; display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--border-dim); background:var(--bg-panel);">
-            <span style="font-size:16px; font-weight:800; font-family:var(--font-heading); flex:1;"><i class="fa-solid fa-bolt" style="color:#a855f7;"></i> 다중 결과 생성 <span style="font-size:11px; font-weight:600; color:var(--text-dim);">— 빠르게 여러 장 → 마음에 드는 것 골라 고품질 재출력</span></span>
+            <span style="font-size:16px; font-weight:800; font-family:var(--font-heading); flex:1; min-width:0;"><i class="fa-solid fa-bolt" style="color:#a855f7;"></i> 다중 결과 생성 <span style="font-size:11px; font-weight:600; color:var(--text-dim);">— 빠르게 여러 장 → 골라서 고품질 재출력</span></span>
+            <button class="action-btn" onclick="multiGenToggleSettings()" id="mg-settings-toggle" title="설정 펼치기/접기" style="padding:8px 10px;"><i class="fa-solid fa-sliders"></i> 설정</button>
             <button class="action-btn" onclick="closeMultiGen()"><i class="fa-solid fa-xmark"></i> 닫기</button>
         </div>
-        <!-- 설정 바 -->
-        <div style="flex-shrink:0; display:flex; gap:12px 16px; flex-wrap:wrap; align-items:flex-end; padding:12px 18px; border-bottom:1px solid var(--border-dim); background:var(--bg-panel);">
-            <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">장수</label><input id="mg-count" type="number" min="1" max="50" value="12" style="width:70px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;"></div>
-            <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">미리보기 스텝</label><input id="mg-steps" type="number" min="1" max="40" value="8" style="width:70px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;"></div>
-            <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">한 번에(배치) <i class="fa-solid fa-circle-info" title="한 작업에서 묶어 생성하는 장수. 클수록 빠르지만 VRAM을 더 씀(부족하면 줄이세요)" style="opacity:0.6;"></i></label><input id="mg-batch" type="number" min="1" max="16" value="4" style="width:70px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;"></div>
-            <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">샘플러(미리보기)</label><select id="mg-sampler" style="background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;">
-                <option value="">워크플로우 그대로</option>
-                <option value="euler">euler</option>
-                <option value="euler_ancestral">euler_a</option>
-                <option value="dpmpp_2m">dpmpp_2m</option>
-                <option value="dpmpp_2m_sde">dpmpp_2m_sde</option>
-                <option value="dpmpp_sde">dpmpp_sde</option>
-                <option value="dpmpp_3m_sde">dpmpp_3m_sde</option>
-                <option value="ddim">ddim</option>
-                <option value="uni_pc">uni_pc</option>
-                <option value="lcm">lcm (초저스텝)</option>
-            </select></div>
-            <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">CFG(미리보기)</label><input id="mg-cfg" type="number" min="0" max="30" step="0.5" placeholder="그대로" style="width:78px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;"></div>
-            <label style="font-size:12px; color:var(--text-main); display:flex; align-items:center; gap:6px; cursor:pointer; padding-bottom:8px;"><input type="checkbox" id="mg-drop-quality" checked> 디테일러·업스케일 끄기(빠르게)</label>
-            <button class="btn-add-db" style="border:none; padding:9px 18px; background:#a855f7;" onclick="multiGenStart()"><i class="fa-solid fa-bolt"></i> 빠르게 생성</button>
-            <button class="action-btn" onclick="multiGenToggleGuide()" title="빠르게 뽑는 가이드" style="border-color:var(--border-dim); color:var(--text-dim); padding:8px 10px;"><i class="fa-solid fa-circle-info"></i> 가이드</button>
-            <button class="action-btn" onclick="comfyShowSystemStats()" title="GPU·VRAM·RAM 실시간 상태 (창 열려있는 동안 ~1.5초마다 자동 갱신)" style="border-color:#38bdf8; color:#38bdf8; padding:8px 10px;"><i class="fa-solid fa-microchip"></i> PC 상태(실시간)</button>
-            <span id="mg-status" style="font-size:12px; color:var(--text-dim); padding-bottom:8px;"></span>
-            <span id="mg-sysinfo" style="font-size:11px; color:#38bdf8; font-family:var(--font-code); padding-bottom:8px;"></span>
+        <!-- 스크롤 영역: 설정 + 가이드 + 결과 그리드 (함께 스크롤 → 설정이 위로 밀려나 이미지가 화면을 꽉 채움) -->
+        <div id="mg-scroll" style="flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;">
+            <!-- 설정 바 -->
+            <div id="mg-settings" style="display:flex; gap:12px 16px; flex-wrap:wrap; align-items:flex-end; padding:12px 18px; border-bottom:1px solid var(--border-dim); background:var(--bg-panel);">
+                <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">장수</label><input id="mg-count" type="number" min="1" max="50" value="12" style="width:70px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;"></div>
+                <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">미리보기 스텝</label><input id="mg-steps" type="number" min="1" max="40" value="8" style="width:70px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;"></div>
+                <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">한 번에(배치) <i class="fa-solid fa-circle-info" title="한 작업에서 묶어 생성하는 장수. 클수록 빠르지만 VRAM을 더 씀(부족하면 줄이세요)" style="opacity:0.6;"></i></label><input id="mg-batch" type="number" min="1" max="16" value="4" style="width:70px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;"></div>
+                <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">샘플러(미리보기)</label><select id="mg-sampler" style="background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;">
+                    <option value="">워크플로우 그대로</option>
+                    <option value="euler">euler</option>
+                    <option value="euler_ancestral">euler_a</option>
+                    <option value="dpmpp_2m">dpmpp_2m</option>
+                    <option value="dpmpp_2m_sde">dpmpp_2m_sde</option>
+                    <option value="dpmpp_sde">dpmpp_sde</option>
+                    <option value="dpmpp_3m_sde">dpmpp_3m_sde</option>
+                    <option value="ddim">ddim</option>
+                    <option value="uni_pc">uni_pc</option>
+                    <option value="lcm">lcm (초저스텝)</option>
+                </select></div>
+                <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">CFG(미리보기)</label><input id="mg-cfg" type="number" min="0" max="30" step="0.5" placeholder="그대로" style="width:78px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;"></div>
+                <label style="font-size:12px; color:var(--text-main); display:flex; align-items:center; gap:6px; cursor:pointer; padding-bottom:8px;"><input type="checkbox" id="mg-drop-quality" checked> 디테일러·업스케일 끄기(빠르게)</label>
+                <button class="btn-add-db" style="border:none; padding:9px 18px; background:#a855f7;" onclick="multiGenStart()"><i class="fa-solid fa-bolt"></i> 빠르게 생성</button>
+                <button class="action-btn" onclick="multiGenToggleGuide()" title="빠르게 뽑는 가이드" style="border-color:var(--border-dim); color:var(--text-dim); padding:8px 10px;"><i class="fa-solid fa-circle-info"></i> 가이드</button>
+                <button class="action-btn" onclick="comfyShowSystemStats()" title="GPU·VRAM·RAM 실시간 상태 (창 열려있는 동안 ~1.5초마다 자동 갱신)" style="border-color:#38bdf8; color:#38bdf8; padding:8px 10px;"><i class="fa-solid fa-microchip"></i> PC 상태(실시간)</button>
+                <span id="mg-status" style="font-size:12px; color:var(--text-dim); padding-bottom:8px;"></span>
+                <span id="mg-sysinfo" style="font-size:11px; color:#38bdf8; font-family:var(--font-code); padding-bottom:8px;"></span>
+            </div>
+            <!-- 빠르게 뽑는 가이드 (i) -->
+            <div id="mg-guide" style="display:none; padding:12px 18px; background:var(--bg-surface); border-bottom:1px solid var(--border-dim); font-size:12px; color:var(--text-dim); line-height:1.7;">
+                <b style="color:var(--text-main);">⚡ 빠르게 뽑는 법</b><br>
+                ① <b>한 번에(배치)</b> 올리기 — 가장 큰 효과 (VRAM 여유만큼, OOM 나면 줄이기)<br>
+                ② <b>미리보기 스텝</b> 낮추기 — 6~8, 더 낮춰 4~5도 가능<br>
+                ③ <b>디테일러·업스케일 끄기</b> 체크 유지 (제일 무거움)<br>
+                ④ <b>샘플러</b>: 일반은 dpmpp_2m·euler / <b>LCM·Turbo·Lightning 모델</b>이면 lcm + 스텝 4~6 + CFG 1~2 → 매우 빠름<br>
+                ⑤ 해상도는 안 건드림(구도 보존). 미리보기는 PC에 저장 안 되고, <b>마음에 드는 것 선택 → 고품질 재출력</b>만 저장됩니다.
+            </div>
+            <!-- 결과 그리드 (자연 높이 → 설정과 함께 스크롤, 이미지가 화면을 꽉 채움) -->
+            <div id="mg-grid" style="padding:14px 14px 28px; display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:8px; align-content:start;"></div>
         </div>
-        <!-- 빠르게 뽑는 가이드 (i) -->
-        <div id="mg-guide" style="display:none; flex-shrink:0; padding:12px 18px; background:var(--bg-surface); border-bottom:1px solid var(--border-dim); font-size:12px; color:var(--text-dim); line-height:1.7;">
-            <b style="color:var(--text-main);">⚡ 빠르게 뽑는 법</b><br>
-            ① <b>한 번에(배치)</b> 올리기 — 가장 큰 효과 (VRAM 여유만큼, OOM 나면 줄이기)<br>
-            ② <b>미리보기 스텝</b> 낮추기 — 6~8, 더 낮춰 4~5도 가능<br>
-            ③ <b>디테일러·업스케일 끄기</b> 체크 유지 (제일 무거움)<br>
-            ④ <b>샘플러</b>: 일반은 dpmpp_2m·euler / <b>LCM·Turbo·Lightning 모델</b>이면 lcm + 스텝 4~6 + CFG 1~2 → 매우 빠름<br>
-            ⑤ 해상도는 안 건드림(구도 보존). 미리보기는 PC에 저장 안 되고, <b>마음에 드는 것 선택 → 고품질 재출력</b>만 저장됩니다.
-        </div>
-        <!-- 진행바 -->
-        <div id="mg-progress-wrap" style="display:none; flex-shrink:0; align-items:center; gap:10px; padding:8px 18px; border-bottom:1px solid var(--border-dim); background:var(--bg-panel);">
+        <!-- 진행바 (하단 고정) -->
+        <div id="mg-progress-wrap" style="display:none; flex-shrink:0; align-items:center; gap:10px; padding:8px 18px; border-top:1px solid var(--border-dim); background:var(--bg-panel);">
             <div style="flex:1; height:8px; background:var(--bg-surface); border-radius:5px; overflow:hidden;"><div id="mg-progress" style="height:100%; width:0%; background:linear-gradient(90deg,#a855f7,#38bdf8); transition:width .2s;"></div></div>
             <span id="mg-progress-text" style="font-size:11px; color:var(--text-dim); min-width:120px; text-align:right; font-family:var(--font-code);"></span>
             <button class="action-btn" onclick="comfyStopCurrent()" style="color:var(--accent-danger); border-color:var(--border-dim); padding:3px 8px; font-size:11px;" title="진행 중인 것만 중지"><i class="fa-solid fa-stop"></i></button>
         </div>
-        <!-- 선택 바 -->
-        <div style="flex-shrink:0; display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:10px 18px; border-bottom:1px solid var(--border-dim); background:var(--bg-base);">
+        <!-- 선택 바 (하단 고정) -->
+        <div style="flex-shrink:0; display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:10px 18px; border-top:1px solid var(--border-dim); background:var(--bg-base);">
             <span style="font-size:13px; font-weight:700; color:var(--text-main);">선택 <span id="mg-sel-count" style="color:#a855f7;">0</span>장</span>
             <button class="action-btn" onclick="multiGenClearSel()"><i class="fa-solid fa-xmark"></i> 선택 해제</button>
             <button class="action-btn" onclick="multiGenClearAll()" title="저장된 미리보기 전체 삭제" style="border-color:var(--border-dim); color:var(--text-dim);"><i class="fa-solid fa-trash-can"></i> 전체 비우기</button>
             <div style="flex:1;"></div>
             <button class="btn-add-db" style="border:none; padding:10px 20px; background:#22c55e;" onclick="multiGenRerender()"><i class="fa-solid fa-wand-magic-sparkles"></i> 선택 고품질 재출력</button>
         </div>
-        <!-- 결과 그리드 -->
-        <div id="mg-grid" style="flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 18px 80px; display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px; align-content:start;"></div>
     </div>
 
     <!-- 모바일 하단 탭바 -->
@@ -1672,7 +1677,16 @@
         const CHANGELOG = [
             // ── 2026-06-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.9.76', date: '2026-06-28', time: '밤 (최신)',
+                version: 'v9.9.78', date: '2026-06-28', time: '밤 (최신)',
+                tag: 'fix',
+                items: [
+                    '[다중 생성] 모바일에서 설정창이 화면을 다 차지하고 이미지가 눌려 안 보이던 문제 전면 개선 — 설정과 결과가 함께 스크롤되어 이미지가 화면을 꽉 채움',
+                    '[다중 생성] 헤더에 "설정" 접기/펼치기 버튼 추가 — 생성 시작하면 모바일에서 자동으로 접혀 이미지가 바로 크게 보임',
+                    '[다중 생성] 진행바·선택/재출력 바는 하단 고정, 닫기는 상단 고정 — 스크롤해도 항상 손닿는 곳에',
+                ]
+            },
+            {
+                version: 'v9.9.76', date: '2026-06-28', time: '밤',
                 tag: 'feat',
                 items: [
                     '[다중 생성] 미리보기가 새로고침해도 유지됨 — 목록을 저장해 다시 열어도 그대로 보임(ComfyUI temp URL은 서버 재시작 전까지 유효)',
@@ -4871,6 +4885,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _mgRenderGrid(); _mgUpdateSelCount();
             const st = document.getElementById('mg-status');
             if (st) st.textContent = _mgImages.length ? `이전 미리보기 ${_mgImages.length}장 (유지됨) — 마음에 드는 것 선택` : '';
+            // 열 때는 설정을 펼쳐서 (컨트롤 항상 접근 가능) — 생성 시작하면 모바일에서 자동으로 접힘
+            const sEl = document.getElementById('mg-settings'); if (sEl) sEl.style.display = 'flex';
+            const tBtn = document.getElementById('mg-settings-toggle'); if (tBtn) tBtn.innerHTML = '<i class="fa-solid fa-sliders"></i> 설정';
+            const sc = document.getElementById('mg-scroll'); if (sc) sc.scrollTop = 0;
             document.getElementById('multigen-modal').style.display = 'flex';
             // PC 상태 실시간 모니터 자동 시작 (가상 모드가 아니고, 연결돼 있던 경우)
             if (!DevMode.feature('mockGen') && _comfyConnectedOnce) _mgStartSysMonitor();
@@ -4947,6 +4965,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _mgImages = []; _mgSelected.clear(); _mgSave(); _mgRenderGrid(); _mgUpdateSelCount();
             _mgTarget = count; _mgNotified = false;
 
+            // 모바일(좁은 화면)에서는 설정을 접어 결과 이미지가 바로 화면을 꽉 채우게
+            if (window.innerWidth < 760) {
+                const s = document.getElementById('mg-settings');
+                if (s && s.style.display !== 'none') multiGenToggleSettings();
+            }
+
             // 개발자(가상) 모드
             if (DevMode.feature('mockGen')) {
                 st.textContent = `🧪 가상 ${count}장 생성 중...`;
@@ -4991,6 +5015,19 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function multiGenToggleGuide() {
             const g = document.getElementById('mg-guide');
             if (g) g.style.display = g.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // 설정 패널 접기/펼치기 — 접으면 결과 그리드가 화면 위로 올라와 이미지를 꽉 채워 볼 수 있음
+        function multiGenToggleSettings() {
+            const s = document.getElementById('mg-settings');
+            const g = document.getElementById('mg-guide');
+            const btn = document.getElementById('mg-settings-toggle');
+            if (!s) return;
+            const hide = s.style.display !== 'none';
+            s.style.display = hide ? 'none' : 'flex';
+            if (hide && g) g.style.display = 'none';   // 설정 접으면 가이드도 같이 접기
+            if (btn) btn.innerHTML = hide ? '<i class="fa-solid fa-sliders"></i> 설정 펼치기' : '<i class="fa-solid fa-sliders"></i> 설정';
+            const sc = document.getElementById('mg-scroll'); if (sc) sc.scrollTop = 0;
         }
 
         // PC(GPU/VRAM/RAM) 상태 1회 조회 + 포맷 (실시간 모니터/버튼 공용)
