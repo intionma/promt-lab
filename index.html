@@ -4134,7 +4134,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (gallery) gallery.prepend(_comfyThumb(url, 240));
             if (inline) { const t = document.getElementById('comfy-inline-thumbs-' + inline); if (t) t.appendChild(_comfyThumb(url, inline === 'pos' ? 320 : 130, '완성')); }
             // 가상 이미지는 localStorage에 저장하지 않고 화면(세션)에만 표시 — 실데이터·백업 오염 방지
-            if (typeof _galleryRenderOne === 'function') _galleryRenderOne(url, false);
+            if (typeof _galleryRenderOne === 'function') {
+                _galleryRenderOne(url, false);
+                const empty = document.getElementById('gallery-empty'); // 안내문 겹침 방지
+                if (empty) empty.style.display = 'none';
+            }
             delete _comfyJobs[pid];
             _comfyQueueCount = Math.max(0, _comfyQueueCount - 1);
             _comfyBatchDone++;
