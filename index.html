@@ -10172,7 +10172,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 document.querySelectorAll('#io-export-options .io-pill').forEach(p => p.classList.add('active'));
                 updateExportPreview();
                 textarea.readOnly = true;
-                btn.innerText = "선택 항목 복사하기";
+                btn.innerHTML = '<i class="fa-solid fa-clipboard"></i> 텍스트 복사';
                 btn.style.backgroundColor = "var(--accent-blue)";
                 if (fileBtn) fileBtn.innerHTML = '<i class="fa-solid fa-file-arrow-down"></i> 파일로 저장';
             } else {
