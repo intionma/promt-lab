@@ -8711,7 +8711,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!wasActive) {
                 const layerGroup = document.getElementById(`layer-group-${layerIndex}`);
                 if (layerGroup) {
-                    layerGroup.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    // 모바일/터치에서는 자동 스크롤 이동이 불편 → 플래시 하이라이트만
+                    if (!_ioCoarsePointer()) layerGroup.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     const tagData = activeTagsMap[tagText];
                     const flashColor = tagData?.color || '#60a5fa';
                     layerGroup.style.setProperty('--flash-color', flashColor);
@@ -12086,8 +12087,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             let isMobile = window.innerWidth <= MOBILE_BP;
 
             // 트랜지션 없이 즉시 이동 (탭바 버튼용)
-            function snapToIndex(idx, animate) {
-                currentIdx = Math.max(0, Math.min(PANELS.length - 1, idx));
+            // fromPop: 뒤로가기(popstate)로 호출된 경우 → 히스토리 다시 push 안 함
+            function snapToIndex(idx, animate, fromPop) {
+                const newIdx = Math.max(0, Math.min(PANELS.length - 1, idx));
+                const changed = newIdx !== currentIdx;
+                currentIdx = newIdx;
                 try { localStorage.setItem(PANEL_IDX_KEY, currentIdx); } catch (e) {}
                 track.style.transition = animate ? 'transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none';
                 track.style.transform = `translateX(${-currentIdx * 100}vw)`;
@@ -12098,6 +12102,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const el = document.getElementById(p.id);
                     if (el) el.classList.toggle('mobile-active', i === currentIdx);
                 });
+                // 패널 전환을 히스토리에 쌓아 뒤로가기로 이전 패널 이동 (탭이 바로 닫히지 않게)
+                if (isMobile && changed && !fromPop) {
+                    try { history.pushState({ panel: currentIdx }, ''); } catch (e) {}
+                }
             }
 
             function switchMobilePanel(id, animate = false) {
@@ -12117,6 +12125,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
             // 전역 노출 (다른 코드에서 switchMobilePanel 호출 가능하도록)
             window.switchMobilePanel = switchMobilePanel;
+
+            // 뒤로가기 → 이전 패널로 이동 (히스토리 연동). 라이트박스가 열려있으면 그쪽이 처리.
+            try { history.replaceState({ panel: currentIdx }, ''); } catch (e) {}
+            window.addEventListener('popstate', (e) => {
+                if (!isMobile) return;
+                const lb = document.getElementById('img-lightbox');
+                if (lb && lb.style.display !== 'none') return; // 라이트박스 닫기 우선
+                const st = e.state;
+                if (st && typeof st.panel === 'number' && st.panel !== currentIdx) {
+                    snapToIndex(st.panel, true, true);
+                }
+            });
 
             function applyMobileLayout() {
                 isMobile = window.innerWidth <= MOBILE_BP;
