@@ -3457,7 +3457,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         let _comfyBatchDone  = 0;
 
         // 페이지 로드 시 ComfyUI /queue API로 대기열 초기화
-        setTimeout(_comfySyncQueue, 500);
+        // 단, ComfyUI에 연결한 적이 있을 때만 자동 접속 (안 그러면 HTTPS↔로컬HTTP 혼합콘텐츠 경고/권한요청이 불필요하게 뜸)
+        if (_comfyConnectedOnce) setTimeout(_comfySyncQueue, 500);
 
         // 대기열 라벨용: 핵심 태그 3~5개를 한글 번역으로 추려 짧은 문장처럼 표기 (품질/score 제외)
         function _comfyKorLabel(text) {
