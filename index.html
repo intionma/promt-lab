@@ -912,6 +912,14 @@
     <div id="dev-frame"></div>
     <div id="toast-container"></div>
     <div id="ctx-menu"></div>
+
+    <!-- 즐겨찾기 / 최근 사용 팝오버 (상단 아이콘에서 열림) -->
+    <div id="fav-recent-popover" style="display:none; position:fixed; z-index:99990; width:min(340px,92vw); max-height:60vh; overflow-y:auto; background:var(--bg-panel); border:1px solid var(--border-dim); border-radius:12px; box-shadow:0 16px 48px rgba(0,0,0,0.45); padding:12px 14px;">
+        <div style="font-size:12px; font-weight:800; color:#eab308; font-family:var(--font-heading); margin-bottom:8px;"><i class="fa-solid fa-star"></i> 즐겨찾기</div>
+        <div id="fav-container" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;"></div>
+        <div style="font-size:12px; font-weight:800; color:#10b981; font-family:var(--font-heading); margin-bottom:8px;"><i class="fa-solid fa-clock-rotate-left"></i> 최근 사용</div>
+        <div id="recent-container" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+    </div>
     <div id="tag-inline-popup">
         <div class="tip-title">
             <span id="tip-mode-label">태그 수정</span>
@@ -941,7 +949,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.50 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.53 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -996,8 +1004,9 @@
                     <button onclick="collapseAllLayers(true)"><i class="fa-solid fa-angles-up"></i> 모두 닫기</button>
                     <button onclick="collapseAllLayers(false)"><i class="fa-solid fa-angles-down"></i> 모두 열기</button>
                     <div style="flex:1;"></div>
-                    <button onclick="focusFavRecent('fav')" title="즐겨찾기" style="color:#eab308; border-color:rgba(234,179,8,0.4);"><i class="fa-solid fa-star"></i></button>
-                    <button onclick="focusFavRecent('recent')" title="최근 사용" style="color:#10b981; border-color:rgba(16,185,129,0.4);"><i class="fa-solid fa-clock-rotate-left"></i></button>
+                    <button id="btn-folder-rec" onclick="toggleFolderRecommend()" title="폴더별 추천 조합 표시 (켜고 끄기)" style="color:#a855f7; border-color:rgba(168,85,247,0.4);"><i class="fa-solid fa-bolt"></i></button>
+                    <button onclick="focusFavRecent('fav', event)" title="즐겨찾기" style="color:#eab308; border-color:rgba(234,179,8,0.4);"><i class="fa-solid fa-star"></i></button>
+                    <button onclick="focusFavRecent('recent', event)" title="최근 사용" style="color:#10b981; border-color:rgba(16,185,129,0.4);"><i class="fa-solid fa-clock-rotate-left"></i></button>
                 </div>
 
             </div>
@@ -1030,13 +1039,21 @@
                     <button onclick="openPromptImportModal()" style="background:transparent;border:1px solid #38bdf8;color:#38bdf8;border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;font-family:var(--font-ui);" title="완성된 프롬프트를 붙여넣어 계층별로 자동 배치"><i class="fa-solid fa-file-import"></i> 가져오기</button>
                     <button onclick="clearCurrentContext()" style="background:transparent;border:1px solid var(--border-dim);color:var(--text-dim);border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;font-family:var(--font-ui);" title="현재 탭 비우기"><i class="fa-solid fa-trash"></i> 비우기</button></span>
                 <div class="view-toggle">
-                    <button class="view-btn active" id="btn-view-visual" onclick="switchViewMode('visual')">🎨 캡슐 뷰</button>
-                    <button class="view-btn" id="btn-view-text" onclick="switchViewMode('text')">📝 텍스트 뷰</button>
+                    <button class="view-btn active" id="btn-view-visual" onclick="switchViewMode('visual')">🎨 캡슐</button>
+                    <button class="view-btn" id="btn-view-text" onclick="switchViewMode('text')">📝 텍스트</button>
+                    <button class="view-btn" id="btn-view-full" onclick="switchViewMode('full')">📄 전체</button>
                 </div>
             </div>
 
             <div class="panel-content" id="editor-content">
                 </div>
+            <div class="panel-content" id="editor-full-wrap" style="display:none; padding:12px; flex-direction:column;">
+                <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;line-height:1.5;">전체 프롬프트를 한 번에 편집합니다. <b style="color:var(--accent-green);">적용</b> 시 태그가 계층별로 자동 재배치됩니다.</div>
+                <textarea id="editor-full-text" spellcheck="false" style="flex:1; width:100%; min-height:300px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:12px; color:var(--text-main); font-family:var(--font-code); font-size:13px; line-height:1.7; resize:vertical; outline:none;"></textarea>
+                <div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end;">
+                    <button class="action-btn" onclick="applyFullEditorText()" style="background:var(--accent-green);color:#fff;border:none;"><i class="fa-solid fa-wand-magic-sparkles"></i> 적용 (계층 재배치)</button>
+                </div>
+            </div>
         </main>
 
         <div class="panel-resize-handle" id="resize-handle-2"></div>
@@ -1572,7 +1589,16 @@
         const CHANGELOG = [
             // ── 2026-06-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.9.50', date: '2026-06-28', time: '오후 (최신)',
+                version: 'v9.9.53', date: '2026-06-28', time: '저녁 (최신)',
+                tag: 'feat',
+                items: [
+                    '[에디터] 전체 통합 텍스트 뷰 추가 — 캡슐/텍스트/전체 3가지 보기, 전체에서 편집 시 계층 자동 재배치',
+                    '[태그] 즐겨찾기·최근 사용 큰 카드 제거 → 상단 아이콘 클릭 시 팝오버로 표시 (공간 절약)',
+                    '[태그] 폴더별 추천 조합 표시 기능(⚡) 추가 — DB 서브카테고리 기반, 빠른 선택용. 토글 ON/OFF (기본 OFF)',
+                ]
+            },
+            {
+                version: 'v9.9.50', date: '2026-06-28', time: '오후',
                 tag: 'feat',
                 items: [
                     '[DB] "DB 관리"와 "코드 편집"을 한 메뉴로 통합 — 모달 상단 토글로 표 편집 ↔ 코드 편집 즉시 전환',
@@ -4782,6 +4808,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _ioCoarsePointer() {
             try { return window.matchMedia && window.matchMedia('(pointer: coarse)').matches; } catch (e) { return false; }
         }
+
+        // 폴더별 추천 조합 표시 (기본 OFF) — DB 서브카테고리 기반
+        let _folderRecommend = false;
+        try { _folderRecommend = localStorage.getItem('folder_recommend_on') === '1'; } catch (e) {}
+        function toggleFolderRecommend() {
+            _folderRecommend = !_folderRecommend;
+            try { localStorage.setItem('folder_recommend_on', _folderRecommend ? '1' : '0'); } catch (e) {}
+            const btn = document.getElementById('btn-folder-rec');
+            if (btn) { btn.style.background = _folderRecommend ? 'rgba(168,85,247,0.18)' : ''; btn.style.color = _folderRecommend ? '#a855f7' : ''; btn.style.borderColor = _folderRecommend ? '#a855f7' : ''; }
+            initApp(); // 사이드바 다시 렌더해 추천 스트립 표시/숨김
+            showToast(_folderRecommend ? '⚡ 폴더 추천 조합 표시 ON' : '폴더 추천 조합 OFF', _folderRecommend ? 'info' : 'success', 2000);
+        }
         let recents = [];
 
         let userCombos = {};
@@ -5260,22 +5298,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             sidebarDetail.innerHTML = ''; editor.innerHTML = ''; activeTagsMap = {};
 
             sidebarDetail.innerHTML = `
-                <div id="fav-recent-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-                    <div id="fav-box" class="fav-recent-box collapsed" style="border: 1px solid rgba(234, 179, 8, 0.3); border-radius: 10px; background: var(--bg-surface); align-self: start;">
-                        <div class="box-header" onclick="this.parentElement.classList.toggle('collapsed')" style="padding: 12px 16px; background: rgba(234, 179, 8, 0.1); color: #eab308; font-weight: 800; font-size: 14px; font-family: var(--font-heading); cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-radius: 10px;">
-                            <span><i class="fa-solid fa-star"></i> 즐겨찾기</span>
-                            <i class="fa-solid fa-chevron-down toggle-icon" style="transition: 0.2s;"></i>
-                        </div>
-                        <div class="box-content" id="fav-container" style="padding: 16px; display: flex; flex-wrap: wrap; gap: 8px;"></div>
-                    </div>
-                    <div id="recent-box" class="fav-recent-box collapsed" style="border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; background: var(--bg-surface); align-self: start;">
-                        <div class="box-header" onclick="this.parentElement.classList.toggle('collapsed')" style="padding: 12px 16px; background: rgba(16, 185, 129, 0.1); color: #10b981; font-weight: 800; font-size: 14px; font-family: var(--font-heading); cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-radius: 10px;">
-                            <span><i class="fa-solid fa-clock-rotate-left"></i> 최근 사용</span>
-                            <i class="fa-solid fa-chevron-down toggle-icon" style="transition: 0.2s;"></i>
-                        </div>
-                        <div class="box-content" id="recent-container" style="padding: 16px; display: flex; flex-wrap: wrap; gap: 8px;"></div>
-                    </div>
-                </div>
             `;
 
             layerMeta.forEach((layer) => {
@@ -5393,6 +5415,41 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             subContent.appendChild(tagsRow);
                         }
 
+                        // 추천 조합 스트립 (DB 서브카테고리 기반) — 토글 ON일 때만, 폴더 접힘 상태에서도 표시
+                        if (_folderRecommend) {
+                            let recTags = [];
+                            if (_hasCats) {
+                                _catOrder.forEach(cat => { if (cat && _catMap[cat] && _catMap[cat][0]) recTags.push(_catMap[cat][0]); });
+                            } else {
+                                recTags = (dbLayer[subLayerRaw] || []).slice(0, 3);
+                            }
+                            recTags = recTags.slice(0, 6);
+                            if (recTags.length) {
+                                const strip = document.createElement('div');
+                                strip.className = 'folder-rec-strip';
+                                strip.style.cssText = 'display:flex; flex-wrap:wrap; gap:5px; align-items:center; padding:6px 10px; background:rgba(168,85,247,0.07); border-left:3px solid #a855f7;';
+                                const lab = document.createElement('span');
+                                lab.style.cssText = 'font-size:10px; font-weight:800; color:#a855f7; flex-shrink:0;';
+                                lab.innerHTML = '<i class="fa-solid fa-bolt"></i> 추천';
+                                strip.appendChild(lab);
+                                recTags.forEach(data => {
+                                    const c = document.createElement('button');
+                                    c.className = 'folder-rec-chip';
+                                    c.style.cssText = 'font-size:11px; padding:3px 9px; border-radius:12px; border:1px solid rgba(168,85,247,0.4); background:transparent; color:var(--text-main); cursor:pointer; white-space:nowrap;';
+                                    c.textContent = data.k || data.t.split(',')[0].trim();
+                                    c.title = data.t;
+                                    c.onclick = (e) => { e.stopPropagation(); handleTagToggle(c, data.t, data.n, i); };
+                                    strip.appendChild(c);
+                                });
+                                const addAll = document.createElement('button');
+                                addAll.style.cssText = 'font-size:11px; padding:3px 10px; border-radius:12px; border:none; background:#a855f7; color:#fff; cursor:pointer; font-weight:700; margin-left:auto; flex-shrink:0;';
+                                addAll.innerHTML = '<i class="fa-solid fa-plus"></i> 전체';
+                                addAll.title = '추천 태그 전체 추가';
+                                addAll.onclick = (e) => { e.stopPropagation(); importPromptToEditor(recTags.map(d => d.t), 'append'); showToast(`추천 ${recTags.length}개 추가`, 'success', 1800); };
+                                strip.appendChild(addAll);
+                                subFolder.appendChild(strip);
+                            }
+                        }
                         subFolder.appendChild(subContent);
                         groupContent.appendChild(subFolder);
                     });
@@ -8121,13 +8178,41 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function switchViewMode(mode) {
             currentViewMode = mode;
             document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-            if(mode === 'visual') document.getElementById('btn-view-visual').classList.add('active');
-            else document.getElementById('btn-view-text').classList.add('active');
-            for(let i=1; i<=7; i++) {
-                const body = document.getElementById(`editor-body-${i}`);
-                body.className = `editor-body mode-${mode}`;
-                if(mode === 'visual') renderChips(i);
+            const btn = document.getElementById('btn-view-' + mode);
+            if (btn) btn.classList.add('active');
+            const content = document.getElementById('editor-content');
+            const fullWrap = document.getElementById('editor-full-wrap');
+
+            if (mode === 'full') {
+                // 전체 통합 텍스트 뷰: 모든 계층을 하나의 텍스트로
+                if (content) content.style.display = 'none';
+                if (fullWrap) fullWrap.style.display = 'flex';
+                const ta = document.getElementById('editor-full-text');
+                if (ta) {
+                    const layers = (contextStates[currentContext] || []);
+                    ta.value = layers.map(s => (s || '').trim()).filter(Boolean).join(', ');
+                }
+                return;
             }
+            // 캡슐/텍스트 뷰
+            if (content) content.style.display = '';
+            if (fullWrap) fullWrap.style.display = 'none';
+            for (let i = 1; i <= 7; i++) {
+                const body = document.getElementById(`editor-body-${i}`);
+                if (!body) continue;
+                body.className = `editor-body mode-${mode}`;
+                if (mode === 'visual') renderChips(i);
+            }
+        }
+
+        // 전체 통합 텍스트 → 계층별 자동 재배치 적용
+        function applyFullEditorText() {
+            const ta = document.getElementById('editor-full-text');
+            if (!ta) return;
+            const tokens = ta.value.split(',').map(s => s.trim()).filter(Boolean);
+            const n = importPromptToEditor(tokens, 'replace');
+            switchViewMode('visual');
+            showToast(`${n.total}개 태그를 계층별로 배치했습니다. (미분류 ${n.unknown}개는 5계층)`, 'success', 3000);
         }
 
         function renderChips(layerIndex) {
@@ -11934,15 +12019,40 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         // 즐겨찾기/최근 박스 펼치고 그쪽으로 스크롤
-        function focusFavRecent(which) {
-            const box = document.getElementById(which === 'recent' ? 'recent-box' : 'fav-box');
-            if (!box) return;
-            box.classList.remove('collapsed');
-            box.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            box.style.transition = 'box-shadow .2s';
-            const c = which === 'recent' ? '#10b981' : '#eab308';
-            box.style.boxShadow = `0 0 0 2px ${c}`;
-            setTimeout(() => { box.style.boxShadow = ''; }, 900);
+        function focusFavRecent(which, ev) {
+            const pop = document.getElementById('fav-recent-popover');
+            if (!pop) return;
+            // 토글: 이미 열려있으면 닫기
+            if (pop.style.display === 'block') { pop.style.display = 'none'; return; }
+            renderFavorites();
+            renderRecents();
+            // 클릭한 아이콘 근처에 위치
+            const btn = ev && ev.currentTarget ? ev.currentTarget : null;
+            pop.style.display = 'block';
+            const pw = pop.offsetWidth, ph = pop.offsetHeight;
+            let top = 60, left = window.innerWidth - pw - 12;
+            if (btn) {
+                const r = btn.getBoundingClientRect();
+                top = Math.min(r.bottom + 8, window.innerHeight - ph - 8);
+                left = Math.min(Math.max(8, r.right - pw), window.innerWidth - pw - 8);
+            }
+            pop.style.top = top + 'px';
+            pop.style.left = left + 'px';
+            // 요청한 섹션으로 스크롤
+            const target = pop.querySelector(which === 'recent' ? '#recent-container' : '#fav-container');
+            if (target) target.scrollIntoView({ block: 'nearest' });
+            // 바깥 클릭 시 닫기
+            setTimeout(() => {
+                const onDoc = (e) => {
+                    if (!pop.contains(e.target) && !(e.target.closest && e.target.closest('[onclick*="focusFavRecent"]'))) {
+                        pop.style.display = 'none';
+                        document.removeEventListener('mousedown', onDoc);
+                        document.removeEventListener('touchstart', onDoc);
+                    }
+                };
+                document.addEventListener('mousedown', onDoc);
+                document.addEventListener('touchstart', onDoc);
+            }, 0);
         }
 
         function toggleEditorSection(event, layerIndex) {
@@ -12037,6 +12147,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         _restoreGenMemo();      // 메모장 복원 (새로고침 유지)
         comfyUpdateQuickButtons();  // ComfyUI 연동 이력 있으면 전송 버튼 표시
         DevMode.apply();            // 저장된 개발자 모드 상태 → 시각 표시·기능 적용
+        if (_folderRecommend) {     // 폴더 추천 토글 버튼 활성 스타일 복원
+            const _frb = document.getElementById('btn-folder-rec');
+            if (_frb) { _frb.style.background = 'rgba(168,85,247,0.18)'; _frb.style.color = '#a855f7'; _frb.style.borderColor = '#a855f7'; }
+        }
         // 한글 번역 미리보기 접힘 상태 복원
         ['pos','neg'].forEach(w => {
             try {
