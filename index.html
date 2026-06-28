@@ -1187,12 +1187,12 @@
     </div>
 
     <div class="modal-overlay" id="db-io-modal">
-        <div class="modal-content" style="width:700px;">
-            <div class="modal-header">
+        <div class="modal-content" style="width:700px; max-width:95vw; max-height:90vh; display:flex; flex-direction:column;">
+            <div class="modal-header" style="flex-shrink:0;">
                 <span class="modal-title" id="io-modal-title"></span>
                 <button class="action-btn" onclick="document.getElementById('db-io-modal').style.display='none'"><i class="fa-solid fa-xmark"></i> 닫기</button>
             </div>
-            <div style="padding:20px 24px 24px;">
+            <div style="padding:20px 24px 24px; overflow-y:auto; flex:1; min-height:0;">
                 <div id="io-desc" style="font-size:13px; color:var(--text-dim); line-height:1.6; margin-bottom:14px;"></div>
                 <div id="io-export-options" style="display:none; margin-bottom:16px;">
                     <div style="font-size:10px;color:var(--text-dim);font-family:var(--font-ui);font-weight:800;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.8px;">내보낼 항목 선택</div>
@@ -10109,7 +10109,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const total = Object.values(sizes).reduce((a, b) => a + b, 0) || 1;
             const active = _ioActivePills();
 
-            // 1) 각 칩 왼쪽에 비중 점(●, 면적∝비중) + % 표기
+            // 1) 각 칩 왼쪽에 원 1개 — 원 안에 % 숫자 (원 따로/텍스트 따로 제거)
             document.querySelectorAll('#io-export-options .io-pill').forEach(p => {
                 const key = p.dataset.key;
                 const sz = sizes[key] || 0;
@@ -10119,36 +10119,43 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (!badge) {
                     badge = document.createElement('span');
                     badge.className = 'io-share';
-                    badge.style.cssText = 'display:inline-flex; align-items:center; gap:3px; margin-right:5px; font-size:9px; font-weight:800; opacity:0.9;';
+                    badge.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;margin-right:6px;font-size:8.5px;font-weight:800;color:#fff;flex-shrink:0;line-height:1;transition:background .35s ease, transform .35s ease;';
                     p.insertBefore(badge, p.firstChild);
                 }
-                const d = (6 + 13 * Math.sqrt(pct / 100)).toFixed(1); // 면적 비례 지름 6~19px
-                const pctLabel = pct >= 9.5 ? Math.round(pct) : pct.toFixed(pct < 1 ? (pct < 0.1 ? 2 : 1) : 0);
-                badge.innerHTML = `<span style="width:${d}px;height:${d}px;border-radius:50%;background:${color};flex-shrink:0;box-shadow:0 0 0 1px rgba(0,0,0,0.15) inset;"></span><span>${pctLabel}%</span>`;
+                badge.style.background = color;
+                badge.textContent = pct >= 1 ? Math.round(pct) : (pct > 0 ? '<1' : '0');
                 badge.title = `${_ioFmtSize(sz)} · 전체의 ${pct.toFixed(1)}%`;
             });
 
-            // 2) 하단: 선택 비율 도넛 + 예상 KB
+            // 2) 하단: 선택 비율 도넛(SVG, 부드러운 채움) + 예상 용량
             const selectedBytes = Object.keys(sizes).reduce((sum, k) => sum + (active[k] !== false ? sizes[k] : 0), 0);
             const selPct = Math.min(100, selectedBytes / total * 100);
             const realKb = _ioFmtSize(new Blob([raw]).size);
             const ringEl = document.getElementById('io-export-size');
             if (ringEl) {
-                const deg = (selPct * 3.6).toFixed(1);
-                ringEl.style.display = 'flex';
-                ringEl.style.alignItems = 'center';
-                ringEl.style.gap = '12px';
-                ringEl.innerHTML =
-                    `<div style="position:relative;width:62px;height:62px;flex-shrink:0;border-radius:50%;background:conic-gradient(var(--accent-blue) ${deg}deg, var(--border-dim) ${deg}deg);transition:background .3s;">
-                        <div style="position:absolute;inset:7px;border-radius:50%;background:var(--bg-surface,#1a1a1a);display:flex;flex-direction:column;align-items:center;justify-content:center;">
-                            <span style="font-size:12px;font-weight:800;line-height:1;color:var(--text-main);">${realKb}</span>
-                            <span style="font-size:8px;color:var(--text-dim);margin-top:2px;">예상</span>
+                if (!document.getElementById('io-donut-arc')) {
+                    ringEl.style.cssText += ';display:flex;align-items:center;gap:14px;';
+                    ringEl.innerHTML =
+                        `<div style="position:relative;width:66px;height:66px;flex-shrink:0;">
+                            <svg width="66" height="66" viewBox="0 0 36 36" style="transform:rotate(-90deg);">
+                                <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--border-dim)" stroke-width="3.2"/>
+                                <circle id="io-donut-arc" cx="18" cy="18" r="15.9" fill="none" stroke="var(--accent-blue)" stroke-width="3.2" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" style="transition:stroke-dashoffset .5s cubic-bezier(.4,0,.2,1);"/>
+                            </svg>
+                            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                                <span id="io-donut-kb" style="font-size:12px;font-weight:800;line-height:1;color:var(--text-main);"></span>
+                                <span style="font-size:8px;color:var(--text-dim);margin-top:2px;">예상</span>
+                            </div>
                         </div>
-                    </div>
-                    <div style="font-size:11px;color:var(--text-dim);line-height:1.5;">
-                        <div>전체의 <b style="color:var(--text-main);">${Math.round(selPct)}%</b> 선택됨</div>
-                        <div>전체 용량 ${_ioFmtSize(total)}</div>
-                    </div>`;
+                        <div style="font-size:11px;color:var(--text-dim);line-height:1.6;">
+                            <div>전체의 <b id="io-donut-pct" style="color:var(--text-main);"></b> 선택됨</div>
+                            <div>전체 용량 <span id="io-donut-total"></span></div>
+                        </div>`;
+                }
+                const arc = document.getElementById('io-donut-arc');
+                if (arc) arc.style.strokeDashoffset = (100 - selPct).toFixed(1); // 채움 비율 (부드럽게 전환)
+                const kbEl = document.getElementById('io-donut-kb'); if (kbEl) kbEl.textContent = realKb;
+                const pctEl = document.getElementById('io-donut-pct'); if (pctEl) pctEl.textContent = Math.round(selPct) + '%';
+                const totEl = document.getElementById('io-donut-total'); if (totEl) totEl.textContent = _ioFmtSize(total);
             }
 
             const sizeEl = document.getElementById('io-size-label');
