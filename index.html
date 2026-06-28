@@ -10064,16 +10064,95 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return JSON.stringify(data);
         }
 
+        // 항목별 데이터 바이트 측정
+        function _ioMeasure(v) { try { return new Blob([JSON.stringify(v)]).size; } catch (e) { return 0; } }
+
+        // 각 내보내기 항목(key)의 용량(byte) 맵 — 활성 여부와 무관하게 전체 기준
+        function _ioCategorySizes() {
+            let cs = {}; try { cs = JSON.parse(localStorage.getItem(COMFY_KEY) || 'null') || {}; } catch (e) {}
+            const wf = cs.wfJson;
+            const csNoWf = Object.assign({}, cs); delete csNoWf.wfJson;
+            const appPrefs = {};
+            ['pro_prompt_combos_v7_0', 'pro_prompt_theme', 'preview_thumb_h', 'panel_widths_v1', 'ccm_mode', 'kor_preview_pos_collapsed', 'kor_preview_neg_collapsed', 'shutdown_settings_v1'].forEach(k => {
+                const v = localStorage.getItem(k); if (v !== null) appPrefs[k] = v;
+            });
+            return {
+                db: _ioMeasure(promptDB),
+                combo: _ioMeasure(comboFS),
+                tabs: _ioMeasure(contextTabs) + _ioMeasure(contextStates),
+                weights: _ioMeasure(tagDefaultWeights),
+                favs: _ioMeasure(favorites),
+                kormap: _ioMeasure(customKorMap),
+                presets: _ioMeasure(userPresets),
+                comfy: _ioMeasure(csNoWf),
+                wfjson: wf ? _ioMeasure(wf) : 0,
+                gallery: _ioMeasure(_galleryUrls),
+                pins: _ioMeasure(_gtPins),
+                memo: _ioMeasure(localStorage.getItem('pro_generation_memo') || ''),
+                etc: _ioMeasure(appPrefs),
+            };
+        }
+
+        function _ioFmtSize(bytes) {
+            if (bytes >= 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+            if (bytes >= 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return bytes + ' B';
+        }
+
         function updateExportPreview() {
             const textarea = document.getElementById('io-textarea');
             if (!textarea) return;
             const raw = buildExportData();
             textarea.value = raw;
-            const sizeEl = document.getElementById('io-size-label');
-            if (sizeEl) {
-                const kb = (new Blob([raw]).size / 1024).toFixed(1);
-                sizeEl.textContent = `📦 ${kb} KB`;
+
+            const sizes = _ioCategorySizes();
+            const total = Object.values(sizes).reduce((a, b) => a + b, 0) || 1;
+            const active = _ioActivePills();
+
+            // 1) 각 칩 왼쪽에 비중 점(●, 면적∝비중) + % 표기
+            document.querySelectorAll('#io-export-options .io-pill').forEach(p => {
+                const key = p.dataset.key;
+                const sz = sizes[key] || 0;
+                const pct = sz / total * 100;
+                const color = (p.style.getPropertyValue('--pc') || '#888').trim();
+                let badge = p.querySelector('.io-share');
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'io-share';
+                    badge.style.cssText = 'display:inline-flex; align-items:center; gap:3px; margin-right:5px; font-size:9px; font-weight:800; opacity:0.9;';
+                    p.insertBefore(badge, p.firstChild);
+                }
+                const d = (6 + 13 * Math.sqrt(pct / 100)).toFixed(1); // 면적 비례 지름 6~19px
+                const pctLabel = pct >= 9.5 ? Math.round(pct) : pct.toFixed(pct < 1 ? (pct < 0.1 ? 2 : 1) : 0);
+                badge.innerHTML = `<span style="width:${d}px;height:${d}px;border-radius:50%;background:${color};flex-shrink:0;box-shadow:0 0 0 1px rgba(0,0,0,0.15) inset;"></span><span>${pctLabel}%</span>`;
+                badge.title = `${_ioFmtSize(sz)} · 전체의 ${pct.toFixed(1)}%`;
+            });
+
+            // 2) 하단: 선택 비율 도넛 + 예상 KB
+            const selectedBytes = Object.keys(sizes).reduce((sum, k) => sum + (active[k] !== false ? sizes[k] : 0), 0);
+            const selPct = Math.min(100, selectedBytes / total * 100);
+            const realKb = _ioFmtSize(new Blob([raw]).size);
+            const ringEl = document.getElementById('io-export-size');
+            if (ringEl) {
+                const deg = (selPct * 3.6).toFixed(1);
+                ringEl.style.display = 'flex';
+                ringEl.style.alignItems = 'center';
+                ringEl.style.gap = '12px';
+                ringEl.innerHTML =
+                    `<div style="position:relative;width:62px;height:62px;flex-shrink:0;border-radius:50%;background:conic-gradient(var(--accent-blue) ${deg}deg, var(--border-dim) ${deg}deg);transition:background .3s;">
+                        <div style="position:absolute;inset:7px;border-radius:50%;background:var(--bg-surface,#1a1a1a);display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                            <span style="font-size:12px;font-weight:800;line-height:1;color:var(--text-main);">${realKb}</span>
+                            <span style="font-size:8px;color:var(--text-dim);margin-top:2px;">예상</span>
+                        </div>
+                    </div>
+                    <div style="font-size:11px;color:var(--text-dim);line-height:1.5;">
+                        <div>전체의 <b style="color:var(--text-main);">${Math.round(selPct)}%</b> 선택됨</div>
+                        <div>전체 용량 ${_ioFmtSize(total)}</div>
+                    </div>`;
             }
+
+            const sizeEl = document.getElementById('io-size-label');
+            if (sizeEl) sizeEl.textContent = `📦 ${realKb}`;
         }
 
         function openIOModal(type) {
