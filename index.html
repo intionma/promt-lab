@@ -949,7 +949,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.53 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.55 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1004,7 +1004,7 @@
                     <button onclick="collapseAllLayers(true)"><i class="fa-solid fa-angles-up"></i> 모두 닫기</button>
                     <button onclick="collapseAllLayers(false)"><i class="fa-solid fa-angles-down"></i> 모두 열기</button>
                     <div style="flex:1;"></div>
-                    <button id="btn-folder-rec" onclick="toggleFolderRecommend()" title="폴더별 추천 조합 표시 (켜고 끄기)" style="color:#a855f7; border-color:rgba(168,85,247,0.4);"><i class="fa-solid fa-bolt"></i></button>
+                    <button id="btn-folder-rec" onclick="openRecommendFlow()" title="추천 조합 (계층별 카드로 빠르게 고르기)" style="color:#a855f7; border-color:rgba(168,85,247,0.4);"><i class="fa-solid fa-bolt"></i></button>
                     <button onclick="focusFavRecent('fav', event)" title="즐겨찾기" style="color:#eab308; border-color:rgba(234,179,8,0.4);"><i class="fa-solid fa-star"></i></button>
                     <button onclick="focusFavRecent('recent', event)" title="최근 사용" style="color:#10b981; border-color:rgba(16,185,129,0.4);"><i class="fa-solid fa-clock-rotate-left"></i></button>
                 </div>
@@ -1560,7 +1560,7 @@
     <!-- ── 쉬운 모드 (뉴비) ── -->
     <div id="newbie-mode" style="display:none; position:fixed; inset:0; z-index:100008; background:var(--bg-base); flex-direction:column;">
         <div style="flex-shrink:0; display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--border-dim); background:var(--bg-panel);">
-            <span style="font-size:16px; font-weight:800; font-family:var(--font-heading); flex:1;"><i class="fa-solid fa-wand-sparkles" style="color:#22c55e;"></i> 쉬운 모드 — 골라서 만드는 이미지</span>
+            <span id="nb-modal-title" style="font-size:16px; font-weight:800; font-family:var(--font-heading); flex:1;"><i class="fa-solid fa-wand-sparkles" style="color:#22c55e;"></i> 쉬운 모드 — 골라서 만드는 이미지</span>
             <button class="action-btn" onclick="closeNewbieMode()"><i class="fa-solid fa-xmark"></i> 닫기</button>
         </div>
         <div id="nb-progress" style="flex-shrink:0; display:flex; gap:6px; padding:12px 18px 0; flex-wrap:wrap;"></div>
@@ -1589,12 +1589,14 @@
         const CHANGELOG = [
             // ── 2026-06-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.9.53', date: '2026-06-28', time: '저녁 (최신)',
+                version: 'v9.9.55', date: '2026-06-28', time: '저녁 (최신)',
                 tag: 'feat',
                 items: [
+                    '[추천] 추천 조합(⚡) — 쉬운 모드의 세부판. 계층별 카드로 빠르게 고르고 항목별 새로고침(리롤)',
+                    '[추천] DB + 내장 사전(TAG_DICT) 기반으로 후보 확장, 이미 추가한 태그는 자동 제외(선택에 따라 추천 변화)',
+                    '[추천] 고른 추천은 기존 에디터 내용에 추가(덮어쓰기 아님), 품질·인원 강제 없음',
                     '[에디터] 전체 통합 텍스트 뷰 추가 — 캡슐/텍스트/전체 3가지 보기, 전체에서 편집 시 계층 자동 재배치',
                     '[태그] 즐겨찾기·최근 사용 큰 카드 제거 → 상단 아이콘 클릭 시 팝오버로 표시 (공간 절약)',
-                    '[태그] 폴더별 추천 조합 표시 기능(⚡) 추가 — DB 서브카테고리 기반, 빠른 선택용. 토글 ON/OFF (기본 OFF)',
                 ]
             },
             {
@@ -2030,6 +2032,7 @@
         // 쉬운 모드 (뉴비) — 미리 조합된 "묶음"을 골라 완성하는 위저드
         // ─────────────────────────────────────────────────────────────
         let _nbCats = [], _nbStep = 0, _nbBundles = {}, _nbSelB = {}, _nbGirls = 1;
+        let _nbDetailed = false; // 상세 추천 모드: DB+사전 사용, 성별 필터 해제, 이미 추가한 태그 제외
 
         // 남성/성별·인원 태그는 뉴비 모드에서 제외 (여성 1~2명 고정)
         function _nbExcluded(t) {
@@ -2041,16 +2044,47 @@
             return false;
         }
 
+        // TAG_DICT 를 계층별로 묶어 캐시 (상세 추천 후보용)
+        let _dictByLayerCache = null;
+        function _dictByLayer() {
+            if (_dictByLayerCache) return _dictByLayerCache;
+            const map = {};
+            try {
+                Object.entries(TAG_DICT).forEach(([t, info]) => {
+                    const l = info && info.l;
+                    if (!l) return;
+                    (map[l] = map[l] || []).push({ t: t.trim(), kor: (info.k || '').trim() || t.trim() });
+                });
+            } catch (e) {}
+            _dictByLayerCache = map;
+            return map;
+        }
+
         function _nbGatherCats() {
             const cats = [];
+            const detailed = _nbDetailed;
+            // 이미 에디터에 추가된 태그(소문자) — 추천에서 제외해 사용자 선택에 맞춰 변함
+            const added = new Set();
+            try {
+                (contextStates[currentContext] || []).forEach(s => (s || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean).forEach(x => added.add(x)));
+            } catch (e) {}
+            const dictMap = detailed ? _dictByLayer() : null;
             (layerMeta || []).forEach(lm => {
-                if (lm.id === 1) return; // 화질은 필수로 자동 포함
+                if (!detailed && lm.id === 1) return; // 쉬운 모드: 화질은 자동 포함이라 단계 제외
                 const layer = promptDB[lm.id] || {};
                 const folders = [];
                 Object.entries(layer).forEach(([fk, arr]) => {
-                    const tags = (arr || []).map(d => ({ t: (d.t || '').trim(), kor: (d.k || '').trim() || (d.t || '').trim() })).filter(x => x.t && !_nbExcluded(x.t));
+                    const tags = (arr || []).map(d => ({ t: (d.t || '').trim(), kor: (d.k || '').trim() || (d.t || '').trim() }))
+                        .filter(x => x.t && !added.has(x.t.toLowerCase()) && (detailed || !_nbExcluded(x.t)));
                     if (tags.length) folders.push({ name: fk.split('|')[0], tags });
                 });
+                // 상세 모드: 내장 사전(TAG_DICT) 후보를 추가 폴더로 (DB·이미 추가분 제외)
+                if (detailed && dictMap && dictMap[lm.id]) {
+                    const dbSet = new Set();
+                    Object.values(layer).forEach(arr => (arr || []).forEach(d => d.t && dbSet.add(d.t.trim().toLowerCase())));
+                    const dictTags = dictMap[lm.id].filter(x => !added.has(x.t.toLowerCase()) && !dbSet.has(x.t.toLowerCase()));
+                    if (dictTags.length) folders.push({ name: '사전 추천', tags: dictTags });
+                }
                 if (folders.length) cats.push({ layer: lm.id, title: (_NB_TITLES[lm.id] || (lm.title || '').replace(/^\d+\.\s*/, '')), icon: lm.icon, color: lm.color, folders });
             });
             return cats;
@@ -2114,6 +2148,9 @@
         }
 
         function openNewbieMode() {
+            _nbDetailed = false;
+            const _t = document.getElementById('nb-modal-title');
+            if (_t) _t.innerHTML = '<i class="fa-solid fa-wand-sparkles" style="color:#22c55e;"></i> 쉬운 모드 — 골라서 만드는 이미지';
             _nbCats = _nbGatherCats();
             if (!_nbCats.length) { showToast('먼저 태그를 DB에 추가해 주세요. (쉬운 모드는 내 태그를 묶어서 보여줍니다)', 'warning', 4000); return; }
             _nbStep = 0; _nbBundles = {}; _nbSelB = {};
@@ -2182,15 +2219,17 @@
             if (_b) { _b.style.transition = 'none'; _b.style.transform = ''; _b.style.opacity = ''; }
             const prog = document.getElementById('nb-progress');
             prog.innerHTML = '';
-            // 인원 선택 (여성 1명/2명 고정)
-            [[1, '👩 여성 1명'], [2, '👩‍👩 여성 2명']].forEach(([v, lbl]) => {
-                const g = document.createElement('button');
-                g.className = 'nb-step-dot' + (_nbGirls === v ? ' active' : '');
-                g.textContent = lbl;
-                g.onclick = () => { _nbGirls = v; _nbRender(); };
-                prog.appendChild(g);
-            });
-            const gsep = document.createElement('span'); gsep.style.cssText = 'width:1px; align-self:stretch; background:var(--border-dim); margin:2px 4px;'; prog.appendChild(gsep);
+            // 인원 선택 (여성 1명/2명 고정) — 상세 추천 모드에선 숨김
+            if (!_nbDetailed) {
+                [[1, '👩 여성 1명'], [2, '👩‍👩 여성 2명']].forEach(([v, lbl]) => {
+                    const g = document.createElement('button');
+                    g.className = 'nb-step-dot' + (_nbGirls === v ? ' active' : '');
+                    g.textContent = lbl;
+                    g.onclick = () => { _nbGirls = v; _nbRender(); };
+                    prog.appendChild(g);
+                });
+                const gsep = document.createElement('span'); gsep.style.cssText = 'width:1px; align-self:stretch; background:var(--border-dim); margin:2px 4px;'; prog.appendChild(gsep);
+            }
             _nbCats.forEach((c, i) => {
                 const d = document.createElement('button');
                 const cnt = (_nbSelB[c.layer] && _nbSelB[c.layer].size) || 0;
@@ -2279,9 +2318,12 @@
         function _nbResultPrompt() {
             const parts = [], seen = new Set();
             const add = (t) => { const k = t.toLowerCase(); if (!seen.has(k)) { seen.add(k); parts.push(t); } };
-            (_nbQuality().split(',').map(s => s.trim()).filter(Boolean)).forEach(add);
-            // 인원 고정 (여성 1~2명)
-            if (_nbGirls === 2) { add('2girls'); } else { add('1girl'); add('solo'); }
+            if (!_nbDetailed) {
+                // 쉬운 모드: 품질·인원 자동 포함
+                (_nbQuality().split(',').map(s => s.trim()).filter(Boolean)).forEach(add);
+                if (_nbGirls === 2) { add('2girls'); } else { add('1girl'); add('solo'); }
+            }
+            // 상세 모드: 사용자가 고른 추천 묶음만 (품질/인원 강제 없음)
             _nbCats.forEach(c => { (_nbSelB[c.layer] || new Set()).forEach(idx => { const b = (_nbBundles[c.layer] || [])[idx]; if (b) b.tags.forEach(add); }); });
             return parts.join(', ');
         }
@@ -2296,9 +2338,9 @@
                     <div style="font-size:40px;">🎨</div>
                     <div style="font-size:20px; font-weight:800; font-family:var(--font-heading); margin-top:6px;">${totalSel ? '완성! 이렇게 만들어졌어요' : '아직 고른 조합이 없어요'}</div>
                     <div style="font-size:13px; color:var(--text-dim); margin-top:6px; line-height:1.7;">${korParts.length ? korParts.join(' · ') : '위 단계에서 조합을 골라보세요.'}</div>
-                    <div style="font-size:11px; color:var(--accent-green); margin-top:8px;">✓ 필수 품질 태그는 자동 포함됩니다</div>
+                    <div style="font-size:11px; color:var(--accent-green); margin-top:8px;">${_nbDetailed ? '✓ 에디터에 추가됩니다 (기존 태그 유지)' : '✓ 필수 품질 태그는 자동 포함됩니다'}</div>
                 </div>
-                <div style="font-size:11px; color:var(--text-dim); font-weight:700; margin-bottom:6px;">완성된 프롬프트</div>
+                <div style="font-size:11px; color:var(--text-dim); font-weight:700; margin-bottom:6px;">${_nbDetailed ? '추가될 추천 태그' : '완성된 프롬프트'}</div>
                 <textarea readonly style="width:100%; min-height:120px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:10px; padding:12px; color:var(--text-main); font-family:var(--font-code); font-size:13px; line-height:1.6; resize:vertical;">${prompt}</textarea>
             `;
             footer.innerHTML = '';
@@ -2319,9 +2361,9 @@
             toEd.className = 'nb-btn'; toEd.style.cssText = 'background:#22c55e; color:#fff;';
             toEd.innerHTML = '<i class="fa-solid fa-pen"></i> 에디터로';
             toEd.onclick = () => {
-                importPromptToEditor(prompt.split(',').map(s => s.trim()).filter(Boolean), 'replace');
+                importPromptToEditor(prompt.split(',').map(s => s.trim()).filter(Boolean), _nbDetailed ? 'append' : 'replace');
                 closeNewbieMode();
-                showToast('에디터에 담았어요. 결과 패널에서 확인하세요.', 'success', 3500);
+                showToast(_nbDetailed ? '추천 태그를 에디터에 추가했어요.' : '에디터에 담았어요. 결과 패널에서 확인하세요.', 'success', 3500);
             };
             footer.appendChild(toEd);
 
@@ -4814,16 +4856,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { return window.matchMedia && window.matchMedia('(pointer: coarse)').matches; } catch (e) { return false; }
         }
 
-        // 폴더별 추천 조합 표시 (기본 OFF) — DB 서브카테고리 기반
-        let _folderRecommend = false;
-        try { _folderRecommend = localStorage.getItem('folder_recommend_on') === '1'; } catch (e) {}
-        function toggleFolderRecommend() {
-            _folderRecommend = !_folderRecommend;
-            try { localStorage.setItem('folder_recommend_on', _folderRecommend ? '1' : '0'); } catch (e) {}
-            const btn = document.getElementById('btn-folder-rec');
-            if (btn) { btn.style.background = _folderRecommend ? 'rgba(168,85,247,0.18)' : ''; btn.style.color = _folderRecommend ? '#a855f7' : ''; btn.style.borderColor = _folderRecommend ? '#a855f7' : ''; }
-            initApp(); // 사이드바 다시 렌더해 추천 스트립 표시/숨김
-            showToast(_folderRecommend ? '⚡ 폴더 추천 조합 표시 ON' : '폴더 추천 조합 OFF', _folderRecommend ? 'info' : 'success', 2000);
+        // 상세 추천 카드 플로우 열기 (쉬운 모드의 세부판 — DB+사전 기반, 이미 추가한 태그 반영)
+        function openRecommendFlow() {
+            _nbDetailed = true;
+            const _t = document.getElementById('nb-modal-title');
+            if (_t) _t.innerHTML = '<i class="fa-solid fa-bolt" style="color:#a855f7;"></i> 추천 조합 — 계층별로 빠르게 고르기';
+            _nbCats = _nbGatherCats();
+            if (!_nbCats.length) { showToast('추천할 태그가 없습니다. DB에 태그를 추가해 주세요.', 'warning', 4000); return; }
+            _nbStep = 0; _nbBundles = {}; _nbSelB = {};
+            _nbCats.forEach(c => { _nbBundles[c.layer] = _nbGen(c); _nbSelB[c.layer] = new Set(); });
+            document.getElementById('newbie-mode').style.display = 'flex';
+            _nbRender();
+            _nbBindSwipe();
         }
         let recents = [];
 
@@ -5420,41 +5464,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             subContent.appendChild(tagsRow);
                         }
 
-                        // 추천 조합 스트립 (DB 서브카테고리 기반) — 토글 ON일 때만, 폴더 접힘 상태에서도 표시
-                        if (_folderRecommend) {
-                            let recTags = [];
-                            if (_hasCats) {
-                                _catOrder.forEach(cat => { if (cat && _catMap[cat] && _catMap[cat][0]) recTags.push(_catMap[cat][0]); });
-                            } else {
-                                recTags = (dbLayer[subLayerRaw] || []).slice(0, 3);
-                            }
-                            recTags = recTags.slice(0, 6);
-                            if (recTags.length) {
-                                const strip = document.createElement('div');
-                                strip.className = 'folder-rec-strip';
-                                strip.style.cssText = 'display:flex; flex-wrap:wrap; gap:5px; align-items:center; padding:6px 10px; background:rgba(168,85,247,0.07); border-left:3px solid #a855f7;';
-                                const lab = document.createElement('span');
-                                lab.style.cssText = 'font-size:10px; font-weight:800; color:#a855f7; flex-shrink:0;';
-                                lab.innerHTML = '<i class="fa-solid fa-bolt"></i> 추천';
-                                strip.appendChild(lab);
-                                recTags.forEach(data => {
-                                    const c = document.createElement('button');
-                                    c.className = 'folder-rec-chip';
-                                    c.style.cssText = 'font-size:11px; padding:3px 9px; border-radius:12px; border:1px solid rgba(168,85,247,0.4); background:transparent; color:var(--text-main); cursor:pointer; white-space:nowrap;';
-                                    c.textContent = data.k || data.t.split(',')[0].trim();
-                                    c.title = data.t;
-                                    c.onclick = (e) => { e.stopPropagation(); handleTagToggle(c, data.t, data.n, i); };
-                                    strip.appendChild(c);
-                                });
-                                const addAll = document.createElement('button');
-                                addAll.style.cssText = 'font-size:11px; padding:3px 10px; border-radius:12px; border:none; background:#a855f7; color:#fff; cursor:pointer; font-weight:700; margin-left:auto; flex-shrink:0;';
-                                addAll.innerHTML = '<i class="fa-solid fa-plus"></i> 전체';
-                                addAll.title = '추천 태그 전체 추가';
-                                addAll.onclick = (e) => { e.stopPropagation(); importPromptToEditor(recTags.map(d => d.t), 'append'); showToast(`추천 ${recTags.length}개 추가`, 'success', 1800); };
-                                strip.appendChild(addAll);
-                                subFolder.appendChild(strip);
-                            }
-                        }
                         subFolder.appendChild(subContent);
                         groupContent.appendChild(subFolder);
                     });
@@ -12152,10 +12161,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         _restoreGenMemo();      // 메모장 복원 (새로고침 유지)
         comfyUpdateQuickButtons();  // ComfyUI 연동 이력 있으면 전송 버튼 표시
         DevMode.apply();            // 저장된 개발자 모드 상태 → 시각 표시·기능 적용
-        if (_folderRecommend) {     // 폴더 추천 토글 버튼 활성 스타일 복원
-            const _frb = document.getElementById('btn-folder-rec');
-            if (_frb) { _frb.style.background = 'rgba(168,85,247,0.18)'; _frb.style.color = '#a855f7'; _frb.style.borderColor = '#a855f7'; }
-        }
         // 한글 번역 미리보기 접힘 상태 복원
         ['pos','neg'].forEach(w => {
             try {
