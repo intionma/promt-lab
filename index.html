@@ -1603,6 +1603,19 @@
             <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">장수</label><input id="mg-count" type="number" min="1" max="50" value="12" style="width:70px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;"></div>
             <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">미리보기 스텝</label><input id="mg-steps" type="number" min="1" max="40" value="8" style="width:70px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;"></div>
             <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">한 번에(배치) <i class="fa-solid fa-circle-info" title="한 작업에서 묶어 생성하는 장수. 클수록 빠르지만 VRAM을 더 씀(부족하면 줄이세요)" style="opacity:0.6;"></i></label><input id="mg-batch" type="number" min="1" max="16" value="4" style="width:70px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;"></div>
+            <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">샘플러(미리보기)</label><select id="mg-sampler" style="background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;">
+                <option value="">워크플로우 그대로</option>
+                <option value="euler">euler</option>
+                <option value="euler_ancestral">euler_a</option>
+                <option value="dpmpp_2m">dpmpp_2m</option>
+                <option value="dpmpp_2m_sde">dpmpp_2m_sde</option>
+                <option value="dpmpp_sde">dpmpp_sde</option>
+                <option value="dpmpp_3m_sde">dpmpp_3m_sde</option>
+                <option value="ddim">ddim</option>
+                <option value="uni_pc">uni_pc</option>
+                <option value="lcm">lcm (초저스텝)</option>
+            </select></div>
+            <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">CFG(미리보기)</label><input id="mg-cfg" type="number" min="0" max="30" step="0.5" placeholder="그대로" style="width:78px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;"></div>
             <label style="font-size:12px; color:var(--text-main); display:flex; align-items:center; gap:6px; cursor:pointer; padding-bottom:8px;"><input type="checkbox" id="mg-drop-quality" checked> 디테일러·업스케일 끄기(빠르게)</label>
             <button class="btn-add-db" style="border:none; padding:9px 18px; background:#a855f7;" onclick="multiGenStart()"><i class="fa-solid fa-bolt"></i> 빠르게 생성</button>
             <span id="mg-status" style="font-size:12px; color:var(--text-dim); padding-bottom:8px;"></span>
@@ -1648,6 +1661,7 @@
                     '[다중 생성] 지정 장수 모두 생성되면 완료 알림(토스트+진동)',
                     '[다중 생성] 미리보기는 PC 디스크에 영구 저장 안 함 — SaveImage→PreviewImage(임시폴더, 자동 정리). 재출력 최종본만 저장',
                     '[다중 생성] 실패 시 원인 토스트 표시 (무반응 방지)',
+                    '[다중 생성] 미리보기용 샘플러·CFG 선택 추가 — 빠른 샘플러(euler/dpmpp/lcm 등)·낮은 CFG로 더 빠르게. 재출력은 워크플로우 그대로',
                 ]
             },
             {
@@ -4757,8 +4771,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 미리보기는 유지 — 닫아도 다음 '빠르게 생성' 전까지 보존
         }
 
-        // 워크플로우 복제 + 작업별 덮어쓰기 (시드 / 스텝 / 배치 / 품질노드 bypass / 미리보기 비저장)
-        function _mgClone(base, seed, steps, dropQuality, oi, batchSize, previewMode) {
+        // 워크플로우 복제 + 작업별 덮어쓰기 (시드 / 스텝 / 배치 / 샘플러·CFG / 품질노드 bypass / 미리보기 비저장)
+        function _mgClone(base, seed, steps, dropQuality, oi, batchSize, previewMode, sampler, cfg) {
             const wf = JSON.parse(JSON.stringify(base));
             for (const id in wf) {
                 const inp = wf[id].inputs || {};
@@ -4766,6 +4780,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (typeof inp.noise_seed === 'number') inp.noise_seed = seed;
                 if (steps != null && typeof inp.steps === 'number') inp.steps = steps;
                 if (batchSize != null && typeof inp.batch_size === 'number') inp.batch_size = batchSize; // 배치로 묶어 빠르게
+                if (sampler && typeof inp.sampler_name === 'string') inp.sampler_name = sampler; // 미리보기 샘플러
+                if (cfg != null && typeof inp.cfg === 'number') inp.cfg = cfg;                   // 미리보기 CFG
             }
             if (dropQuality) {
                 const ids = Object.entries(wf)
@@ -4812,6 +4828,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const steps = Math.max(1, Math.min(40, parseInt(document.getElementById('mg-steps')?.value, 10) || 8));
             const batch = Math.max(1, Math.min(16, parseInt(document.getElementById('mg-batch')?.value, 10) || 4));
             const drop = !!document.getElementById('mg-drop-quality')?.checked;
+            const sampler = (document.getElementById('mg-sampler')?.value || '').trim();
+            const cfgRaw = (document.getElementById('mg-cfg')?.value || '').trim();
+            const cfg = cfgRaw === '' ? null : Math.max(0, Math.min(30, parseFloat(cfgRaw)));
             const st = document.getElementById('mg-status');
 
             // '빠르게 생성' 재시작 → 이전 미리보기 초기화
@@ -4849,7 +4868,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             while (remaining > 0) {
                 const bs = Math.min(batch, remaining);
                 const seed = Math.floor(Math.random() * 1e15);
-                try { await _mgSend(_mgClone(base, seed, steps, drop, oi, bs, true), seed, false, bs); }
+                try { await _mgSend(_mgClone(base, seed, steps, drop, oi, bs, true, sampler, cfg), seed, false, bs); }
                 catch (e) { showToast('전송 실패: ' + e.message, 'error', 5000); break; }
                 remaining -= bs;
             }
