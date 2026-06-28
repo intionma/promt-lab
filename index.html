@@ -949,7 +949,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.63 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.64 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1602,6 +1602,7 @@
         <div style="flex-shrink:0; display:flex; gap:12px 16px; flex-wrap:wrap; align-items:flex-end; padding:12px 18px; border-bottom:1px solid var(--border-dim); background:var(--bg-panel);">
             <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">장수</label><input id="mg-count" type="number" min="1" max="50" value="12" style="width:70px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;"></div>
             <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">미리보기 스텝</label><input id="mg-steps" type="number" min="1" max="40" value="8" style="width:70px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;"></div>
+            <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">한 번에(배치) <i class="fa-solid fa-circle-info" title="한 작업에서 묶어 생성하는 장수. 클수록 빠르지만 VRAM을 더 씀(부족하면 줄이세요)" style="opacity:0.6;"></i></label><input id="mg-batch" type="number" min="1" max="16" value="4" style="width:70px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;"></div>
             <label style="font-size:12px; color:var(--text-main); display:flex; align-items:center; gap:6px; cursor:pointer; padding-bottom:8px;"><input type="checkbox" id="mg-drop-quality" checked> 디테일러·업스케일 끄기(빠르게)</label>
             <button class="btn-add-db" style="border:none; padding:9px 18px; background:#a855f7;" onclick="multiGenStart()"><i class="fa-solid fa-bolt"></i> 빠르게 생성</button>
             <span id="mg-status" style="font-size:12px; color:var(--text-dim); padding-bottom:8px;"></span>
@@ -1638,9 +1639,11 @@
         const CHANGELOG = [
             // ── 2026-06-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.9.63', date: '2026-06-28', time: '밤 (최신)',
+                version: 'v9.9.64', date: '2026-06-28', time: '밤 (최신)',
                 tag: 'feat',
                 items: [
+                    '[다중 생성] 속도 개선 — 배치(batch_size)로 한 작업에서 여러 장 묶어 생성(훨씬 빠름), "한 번에" 장수 조절 가능',
+                    '[다중 생성] 재출력 시 남은 미리보기 자동 중단 + 모달 유지(미리보기 보존), 배치 시드 매핑으로 같은 구도 재현',
                     '[프리셋] 프리셋 관리에 "⚡ 생성" 버튼 추가 — 적용+전송 한 번에, 프리셋 창에서 바로 생성',
                 ]
             },
@@ -4316,12 +4319,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const outputs = (hist[pid] && hist[pid].outputs) || {};
                 const gallery = document.getElementById('comfy-gallery');
                 let sawStage = !!(job && job.cleared); // job.cleared는 이 pid의 websocket stage 이벤트를 받았을 때만 true
+                let _miIdx = 0; // 배치 내 이미지 순번 → 시드 = base + index
                 for (const nodeId in outputs) {
                     (outputs[nodeId].images || []).forEach(img => {
                         const url = _comfyImgUrl(img);
                         if ((img.type || 'output') === 'output') {
                             if (job._multi) {
-                                _mgAddResult(url, job.seed); // 다중 미리보기 → 모달 그리드(휘발), 갤러리 저장 X
+                                _mgAddResult(url, (job.seed || 0) + _miIdx); _miIdx++; // 배치 시드 매핑
                             } else {
                                 // 웹소켓 단계 이벤트를 못 받았으면(폴백) 라이브에도 표시
                                 if (!sawStage) _comfyStageImages(pid, [img], nodeId);
@@ -4714,14 +4718,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const grid = document.getElementById('mg-grid'); if (grid) grid.innerHTML = '';
         }
 
-        // 워크플로우 복제 + 작업별 덮어쓰기 (시드 / 스텝 / 품질노드 bypass)
-        function _mgClone(base, seed, steps, dropQuality, oi) {
+        // 워크플로우 복제 + 작업별 덮어쓰기 (시드 / 스텝 / 배치 / 품질노드 bypass)
+        function _mgClone(base, seed, steps, dropQuality, oi, batchSize) {
             const wf = JSON.parse(JSON.stringify(base));
             for (const id in wf) {
                 const inp = wf[id].inputs || {};
                 if (typeof inp.seed === 'number') inp.seed = seed;
                 if (typeof inp.noise_seed === 'number') inp.noise_seed = seed;
                 if (steps != null && typeof inp.steps === 'number') inp.steps = steps;
+                if (batchSize != null && typeof inp.batch_size === 'number') inp.batch_size = batchSize; // 배치로 묶어 빠르게
             }
             if (dropQuality) {
                 const ids = Object.entries(wf)
@@ -4733,14 +4738,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         // 워크플로우 1건 전송 → _multi(미리보기) 또는 일반(고품질) 작업 생성
-        async function _mgSend(wf, seed, hq) {
+        // batchSize>1 이면 한 작업에서 여러 장(시드 base..base+batch-1) 생성
+        async function _mgSend(wf, seed, hq, batchSize) {
             _comfyEnsureSocket();
             if (!_comfyClientId) _comfyClientId = _comfyUUID();
             const res = await fetch(_comfyBase() + '/prompt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: wf, client_id: _comfyClientId }) });
             if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error('HTTP ' + res.status + ' ' + t.slice(0, 120)); }
             const data = await res.json();
             const pid = data.prompt_id;
-            _comfyJobs[pid] = { inline: null, cleared: false, done: false, seq: ++_comfyJobSeq, seed, label: (hq ? '재출력 · 시드 ' : '미리보기 · 시드 ') + seed, _multi: !hq };
+            const bs = batchSize && batchSize > 1 ? batchSize : 1;
+            const lbl = (hq ? '재출력 · 시드 ' : '미리보기 · 시드 ') + seed + (bs > 1 ? ` (배치 ${bs})` : '');
+            _comfyJobs[pid] = { inline: null, cleared: false, done: false, seq: ++_comfyJobSeq, seed, batch: bs, label: lbl, _multi: !hq };
             _comfyQueueCount++; _comfyBatchTotal++;
             comfyRenderQueue();
             _comfyPollResult(pid, 0);
@@ -4752,6 +4760,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!pos) { showToast('긍정 프롬프트가 비어 있습니다.', 'error'); return; }
             const count = Math.max(1, Math.min(50, parseInt(document.getElementById('mg-count').value, 10) || 12));
             const steps = Math.max(1, Math.min(40, parseInt(document.getElementById('mg-steps').value, 10) || 8));
+            const batch = Math.max(1, Math.min(16, parseInt(document.getElementById('mg-batch').value, 10) || 4));
             const drop = document.getElementById('mg-drop-quality').checked;
             const st = document.getElementById('mg-status');
 
@@ -4780,11 +4789,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!base) return;
             let oi = null;
             if (drop) { try { oi = await _comfyEnsureObjectInfo(); } catch (e) {} }
-            st.textContent = `${count}장 전송 중...`;
-            for (let i = 0; i < count; i++) {
+            st.textContent = `${count}장 전송 중... (배치 ${batch}장씩 묶음)`;
+            // 배치로 묶어 전송 — 한 작업에서 batch장 생성(시드 base..base+batch-1)
+            let remaining = count;
+            while (remaining > 0) {
+                const bs = Math.min(batch, remaining);
                 const seed = Math.floor(Math.random() * 1e15);
-                try { await _mgSend(_mgClone(base, seed, steps, drop, oi), seed, false); }
+                try { await _mgSend(_mgClone(base, seed, steps, drop, oi, bs), seed, false, bs); }
                 catch (e) { showToast('전송 실패: ' + e.message, 'error', 5000); break; }
+                remaining -= bs;
             }
             st.textContent = `${count}장 생성 중... 도착하는 대로 표시됩니다`;
         }
@@ -4864,7 +4877,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const base = await _comfyAssembleWorkflow(pos, neg); // 풀 품질(덮어쓰기 없음)
             if (!base) return;
             for (const seed of seeds) {
-                try { await _mgSend(_mgClone(base, seed, null, false, null), seed, true); }
+                try { await _mgSend(_mgClone(base, seed, null, false, null, 1), seed, true, 1); }
                 catch (e) { showToast('재출력 전송 실패: ' + e.message, 'error', 5000); break; }
             }
             _mgSelected.clear(); _mgRenderGrid(); _mgUpdateSelCount();
