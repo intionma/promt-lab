@@ -10046,7 +10046,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (a.favs !== false) data.favorites = favorites;
             if (a.kormap !== false) data.customKorMap = customKorMap;
             if (a.presets !== false) data.userPresets = userPresets;
-            if (a.comfy !== false) { try { data.comfySettings = JSON.parse(localStorage.getItem(COMFY_KEY) || 'null'); } catch(e) {} }
+            if (a.comfy !== false) { try { const cs = JSON.parse(localStorage.getItem(COMFY_KEY) || 'null'); if (cs && typeof cs === 'object') delete cs.wfJson; data.comfySettings = cs; } catch(e) {} }
             if (a.gallery !== false) data.galleryUrls = _galleryUrls;
             if (a.pins !== false) data.gtPins = _gtPins;
             if (a.memo !== false) { try { data.generationMemo = localStorage.getItem('pro_generation_memo') || ''; } catch(e) {} }
