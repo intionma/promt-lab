@@ -949,7 +949,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.60 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.62 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1117,6 +1117,7 @@
                     <div id="pos-action-row" style="padding:8px 0 4px; display:flex; gap:8px;">
                         <button class="btn-copy pos" style="flex:1;" onclick="copyPrompt('pos')"><i class="fa-solid fa-copy"></i> 긍정 복사</button>
                         <button id="btn-comfy-send-pos" class="btn-copy" style="flex:1; display:none; background:#38bdf8; border-color:#38bdf8;" onclick="comfyQuickSend('pos')"><i class="fa-solid fa-paper-plane"></i> ComfyUI 전송</button>
+                        <button id="btn-multigen-pos" class="btn-copy" style="flex:0 0 auto; display:none; background:#a855f7; border-color:#a855f7; padding-left:14px; padding-right:14px;" onclick="openMultiGen()" title="다중 결과 생성"><i class="fa-solid fa-bolt"></i> 다중</button>
                     </div>
                     <div id="comfy-inline-pos" style="display:none; padding-top:10px;">
                         <div id="comfy-inline-prog-pos" style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
@@ -1591,6 +1592,31 @@
         <div id="nb-footer" style="flex-shrink:0; border-top:1px solid var(--border-dim); background:var(--bg-panel); padding:12px 18px; display:flex; align-items:center; gap:10px;"></div>
     </div>
 
+    <!-- ── 다중 결과 생성 (전체화면) ── -->
+    <div id="multigen-modal" style="display:none; position:fixed; inset:0; z-index:100009; background:var(--bg-base); flex-direction:column;">
+        <div style="flex-shrink:0; display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--border-dim); background:var(--bg-panel);">
+            <span style="font-size:16px; font-weight:800; font-family:var(--font-heading); flex:1;"><i class="fa-solid fa-bolt" style="color:#a855f7;"></i> 다중 결과 생성 <span style="font-size:11px; font-weight:600; color:var(--text-dim);">— 빠르게 여러 장 → 마음에 드는 것 골라 고품질 재출력</span></span>
+            <button class="action-btn" onclick="closeMultiGen()"><i class="fa-solid fa-xmark"></i> 닫기</button>
+        </div>
+        <!-- 설정 바 -->
+        <div style="flex-shrink:0; display:flex; gap:12px 16px; flex-wrap:wrap; align-items:flex-end; padding:12px 18px; border-bottom:1px solid var(--border-dim); background:var(--bg-panel);">
+            <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">장수</label><input id="mg-count" type="number" min="1" max="50" value="12" style="width:70px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;"></div>
+            <div><label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:4px;">미리보기 스텝</label><input id="mg-steps" type="number" min="1" max="40" value="8" style="width:70px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;"></div>
+            <label style="font-size:12px; color:var(--text-main); display:flex; align-items:center; gap:6px; cursor:pointer; padding-bottom:8px;"><input type="checkbox" id="mg-drop-quality" checked> 디테일러·업스케일 끄기(빠르게)</label>
+            <button class="btn-add-db" style="border:none; padding:9px 18px; background:#a855f7;" onclick="multiGenStart()"><i class="fa-solid fa-bolt"></i> 빠르게 생성</button>
+            <span id="mg-status" style="font-size:12px; color:var(--text-dim); padding-bottom:8px;"></span>
+        </div>
+        <!-- 선택 바 -->
+        <div style="flex-shrink:0; display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:10px 18px; border-bottom:1px solid var(--border-dim); background:var(--bg-base);">
+            <span style="font-size:13px; font-weight:700; color:var(--text-main);">선택 <span id="mg-sel-count" style="color:#a855f7;">0</span>장</span>
+            <button class="action-btn" onclick="multiGenClearSel()"><i class="fa-solid fa-xmark"></i> 선택 해제</button>
+            <div style="flex:1;"></div>
+            <button class="btn-add-db" style="border:none; padding:10px 20px; background:#22c55e;" onclick="multiGenRerender()"><i class="fa-solid fa-wand-magic-sparkles"></i> 선택 고품질 재출력</button>
+        </div>
+        <!-- 결과 그리드 -->
+        <div id="mg-grid" style="flex:1; overflow-y:auto; padding:14px 18px; display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px; align-content:start;"></div>
+    </div>
+
     <!-- 모바일 하단 탭바 -->
     <nav id="mobile-tabbar"></nav>
 
@@ -1612,7 +1638,16 @@
         const CHANGELOG = [
             // ── 2026-06-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.9.60', date: '2026-06-28', time: '밤 (최신)',
+                version: 'v9.9.62', date: '2026-06-28', time: '밤 (최신)',
+                tag: 'feat',
+                items: [
+                    '[다중 생성] 긍정 탭 "다중" 버튼 → 전체화면에서 시드 랜덤·저스텝·디테일러/업스케일 OFF로 여러 장 빠르게 생성',
+                    '[다중 생성] 결과는 저장 안 함(휘발), 마음에 드는 것 선택 → "고품질 재출력"으로 같은 시드 고품질 재생성 → 갤러리 저장',
+                    '[다중 생성] 커스텀 워크플로우 지원 — 해상도는 워크플로우 그대로, 작업별 시드/스텝만 덮어쓰고 품질 노드는 bypass. 가상 모드도 지원',
+                ]
+            },
+            {
+                version: 'v9.9.60', date: '2026-06-28', time: '밤',
                 tag: 'feat',
                 items: [
                     '[PC 종료] 연결 확인 버튼 추가 — 종료 전에 도우미가 응답하는지 점검 (최신/구버전 자동 감지)',
@@ -2819,6 +2854,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 (mock ? ' <span style="font-size:10px;opacity:0.85;">(가상)</span>' : '');
             if (p) { p.style.display = show ? '' : 'none'; p.innerHTML = label; }
             if (n) { n.style.display = show ? '' : 'none'; n.innerHTML = label; }
+            const mg = document.getElementById('btn-multigen-pos');
+            if (mg) mg.style.display = show ? '' : 'none';
         }
 
         // 메뉴에서 호출 — 개발자 모드 전체 토글
@@ -4275,11 +4312,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 for (const nodeId in outputs) {
                     (outputs[nodeId].images || []).forEach(img => {
                         const url = _comfyImgUrl(img);
-                        // 웹소켓 단계 이벤트를 못 받았으면(폴백) 라이브에도 표시
-                        if (!sawStage) _comfyStageImages(pid, [img], nodeId);
                         if ((img.type || 'output') === 'output') {
-                            if (gallery) gallery.prepend(_comfyThumb(url, 240));
-                            galleryAddImage(url); // 결과 갤러리 탭에 영구 저장
+                            if (job._multi) {
+                                _mgAddResult(url, job.seed); // 다중 미리보기 → 모달 그리드(휘발), 갤러리 저장 X
+                            } else {
+                                // 웹소켓 단계 이벤트를 못 받았으면(폴백) 라이브에도 표시
+                                if (!sawStage) _comfyStageImages(pid, [img], nodeId);
+                                if (gallery) gallery.prepend(_comfyThumb(url, 240));
+                                galleryAddImage(url); // 결과 갤러리 탭에 영구 저장
+                            }
+                        } else if (!job._multi && !sawStage) {
+                            _comfyStageImages(pid, [img], nodeId);
                         }
                     });
                 }
@@ -4645,6 +4688,168 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _comfyBatchTotal = 0; _comfyBatchDone = 0;
                 _comfyOnAllDone();
             }
+        }
+
+        // ── 다중 결과 생성 ───────────────────────────────────────────────
+        // 시드 랜덤·저스텝·품질노드 OFF로 빠르게 N장(휘발) → 선택분을 같은 시드 고품질 재출력(저장)
+        let _mgImages = [];          // [{url, seed}]  (휘발)
+        const _mgSelected = new Set();
+
+        function openMultiGen() {
+            _mgImages = []; _mgSelected.clear();
+            _mgRenderGrid(); _mgUpdateSelCount();
+            document.getElementById('mg-status').textContent = '';
+            document.getElementById('multigen-modal').style.display = 'flex';
+        }
+        function closeMultiGen() {
+            document.getElementById('multigen-modal').style.display = 'none';
+            _mgImages = []; _mgSelected.clear(); // 휘발 — 닫으면 폐기
+            const grid = document.getElementById('mg-grid'); if (grid) grid.innerHTML = '';
+        }
+
+        // 워크플로우 복제 + 작업별 덮어쓰기 (시드 / 스텝 / 품질노드 bypass)
+        function _mgClone(base, seed, steps, dropQuality, oi) {
+            const wf = JSON.parse(JSON.stringify(base));
+            for (const id in wf) {
+                const inp = wf[id].inputs || {};
+                if (typeof inp.seed === 'number') inp.seed = seed;
+                if (typeof inp.noise_seed === 'number') inp.noise_seed = seed;
+                if (steps != null && typeof inp.steps === 'number') inp.steps = steps;
+            }
+            if (dropQuality) {
+                const ids = Object.entries(wf)
+                    .filter(([, n]) => /detailer|facedetail|impact|upscale/i.test(n.class_type || ''))
+                    .map(([id]) => id);
+                ids.forEach(id => _comfyBypassNode(wf, id, oi));
+            }
+            return wf;
+        }
+
+        // 워크플로우 1건 전송 → _multi(미리보기) 또는 일반(고품질) 작업 생성
+        async function _mgSend(wf, seed, hq) {
+            _comfyEnsureSocket();
+            if (!_comfyClientId) _comfyClientId = _comfyUUID();
+            const res = await fetch(_comfyBase() + '/prompt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: wf, client_id: _comfyClientId }) });
+            if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error('HTTP ' + res.status + ' ' + t.slice(0, 120)); }
+            const data = await res.json();
+            const pid = data.prompt_id;
+            _comfyJobs[pid] = { inline: null, cleared: false, done: false, seq: ++_comfyJobSeq, seed, label: (hq ? '재출력 · 시드 ' : '미리보기 · 시드 ') + seed, _multi: !hq };
+            _comfyQueueCount++; _comfyBatchTotal++;
+            comfyRenderQueue();
+            _comfyPollResult(pid, 0);
+        }
+
+        async function multiGenStart() {
+            const pos = (document.getElementById('final-positive')?.value || '').trim();
+            const neg = (document.getElementById('final-negative')?.value || '').trim();
+            if (!pos) { showToast('긍정 프롬프트가 비어 있습니다.', 'error'); return; }
+            const count = Math.max(1, Math.min(50, parseInt(document.getElementById('mg-count').value, 10) || 12));
+            const steps = Math.max(1, Math.min(40, parseInt(document.getElementById('mg-steps').value, 10) || 8));
+            const drop = document.getElementById('mg-drop-quality').checked;
+            const st = document.getElementById('mg-status');
+
+            // 개발자(가상) 모드
+            if (DevMode.feature('mockGen')) {
+                st.textContent = `🧪 가상 ${count}장 생성 중...`;
+                let i = 0;
+                const tick = () => {
+                    if (document.getElementById('multigen-modal').style.display === 'none') return;
+                    if (i >= count) { st.textContent = `✅ ${_mgImages.length}장 생성됨 — 마음에 드는 것 선택`; return; }
+                    const seed = Math.floor(Math.random() * 1e15);
+                    _mgAddResult(_mockImgDataUrl(seed % 100000, '미리보기', 'seed ' + String(seed).slice(0, 6)), seed);
+                    i++; setTimeout(tick, 110);
+                };
+                tick();
+                return;
+            }
+
+            // 실제 ComfyUI
+            try {
+                const ping = await fetch(_comfyBase() + '/system_stats', { signal: AbortSignal.timeout(4000) });
+                if (!ping.ok) throw new Error('ping');
+            } catch (e) { showToast('ComfyUI에 연결할 수 없습니다.', 'error', 5000); return; }
+
+            const base = await _comfyAssembleWorkflow(pos, neg);
+            if (!base) return;
+            let oi = null;
+            if (drop) { try { oi = await _comfyEnsureObjectInfo(); } catch (e) {} }
+            st.textContent = `${count}장 전송 중...`;
+            for (let i = 0; i < count; i++) {
+                const seed = Math.floor(Math.random() * 1e15);
+                try { await _mgSend(_mgClone(base, seed, steps, drop, oi), seed, false); }
+                catch (e) { showToast('전송 실패: ' + e.message, 'error', 5000); break; }
+            }
+            st.textContent = `${count}장 생성 중... 도착하는 대로 표시됩니다`;
+        }
+
+        function _mgAddResult(url, seed) {
+            _mgImages.push({ url, seed });
+            _mgRenderGrid();
+            const st = document.getElementById('mg-status');
+            if (st && !DevMode.feature('mockGen')) st.textContent = `${_mgImages.length}장 도착 — 마음에 드는 것 선택`;
+        }
+
+        function _mgRenderGrid() {
+            const grid = document.getElementById('mg-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            _mgImages.forEach((im, idx) => {
+                const sel = _mgSelected.has(idx);
+                const card = document.createElement('div');
+                card.style.cssText = `position:relative; border-radius:10px; overflow:hidden; cursor:pointer; border:2px solid ${sel ? '#22c55e' : 'transparent'}; transition:border-color .15s;`;
+                card.onclick = () => multiGenToggleSel(idx);
+                const img = document.createElement('img');
+                img.src = im.url; img.loading = 'lazy';
+                img.style.cssText = 'width:100%; display:block; border-radius:8px;';
+                card.appendChild(img);
+                if (sel) {
+                    const chk = document.createElement('div');
+                    chk.style.cssText = 'position:absolute; top:6px; right:6px; width:24px; height:24px; border-radius:50%; background:#22c55e; color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px;';
+                    chk.innerHTML = '<i class="fa-solid fa-check"></i>';
+                    card.appendChild(chk);
+                }
+                const tag = document.createElement('div');
+                tag.style.cssText = 'position:absolute; bottom:0; left:0; right:0; background:linear-gradient(transparent, rgba(0,0,0,0.65)); color:#fff; font-size:10px; padding:10px 6px 4px; font-family:var(--font-code);';
+                tag.textContent = 'seed ' + String(im.seed);
+                card.appendChild(tag);
+                grid.appendChild(card);
+            });
+        }
+
+        function multiGenToggleSel(idx) {
+            if (_mgSelected.has(idx)) _mgSelected.delete(idx); else _mgSelected.add(idx);
+            _mgRenderGrid(); _mgUpdateSelCount();
+        }
+        function multiGenClearSel() { _mgSelected.clear(); _mgRenderGrid(); _mgUpdateSelCount(); }
+        function _mgUpdateSelCount() {
+            const el = document.getElementById('mg-sel-count'); if (el) el.textContent = _mgSelected.size;
+        }
+
+        async function multiGenRerender() {
+            const sel = [..._mgSelected];
+            if (!sel.length) { showToast('재출력할 이미지를 선택하세요.', 'error'); return; }
+            const seeds = sel.map(i => _mgImages[i] && _mgImages[i].seed).filter(s => s != null);
+
+            if (DevMode.feature('mockGen')) {
+                seeds.forEach(seed => {
+                    const url = _mockImgDataUrl(seed % 100000, '고품질', 'seed ' + String(seed).slice(0, 6));
+                    if (typeof _galleryRenderOne === 'function') _galleryRenderOne(url, false);
+                });
+                showToast(`🧪 ${seeds.length}장 고품질 재출력 (가상) — 갤러리 확인`, 'success', 3000);
+                closeMultiGen();
+                return;
+            }
+
+            const pos = (document.getElementById('final-positive')?.value || '').trim();
+            const neg = (document.getElementById('final-negative')?.value || '').trim();
+            const base = await _comfyAssembleWorkflow(pos, neg); // 풀 품질(덮어쓰기 없음)
+            if (!base) return;
+            for (const seed of seeds) {
+                try { await _mgSend(_mgClone(base, seed, null, false, null), seed, true); }
+                catch (e) { showToast('재출력 전송 실패: ' + e.message, 'error', 5000); break; }
+            }
+            showToast(`${seeds.length}장 고품질 재출력 → 대기열·갤러리에서 확인`, 'success', 3500);
+            closeMultiGen();
         }
 
         // 현재 작업 중단 + 대기열 전체 비우기
