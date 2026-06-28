@@ -3498,7 +3498,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         })();
 
         // ── 풀스크린 이미지 뷰어 ──
-        let _lbUrls = [], _lbIdx = 0;
+        let _lbUrls = [], _lbIdx = 0, _lbParent = null;
 
         (function () {
             const SNAP_RATIO = 0.25;
@@ -3557,6 +3557,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (btnNext) btnNext.style.display = (multi && _lbIdx < n - 1) ? 'block' : 'none';
             }
 
+            // 라이트박스가 열린 동안 원본 컨테이너에서 이미지 목록을 실시간 재조회
+            // (생성 중 새 미리보기가 추가돼도 닫았다 켜지 않고 바로 넘길 수 있게)
+            function _lbRefresh() {
+                if (!_lbParent || box.style.display === 'none') return;
+                const cur = _lbUrls[_lbIdx];
+                const imgs = Array.from(_lbParent.querySelectorAll('img[src]')).map(i => i.src).filter(Boolean);
+                if (!imgs.length) return;
+                const changed = imgs.length !== _lbUrls.length;
+                _lbUrls = imgs;
+                const ni = cur ? imgs.indexOf(cur) : -1;
+                _lbIdx = ni >= 0 ? ni : Math.min(_lbIdx, imgs.length - 1);
+                if (changed && !_busy) { _loadSlots(); _updateUI(); }
+            }
+            window._lbRefresh = _lbRefresh;
+
             // ── 드래그/스와이프 공용 상태 ────────────────────────────────
             let ptX = null, ptY = null, ptAxis = null, ptDragged = false;
 
@@ -3597,6 +3612,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     return;
                 }
 
+                _lbRefresh(); // 생성 중 새로 추가된 미리보기 반영
                 const n = _lbUrls.length;
                 const threshold = VW() * SNAP_RATIO;
 
@@ -3668,6 +3684,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _lbUrls = Array.isArray(urls) && urls.length ? urls : [url];
                 _lbIdx  = typeof idx === 'number' && idx >= 0 && idx < _lbUrls.length
                           ? idx : Math.max(0, _lbUrls.indexOf(url));
+                _lbParent = null; // 직접 호출은 실시간 갱신 대상 아님 (openLightboxFromEl에서 설정)
                 box.style.display = 'block';
                 _loadSlots();
                 _center();
@@ -3679,6 +3696,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 화살표 버튼: 즉시 전환 (애니메이션 없음)
             window.lightboxNav = function (dir) {
                 if (_busy) return;
+                _lbRefresh(); // 생성 중 새로 추가된 미리보기 반영
                 const n = _lbUrls.length;
                 const newIdx = _lbIdx + dir;
                 if (newIdx < 0 || newIdx >= n) return;
@@ -3714,6 +3732,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const urls = siblings.length > 1 ? siblings.map(i => i.src) : [url];
                 const idx  = siblings.length > 1 ? Math.max(0, siblings.indexOf(el)) : 0;
                 openLightbox(url, urls, idx);
+                _lbParent = parent; // 생성 중 새 미리보기 실시간 반영용 (openLightbox가 null로 초기화한 뒤 설정)
             };
 
             document.addEventListener('keydown', e => {
@@ -3770,6 +3789,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (live) live.appendChild(_comfyThumb(url, 160, info.label));   // 단계 순서대로 → 뒤에 추가
                 if (inline) { const t = document.getElementById('comfy-inline-thumbs-' + inline); if (t) t.appendChild(_comfyThumb(url, inline === 'pos' ? 320 : 130, info.label)); }
             });
+            if (window._lbRefresh) window._lbRefresh(); // 라이트박스 열려있으면 새 미리보기 즉시 반영
         }
 
         // 실행 종료 → 저장본(type:output)만 영구 갤러리에 추가
@@ -4108,6 +4128,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const url = _mockImgDataUrl(seq, label, desc);
                 if (lt) lt.appendChild(_comfyThumb(url, 160, label));
                 if (it) it.appendChild(_comfyThumb(url, inline === 'pos' ? 320 : 130, label));
+                if (window._lbRefresh) window._lbRefresh(); // 라이트박스 열려있으면 새 미리보기 즉시 반영
             };
             const timer = setInterval(() => {
                 if (!_comfyJobs[pid]) { clearInterval(timer); onDone(); return; } // 도중 취소됨
