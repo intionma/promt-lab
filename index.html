@@ -4832,20 +4832,32 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const el = document.getElementById('mg-sel-count'); if (el) el.textContent = _mgSelected.size;
         }
 
+        // 아직 끝나지 않은 미리보기(_multi) 작업 취소 — 재출력이 대기열 뒤에서 막히지 않게
+        async function _mgCancelPendingPreviews() {
+            const pids = Object.keys(_comfyJobs).filter(p => _comfyJobs[p]._multi && !_comfyJobs[p].done);
+            for (const pid of pids) { try { await comfyCancelJob(pid); } catch (e) {} }
+        }
+
         async function multiGenRerender() {
             const sel = [..._mgSelected];
             if (!sel.length) { showToast('재출력할 이미지를 선택하세요.', 'error'); return; }
             const seeds = sel.map(i => _mgImages[i] && _mgImages[i].seed).filter(s => s != null);
+            const st = document.getElementById('mg-status');
 
             if (DevMode.feature('mockGen')) {
                 seeds.forEach(seed => {
                     const url = _mockImgDataUrl(seed % 100000, '고품질', 'seed ' + String(seed).slice(0, 6));
                     if (typeof _galleryRenderOne === 'function') _galleryRenderOne(url, false);
                 });
-                showToast(`🧪 ${seeds.length}장 고품질 재출력 (가상) — 갤러리 확인`, 'success', 3000);
-                closeMultiGen();
-                return;
+                _mgSelected.clear(); _mgRenderGrid(); _mgUpdateSelCount();
+                if (st) st.textContent = `🧪 ${seeds.length}장 고품질 재출력(가상) — 닫으면 갤러리에서 확인`;
+                showToast(`🧪 ${seeds.length}장 고품질 재출력 (가상)`, 'success', 2500);
+                return; // 모달 유지
             }
+
+            // 남은 미리보기 취소 → 재출력 즉시 실행
+            if (st) st.textContent = '남은 미리보기 중단 후 재출력 전송 중...';
+            await _mgCancelPendingPreviews();
 
             const pos = (document.getElementById('final-positive')?.value || '').trim();
             const neg = (document.getElementById('final-negative')?.value || '').trim();
@@ -4855,8 +4867,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 try { await _mgSend(_mgClone(base, seed, null, false, null), seed, true); }
                 catch (e) { showToast('재출력 전송 실패: ' + e.message, 'error', 5000); break; }
             }
-            showToast(`${seeds.length}장 고품질 재출력 → 대기열·갤러리에서 확인`, 'success', 3500);
-            closeMultiGen();
+            _mgSelected.clear(); _mgRenderGrid(); _mgUpdateSelCount();
+            if (st) st.textContent = `${seeds.length}장 고품질 재출력 중 — 닫으면 결과/갤러리에서 확인`;
+            showToast(`${seeds.length}장 고품질 재출력 시작 (남은 미리보기 중단)`, 'success', 3500);
+            // 모달 유지 — 남은 미리보기 보거나 추가 선택/재출력 가능
         }
 
         // 현재 작업 중단 + 대기열 전체 비우기
