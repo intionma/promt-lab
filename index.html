@@ -3154,6 +3154,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 // 1) 서버 큐에 없는 로컬 job → 완료됐거나 취소됨 → finalize 시도 후 제거
                 for (const pid of Object.keys(_comfyJobs)) {
                     if (_comfyJobs[pid].done) continue;
+                    if (_comfyJobs[pid]._mock) continue; // 가상(테스트) 작업은 서버 동기화 대상 아님
                     if (!livePids.has(pid)) {
                         // history 확인해서 완료면 finalize, 아니면 조용히 제거
                         try {
@@ -3183,8 +3184,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     }
                 }
 
-                // 3) running pid 반영
-                _comfyRunningPid = runningEntries[0]?.[1] || null;
+                // 3) running pid 반영 (가상 테스트 진행 중이면 보존)
+                const serverRunning = runningEntries[0]?.[1] || null;
+                if (serverRunning) _comfyRunningPid = serverRunning;
+                else if (!(_comfyRunningPid && _comfyJobs[_comfyRunningPid]?._mock)) _comfyRunningPid = null;
 
                 // 4) 실행 중 job이 있고 pct가 없으면 진행 중 UI 즉시 표시 (WebSocket 재연결 전 공백 방지)
                 if (_comfyRunningPid && _comfyJobs[_comfyRunningPid]) {
@@ -3945,6 +3948,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         function comfyMockTest(count) {
             count = count || 4;
+            // 실제 ComfyUI 생성 작업이 진행 중이면 카운터/배치 추적이 꼬이므로 차단
+            const hasRealJob = Object.values(_comfyJobs).some(j => !j._mock);
+            if (hasRealJob) {
+                showToast('실제 생성 작업이 진행 중입니다. 완료 후 다시 시도하세요.', 'error', 3000);
+                return;
+            }
             const pos = (document.getElementById('final-positive')?.value || '').trim();
             const baseLabel = (pos ? _comfyKorLabel(pos) : '') || '테스트 이미지';
             for (let i = 0; i < count; i++) {
