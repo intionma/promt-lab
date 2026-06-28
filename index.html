@@ -949,7 +949,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.80 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.82 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1677,7 +1677,15 @@
         const CHANGELOG = [
             // ── 2026-06-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.9.80', date: '2026-06-28', time: '밤 (최신)',
+                version: 'v9.9.82', date: '2026-06-28', time: '밤 (최신)',
+                tag: 'feat',
+                items: [
+                    '[개발자 모드] 연결 없이도 새 기능 전체 테스트 — 다중 생성 진행바·대기열, PC 상태 실시간 모니터(가짜 VRAM/RAM 흔들림)까지 가상 동작',
+                    '[개발자 모드] 가상 모드에서는 프롬프트 없이도 "빠르게 생성" 가능 (UI 점검용)',
+                ]
+            },
+            {
+                version: 'v9.9.80', date: '2026-06-28', time: '밤',
                 tag: 'feat',
                 items: [
                     '[다중 생성] 미리보기 카드에 "크게 보기(🔍)" 버튼 추가 — 라이트박스로 크게 보고 좌우로 넘겨보기 (선택과 충돌 없음)',
@@ -2917,7 +2925,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 {
                     id: 'mockGen',
                     label: '가상 생성',
-                    desc: 'ComfyUI 연결 없이 가상으로 연결·생성',
+                    desc: 'ComfyUI 연결 없이 생성·다중생성·진행바·PC 상태까지 가상으로 테스트',
                     default: true,
                     onApply(active) {
                         // 생성 버튼/연결 상태 UI 갱신
@@ -4911,8 +4919,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const tBtn = document.getElementById('mg-settings-toggle'); if (tBtn) tBtn.innerHTML = '<i class="fa-solid fa-sliders"></i> 설정';
             const sc = document.getElementById('mg-scroll'); if (sc) sc.scrollTop = 0;
             document.getElementById('multigen-modal').style.display = 'flex';
-            // PC 상태 실시간 모니터 자동 시작 (가상 모드가 아니고, 연결돼 있던 경우)
-            if (!DevMode.feature('mockGen') && _comfyConnectedOnce) _mgStartSysMonitor();
+            // PC 상태 실시간 모니터 자동 시작 (가상 모드면 가짜 데이터로, 아니면 연결돼 있던 경우)
+            if (DevMode.feature('mockGen') || _comfyConnectedOnce) _mgStartSysMonitor();
         }
         function closeMultiGen() {
             document.getElementById('multigen-modal').style.display = 'none';
@@ -4972,7 +4980,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           try {
             const pos = (document.getElementById('final-positive')?.value || '').trim();
             const neg = (document.getElementById('final-negative')?.value || '').trim();
-            if (!pos) { showToast('긍정 프롬프트가 비어 있습니다.', 'error'); return; }
+            // 가상 모드는 프롬프트 없이도 테스트 가능 (연결 없이 UI 점검용)
+            if (!pos && !DevMode.feature('mockGen')) { showToast('긍정 프롬프트가 비어 있습니다.', 'error'); return; }
             const count = Math.max(1, Math.min(50, parseInt(document.getElementById('mg-count')?.value, 10) || 12));
             const steps = Math.max(1, Math.min(40, parseInt(document.getElementById('mg-steps')?.value, 10) || 8));
             const batch = Math.max(1, Math.min(16, parseInt(document.getElementById('mg-batch')?.value, 10) || 4));
@@ -4992,16 +5001,28 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (s && s.style.display !== 'none') multiGenToggleSettings();
             }
 
-            // 개발자(가상) 모드
+            // 개발자(가상) 모드 — 진행바·대기열까지 가짜로 구동 (연결 없이 UI 전체 테스트)
             if (DevMode.feature('mockGen')) {
                 st.textContent = `🧪 가상 ${count}장 생성 중...`;
+                const wrap = document.getElementById('mg-progress-wrap');
+                const bar = document.getElementById('mg-progress');
+                const ptxt = document.getElementById('mg-progress-text');
+                if (wrap) wrap.style.display = 'flex';
                 let i = 0;
                 const tick = () => {
-                    if (document.getElementById('multigen-modal').style.display === 'none') return;
-                    if (i >= count) { st.textContent = `✅ ${_mgImages.length}장 생성됨 — 마음에 드는 것 선택`; return; }
+                    if (document.getElementById('multigen-modal').style.display === 'none') { if (wrap) wrap.style.display = 'none'; return; }
+                    if (i >= count) {
+                        st.textContent = `✅ ${_mgImages.length}장 생성됨 — 마음에 드는 것 선택`;
+                        if (wrap) wrap.style.display = 'none';
+                        return;
+                    }
                     const seed = Math.floor(Math.random() * 1e15);
                     _mgAddResult(_mockImgDataUrl(seed % 100000, '미리보기', 'seed ' + String(seed).slice(0, 6)), seed);
-                    i++; setTimeout(tick, 110);
+                    i++;
+                    const pct = Math.round(i / count * 100);
+                    if (bar) bar.style.width = pct + '%';
+                    if (ptxt) ptxt.textContent = `가상 ${i}/${count} · ${pct}%`;
+                    setTimeout(tick, 110);
                 };
                 tick();
                 return;
@@ -5051,8 +5072,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const sc = document.getElementById('mg-scroll'); if (sc) sc.scrollTop = 0;
         }
 
+        // 개발자(가상) 모드용 가짜 PC 상태 — VRAM/RAM을 살짝 흔들어 실시간처럼
+        let _mockVram = 6.2, _mockRam = 18.5;
+        function _mockSysStats() {
+            _mockVram = Math.max(2.8, Math.min(11.4, _mockVram + (Math.random() - 0.45) * 0.7));
+            _mockRam = Math.max(12, Math.min(28, _mockRam + (Math.random() - 0.5) * 0.5));
+            const total = 12.0, pct = Math.round(_mockVram / total * 100);
+            return `NVIDIA RTX 4070 Ti (가상) · VRAM ${_mockVram.toFixed(1)}/${total.toFixed(1)}GB (${pct}%) · RAM ${_mockRam.toFixed(1)}/31.8GB`;
+        }
+
         // PC(GPU/VRAM/RAM) 상태 1회 조회 + 포맷 (실시간 모니터/버튼 공용)
         async function _comfyFetchSysStats() {
+            if (DevMode.feature('mockGen')) return _mockSysStats();   // 연결 없이도 테스트
             const r = await fetch(_comfyBase() + '/system_stats', { signal: AbortSignal.timeout(4000) });
             if (!r.ok) throw new Error('HTTP ' + r.status);
             const s = await r.json();
