@@ -1202,6 +1202,11 @@
                         <button class="io-pill active" data-key="weights" style="--pc:#f59e0b;" onclick="toggleIOPill(this)"><i class="fa-solid fa-weight-hanging"></i> 태그 가중치</button>
                         <button class="io-pill active" data-key="favs" style="--pc:#ec4899;" onclick="toggleIOPill(this)"><i class="fa-solid fa-star"></i> 즐겨찾기</button>
                         <button class="io-pill active" data-key="kormap" style="--pc:#f97316;" onclick="toggleIOPill(this)"><i class="fa-solid fa-language"></i> 한글 번역맵</button>
+                        <button class="io-pill active" data-key="presets" style="--pc:#818cf8;" onclick="toggleIOPill(this)"><i class="fa-solid fa-floppy-disk"></i> 프리셋</button>
+                        <button class="io-pill active" data-key="comfy" style="--pc:#38bdf8;" onclick="toggleIOPill(this)"><i class="fa-solid fa-paper-plane"></i> ComfyUI 설정</button>
+                        <button class="io-pill active" data-key="gallery" style="--pc:#34d399;" onclick="toggleIOPill(this)"><i class="fa-solid fa-images"></i> 이미지 갤러리</button>
+                        <button class="io-pill active" data-key="pins" style="--pc:#fbbf24;" onclick="toggleIOPill(this)"><i class="fa-solid fa-thumbtack"></i> 상단바 핀</button>
+                        <button class="io-pill active" data-key="memo" style="--pc:#fb923c;" onclick="toggleIOPill(this)"><i class="fa-solid fa-pen-to-square"></i> 메모장</button>
                     </div>
                     <div id="io-export-size" style="font-size:11px;color:var(--text-dim);margin-top:10px;font-family:var(--font-ui);"></div>
                 </div>
@@ -9781,6 +9786,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (a.weights !== false) data.tagDefaultWeights = tagDefaultWeights;
             if (a.favs !== false) data.favorites = favorites;
             if (a.kormap !== false) data.customKorMap = customKorMap;
+            if (a.presets !== false) data.userPresets = userPresets;
+            if (a.comfy !== false) { try { data.comfySettings = JSON.parse(localStorage.getItem(COMFY_KEY) || 'null'); } catch(e) {} }
+            if (a.gallery !== false) data.galleryUrls = _galleryUrls;
+            if (a.pins !== false) data.gtPins = _gtPins;
+            if (a.memo !== false) { try { data.generationMemo = localStorage.getItem('pro_generation_memo') || ''; } catch(e) {} }
             return JSON.stringify(data);
         }
 
@@ -9899,6 +9909,31 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     if (!customKorMap[k]) { customKorMap[k] = v; addedCount++; }
                 }
                 saveCustomKorMap();
+            }
+
+            // Merge userPresets
+            if (parsed.userPresets && typeof parsed.userPresets === 'object') {
+                for (const [k, v] of Object.entries(parsed.userPresets)) {
+                    if (!userPresets[k]) { userPresets[k] = v; addedCount++; }
+                }
+                safeSetStorage('pro_prompt_presets_v7_0', userPresets);
+            }
+
+            // Merge galleryUrls (deduplicate by URL)
+            if (parsed.galleryUrls && Array.isArray(parsed.galleryUrls)) {
+                const existing = new Set(_galleryUrls);
+                for (const url of parsed.galleryUrls) {
+                    if (!existing.has(url)) { _galleryUrls.push(url); existing.add(url); addedCount++; }
+                }
+                try { localStorage.setItem(GALLERY_KEY, JSON.stringify(_galleryUrls)); } catch(e) {}
+            }
+
+            // Merge gtPins
+            if (parsed.gtPins && Array.isArray(parsed.gtPins)) {
+                for (const pin of parsed.gtPins) {
+                    if (!_gtPins.includes(pin)) { _gtPins.push(pin); addedCount++; }
+                }
+                try { localStorage.setItem('gt_pins', JSON.stringify(_gtPins)); } catch(e) {}
             }
 
             initApp();
@@ -10036,6 +10071,27 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             Object.keys(customKorMap).forEach(k => delete customKorMap[k]);
                             Object.assign(customKorMap, parsed.customKorMap);
                             saveCustomKorMap();
+                        }
+                        if (parsed.userPresets && typeof parsed.userPresets === 'object') {
+                            Object.keys(userPresets).forEach(k => delete userPresets[k]);
+                            Object.assign(userPresets, parsed.userPresets);
+                            safeSetStorage('pro_prompt_presets_v7_0', userPresets);
+                        }
+                        if (parsed.comfySettings && typeof parsed.comfySettings === 'object') {
+                            try { localStorage.setItem(COMFY_KEY, JSON.stringify(parsed.comfySettings)); } catch(e) {}
+                        }
+                        if (parsed.galleryUrls && Array.isArray(parsed.galleryUrls)) {
+                            _galleryUrls = parsed.galleryUrls;
+                            try { localStorage.setItem(GALLERY_KEY, JSON.stringify(_galleryUrls)); } catch(e) {}
+                        }
+                        if (parsed.gtPins && Array.isArray(parsed.gtPins)) {
+                            _gtPins = parsed.gtPins;
+                            try { localStorage.setItem('gt_pins', JSON.stringify(_gtPins)); } catch(e) {}
+                        }
+                        if (typeof parsed.generationMemo === 'string') {
+                            try { localStorage.setItem('pro_generation_memo', parsed.generationMemo); } catch(e) {}
+                            const memoEl = document.getElementById('generation-memo');
+                            if (memoEl) memoEl.value = parsed.generationMemo;
                         }
                         initApp();
                         showToast("전체 데이터 복구 성공!", "success");
