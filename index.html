@@ -1208,6 +1208,7 @@
                         <button class="io-pill active" data-key="gallery" style="--pc:#34d399;" onclick="toggleIOPill(this)"><i class="fa-solid fa-images"></i> 이미지 갤러리</button>
                         <button class="io-pill active" data-key="pins" style="--pc:#fbbf24;" onclick="toggleIOPill(this)"><i class="fa-solid fa-thumbtack"></i> 상단바 핀</button>
                         <button class="io-pill active" data-key="memo" style="--pc:#fb923c;" onclick="toggleIOPill(this)"><i class="fa-solid fa-pen-to-square"></i> 메모장</button>
+                        <button class="io-pill active" data-key="etc" style="--pc:#94a3b8;" onclick="toggleIOPill(this)"><i class="fa-solid fa-sliders"></i> 기타 설정</button>
                     </div>
                     <div id="io-export-size" style="font-size:11px;color:var(--text-dim);margin-top:10px;font-family:var(--font-ui);"></div>
                 </div>
@@ -10046,7 +10047,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (a.favs !== false) data.favorites = favorites;
             if (a.kormap !== false) data.customKorMap = customKorMap;
             if (a.presets !== false) data.userPresets = userPresets;
-            if (a.comfy !== false) { try { const cs = JSON.parse(localStorage.getItem(COMFY_KEY) || 'null'); if (cs && typeof cs === 'object') delete cs.wfJson; data.comfySettings = cs; } catch(e) {} }
+            if (a.comfy !== false) { try { data.comfySettings = JSON.parse(localStorage.getItem(COMFY_KEY) || 'null'); } catch(e) {} }
+            if (a.etc !== false) {
+                const etc = {};
+                ['pro_prompt_combos_v7_0', 'pro_prompt_theme', 'preview_thumb_h', 'panel_widths_v1', 'ccm_mode', 'kor_preview_pos_collapsed', 'kor_preview_neg_collapsed', 'shutdown_settings_v1'].forEach(k => {
+                    const v = localStorage.getItem(k); if (v !== null) etc[k] = v;
+                });
+                data.appPrefs = etc;
+            }
             if (a.gallery !== false) data.galleryUrls = _galleryUrls;
             if (a.pins !== false) data.gtPins = _gtPins;
             if (a.memo !== false) { try { data.generationMemo = localStorage.getItem('pro_generation_memo') || ''; } catch(e) {} }
@@ -10211,6 +10219,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const memoEl = document.getElementById('generation-memo');
                     if (memoEl) memoEl.value = parsed.generationMemo;
                     addedCount++;
+                }
+            }
+
+            // Merge appPrefs (기타 설정 — 현재 값이 없는 키만 채움)
+            if (parsed.appPrefs && typeof parsed.appPrefs === 'object') {
+                for (const [k, v] of Object.entries(parsed.appPrefs)) {
+                    if (localStorage.getItem(k) === null) { try { localStorage.setItem(k, v); addedCount++; } catch(e) {} }
                 }
             }
 
@@ -10380,8 +10395,23 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             const memoEl = document.getElementById('generation-memo');
                             if (memoEl) memoEl.value = parsed.generationMemo;
                         }
+                        // 기타 설정(테마·미리보기 크기·패널 너비·사용자 조합·UI 상태·종료 설정 등)
+                        let _needReload = false;
+                        if (parsed.appPrefs && typeof parsed.appPrefs === 'object') {
+                            for (const [k, v] of Object.entries(parsed.appPrefs)) {
+                                try { localStorage.setItem(k, v); } catch(e) {}
+                            }
+                            _needReload = true; // 테마/레이아웃은 로드시 적용되므로 새로고침으로 완벽 반영
+                        }
                         initApp();
-                        showToast("전체 데이터 복구 성공!", "success");
+                        document.getElementById('db-io-modal').style.display = 'none';
+                        if (_needReload) {
+                            showToast("전체 데이터 복구 성공! 적용을 위해 새로고침합니다...", "success");
+                            setTimeout(() => location.reload(), 900);
+                        } else {
+                            showToast("전체 데이터 복구 성공!", "success");
+                        }
+                        return;
                     }
                     // 구형: 태그 DB만
                     else if (parsed[1] !== undefined) {
