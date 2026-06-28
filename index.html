@@ -2447,24 +2447,31 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         try { _comfyMockMode = localStorage.getItem('comfy_mock_mode') === '1'; } catch (e) {}
 
         // 결과 패널의 'ComfyUI 전송' 빠른 버튼 표시 여부 갱신
+        // 개발자 모드면 ComfyUI가 연결된 것처럼 버튼을 노출
         function comfyUpdateQuickButtons() {
             const show = _comfyConnectedOnce || _comfyMockMode;
             const p = document.getElementById('btn-comfy-send-pos');
             const n = document.getElementById('btn-comfy-send-neg');
-            const label = _comfyMockMode && !_comfyConnectedOnce
-                ? '<i class="fa-solid fa-flask"></i> 가상 생성 (테스트)'
-                : '<i class="fa-solid fa-paper-plane"></i> ComfyUI 전송';
+            const label = '<i class="fa-solid fa-paper-plane"></i> ComfyUI 전송' +
+                (_comfyMockMode ? ' <span style="font-size:10px;opacity:0.85;">(가상)</span>' : '');
             if (p) { p.style.display = show ? '' : 'none'; p.innerHTML = label; }
             if (n) { n.style.display = show ? '' : 'none'; n.innerHTML = label; }
         }
 
-        // 개발자 모드 토글 (햄버거 메뉴)
+        // 개발자 모드 토글 — ON이면 ComfyUI가 가상으로 연결됐다고 가정하고 모든 생성을 가상 처리
         function comfyToggleMockMode() {
             _comfyMockMode = !_comfyMockMode;
             try { localStorage.setItem('comfy_mock_mode', _comfyMockMode ? '1' : '0'); } catch (e) {}
             comfyUpdateQuickButtons();
+            // 연결 상태 표시도 가상 연결로 갱신
+            const statusEl = document.getElementById('comfy-conn-status');
+            if (statusEl && _comfyMockMode) { statusEl.textContent = '🧪 가상 연결됨 (개발자 모드)'; statusEl.style.color = 'var(--accent-green)'; }
+            else if (statusEl && !_comfyMockMode && !_comfyConnectedOnce) { statusEl.textContent = ''; }
+            // 메뉴 항목 상태 라벨 갱신
+            const mi = document.querySelector('[data-tool="mockmode"] small');
+            if (mi) mi.textContent = _comfyMockMode ? '● ON — 가상으로 연결됨, 가상 생성 실행' : 'ComfyUI 없이 가상으로 연결·생성';
             showToast(_comfyMockMode
-                ? '🧪 개발자 모드 ON — 결과창 전송 버튼이 가상 생성을 실행합니다'
+                ? '🧪 개발자 모드 ON — ComfyUI 가상 연결됨. 모든 생성이 가상으로 동작합니다'
                 : '개발자 모드 OFF', _comfyMockMode ? 'info' : 'success', 3000);
         }
 
@@ -2480,9 +2487,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 document.getElementById('comfy-inline-bar-' + t).style.width = '2%';
                 document.getElementById('comfy-inline-status-' + t).textContent = '전송 준비...';
             }
-            // 개발자 모드면 실제 대신 가상 생성 실행
-            if (_comfyMockMode && !_comfyConnectedOnce) { comfyMockTest(1, t); return; }
-            comfyGenerate(t);
+            comfyGenerate(t); // 개발자 모드면 comfyGenerate 내부에서 가상 처리
         }
 
         function _comfyBase() {
@@ -3807,6 +3812,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         async function comfyGenerate(inlineTarget) {
             const inline = (inlineTarget === 'pos' || inlineTarget === 'neg') ? inlineTarget : null;
             const lockKey = inline || 'modal';
+
+            // 개발자 모드: ComfyUI가 가상으로 연결됐다고 가정하고 가상 생성 실행
+            if (_comfyMockMode) {
+                const pos = (document.getElementById('final-positive')?.value || '').trim();
+                const neg = (document.getElementById('final-negative')?.value || '').trim();
+                if (_comfyTarget !== 'neg' && !pos) { showToast('긍정 프롬프트가 비어 있습니다.', 'error'); _comfyAbortInline('긍정 비어있음', inline); return; }
+                if (_comfyTarget === 'neg' && !neg) { showToast('부정 프롬프트가 비어 있습니다.', 'error'); _comfyAbortInline('부정 비어있음', inline); return; }
+                comfyMockTest(1, inline);
+                return;
+            }
 
             // 전송 중 중복 클릭 방지
             if (_comfySendingFor.has(lockKey)) {
@@ -11627,6 +11642,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         renderImageGallery();   // 저장된 생성 이미지 갤러리 복원
         _restoreGenMemo();      // 메모장 복원 (새로고침 유지)
         comfyUpdateQuickButtons();  // ComfyUI 연동 이력 있으면 전송 버튼 표시
+        if (_comfyMockMode) {       // 개발자 모드 저장돼 있으면 메뉴 라벨 반영
+            const mi = document.querySelector('[data-tool="mockmode"] small');
+            if (mi) mi.textContent = '● ON — 가상으로 연결됨, 가상 생성 실행';
+        }
         // 한글 번역 미리보기 접힘 상태 복원
         ['pos','neg'].forEach(w => {
             try {
