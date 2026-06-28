@@ -949,7 +949,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.74 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.76 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1643,6 +1643,7 @@
         <div style="flex-shrink:0; display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:10px 18px; border-bottom:1px solid var(--border-dim); background:var(--bg-base);">
             <span style="font-size:13px; font-weight:700; color:var(--text-main);">선택 <span id="mg-sel-count" style="color:#a855f7;">0</span>장</span>
             <button class="action-btn" onclick="multiGenClearSel()"><i class="fa-solid fa-xmark"></i> 선택 해제</button>
+            <button class="action-btn" onclick="multiGenClearAll()" title="저장된 미리보기 전체 삭제" style="border-color:var(--border-dim); color:var(--text-dim);"><i class="fa-solid fa-trash-can"></i> 전체 비우기</button>
             <div style="flex:1;"></div>
             <button class="btn-add-db" style="border:none; padding:10px 20px; background:#22c55e;" onclick="multiGenRerender()"><i class="fa-solid fa-wand-magic-sparkles"></i> 선택 고품질 재출력</button>
         </div>
@@ -1671,7 +1672,15 @@
         const CHANGELOG = [
             // ── 2026-06-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.9.74', date: '2026-06-28', time: '밤 (최신)',
+                version: 'v9.9.76', date: '2026-06-28', time: '밤 (최신)',
+                tag: 'feat',
+                items: [
+                    '[다중 생성] 미리보기가 새로고침해도 유지됨 — 목록을 저장해 다시 열어도 그대로 보임(ComfyUI temp URL은 서버 재시작 전까지 유효)',
+                    '[다중 생성] ComfyUI가 재시작돼 이미지가 사라진 경우 "만료됨" 표시 + 선택 차단, "전체 비우기" 버튼 추가',
+                ]
+            },
+            {
+                version: 'v9.9.74', date: '2026-06-28', time: '밤',
                 tag: 'fix',
                 items: [
                     '[다중 생성] 결과 그리드가 스크롤되지 않아 하단 이미지를 못 보던 문제 수정 — 끝까지 스크롤 가능(모바일 포함)',
@@ -4846,7 +4855,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         // ── 다중 결과 생성 ───────────────────────────────────────────────
         // 시드 랜덤·저스텝·품질노드 OFF로 빠르게 N장(휘발) → 선택분을 같은 시드 고품질 재출력(저장)
-        let _mgImages = [];          // [{url, seed}]  (휘발, '빠르게 생성' 재시작 전까지 유지)
+        // 미리보기 목록 [{url, seed}] — 새로고침해도 유지 (ComfyUI temp URL은 서버 재시작 전까지 유효)
+        const MG_PREVIEW_KEY = 'mg_previews_v1';
+        let _mgImages = [];
+        try { const _s = JSON.parse(localStorage.getItem(MG_PREVIEW_KEY) || '[]'); if (Array.isArray(_s)) _mgImages = _s; } catch (e) {}
+        function _mgSave() {
+            try { localStorage.setItem(MG_PREVIEW_KEY, JSON.stringify(_mgImages.map(im => ({ url: im.url, seed: im.seed })))); }
+            catch (e) { /* 용량 초과 등 무시 */ }
+        }
         const _mgSelected = new Set();
         let _mgTarget = 0, _mgNotified = false;
 
@@ -4854,7 +4870,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 이전 미리보기는 유지 (닫아도 빠르게 생성 재시작 전까지 보존)
             _mgRenderGrid(); _mgUpdateSelCount();
             const st = document.getElementById('mg-status');
-            if (st && !_mgImages.length) st.textContent = '';
+            if (st) st.textContent = _mgImages.length ? `이전 미리보기 ${_mgImages.length}장 (유지됨) — 마음에 드는 것 선택` : '';
             document.getElementById('multigen-modal').style.display = 'flex';
             // PC 상태 실시간 모니터 자동 시작 (가상 모드가 아니고, 연결돼 있던 경우)
             if (!DevMode.feature('mockGen') && _comfyConnectedOnce) _mgStartSysMonitor();
@@ -4928,7 +4944,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const st = document.getElementById('mg-status');
 
             // '빠르게 생성' 재시작 → 이전 미리보기 초기화
-            _mgImages = []; _mgSelected.clear(); _mgRenderGrid(); _mgUpdateSelCount();
+            _mgImages = []; _mgSelected.clear(); _mgSave(); _mgRenderGrid(); _mgUpdateSelCount();
             _mgTarget = count; _mgNotified = false;
 
             // 개발자(가상) 모드
@@ -5035,6 +5051,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         function _mgAddResult(url, seed) {
             _mgImages.push({ url, seed });
+            _mgSave();
             _mgRenderGrid();
             const st = document.getElementById('mg-status');
             if (st && !DevMode.feature('mockGen')) st.textContent = `${_mgImages.length}/${_mgTarget || '?'}장 도착 — 마음에 드는 것 선택`;
@@ -5061,6 +5078,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const img = document.createElement('img');
                 img.src = im.url; img.loading = 'lazy';
                 img.style.cssText = 'width:100%; height:100%; object-fit:contain; display:block;';
+                // 새로고침 후 ComfyUI가 재시작됐으면 temp 이미지가 사라져 로드 실패 → '만료' 표시
+                img.onerror = () => {
+                    if (im.broken) return;
+                    im.broken = true;
+                    if (_mgSelected.has(idx)) { _mgSelected.delete(idx); _mgUpdateSelCount(); }
+                    card.style.opacity = '0.45'; card.style.borderColor = 'transparent';
+                    const exp = document.createElement('div');
+                    exp.style.cssText = 'position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; color:#fca5a5; font-size:11px; padding:8px; background:rgba(0,0,0,0.55); line-height:1.4;';
+                    exp.innerHTML = '만료됨<br><span style="font-size:9px;opacity:.8;">ComfyUI 재시작</span>';
+                    card.appendChild(exp);
+                };
                 card.appendChild(img);
                 const chk = document.createElement('div');
                 chk.className = 'mg-check';
@@ -5076,6 +5104,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         function multiGenToggleSel(idx) {
+            if (_mgImages[idx] && _mgImages[idx].broken) { showToast('만료된 미리보기입니다 (ComfyUI 재시작). 다시 생성하세요.', 'error'); return; }
             if (_mgSelected.has(idx)) _mgSelected.delete(idx); else _mgSelected.add(idx);
             // 이미지 리로드 없이 해당 카드만 갱신 (모바일 깜빡임 방지)
             const card = document.querySelector(`#mg-grid [data-mgidx="${idx}"]`);
@@ -5096,6 +5125,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         function _mgUpdateSelCount() {
             const el = document.getElementById('mg-sel-count'); if (el) el.textContent = _mgSelected.size;
+        }
+        function multiGenClearAll() {
+            if (!_mgImages.length) return;
+            if (!confirm('저장된 미리보기를 모두 지울까요? (갤러리에 저장된 재출력본은 그대로 유지됩니다)')) return;
+            _mgImages = []; _mgSelected.clear(); _mgSave(); _mgRenderGrid(); _mgUpdateSelCount();
+            const st = document.getElementById('mg-status'); if (st) st.textContent = '';
         }
 
         // 아직 끝나지 않은 미리보기(_multi) 작업 취소 — 재출력이 대기열 뒤에서 막히지 않게
