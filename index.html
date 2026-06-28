@@ -4674,6 +4674,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         let favorites = [];
         try { favorites = JSON.parse(localStorage.getItem('pro_prompt_favs_v7_0')) || []; } catch(e) { favorites = []; }
+
+        // 터치(거친 포인터) 기기 여부 — 모바일/태블릿에서 즐겨찾기 별 오터치 방지에 사용
+        function _ioCoarsePointer() {
+            try { return window.matchMedia && window.matchMedia('(pointer: coarse)').matches; } catch (e) { return false; }
+        }
         let recents = [];
 
         let userCombos = {};
@@ -5231,22 +5236,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             }
                             const star = document.createElement('i');
                             star.className = `fa-star tag-fav-icon ${favorites.includes(data.t) ? 'fa-solid active' : 'fa-regular'}`;
-                            star.onclick = (e) => { e.stopPropagation(); toggleFavorite(data.t); };
+                            // 터치 기기: 별은 표시만, 탭은 통과시켜 선택 우선 (즐겨찾기는 롱프레스 메뉴)
+                            if (_ioCoarsePointer()) star.style.pointerEvents = 'none';
+                            else star.onclick = (e) => { e.stopPropagation(); toggleFavorite(data.t); };
                             btn.appendChild(star);
-                            // 더블클릭 = 편집. 첫 클릭을 250ms 지연 후 실행해서
-                            // 더블클릭이 감지되면 토글 없이 편집창만 연다.
+                            // 단일 클릭은 즉시 토글(지연 없음). 250ms 내 두 번째 클릭이면 토글을 되돌리고 편집창을 연다.
                             btn.onclick = () => {
+                                if (window._lpFired) return; // 롱프레스 메뉴가 떴으면 토글 안 함
                                 if (btn._clickTimer) {
-                                    // 250ms 내 두 번째 클릭 → 더블클릭 확정, 토글 취소 후 편집
                                     clearTimeout(btn._clickTimer);
                                     btn._clickTimer = null;
+                                    handleTagToggle(btn, data.t, data.n, i); // 두 번째 클릭 토글 → 원상복구
                                     openTagInlineEdit(btn, data);
                                     return;
                                 }
-                                btn._clickTimer = setTimeout(() => {
-                                    btn._clickTimer = null;
-                                    handleTagToggle(btn, data.t, data.n, i);
-                                }, 250);
+                                handleTagToggle(btn, data.t, data.n, i); // 즉시 토글
+                                btn._clickTimer = setTimeout(() => { btn._clickTimer = null; }, 250);
                             };
                             setupTagDrag(btn, i, subLayerRaw);
                             activeTagsMap[data.t] = { neg: data.n, layer: i, kor: data.k || data.t, c: data.c || "", folderId: folderId, color: subColor };
@@ -7589,7 +7594,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
             const star = document.createElement('i');
             star.className = `fa-star tag-fav-icon ${favorites.includes(tagText) ? 'fa-solid active' : 'fa-regular'}`;
-            star.onclick = (e) => { e.stopPropagation(); toggleFavorite(tagText); };
+            // 터치 기기: 별은 표시만, 탭은 통과시켜 선택 우선 (즐겨찾기는 롱프레스 메뉴)
+            if (_ioCoarsePointer()) star.style.pointerEvents = 'none';
+            else star.onclick = (e) => { e.stopPropagation(); toggleFavorite(tagText); };
             btn.appendChild(star);
 
             btn.onclick = () => handleTagToggle(btn, tagText, data.neg, data.layer);
