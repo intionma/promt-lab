@@ -949,7 +949,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.64 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.66 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1639,7 +1639,19 @@
         const CHANGELOG = [
             // ── 2026-06-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.9.64', date: '2026-06-28', time: '밤 (최신)',
+                version: 'v9.9.66', date: '2026-06-28', time: '밤 (최신)',
+                tag: 'feat',
+                items: [
+                    '[결과/갤러리] 생성 소요 시간(초) 표기 — 결과창 상태에 "완료 (N초)", 갤러리 썸네일에 작게 ⏱ 표시',
+                    '[다중 생성] 재출력한 이미지도 결과창 긍정 탭에 미리보기·진행 표시 (직접 생성과 동일)',
+                    '[다중 생성] 모달을 닫아도 미리보기 유지 — 다음 "빠르게 생성" 전까지 보존',
+                    '[다중 생성] 지정 장수 모두 생성되면 완료 알림(토스트+진동)',
+                    '[다중 생성] 미리보기는 PC 디스크에 영구 저장 안 함 — SaveImage→PreviewImage(임시폴더, 자동 정리). 재출력 최종본만 저장',
+                    '[다중 생성] 실패 시 원인 토스트 표시 (무반응 방지)',
+                ]
+            },
+            {
+                version: 'v9.9.64', date: '2026-06-28', time: '밤',
                 tag: 'feat',
                 items: [
                     '[다중 생성] 속도 개선 — 배치(batch_size)로 한 작업에서 여러 장 묶어 생성(훨씬 빠름), "한 번에" 장수 조절 가능',
@@ -3857,6 +3869,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 } else if (d.prompt_id && _comfyJobs[d.prompt_id]) {
                     const job = _comfyJobs[d.prompt_id];
                     _comfyRunningPid = d.prompt_id;
+                    if (!job._runStart) job._runStart = Date.now(); // 생성 시작 시각 기록
                     // 라이브는 '새 이미지가 도착할 때' 비움(_comfyStageImages) → 이전 미리보기가 교체 직전까지 유지됨
                     _comfySetProgress(5, `${_comfyQ()}생성 중...`, job.inline);
                     comfyRenderQueue();
@@ -4313,6 +4326,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!job || job.done) return;
             job.done = true;
             const jobInline = job.inline; // 삭제 전에 저장
+            // 생성 소요 시간(초)
+            const elapsedSec = job._runStart ? (Date.now() - job._runStart) / 1000 : null;
             try {
                 const res = await fetch(_comfyBase() + '/history/' + pid);
                 const hist = await res.json();
@@ -4320,19 +4335,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const gallery = document.getElementById('comfy-gallery');
                 let sawStage = !!(job && job.cleared); // job.cleared는 이 pid의 websocket stage 이벤트를 받았을 때만 true
                 let _miIdx = 0; // 배치 내 이미지 순번 → 시드 = base + index
+                // 배치 내 장당 시간 (한 작업에서 N장이면 균등 분배)
+                let _outCount = 0;
+                for (const nodeId in outputs) (outputs[nodeId].images || []).forEach(im => { if ((im.type || 'output') === 'output') _outCount++; });
+                const perSec = (elapsedSec != null && _outCount > 0) ? elapsedSec / _outCount : elapsedSec;
                 for (const nodeId in outputs) {
                     (outputs[nodeId].images || []).forEach(img => {
                         const url = _comfyImgUrl(img);
-                        if ((img.type || 'output') === 'output') {
-                            if (job._multi) {
-                                _mgAddResult(url, (job.seed || 0) + _miIdx); _miIdx++; // 배치 시드 매핑
-                            } else {
-                                // 웹소켓 단계 이벤트를 못 받았으면(폴백) 라이브에도 표시
-                                if (!sawStage) _comfyStageImages(pid, [img], nodeId);
-                                if (gallery) gallery.prepend(_comfyThumb(url, 240));
-                                galleryAddImage(url); // 결과 갤러리 탭에 영구 저장
-                            }
-                        } else if (!job._multi && !sawStage) {
+                        if (job._multi) {
+                            // 미리보기: temp/output 무관하게 모달 그리드로 (앱·디스크 영구 저장 X)
+                            _mgAddResult(url, (job.seed || 0) + _miIdx); _miIdx++; // 배치 시드 매핑
+                        } else if ((img.type || 'output') === 'output') {
+                            // 웹소켓 단계 이벤트를 못 받았으면(폴백) 라이브에도 표시
+                            if (!sawStage) _comfyStageImages(pid, [img], nodeId);
+                            if (gallery) gallery.prepend(_comfyThumb(url, 240));
+                            galleryAddImage(url, perSec); // 결과 갤러리 탭에 영구 저장 (+소요 시간)
+                        } else if (!sawStage) {
                             _comfyStageImages(pid, [img], nodeId);
                         }
                     });
@@ -4343,10 +4361,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _comfyBatchDone++;
             _comfySaveJobs();
             comfyRenderQueue(); // _comfyUpdateFabWater 내부 호출
+            const _timeTxt = elapsedSec != null ? ` (${elapsedSec.toFixed(1)}초)` : '';
             if (_comfyQueueCount > 0) {
-                _comfySetProgress(100, `${_comfyQ()}완료 · 다음 대기`, jobInline);
+                _comfySetProgress(100, `${_comfyQ()}완료${_timeTxt} · 다음 대기`, jobInline);
             } else {
-                _comfySetProgress(100, '✅ 모두 완료', jobInline);
+                _comfySetProgress(100, `✅ 완료${_timeTxt}`, jobInline);
                 _comfyRunningPid = null;
                 _comfyBatchTotal = 0; _comfyBatchDone = 0; // 배치 리셋
                 _comfyOnAllDone(); // 진행바 정리
@@ -4468,18 +4487,31 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         // ── 이미지 갤러리 탭 ──────────────────────────────────────────
         const GALLERY_KEY = 'comfy_gallery_urls_v1';
+        const GALLERY_META_KEY = 'comfy_gallery_meta_v1';
         let _galleryUrls = [];
         try { _galleryUrls = JSON.parse(localStorage.getItem(GALLERY_KEY) || '[]'); } catch (e) { _galleryUrls = []; }
+        let _galleryMeta = {}; // url -> 생성 소요 초
+        try { _galleryMeta = JSON.parse(localStorage.getItem(GALLERY_META_KEY) || '{}'); } catch (e) { _galleryMeta = {}; }
 
-        function _galleryRenderOne(url, append) {
+        function _galleryRenderOne(url, append, sec) {
             const grid = document.getElementById('result-gallery-grid');
             if (!grid) return;
+            if (sec == null && _galleryMeta[url] != null) sec = _galleryMeta[url];
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'position:relative; display:block;';
             const el = document.createElement('img');
             el.src = url; el.loading = 'lazy';
             el.style.cssText = 'width:100%; border-radius:10px; border:1px solid var(--border-dim); cursor:zoom-in; display:block;';
             el.onclick = () => openLightboxFromEl(el);
             el.onerror = () => { el.style.opacity = '0.35'; el.alt = '이미지를 불러올 수 없음 (ComfyUI 종료됨?)'; };
-            if (append) grid.appendChild(el); else grid.prepend(el);
+            wrap.appendChild(el);
+            if (sec != null) {
+                const b = document.createElement('span');
+                b.style.cssText = 'position:absolute; bottom:6px; right:6px; background:rgba(0,0,0,0.6); color:#fff; font-size:10px; font-weight:700; padding:2px 6px; border-radius:10px; pointer-events:none;';
+                b.textContent = '⏱ ' + Number(sec).toFixed(1) + '초';
+                wrap.appendChild(b);
+            }
+            if (append) grid.appendChild(wrap); else grid.prepend(wrap);
         }
 
         function _galleryUpdateCount() {
@@ -4489,11 +4521,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (empty) empty.style.display = _galleryUrls.length ? 'none' : 'block';
         }
 
-        function galleryAddImage(url) {
+        function galleryAddImage(url, sec) {
             _galleryUrls.unshift(url);
-            if (_galleryUrls.length > 200) _galleryUrls = _galleryUrls.slice(0, 200);
+            if (sec != null) _galleryMeta[url] = sec;
+            if (_galleryUrls.length > 200) {
+                _galleryUrls.slice(200).forEach(u => delete _galleryMeta[u]);
+                _galleryUrls = _galleryUrls.slice(0, 200);
+            }
             try { localStorage.setItem(GALLERY_KEY, JSON.stringify(_galleryUrls)); } catch (e) {}
-            _galleryRenderOne(url, false);
+            try { localStorage.setItem(GALLERY_META_KEY, JSON.stringify(_galleryMeta)); } catch (e) {}
+            _galleryRenderOne(url, false, sec);
             _galleryUpdateCount();
         }
 
@@ -4501,15 +4538,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const grid = document.getElementById('result-gallery-grid');
             if (!grid) return;
             grid.innerHTML = '';
-            _galleryUrls.forEach(u => _galleryRenderOne(u, true));
+            _galleryUrls.forEach(u => _galleryRenderOne(u, true, _galleryMeta[u]));
             _galleryUpdateCount();
         }
 
         function clearImageGallery() {
             if (!_galleryUrls.length) return;
             showConfirm('갤러리의 모든 이미지를 목록에서 지웁니다. (ComfyUI에 저장된 원본 파일은 유지) 계속할까요?', () => {
-                _galleryUrls = [];
+                _galleryUrls = []; _galleryMeta = {};
                 try { localStorage.setItem(GALLERY_KEY, JSON.stringify(_galleryUrls)); } catch (e) {}
+                try { localStorage.setItem(GALLERY_META_KEY, JSON.stringify(_galleryMeta)); } catch (e) {}
                 renderImageGallery();
                 showToast('갤러리를 비웠습니다.', 'success');
             });
@@ -4703,23 +4741,24 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         // ── 다중 결과 생성 ───────────────────────────────────────────────
         // 시드 랜덤·저스텝·품질노드 OFF로 빠르게 N장(휘발) → 선택분을 같은 시드 고품질 재출력(저장)
-        let _mgImages = [];          // [{url, seed}]  (휘발)
+        let _mgImages = [];          // [{url, seed}]  (휘발, '빠르게 생성' 재시작 전까지 유지)
         const _mgSelected = new Set();
+        let _mgTarget = 0, _mgNotified = false;
 
         function openMultiGen() {
-            _mgImages = []; _mgSelected.clear();
+            // 이전 미리보기는 유지 (닫아도 빠르게 생성 재시작 전까지 보존)
             _mgRenderGrid(); _mgUpdateSelCount();
-            document.getElementById('mg-status').textContent = '';
+            const st = document.getElementById('mg-status');
+            if (st && !_mgImages.length) st.textContent = '';
             document.getElementById('multigen-modal').style.display = 'flex';
         }
         function closeMultiGen() {
             document.getElementById('multigen-modal').style.display = 'none';
-            _mgImages = []; _mgSelected.clear(); // 휘발 — 닫으면 폐기
-            const grid = document.getElementById('mg-grid'); if (grid) grid.innerHTML = '';
+            // 미리보기는 유지 — 닫아도 다음 '빠르게 생성' 전까지 보존
         }
 
-        // 워크플로우 복제 + 작업별 덮어쓰기 (시드 / 스텝 / 배치 / 품질노드 bypass)
-        function _mgClone(base, seed, steps, dropQuality, oi, batchSize) {
+        // 워크플로우 복제 + 작업별 덮어쓰기 (시드 / 스텝 / 배치 / 품질노드 bypass / 미리보기 비저장)
+        function _mgClone(base, seed, steps, dropQuality, oi, batchSize, previewMode) {
             const wf = JSON.parse(JSON.stringify(base));
             for (const id in wf) {
                 const inp = wf[id].inputs || {};
@@ -4733,6 +4772,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     .filter(([, n]) => /detailer|facedetail|impact|upscale/i.test(n.class_type || ''))
                     .map(([id]) => id);
                 ids.forEach(id => _comfyBypassNode(wf, id, oi));
+            }
+            if (previewMode) {
+                // 미리보기는 디스크에 영구 저장하지 않도록 SaveImage → PreviewImage(임시폴더, 자동 정리)
+                for (const id in wf) {
+                    if (/SaveImage/i.test(wf[id].class_type || '')) {
+                        wf[id].class_type = 'PreviewImage';
+                        if (wf[id].inputs) delete wf[id].inputs.filename_prefix;
+                    }
+                }
             }
             return wf;
         }
@@ -4748,21 +4796,27 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const pid = data.prompt_id;
             const bs = batchSize && batchSize > 1 ? batchSize : 1;
             const lbl = (hq ? '재출력 · 시드 ' : '미리보기 · 시드 ') + seed + (bs > 1 ? ` (배치 ${bs})` : '');
-            _comfyJobs[pid] = { inline: null, cleared: false, done: false, seq: ++_comfyJobSeq, seed, batch: bs, label: lbl, _multi: !hq };
+            // 재출력(고품질)은 결과창 긍정 탭에 미리보기 표시(직접 생성과 동일), 미리보기(_multi)는 모달 그리드로
+            _comfyJobs[pid] = { inline: hq ? 'pos' : null, cleared: false, done: false, seq: ++_comfyJobSeq, seed, batch: bs, label: lbl, _multi: !hq };
             _comfyQueueCount++; _comfyBatchTotal++;
             comfyRenderQueue();
             _comfyPollResult(pid, 0);
         }
 
         async function multiGenStart() {
+          try {
             const pos = (document.getElementById('final-positive')?.value || '').trim();
             const neg = (document.getElementById('final-negative')?.value || '').trim();
             if (!pos) { showToast('긍정 프롬프트가 비어 있습니다.', 'error'); return; }
-            const count = Math.max(1, Math.min(50, parseInt(document.getElementById('mg-count').value, 10) || 12));
-            const steps = Math.max(1, Math.min(40, parseInt(document.getElementById('mg-steps').value, 10) || 8));
-            const batch = Math.max(1, Math.min(16, parseInt(document.getElementById('mg-batch').value, 10) || 4));
-            const drop = document.getElementById('mg-drop-quality').checked;
+            const count = Math.max(1, Math.min(50, parseInt(document.getElementById('mg-count')?.value, 10) || 12));
+            const steps = Math.max(1, Math.min(40, parseInt(document.getElementById('mg-steps')?.value, 10) || 8));
+            const batch = Math.max(1, Math.min(16, parseInt(document.getElementById('mg-batch')?.value, 10) || 4));
+            const drop = !!document.getElementById('mg-drop-quality')?.checked;
             const st = document.getElementById('mg-status');
+
+            // '빠르게 생성' 재시작 → 이전 미리보기 초기화
+            _mgImages = []; _mgSelected.clear(); _mgRenderGrid(); _mgUpdateSelCount();
+            _mgTarget = count; _mgNotified = false;
 
             // 개발자(가상) 모드
             if (DevMode.feature('mockGen')) {
@@ -4786,27 +4840,37 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } catch (e) { showToast('ComfyUI에 연결할 수 없습니다.', 'error', 5000); return; }
 
             const base = await _comfyAssembleWorkflow(pos, neg);
-            if (!base) return;
+            if (!base) { if (st) st.textContent = '워크플로우를 만들 수 없습니다. ComfyUI 설정/워크플로우를 확인하세요.'; showToast('워크플로우를 만들 수 없습니다. ComfyUI 설정/체크포인트/워크플로우 JSON 확인.', 'error', 6000); return; }
             let oi = null;
             if (drop) { try { oi = await _comfyEnsureObjectInfo(); } catch (e) {} }
             st.textContent = `${count}장 전송 중... (배치 ${batch}장씩 묶음)`;
-            // 배치로 묶어 전송 — 한 작업에서 batch장 생성(시드 base..base+batch-1)
+            // 배치로 묶어 전송 — 한 작업에서 batch장 생성(시드 base..base+batch-1). 미리보기는 디스크 비저장.
             let remaining = count;
             while (remaining > 0) {
                 const bs = Math.min(batch, remaining);
                 const seed = Math.floor(Math.random() * 1e15);
-                try { await _mgSend(_mgClone(base, seed, steps, drop, oi, bs), seed, false, bs); }
+                try { await _mgSend(_mgClone(base, seed, steps, drop, oi, bs, true), seed, false, bs); }
                 catch (e) { showToast('전송 실패: ' + e.message, 'error', 5000); break; }
                 remaining -= bs;
             }
             st.textContent = `${count}장 생성 중... 도착하는 대로 표시됩니다`;
+          } catch (err) {
+            showToast('다중 생성 오류: ' + (err && err.message ? err.message : err), 'error', 6000);
+          }
         }
 
         function _mgAddResult(url, seed) {
             _mgImages.push({ url, seed });
             _mgRenderGrid();
             const st = document.getElementById('mg-status');
-            if (st && !DevMode.feature('mockGen')) st.textContent = `${_mgImages.length}장 도착 — 마음에 드는 것 선택`;
+            if (st && !DevMode.feature('mockGen')) st.textContent = `${_mgImages.length}/${_mgTarget || '?'}장 도착 — 마음에 드는 것 선택`;
+            // 지정 장수 모두 도착 → 알림 (1회)
+            if (_mgTarget > 0 && !_mgNotified && _mgImages.length >= _mgTarget) {
+                _mgNotified = true;
+                if (st) st.textContent = `✅ ${_mgImages.length}장 모두 생성 완료 — 마음에 드는 것 선택`;
+                showToast(`✅ 다중 생성 완료 — ${_mgImages.length}장`, 'success', 4000);
+                try { if (navigator.vibrate) navigator.vibrate(120); } catch (e) {}
+            }
         }
 
         function _mgRenderGrid() {
@@ -4872,6 +4936,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (st) st.textContent = '남은 미리보기 중단 후 재출력 전송 중...';
             await _mgCancelPendingPreviews();
 
+            // 결과창 긍정 탭 미리보기 영역 준비 (직접 생성과 동일하게 진행/미리보기 표시)
+            if (typeof switchResultTab === 'function') switchResultTab('pos');
+            const inlineBox = document.getElementById('comfy-inline-pos');
+            if (inlineBox) inlineBox.style.display = 'block';
+            const ip = document.getElementById('comfy-inline-prog-pos'); if (ip) ip.style.display = 'flex';
+
             const pos = (document.getElementById('final-positive')?.value || '').trim();
             const neg = (document.getElementById('final-negative')?.value || '').trim();
             const base = await _comfyAssembleWorkflow(pos, neg); // 풀 품질(덮어쓰기 없음)
@@ -4881,7 +4951,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 catch (e) { showToast('재출력 전송 실패: ' + e.message, 'error', 5000); break; }
             }
             _mgSelected.clear(); _mgRenderGrid(); _mgUpdateSelCount();
-            if (st) st.textContent = `${seeds.length}장 고품질 재출력 중 — 닫으면 결과/갤러리에서 확인`;
+            if (st) st.textContent = `${seeds.length}장 고품질 재출력 중 — 닫으면 결과창에서 미리보기·진행 확인`;
             showToast(`${seeds.length}장 고품질 재출력 시작 (남은 미리보기 중단)`, 'success', 3500);
             // 모달 유지 — 남은 미리보기 보거나 추가 선택/재출력 가능
         }
