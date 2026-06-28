@@ -4248,16 +4248,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const job = _comfyJobs[pid];
             const inline = job ? job.inline : null;
             const lt = document.getElementById('comfy-live-thumbs');
-            if (lt) lt.innerHTML = '';
             const it = inline ? document.getElementById('comfy-inline-thumbs-' + inline) : null;
-            if (it) it.innerHTML = '';
-            if (job) job.cleared = true;
+            // 이전 미리보기는 새 이미지가 도착할 때 비운다 (작업 사이 빈 화면 방지)
+            let _cleared = false;
             comfyRenderQueue();
             let pct = 0;
             const stages = { base: false, detail: false };
             const seq = job ? job.seq : 0;
             const desc = job ? job.desc : '';
             const stage = (label) => {
+                if (!_cleared) { // 첫 새 미리보기 직전에만 이전 것 비우기
+                    if (lt) lt.innerHTML = '';
+                    if (it) it.innerHTML = '';
+                    if (job) job.cleared = true;
+                    _cleared = true;
+                }
                 const url = _mockImgDataUrl(seq, label, desc);
                 if (lt) lt.appendChild(_comfyThumb(url, 160, label));
                 if (it) it.appendChild(_comfyThumb(url, inline === 'pos' ? 320 : 130, label));
