@@ -48,6 +48,36 @@ function normalizePath(p: string): string {
   return p.replace(/^\.\//, "").replace(/\\/g, "/");
 }
 
+// Supabase Storage 키로 안전한 경로 (공백·한글·특수문자 → _).
+// 슬래시와 .-_ 는 유지. 저장 경로와 model3.json 참조에 '동일하게' 적용해 매칭.
+function safeSeg(s: string): string {
+  return s.replace(/[^A-Za-z0-9._-]+/g, "_");
+}
+function safePath(p: string): string {
+  return normalizePath(p).split("/").map(safeSeg).join("/");
+}
+
+// model3.json 의 FileReferences 경로들을 안전한 이름으로 재작성
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function rewriteFileReferences(refs: any) {
+  if (!refs) return;
+  if (refs.Moc) refs.Moc = safePath(refs.Moc);
+  if (Array.isArray(refs.Textures)) refs.Textures = refs.Textures.map((t: string) => safePath(t));
+  if (refs.Physics) refs.Physics = safePath(refs.Physics);
+  if (refs.Pose) refs.Pose = safePath(refs.Pose);
+  if (refs.DisplayInfo) refs.DisplayInfo = safePath(refs.DisplayInfo);
+  if (refs.UserData) refs.UserData = safePath(refs.UserData);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (Array.isArray(refs.Expressions)) refs.Expressions.forEach((e: any) => { if (e?.File) e.File = safePath(e.File); });
+  if (refs.Motions) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const group of Object.values(refs.Motions) as any[]) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (Array.isArray(group)) group.forEach((m: any) => { if (m?.File) m.File = safePath(m.File); if (m?.Sound) m.Sound = safePath(m.Sound); });
+    }
+  }
+}
+
 // model3.json을 파싱해서 참조하는 모든 파일이 실제로 선택됐는지 검사
 async function findMissingFiles(files: File[]): Promise<string[]> {
   const model3 = files.find((f) => f.name.endsWith(".model3.json"));
@@ -187,13 +217,27 @@ export default function UploadSession() {
 
       if (sessionErr) throw sessionErr;
 
+      // model3.json 의 참조 경로를 안전한 이름으로 재작성한 본문 준비
+      const model3File = files.find((f) => f.name.endsWith(".model3.json"));
+      let model3Body: Blob | null = null;
+      if (model3File) {
+        try {
+          const json = JSON.parse(await model3File.text());
+          rewriteFileReferences(json.FileReferences);
+          model3Body = new Blob([JSON.stringify(json)], { type: "application/json" });
+        } catch { /* 파싱 실패 시 원본 업로드 */ }
+      }
+
+      const failed: string[] = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const storagePath = `${session.id}/${getStoragePath(file)}`;
+        // 저장 경로를 안전한 ASCII 로 (한글·공백 키 거부 방지)
+        const storagePath = `${session.id}/${safePath(getStoragePath(file))}`;
+        const body: Blob | File = file === model3File && model3Body ? model3Body : file;
 
         const { error: uploadErr } = await supabase.storage
           .from("models")
-          .upload(storagePath, file, { upsert: true });
+          .upload(storagePath, body, { upsert: true, contentType: body.type || undefined });
 
         setProgress((prev) =>
           prev.map((p, idx) =>
@@ -201,9 +245,15 @@ export default function UploadSession() {
           )
         );
 
-        if (uploadErr) throw new Error(`${file.name} 업로드 실패`);
+        if (uploadErr) failed.push(`${getStoragePath(file)} (${uploadErr.message})`);
       }
 
+      // 모델 렌더에 필수인 파일(moc3/model3/텍스처)이 실패하면 중단
+      const critical = failed.some((f) => /\.moc3|\.model3\.json|\.png|\.jpe?g/i.test(f));
+      if (critical) {
+        throw new Error(`필수 파일 업로드 실패:\n${failed.join("\n")}`);
+      }
+      // 선택 파일(cdi3/motion 등)만 실패면 모델엔 영향 없으니 그대로 진행
       setShareUrl(`${window.location.origin}/review/${session.id}`);
     } catch (err: unknown) {
       // Supabase 오류(PostgrestError 등)는 Error 인스턴스가 아니라 객체 — 실제 메시지를 꺼냄
