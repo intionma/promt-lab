@@ -51,6 +51,18 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [autoIdle, setAutoIdle] = useState(true);
   const [bgKey, setBgKey] = useState("transparent");
   const [hiddenMeshes, setHiddenMeshes] = useState<Set<number>>(new Set());
+  const [meshSelectMode, setMeshSelectMode] = useState(false);
+  const [selectedMesh, setSelectedMesh] = useState<number | null>(null);
+
+  function toggleMeshSelectMode(on: boolean) {
+    setMeshSelectMode(on);
+    viewerControl.current?.setMeshSelectMode(on);
+  }
+  function handleMeshPicked(index: number) {
+    setSelectedMesh(index);
+    setPanelTab("mesh");
+    viewerControl.current?.flashMesh(index); // 모델에서 깜빡여 확인
+  }
 
   function toggleMesh(index: number, hide: boolean) {
     viewerControl.current?.setMeshHidden(index, hide);
@@ -201,6 +213,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               controlRef={viewerControl}
               onParamsLoaded={handleParamsLoaded}
               onModelMeta={setMeta}
+              onMeshPicked={handleMeshPicked}
             />
           )}
         </div>
@@ -293,9 +306,12 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
             <MeshPanel
               meshes={meta?.meshes ?? []}
               hidden={hiddenMeshes}
+              selected={selectedMesh}
+              selectMode={meshSelectMode}
               onToggle={toggleMesh}
               onShowAll={showAllMeshes}
               onFlash={(i) => viewerControl.current?.flashMesh(i)}
+              onToggleSelectMode={toggleMeshSelectMode}
             />
           </div>
         </div>

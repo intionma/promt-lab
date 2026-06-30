@@ -1,20 +1,31 @@
 "use client";
 
-import { useState } from "react";
-import { Eye, EyeOff, Search, Layers, Sparkles } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Eye, EyeOff, Search, Layers, Sparkles, MousePointerClick } from "lucide-react";
 
 type Mesh = { index: number; id: string; part: string };
 
 type Props = {
   meshes: Mesh[];
   hidden: Set<number>;
+  selected: number | null;
+  selectMode: boolean;
   onToggle: (index: number, hidden: boolean) => void;
   onShowAll: () => void;
   onFlash: (index: number) => void;
+  onToggleSelectMode: (on: boolean) => void;
 };
 
-export default function MeshPanel({ meshes, hidden, onToggle, onShowAll, onFlash }: Props) {
+export default function MeshPanel({ meshes, hidden, selected, selectMode, onToggle, onShowAll, onFlash, onToggleSelectMode }: Props) {
   const [query, setQuery] = useState("");
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // 모델에서 클릭으로 선택된 메쉬를 목록에서 스크롤·표시
+  useEffect(() => {
+    if (selected == null || !listRef.current) return;
+    const el = listRef.current.querySelector(`[data-mesh="${selected}"]`);
+    el?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [selected]);
 
   if (meshes.length === 0) {
     return (
@@ -51,6 +62,18 @@ export default function MeshPanel({ meshes, hidden, onToggle, onShowAll, onFlash
       </div>
 
       <div className="px-2.5 pt-2.5 flex-shrink-0 space-y-1.5">
+        <button
+          onClick={() => onToggleSelectMode(!selectMode)}
+          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+            selectMode ? "bg-[var(--purple)]/20 text-[var(--purple)]" : "glass glass-hover text-[var(--muted)]"
+          }`}
+          title="켜면 모델을 클릭해서 그 자리의 ArtMesh 를 바로 선택할 수 있어요"
+        >
+          <span className="flex items-center gap-1.5"><MousePointerClick className="w-3.5 h-3.5" /> 모델 클릭으로 선택</span>
+          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${selectMode ? "bg-[var(--purple)]/30" : "bg-white/10"}`}>
+            {selectMode ? "ON" : "OFF"}
+          </span>
+        </button>
         <div className="relative flex items-center">
           <Search className="w-3.5 h-3.5 text-[var(--muted)] absolute left-2 pointer-events-none" />
           <input
@@ -61,22 +84,26 @@ export default function MeshPanel({ meshes, hidden, onToggle, onShowAll, onFlash
           />
         </div>
         <p className="text-[9px] text-[var(--muted)]/70 px-0.5">
-          이름을 누르면 모델에서 깜빡여요(어떤 부위인지 찾기) · 눈 아이콘으로 숨김
+          {selectMode
+            ? "모델을 클릭하면 그 부위 메쉬가 아래에서 선택돼요 (겹치면 반복 클릭)"
+            : "이름을 누르면 모델에서 깜빡여요 · 눈 아이콘으로 숨김"}
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto chat-scroll p-2.5 space-y-1">
+      <div ref={listRef} className="flex-1 overflow-y-auto chat-scroll p-2.5 space-y-1">
         {list.length === 0 ? (
           <p className="text-[10px] text-[var(--muted)] text-center py-3">검색 결과가 없어요</p>
         ) : (
           list.map((m) => {
             const isHidden = hidden.has(m.index);
+            const isSel = selected === m.index;
             return (
               <div
                 key={m.index}
+                data-mesh={m.index}
                 className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg glass ${
-                  isHidden ? "text-[var(--muted)]/50" : "text-[var(--fg)]"
-                }`}
+                  isSel ? "ring-1 ring-[var(--purple)] bg-[var(--purple)]/10" : ""
+                } ${isHidden ? "text-[var(--muted)]/50" : "text-[var(--fg)]"}`}
               >
                 <button
                   onClick={() => onToggle(m.index, !isHidden)}

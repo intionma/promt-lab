@@ -39,12 +39,14 @@ export interface ViewerHandle {
   setMeshHidden: (index: number, hidden: boolean) => void;
   showAllMeshes: () => void;
   flashMesh: (index: number) => void;
+  setMeshSelectMode: (on: boolean) => void;
 }
 
 type Props = {
   sessionId: string;
   onParamsLoaded?: (params: Param[]) => void;
   onModelMeta?: (meta: ModelMeta) => void;
+  onMeshPicked?: (index: number) => void;
   controlRef?: { current: ViewerHandle | null };
 };
 
@@ -64,7 +66,7 @@ const VIEW_LABELS: Record<ViewMode, string> = {
   free: "자유 시점",
 };
 
-export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, controlRef }: Props) {
+export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, onMeshPicked, controlRef }: Props) {
   const canvasRef   = useRef<HTMLCanvasElement>(null);
   const appRef      = useRef<unknown>(null);
   const modelRef    = useRef<unknown>(null);
@@ -95,6 +97,10 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
   const flashMeshesRef  = useRef<Set<number>>(new Set());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const drawOpacitiesRef = useRef<any>(null);
+  // 메쉬 선택 모드 — 켜면 캔버스 클릭으로 그 자리 ArtMesh 선택
+  const meshSelectRef   = useRef(false);
+  // 같은 지점 반복 클릭 시 겹친 메쉬 순환용
+  const lastPickRef     = useRef<{ x: number; y: number; cands: number[]; cursor: number } | null>(null);
 
   // 얼굴 반응(터치/마우스 추적) ON/OFF
   const faceTrackRef   = useRef(true);
@@ -114,6 +120,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
   const [viewMode,     setViewMode]     = useState<ViewMode>("fullbody");
   const [faceTrack,    setFaceTrack]    = useState(true);
   const [camLock,      setCamLock]      = useState(false);
+  const [meshSelect,   setMeshSelect]   = useState(false);
   const [bgKey,        setBgKey]        = useState("transparent");
 
   function toggleCamLock() {
@@ -226,6 +233,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
         else hiddenMeshesRef.current.delete(index);
       },
       showAllMeshes: () => { hiddenMeshesRef.current.clear(); },
+      setMeshSelectMode: (on) => { meshSelectRef.current = on; setMeshSelect(on); lastPickRef.current = null; },
       flashMesh: (index) => {
         // 해당 메쉬를 잠깐 깜빡여 어떤 부위인지 눈으로 찾게 함
         const fset = flashMeshesRef.current;
@@ -521,8 +529,63 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
           if (e.pointerType === "mouse") internalModel.focusController.focus(0, 0);
         }
 
+        // ── 메쉬 선택(클릭한 지점의 ArtMesh 집기) ───────────────────────────
+        function pointInTri(px: number, py: number, ax: number, ay: number, bx: number, by: number, cx: number, cy: number) {
+          const d1 = (px - bx) * (ay - by) - (ax - bx) * (py - by);
+          const d2 = (px - cx) * (by - cy) - (bx - cx) * (py - cy);
+          const d3 = (px - ax) * (cy - ay) - (cx - ax) * (py - ay);
+          const neg = d1 < 0 || d2 < 0 || d3 < 0;
+          const pos = d1 > 0 || d2 > 0 || d3 > 0;
+          return !(neg && pos);
+        }
+        function pickMeshAt(clientX: number, clientY: number): number | null {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const cm: any = internalModel.coreModel;
+          const raw = typeof cm.getModel === "function" ? cm.getModel() : cm._model;
+          const dd = raw?.drawables;
+          if (!dd) return null;
+          const rect = canvas.getBoundingClientRect();
+          const sx = app.renderer.width / rect.width;
+          const sy = app.renderer.height / rect.height;
+          const mp = { x: 0, y: 0 };
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (model as any).toModelPosition({ x: (clientX - rect.left) * sx, y: (clientY - rect.top) * sy }, mp);
+
+          const hits: number[] = [];
+          for (let i = 0; i < dd.count; i++) {
+            if (hiddenMeshesRef.current.has(i)) continue;
+            if ((dd.opacities?.[i] ?? 1) <= 0.02) continue;
+            const verts = dd.vertexPositions[i];
+            const idx = dd.indices[i];
+            if (!verts || !idx) continue;
+            let hit = false;
+            for (let t = 0; t < idx.length; t += 3) {
+              const a = idx[t] * 2, b = idx[t + 1] * 2, c = idx[t + 2] * 2;
+              if (pointInTri(mp.x, mp.y, verts[a], verts[a + 1], verts[b], verts[b + 1], verts[c], verts[c + 1])) { hit = true; break; }
+            }
+            if (hit) hits.push(i);
+          }
+          if (!hits.length) { lastPickRef.current = null; return null; }
+          // 렌더 순서 앞쪽(큰 값)부터
+          const ro = dd.renderOrders;
+          hits.sort((a, b) => (ro?.[b] ?? 0) - (ro?.[a] ?? 0));
+          // 같은 지점 반복 클릭이면 겹친 메쉬 순환
+          const last = lastPickRef.current;
+          const same = last && Math.abs(last.x - clientX) < 10 && Math.abs(last.y - clientY) < 10
+            && last.cands.length === hits.length && last.cands.every((v, k) => v === hits[k]);
+          const cursor = same ? (last!.cursor + 1) % hits.length : 0;
+          lastPickRef.current = { x: clientX, y: clientY, cands: hits, cursor };
+          return hits[cursor];
+        }
+
         // 자유 시점: 드래그 이동 / 전신·상반신: 탭·드래그로 그쪽을 바라봄
         function onPtrDown(e: PointerEvent) {
+          // 메쉬 선택 모드: 클릭 지점의 ArtMesh 를 집어 부모에 알림(+깜빡임)
+          if (meshSelectRef.current) {
+            const idx = pickMeshAt(e.clientX, e.clientY);
+            if (idx != null) onMeshPicked?.(idx);
+            return;
+          }
           if (viewModeRef.current !== "free") {
             // 모바일: 포인터 캡처로 손가락이 살짝 벗어나도 계속 추종
             try { canvas.setPointerCapture(e.pointerId); } catch { /* noop */ }
@@ -744,7 +807,9 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
           {!loading && !error && (
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
               <span className="text-[10px] text-[var(--muted)]/50 bg-black/20 rounded-full px-2 py-0.5">
-                {viewMode === "free"
+                {meshSelect
+                  ? "메쉬 선택 모드 · 모델을 클릭해 부위 선택 (겹치면 반복 클릭)"
+                  : viewMode === "free"
                   ? camLock
                     ? "카메라 잠금 · 드래그로 시선·고개 · 핀치/휠 확대축소"
                     : "드래그 이동 · 핀치/휠 확대축소"
@@ -757,7 +822,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
           <canvas
             ref={canvasRef}
             className={`w-full h-full touch-none ${
-              viewMode === "free" && !camLock ? "cursor-grab active:cursor-grabbing" : ""
+              meshSelect ? "cursor-crosshair" : viewMode === "free" && !camLock ? "cursor-grab active:cursor-grabbing" : ""
             }`}
           />
         </div>
