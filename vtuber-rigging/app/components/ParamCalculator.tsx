@@ -232,11 +232,19 @@ export default function ParamCalculator() {
 
           return (
             <div key={param.id} className="glass rounded-xl overflow-hidden">
-              <button
-                className="w-full p-4 text-left hover:bg-white/5 transition-all"
+              <div
+                role="button"
+                tabIndex={0}
+                className="w-full p-4 text-left hover:bg-white/5 transition-all cursor-pointer"
                 onClick={() =>
                   setExpandedId(isExpanded ? null : param.id)
                 }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setExpandedId(isExpanded ? null : param.id);
+                  }
+                }}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -300,7 +308,7 @@ export default function ParamCalculator() {
                     <span>{param.max}</span>
                   </div>
                 </div>
-              </button>
+              </div>
 
               {/* Expanded details */}
               {isExpanded && (
