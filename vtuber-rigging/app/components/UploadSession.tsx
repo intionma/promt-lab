@@ -13,6 +13,26 @@ function extractModelName(files: File[]): string | null {
   return model3.name.replace(/\.model3\.json$/i, "");
 }
 
+// Live2D 런타임에 실제로 필요한 파일만 통과 (cmo3, psd 등 작업 파일은 제외)
+const RUNTIME_EXTENSIONS = [
+  ".moc3",
+  ".model3.json",
+  ".physics3.json",
+  ".pose3.json",
+  ".exp3.json",
+  ".motion3.json",
+  ".cdi3.json",
+  ".userdata3.json",
+  ".png",
+  ".jpg",
+  ".jpeg",
+];
+
+function isRuntimeFile(file: File): boolean {
+  const name = file.name.toLowerCase();
+  return RUNTIME_EXTENSIONS.some((ext) => name.endsWith(ext));
+}
+
 // 파일의 저장 경로 계산 (폴더 구조 유지) — 최상위 폴더명 제거
 function getStoragePath(file: File): string {
   const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
@@ -93,6 +113,7 @@ export default function UploadSession() {
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [missingFiles, setMissingFiles] = useState<string[]>([]);
+  const [skippedCount, setSkippedCount] = useState(0);
 
   const hasModel3 = files.some((f) => f.name.endsWith(".model3.json"));
   const hasMoc3 = files.some((f) => f.name.endsWith(".moc3"));
@@ -115,10 +136,15 @@ export default function UploadSession() {
     return () => { cancelled = true; };
   }, [files]);
 
-  const addFiles = useCallback((newFiles: File[]) => {
+  const addFiles = useCallback((incoming: File[]) => {
+    // 런타임에 필요한 파일만 통과 (cmo3, psd 등은 제외)
+    const runtime = incoming.filter(isRuntimeFile);
+    const skipped = incoming.length - runtime.length;
+    if (skipped > 0) setSkippedCount((c) => c + skipped);
+
     setFiles((prev) => {
       const names = new Set(prev.map((f) => getStoragePath(f)));
-      return [...prev, ...newFiles.filter((f) => !names.has(getStoragePath(f)))];
+      return [...prev, ...runtime.filter((f) => !names.has(getStoragePath(f)))];
     });
   }, []);
 
@@ -217,6 +243,7 @@ export default function UploadSession() {
             setTitleEdited(false);
             setDescription("");
             setProgress([]);
+            setSkippedCount(0);
           }}
           className="text-sm text-slate-500 hover:text-slate-300 transition-all"
         >
@@ -317,6 +344,12 @@ export default function UploadSession() {
               총 {files.length}개
             </span>
           </div>
+
+          {skippedCount > 0 && (
+            <p className="text-[11px] text-slate-500">
+              💡 런타임에 불필요한 파일 {skippedCount}개는 자동 제외됐어요 (cmo3, psd 등)
+            </p>
+          )}
 
           <div className="space-y-1 max-h-40 overflow-y-auto chat-scroll">
             {files.map((f, i) => {

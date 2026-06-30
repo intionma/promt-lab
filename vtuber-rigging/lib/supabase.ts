@@ -57,6 +57,35 @@ export async function listAllStorageFiles(prefix: string): Promise<string[]> {
   return paths;
 }
 
+// Storage 폴더의 총 용량(바이트)을 재귀적으로 계산
+export async function getStorageUsage(prefix: string): Promise<number> {
+  const { data } = await supabase.storage.from("models").list(prefix, { limit: 1000 });
+  if (!data) return 0;
+  let total = 0;
+  for (const item of data) {
+    const full = `${prefix}/${item.name}`;
+    if (item.id === null) {
+      total += await getStorageUsage(full);
+    } else {
+      total += (item.metadata?.size as number) || 0;
+    }
+  }
+  return total;
+}
+
+// 바이트를 읽기 좋은 단위로
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+// Supabase 무료 플랜 Storage 한도 (1GB)
+export const STORAGE_LIMIT_BYTES = 1024 * 1024 * 1024;
+
+// 삭제 비밀번호
+export const DELETE_PASSWORD = "12290505";
+
 export type Feedback = {
   id: string;
   session_id: string;
