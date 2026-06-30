@@ -4,10 +4,6 @@ import { useState, useCallback, useEffect } from "react";
 import { Upload, FileUp, Link, CheckCircle, AlertCircle, X, FolderOpen } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-type Props = {
-  ownerHash: string;
-};
-
 type UploadedFile = { name: string; done: boolean; error?: boolean };
 
 // .model3.json 파일명에서 모델 이름 추출 (e.g. "rina.model3.json" → "rina")
@@ -106,7 +102,7 @@ async function findMissingFiles(files: File[]): Promise<string[]> {
   return missing;
 }
 
-export default function UploadSession({ ownerHash }: Props) {
+export default function UploadSession() {
   const [title, setTitle] = useState("");
   const [titleEdited, setTitleEdited] = useState(false);
   const [description, setDescription] = useState("");
@@ -178,17 +174,14 @@ export default function UploadSession({ ownerHash }: Props) {
     const finalTitle =
       title.trim() || modelName || `리깅 리뷰 ${new Date().toLocaleDateString("ko-KR")}`;
 
-    const insertData = {
-      title: finalTitle,
-      description: description.trim() || null,
-      model_name: modelName,
-      owner_hash: ownerHash,
-    };
-
     try {
       const { data: session, error: sessionErr } = await supabase
         .from("sessions")
-        .insert(insertData)
+        .insert({
+          title: finalTitle,
+          description: description.trim() || null,
+          model_name: modelName,
+        })
         .select()
         .single();
 

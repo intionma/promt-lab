@@ -11,14 +11,10 @@ import {
   type Session,
 } from "@/lib/supabase";
 
-type Props = {
-  ownerHash: string;
-};
-
 type VersionItem = Session & { versionNo: number; size: number };
 type ModelGroup = { name: string; versions: VersionItem[] };
 
-export default function MyModels({ ownerHash }: Props) {
+export default function MyModels() {
   const [groups, setGroups] = useState<ModelGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -29,13 +25,13 @@ export default function MyModels({ ownerHash }: Props) {
   const [pwError, setPwError] = useState(false);
 
   const load = useCallback(async () => {
-    if (!ownerHash) { setLoading(false); return; }
     setLoading(true);
 
+    // 모든 모델을 공개로 표시 — 접속한 누구나 전체 모델을 봄
     const { data } = await supabase
       .from("sessions")
       .select("*")
-      .eq("owner_hash", ownerHash);
+      .order("created_at", { ascending: false });
 
     if (!data) { setGroups([]); setLoading(false); return; }
 
@@ -69,7 +65,7 @@ export default function MyModels({ ownerHash }: Props) {
 
     setGroups(result);
     setLoading(false);
-  }, [ownerHash]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
