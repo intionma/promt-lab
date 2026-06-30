@@ -12,8 +12,17 @@ export class WeatherSystem {
         this._type = 'clear';
     }
 
+    _disposePts() {
+        if (this._pts) {
+            this.scene.remove(this._pts);
+            this._pts.geometry.dispose();
+            this._pts.material.dispose();
+            this._pts = null;
+        }
+    }
+
     setWeather(type) {
-        if (this._pts) { this.scene.remove(this._pts); this._pts = null; }
+        this._disposePts();
         this._type = type;
         if (type === 'clear' || !type) return;
 
@@ -90,7 +99,7 @@ export class WeatherSystem {
     }
 
     dispose() {
-        if (this._pts) { this.scene.remove(this._pts); this._pts = null; }
+        this._disposePts();
     }
 }
 

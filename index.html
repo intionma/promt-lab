@@ -2085,13 +2085,20 @@
             setTimeout(() => toast.remove(), 350);
         }
 
+        // HTML 특수문자 이스케이프 — innerHTML에 사용자 입력을 넣을 때 반드시 사용
+        function _esc(s) {
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+
         function showToast(msg, type = 'info', duration = 2500) {
             const container = document.getElementById('toast-container');
             const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
             toast.style.cursor = 'pointer';
-            toast.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+            const iconEl = document.createElement('span'); iconEl.textContent = icons[type] || '';
+            const msgEl  = document.createElement('span'); msgEl.textContent  = msg;
+            toast.appendChild(iconEl); toast.appendChild(msgEl);
             toast.addEventListener('click', () => dismissToast(toast));
             container.appendChild(toast);
             requestAnimationFrame(() => { requestAnimationFrame(() => toast.classList.add('show')); });
@@ -3198,7 +3205,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const title = wf[id]._meta?.title;
                     const lbl = document.createElement('label');
                     lbl.style.cssText = 'display:flex; align-items:center; gap:7px; font-size:11px; color:var(--text-main); cursor:pointer; padding:2px 4px;';
-                    lbl.innerHTML = `<input type="checkbox" value="${id}" style="flex-shrink:0;"><span style="font-family:var(--font-code);">#${id}</span> <span style="color:var(--accent-blue);">${wf[id].class_type}</span>${title ? ` <span style="color:var(--text-dim);">· ${title}</span>` : ''}`;
+                    lbl.innerHTML = `<input type="checkbox" value="${_esc(id)}" style="flex-shrink:0;"><span style="font-family:var(--font-code);">#${_esc(id)}</span> <span style="color:var(--accent-blue);">${_esc(wf[id].class_type)}</span>${title ? ` <span style="color:var(--text-dim);">· ${_esc(title)}</span>` : ''}`;
                     nodeList.appendChild(lbl);
                 });
             }
@@ -3294,10 +3301,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (!node) return; // 현재 워크플로우에 없는 노드는 스킵
                 const card = document.createElement('div');
                 card.style.cssText = 'border:1px solid var(--border-dim); border-radius:8px; padding:10px; background:var(--bg-base);';
-                const title = node._meta?.title ? ` · ${node._meta.title}` : '';
+                const title = node._meta?.title ? ` · ${_esc(node._meta.title)}` : '';
                 const head = document.createElement('div');
                 head.style.cssText = 'display:flex; align-items:center; gap:8px; margin-bottom:8px;';
-                head.innerHTML = `<span style="flex:1; font-size:12px; font-weight:700;"><span style="font-family:var(--font-code); color:var(--text-dim);">#${id}</span> <span style="color:var(--accent-blue);">${node.class_type}</span>${title}</span>`;
+                head.innerHTML = `<span style="flex:1; font-size:12px; font-weight:700;"><span style="font-family:var(--font-code); color:var(--text-dim);">#${_esc(id)}</span> <span style="color:var(--accent-blue);">${_esc(node.class_type)}</span>${title}</span>`;
                 const rm = document.createElement('button');
                 rm.innerHTML = '<i class="fa-solid fa-star"></i> 해제';
                 rm.style.cssText = 'background:rgba(234,179,8,0.15); border:1px solid rgba(234,179,8,0.4); color:#eab308; border-radius:6px; padding:3px 9px; font-size:11px; cursor:pointer;';
@@ -6658,7 +6665,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const header = document.createElement('div');
             header.className = 'combo-folder-header-row';
             const children = folder.children || [];
-            header.innerHTML = `<span class="combo-drag-handle" title="드래그해서 순서 변경">⠿</span><span class="combo-folder-icon">${isOpen ? '📂' : '📁'}</span><span class="combo-folder-name">${folder.title}</span><span class="combo-folder-count">${children.length}개</span><i class="fa-solid fa-chevron-right combo-folder-chevron"></i>`;
+            header.innerHTML = `<span class="combo-drag-handle" title="드래그해서 순서 변경">⠿</span><span class="combo-folder-icon">${isOpen ? '📂' : '📁'}</span><span class="combo-folder-name">${_esc(folder.title)}</span><span class="combo-folder-count">${children.length}개</span><i class="fa-solid fa-chevron-right combo-folder-chevron"></i>`;
             header.onclick = (e) => {
                 if (e.target.closest('.combo-item-name-edit')) return;
                 if (_openFolders.has(folder.id)) { _openFolders.delete(folder.id); } else { _openFolders.add(folder.id); }
@@ -6745,7 +6752,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             el.dataset.type = 'combo';
             el.dataset.comboId = combo.id;
             const preview = getComboPreview(combo.tags || {});
-            el.innerHTML = `<div class="combo-header">${combo.title}</div><div class="combo-desc">${preview}</div>`;
+            el.innerHTML = `<div class="combo-header">${_esc(combo.title)}</div><div class="combo-desc">${_esc(preview)}</div>`;
             el.onclick = (e) => { applyCombo(combo); };
             el.addEventListener('dblclick', (e) => { e.stopPropagation(); startInlineRename(el, combo); });
 

@@ -343,7 +343,8 @@ export class PrevizScene {
         this._updateCameraForState(this.state);
 
         this._bindEvents();
-        window.addEventListener('resize', () => this.resize());
+        this._onResize = () => this.resize();
+        window.addEventListener('resize', this._onResize);
         this._loop();
         this._ready = true;
     }
@@ -355,6 +356,7 @@ export class PrevizScene {
             try {
                 const gltf = await loader.loadAsync(url);
                 const vrm = gltf.userData.vrm;
+                if (!vrm) throw new Error('VRM 데이터 없음 (non-VRM GLTF)');
                 VRMUtils.removeUnnecessaryVertices(gltf.scene);
                 vrm.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; } });
                 this.vrm = vrm;
@@ -888,6 +890,7 @@ export class PrevizScene {
 
     dispose() {
         if (this.animId) cancelAnimationFrame(this.animId);
+        if (this._onResize) { window.removeEventListener('resize', this._onResize); this._onResize = null; }
         this._weather?.dispose();
         Object.values(this._props || {}).forEach(o => { o.parent && o.parent.remove(o); this._disposeObj(o); });
         this._props = {};
