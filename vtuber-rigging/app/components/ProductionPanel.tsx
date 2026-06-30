@@ -1,6 +1,6 @@
 "use client";
 
-import { Play, Square, Smile, Sparkles, Image as ImageIcon, Link2, Check } from "lucide-react";
+import { Play, Square, Smile, Sparkles, Image as ImageIcon, Link2, Check, Pause, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { BG_OPTIONS, type ModelMeta } from "./ModelViewer";
 
@@ -14,6 +14,8 @@ type Props = {
   onToggleIdle: (on: boolean) => void;
   onSetBg: (key: string) => void;
   onCopyStateLink: () => void;
+  onFreeze: () => void;
+  onReset: () => void;
 };
 
 export default function ProductionPanel({
@@ -26,6 +28,8 @@ export default function ProductionPanel({
   onToggleIdle,
   onSetBg,
   onCopyStateLink,
+  onFreeze,
+  onReset,
 }: Props) {
   const [copied, setCopied] = useState(false);
   const hasMotions = !!meta && meta.motions.length > 0;
@@ -39,6 +43,24 @@ export default function ProductionPanel({
 
   return (
     <div className="flex flex-col h-full overflow-y-auto chat-scroll p-3 gap-4">
+      {/* 멈춤 / 초기화 */}
+      <div className="flex gap-2">
+        <button
+          onClick={onFreeze}
+          className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg glass glass-hover text-[11px] font-medium text-[var(--fg)]"
+          title="모션·아이들을 끄고 파라미터를 기본값으로 — 기본 포즈로 정지"
+        >
+          <Pause className="w-3.5 h-3.5" /> 움직임 멈춤
+        </button>
+        <button
+          onClick={onReset}
+          className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg glass glass-hover text-[11px] font-medium text-[var(--muted)]"
+          title="배경·아이들·모션·파라미터를 모두 기본 상태로 되돌립니다"
+        >
+          <RotateCcw className="w-3.5 h-3.5" /> 연출 초기화
+        </button>
+      </div>
+
       {/* 모션 */}
       <section className="space-y-2">
         <div className="flex items-center justify-between">

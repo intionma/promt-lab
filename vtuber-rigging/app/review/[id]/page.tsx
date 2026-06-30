@@ -52,8 +52,11 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
 
   // 딥링크: URL ?s= 의 공유 상태를 모델 로드 후 1회 적용
   const pendingState = useRef<ViewerState | null>(parseSharedState());
+  // 파라미터 기본값(초기화 복원용)
+  const defaultParams = useRef<Param[]>([]);
 
   function handleParamsLoaded(params: Param[]) {
+    defaultParams.current = params.map((p) => ({ ...p })); // 기본값 보관
     const st = pendingState.current;
     if (st) {
       viewerControl.current?.applyState(st);
@@ -64,6 +67,27 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     } else {
       setParamList(params);
     }
+  }
+
+  // 움직임 멈춤 — 모션 정지 + 아이들 off + 파라미터 기본값 + 얼굴 정면
+  function handleFreeze() {
+    viewerControl.current?.freezeToBase();
+    setAutoIdle(false);
+    setOverrideIds(new Set());
+    setParamList(defaultParams.current.map((p) => ({ ...p })));
+  }
+
+  // 연출 초기화 — 배경/아이들/모션/파라미터/얼굴을 기본 상태로
+  function handleResetProduction() {
+    viewerControl.current?.stopMotion();
+    viewerControl.current?.setAutoIdle(true);
+    viewerControl.current?.setBackground("transparent");
+    viewerControl.current?.resetAll();
+    viewerControl.current?.centerFace();
+    setAutoIdle(true);
+    setBgKey("transparent");
+    setOverrideIds(new Set());
+    setParamList(defaultParams.current.map((p) => ({ ...p })));
   }
 
   function copyStateLink() {
@@ -92,6 +116,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   function handleResetAll() {
     viewerControl.current?.resetAll();
     setOverrideIds(new Set());
+    setParamList(defaultParams.current.map((p) => ({ ...p })));
   }
 
   useEffect(() => {
@@ -220,6 +245,8 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               onToggleIdle={(on) => { setAutoIdle(on); viewerControl.current?.setAutoIdle(on); }}
               onSetBg={(k) => { setBgKey(k); viewerControl.current?.setBackground(k); }}
               onCopyStateLink={copyStateLink}
+              onFreeze={handleFreeze}
+              onReset={handleResetProduction}
             />
           </div>
         </div>

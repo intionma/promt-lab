@@ -25,6 +25,8 @@ export interface ViewerHandle {
   setParam: (id: string, value: number) => void;
   releaseParam: (id: string) => void;
   resetAll: () => void;
+  centerFace: () => void;
+  freezeToBase: () => void;
   playMotion: (group: string, index: number) => void;
   playExpression: (name: string) => void;
   stopMotion: () => void;
@@ -79,6 +81,9 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
   // 수동 파라미터 오버라이드 (슬라이더로 고정한 값 — 매 프레임 재적용해야 유지됨)
   const overridesRef   = useRef<Map<string, number>>(new Map());
 
+  // 파라미터 기본값 (초기화·기본포즈에서 되돌림)
+  const defaultsRef    = useRef<Map<string, number>>(new Map());
+
   // 얼굴 반응(터치/마우스 추적) ON/OFF
   const faceTrackRef   = useRef(true);
 
@@ -121,10 +126,26 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
   // 부모가 호출하는 파라미터 제어 (overridesRef = beforeModelUpdate 훅이 매 프레임 적용)
   useEffect(() => {
     if (!controlRef) return;
+    // 모델 파라미터를 기본값으로 강제 복원
+    const restoreDefaults = () => {
+      const core = internalRef.current?.coreModel;
+      if (!core) return;
+      defaultsRef.current.forEach((v, id) => {
+        try { core.setParameterValueById(id, v); } catch { /* noop */ }
+      });
+    };
     controlRef.current = {
       setParam: (id, value) => { overridesRef.current.set(id, value); },
       releaseParam: (id)    => { overridesRef.current.delete(id); },
-      resetAll:    ()       => { overridesRef.current.clear(); },
+      resetAll:    ()       => { overridesRef.current.clear(); restoreDefaults(); },
+      centerFace:  ()       => { focusFnRef.current?.(0, 0, true); },
+      freezeToBase: () => {
+        internalRef.current?.motionManager?.stopAllMotions?.();
+        applyAutoIdle(false);
+        overridesRef.current.clear();
+        restoreDefaults();
+        focusFnRef.current?.(0, 0, true);
+      },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       playMotion: (group, index) => { (modelRef.current as any)?.motion?.(group, index); },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -296,15 +317,19 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const core = (model as any).internalModel.coreModel;
           const paramList: Param[] = [];
+          defaultsRef.current.clear();
 
           // 1순위: raw core model 의 parameters 배열 (가장 확실 — 모든 파라미터)
           const raw = typeof core.getModel === "function" ? core.getModel() : core._model;
           const pp  = raw?.parameters;
           if (pp && typeof pp.count === "number" && pp.ids) {
             for (let i = 0; i < pp.count; i++) {
+              const id  = String(pp.ids[i]);
+              const def = pp.defaultValues?.[i] ?? pp.values?.[i] ?? 0;
+              defaultsRef.current.set(id, def);
               paramList.push({
-                id:    String(pp.ids[i]),
-                value: pp.values?.[i] ?? pp.defaultValues?.[i] ?? 0,
+                id,
+                value: def,
                 min:   pp.minimumValues?.[i] ?? -30,
                 max:   pp.maximumValues?.[i] ??  30,
               });
@@ -314,9 +339,12 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const ids = (core as any)._parameterIds ?? [];
             for (let i = 0; i < core.getParameterCount(); i++) {
+              const id  = String(ids[i] ?? `param_${i}`);
+              const def = core.getParameterDefaultValue?.(i) ?? core.getParameterValueByIndex?.(i) ?? 0;
+              defaultsRef.current.set(id, def);
               paramList.push({
-                id:    String(ids[i] ?? `param_${i}`),
-                value: core.getParameterValueByIndex?.(i) ?? core.getParameterDefaultValue?.(i) ?? 0,
+                id,
+                value: def,
                 min:   core.getParameterMinimumValue(i),
                 max:   core.getParameterMaximumValue(i),
               });
