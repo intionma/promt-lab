@@ -12,14 +12,13 @@ import {
 } from "@/lib/supabase";
 
 type Props = {
-  ownerHash: string | null;
-  onRequestPin: () => void;
+  ownerHash: string;
 };
 
 type VersionItem = Session & { versionNo: number; size: number };
 type ModelGroup = { name: string; versions: VersionItem[] };
 
-export default function MyModels({ ownerHash, onRequestPin }: Props) {
+export default function MyModels({ ownerHash }: Props) {
   const [groups, setGroups] = useState<ModelGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -108,29 +107,6 @@ export default function MyModels({ ownerHash, onRequestPin }: Props) {
   }
 
   const usagePct = Math.min(100, (totalUsage / STORAGE_LIMIT_BYTES) * 100);
-
-  // PIN 미설정 시
-  if (!ownerHash) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center fade-up">
-        <div className="w-16 h-16 rounded-2xl bg-[var(--purple-deep)]/20 flex items-center justify-center">
-          <Lock className="w-8 h-8 text-[var(--purple)]" />
-        </div>
-        <div className="space-y-1">
-          <p className="text-base font-semibold text-[var(--fg)]">PIN을 설정하세요</p>
-          <p className="text-xs text-[var(--muted)] max-w-[240px]">
-            PIN으로 묶으면 휴대폰·PC 어디서든 내가 올린 모델을 한 곳에서 볼 수 있어요
-          </p>
-        </div>
-        <button
-          onClick={onRequestPin}
-          className="bg-gradient-to-br from-[var(--purple-deep)] to-[#9333ea] rounded-xl px-5 py-2.5 text-sm font-medium text-white transition-all hover:opacity-90"
-        >
-          PIN 설정하기
-        </button>
-      </div>
-    );
-  }
 
   if (loading) {
     return (

@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Upload, FileUp, Link, CheckCircle, AlertCircle, X, FolderOpen, Lock } from "lucide-react";
+import { Upload, FileUp, Link, CheckCircle, AlertCircle, X, FolderOpen } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type Props = {
-  ownerHash: string | null;
-  onRequestPin: () => void;
+  ownerHash: string;
 };
 
 type UploadedFile = { name: string; done: boolean; error?: boolean };
@@ -107,7 +106,7 @@ async function findMissingFiles(files: File[]): Promise<string[]> {
   return missing;
 }
 
-export default function UploadSession({ ownerHash, onRequestPin }: Props) {
+export default function UploadSession({ ownerHash }: Props) {
   const [title, setTitle] = useState("");
   const [titleEdited, setTitleEdited] = useState(false);
   const [description, setDescription] = useState("");
@@ -179,13 +178,12 @@ export default function UploadSession({ ownerHash, onRequestPin }: Props) {
     const finalTitle =
       title.trim() || modelName || `리깅 리뷰 ${new Date().toLocaleDateString("ko-KR")}`;
 
-    // owner_hash는 PIN을 설정한 경우에만 포함 (없으면 모두에게 공유되는 일반 업로드)
-    const insertData: Record<string, unknown> = {
+    const insertData = {
       title: finalTitle,
       description: description.trim() || null,
       model_name: modelName,
+      owner_hash: ownerHash,
     };
-    if (ownerHash) insertData.owner_hash = ownerHash;
 
     try {
       const { data: session, error: sessionErr } = await supabase
@@ -275,23 +273,6 @@ export default function UploadSession({ ownerHash, onRequestPin }: Props) {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto chat-scroll p-4 gap-3.5">
-      {/* PIN 안내 */}
-      {!ownerHash && (
-        <button
-          onClick={onRequestPin}
-          className="glass glass-hover rounded-xl p-3 flex items-center gap-3 text-left"
-        >
-          <div className="w-8 h-8 rounded-lg bg-[var(--purple-deep)]/30 flex items-center justify-center shrink-0">
-            <Lock className="w-4 h-4 text-[var(--purple)]" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-[var(--fg)]">PIN을 설정하면 좋아요</p>
-            <p className="text-[11px] text-[var(--muted)]">설정하면 모든 기기에서 내 모델을 모아볼 수 있어요</p>
-          </div>
-          <span className="text-xs text-[var(--purple)] shrink-0">설정 →</span>
-        </button>
-      )}
-
       <div className="space-y-1.5">
         <label className="text-xs text-[var(--muted)] px-1">세션 이름</label>
         <input
