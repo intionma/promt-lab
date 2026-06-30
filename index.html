@@ -3665,6 +3665,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         let _comfyQueueCount = 0;
         let _comfyRunningPid = null;
         let _comfyPollActive = new Set(); // 중복 폴링 방지
+        // 새로고침 복구용 작업 메타 — /queue로는 복원 못 하는 _multi/seed/batch/inline/label 보존
+        const _COMFY_JOBS_KEY = 'comfy_jobs_meta_v1';
+        let _comfyJobMeta = {};
+        try { _comfyJobMeta = JSON.parse(localStorage.getItem(_COMFY_JOBS_KEY) || '{}') || {}; } catch (e) { _comfyJobMeta = {}; }
 
         // 워크플로우 JSON에서 긍정 프롬프트 추출 → 한글 라벨 반환
         function _comfyLabelFromWorkflow(workflow) {
@@ -3762,8 +3766,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const workflow = entry[2]; // 전체 워크플로우 JSON
                     if (!pid) continue;
                     if (!_comfyJobs[pid]) {
-                        const label = _comfyLabelFromWorkflow(workflow) || pid.slice(0, 8) + '…';
-                        _comfyJobs[pid] = { inline: null, cleared: false, done: false, seq: ++_comfyJobSeq, label };
+                        // 새로고침 복구: 저장된 메타가 있으면 _multi/seed/batch/inline 되살림
+                        const m = _comfyJobMeta[pid] || {};
+                        const label = m.label || _comfyLabelFromWorkflow(workflow) || pid.slice(0, 8) + '…';
+                        _comfyJobs[pid] = { inline: m.inline || null, cleared: false, done: false, seq: ++_comfyJobSeq, label,
+                                            _multi: !!m._multi, seed: m.seed, batch: m.batch };
                         _comfyQueueCount++;
                         _comfyBatchTotal++;
                         _comfyPollResult(pid, 0);
@@ -3805,8 +3812,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (_comfySyncTimer) { clearInterval(_comfySyncTimer); _comfySyncTimer = null; }
         }
 
-        // 더 이상 필요 없는 localStorage 저장 함수 (하위 호환 호출부만 유지, 내용 비움)
-        function _comfySaveJobs() {}
+        // 진행 중 작업의 복구 메타를 저장 — 새로고침 후 /queue 폴링이 _multi/seed/batch/inline을 되살리도록
+        function _comfySaveJobs() {
+            const meta = {};
+            for (const pid in _comfyJobs) {
+                const j = _comfyJobs[pid];
+                if (j.done || j._mock || j._tmp) continue;   // 완료·가상·임시(서버응답 전)는 제외
+                meta[pid] = { _multi: !!j._multi, seed: j.seed, batch: j.batch, inline: j.inline || null, label: j.label || '' };
+            }
+            _comfyJobMeta = meta;
+            try { localStorage.setItem(_COMFY_JOBS_KEY, JSON.stringify(meta)); } catch (e) {}
+        }
 
         function _comfyEnsureSocket() {
             if (_comfySocket && _comfySocket.readyState <= 1) return; // 연결됨/연결중
@@ -3918,6 +3934,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!fab) return;
             const jobs = Object.entries(_comfyJobs).sort((a, b) => (a[1].seq || 0) - (b[1].seq || 0));
             const n = jobs.length;
+            _comfySaveJobs();   // 작업 변동 시마다 복구 메타 갱신 (새로고침 대비)
             badge.textContent = n;
             fab.style.display = n > 0 ? 'flex' : 'none';
             _comfyUpdateFabWater();
@@ -13227,6 +13244,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         renderImageGallery();   // 저장된 생성 이미지 갤러리 복원
         _restoreGenMemo();      // 메모장 복원 (새로고침 유지)
         comfyUpdateQuickButtons();  // ComfyUI 연동 이력 있으면 전송 버튼 표시
+        // 새로고침 후 진행 중이던 대기열(다중생성 미리보기 포함) 복원 — 저장된 메타로 _multi/seed 되살림
+        if (_comfyConnectedOnce) { try { _comfySyncQueue(); } catch (e) {} }
         DevMode.apply();            // 저장된 개발자 모드 상태 → 시각 표시·기능 적용
         _recUpdateBtn();            // 추천 조합 토글 버튼 상태 복원
         // 한글 번역 미리보기 접힘 상태 복원
