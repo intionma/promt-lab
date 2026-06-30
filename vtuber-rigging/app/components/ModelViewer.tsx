@@ -65,8 +65,8 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
   const modelRef    = useRef<unknown>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const internalRef = useRef<any>(null);
-  // 자동 깜빡임/호흡 원본 보관 (토글 off 시 제거, on 시 복원)
-  const idleStashRef = useRef<{ eyeBlink: unknown; breath: unknown } | null>(null);
+  // 자동 깜빡임/호흡/아이들모션 원본 보관 (토글 off 시 제거, on 시 복원)
+  const idleStashRef = useRef<{ eyeBlink: unknown; breath: unknown; idleGroup: string | undefined } | null>(null);
 
   // 원본 크기 (scale 전)
   const origWRef = useRef(0);
@@ -110,15 +110,22 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState<string | null>(null);
 
-  // 자동 깜빡임/호흡 on/off
+  // 자동 깜빡임/호흡/아이들모션 on/off
   function applyAutoIdle(on: boolean) {
     const im = internalRef.current;
     if (!im) return;
+    const mm = im.motionManager;
     if (!idleStashRef.current) {
-      idleStashRef.current = { eyeBlink: im.eyeBlink, breath: im.breath };
+      idleStashRef.current = { eyeBlink: im.eyeBlink, breath: im.breath, idleGroup: mm?.groups?.idle };
     }
+    // 깜빡임·호흡
     im.eyeBlink = on ? idleStashRef.current.eyeBlink : undefined;
     im.breath   = on ? idleStashRef.current.breath   : undefined;
+    // 아이들 모션 자동재생 — off 시 그룹명을 무효화해 매 프레임 재시작을 차단
+    if (mm?.groups) {
+      mm.groups.idle = on ? (idleStashRef.current.idleGroup ?? "idle") : "__freeze_none__";
+    }
+    if (!on) mm?.stopAllMotions?.();
   }
 
   // 공유 상태 적용 (딥링크/주석 복원)
