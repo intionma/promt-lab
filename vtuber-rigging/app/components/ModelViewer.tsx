@@ -1,0 +1,173 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { supabase } from "@/lib/supabase";
+
+type Param = { id: string; value: number; min: number; max: number };
+
+type Props = {
+  sessionId: string;
+  onParamChange?: (paramId: string, value: number) => void;
+};
+
+export default function ModelViewer({ sessionId, onParamChange }: Props) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const appRef = useRef<unknown>(null);
+  const modelRef = useRef<unknown>(null);
+  const [params, setParams] = useState<Param[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let destroyed = false;
+
+    async function init() {
+      try {
+        // model3.json URL 가져오기
+        const { data: files } = await supabase.storage
+          .from("models")
+          .list(sessionId);
+
+        const model3File = files?.find((f) => f.name.endsWith(".model3.json"));
+        if (!model3File) throw new Error("model3.json 파일을 찾을 수 없어요");
+
+        const { data: urlData } = supabase.storage
+          .from("models")
+          .getPublicUrl(`${sessionId}/${model3File.name}`);
+
+        const modelUrl = urlData.publicUrl;
+
+        // pixi-live2d-display 동적 로드
+        const PIXI = await import("pixi.js");
+        const { Live2DModel } = await import("pixi-live2d-display/cubism4");
+
+        if (destroyed || !canvasRef.current) return;
+
+        const app = new PIXI.Application({
+          view: canvasRef.current,
+          backgroundAlpha: 0,
+          resizeTo: canvasRef.current.parentElement!,
+          antialias: true,
+        });
+
+        appRef.current = app;
+
+        const model = await Live2DModel.from(modelUrl, { autoInteract: false });
+        if (destroyed) { app.destroy(); return; }
+
+        modelRef.current = model;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        app.stage.addChild(model as any);
+
+        // 모델 크기/위치 조정
+        const scale = Math.min(
+          (app.renderer.width * 0.8) / model.width,
+          (app.renderer.height * 0.9) / model.height
+        );
+        model.scale.set(scale);
+        model.x = app.renderer.width / 2 - (model.width * scale) / 2;
+        model.y = app.renderer.height * 0.05;
+
+        // 파라미터 목록 추출
+        const core = (model as unknown as { internalModel: { coreModel: { getParameterCount: () => number; getParameterId: (i: number) => string; getParameterValue: (i: number) => number; getParameterMinimumValue: (i: number) => number; getParameterMaximumValue: (i: number) => number } } }).internalModel.coreModel;
+        const paramList: Param[] = [];
+        for (let i = 0; i < core.getParameterCount(); i++) {
+          paramList.push({
+            id: core.getParameterId(i),
+            value: core.getParameterValue(i),
+            min: core.getParameterMinimumValue(i),
+            max: core.getParameterMaximumValue(i),
+          });
+        }
+        setParams(paramList);
+        setLoading(false);
+      } catch (err: unknown) {
+        if (!destroyed) {
+          setError(err instanceof Error ? err.message : "모델 로드 실패");
+          setLoading(false);
+        }
+      }
+    }
+
+    init();
+    return () => {
+      destroyed = true;
+      if (appRef.current) {
+        (appRef.current as { destroy: (v: boolean) => void }).destroy(true);
+      }
+    };
+  }, [sessionId]);
+
+  function setParam(paramId: string, value: number) {
+    if (!modelRef.current) return;
+    const core = (modelRef.current as unknown as { internalModel: { coreModel: { setParameterValueById: (id: string, v: number) => void } } }).internalModel.coreModel;
+    core.setParameterValueById(paramId, value);
+    setParams((prev) =>
+      prev.map((p) => (p.id === paramId ? { ...p, value } : p))
+    );
+    onParamChange?.(paramId, value);
+  }
+
+  return (
+    <div className="flex h-full gap-3">
+      {/* 캔버스 */}
+      <div className="relative flex-1 glass rounded-xl overflow-hidden">
+        {loading && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10">
+            <div className="w-8 h-8 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
+            <p className="text-sm text-slate-400">모델 불러오는 중...</p>
+          </div>
+        )}
+        {error && (
+          <div className="absolute inset-0 flex items-center justify-center z-10">
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
+        <canvas ref={canvasRef} className="w-full h-full" />
+      </div>
+
+      {/* 파라미터 슬라이더 */}
+      {params.length > 0 && (
+        <div className="w-56 flex flex-col glass rounded-xl overflow-hidden">
+          <div className="px-3 py-2 border-b border-white/10">
+            <p className="text-xs font-medium text-slate-400">파라미터 조작</p>
+          </div>
+          <div className="flex-1 overflow-y-auto chat-scroll p-2 space-y-2">
+            {params.map((p) => {
+              const pct = ((p.value - p.min) / (p.max - p.min)) * 100;
+              return (
+                <div key={p.id} className="space-y-0.5">
+                  <div className="flex justify-between">
+                    <span className="text-[10px] text-slate-500 truncate max-w-[110px]" title={p.id}>
+                      {p.id.replace("Param", "")}
+                    </span>
+                    <span className="text-[10px] text-purple-400 font-mono">
+                      {p.value.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="relative h-4 flex items-center">
+                    <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-purple-600 to-pink-500 rounded-full"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <input
+                      type="range"
+                      min={p.min}
+                      max={p.max}
+                      step={(p.max - p.min) / 200}
+                      value={p.value}
+                      onChange={(e) => setParam(p.id, parseFloat(e.target.value))}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full"
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
