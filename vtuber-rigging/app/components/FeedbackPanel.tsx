@@ -16,17 +16,21 @@ export default function FeedbackPanel({ sessionId, currentParam }: Props) {
   );
   const [comment, setComment] = useState("");
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadFeedbacks();
 
-    // 실시간 구독
+    // 실시간 구독 (켜져 있으면 다른 사람 코멘트도 즉시 반영 — 없어도 동작)
     const channel = supabase
       .channel(`feedback:${sessionId}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "feedback", filter: `session_id=eq.${sessionId}` },
-        (payload) => setFeedbacks((prev) => [payload.new as Feedback, ...prev])
+        (payload) => {
+          const fb = payload.new as Feedback;
+          setFeedbacks((prev) => (prev.some((f) => f.id === fb.id) ? prev : [fb, ...prev]));
+        }
       )
       .subscribe();
 
@@ -34,26 +38,47 @@ export default function FeedbackPanel({ sessionId, currentParam }: Props) {
   }, [sessionId]);
 
   async function loadFeedbacks() {
-    const { data } = await supabase
+    const { data, error: err } = await supabase
       .from("feedback")
       .select("*")
       .eq("session_id", sessionId)
       .order("created_at", { ascending: false });
+    if (err) { setError(err.message); return; }
     if (data) setFeedbacks(data);
   }
 
   async function send() {
-    if (!author.trim() || !comment.trim()) return;
+    if (!author.trim() || !comment.trim() || sending) return;
     setSending(true);
+    setError(null);
     localStorage.setItem("feedback_author", author);
 
-    await supabase.from("feedback").insert({
-      session_id: sessionId,
-      author: author.trim(),
-      comment: comment.trim(),
-      param_name: currentParam?.id ?? null,
-      param_value: currentParam?.value ?? null,
-    });
+    const { data, error: err } = await supabase
+      .from("feedback")
+      .insert({
+        session_id: sessionId,
+        author: author.trim(),
+        comment: comment.trim(),
+        param_name: currentParam?.id ?? null,
+        param_value: currentParam?.value ?? null,
+      })
+      .select()
+      .single();
+
+    if (err) {
+      // 실제 오류 노출 (테이블/RLS 권한 문제 등 바로 파악 가능)
+      setError(err.message || "전송에 실패했어요");
+      setSending(false);
+      return;
+    }
+
+    // 낙관적 추가 — 실시간 구독이 꺼져 있어도 바로 보이도록 (중복은 id 로 방지)
+    if (data) {
+      const fb = data as Feedback;
+      setFeedbacks((prev) => (prev.some((f) => f.id === fb.id) ? prev : [fb, ...prev]));
+    } else {
+      await loadFeedbacks();
+    }
 
     setComment("");
     setSending(false);
@@ -112,6 +137,11 @@ export default function FeedbackPanel({ sessionId, currentParam }: Props) {
 
       {/* 입력 폼 */}
       <div className="p-3 border-t border-white/5 space-y-2">
+        {error && (
+          <div className="text-[10px] text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-2.5 py-1.5">
+            전송 실패: {error}
+          </div>
+        )}
         {currentParam && (
           <div className="text-[10px] text-[var(--muted)] px-1 flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--purple)]" />
