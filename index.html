@@ -13985,7 +13985,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     el('div', { class: 'pl-deck-kor', html: esc(c.k) }),
                     el('div', { class: 'pl-deck-en', html: esc(c.t) }));
                 stageArea.appendChild(cardEl);
-                attachDrag(cardEl);
+                bindCard(cardEl);
             }
             function decide(keep) {
                 if (idx >= pool.length) return;
@@ -13994,15 +13994,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (keep) { PL.addTag(c.t, c.layer); kept++; }
                 idx++; setTimeout(render, 180);
             }
-            function attachDrag(node) {
-                let sx = 0, dragging = false;
-                const down = (e) => { dragging = true; sx = (e.touches ? e.touches[0].clientX : e.clientX); node.style.transition = 'none'; node.style.cursor = 'grabbing'; };
-                const move = (e) => { if (!dragging) return; const x = (e.touches ? e.touches[0].clientX : e.clientX) - sx; node.style.transform = `translate(${x}px, ${Math.abs(x) * 0.06}px) rotate(${x * 0.05}deg)`; };
-                const up = (e) => { if (!dragging) return; dragging = false; node.style.cursor = 'grab'; const x = (e.changedTouches ? e.changedTouches[0].clientX : e.clientX) - sx; if (Math.abs(x) > 110) decide(x > 0); else { node.style.transition = 'transform .2s'; node.style.transform = ''; } };
+            // 드래그 핸들러는 덱 세션당 1세트만 등록 (카드마다 등록하면 document 리스너가 누적됨)
+            let sx = 0, dragging = false;
+            const onMove = (e) => { if (!dragging || !cardEl) return; const x = (e.touches ? e.touches[0].clientX : e.clientX) - sx; cardEl.style.transform = `translate(${x}px, ${Math.abs(x) * 0.06}px) rotate(${x * 0.05}deg)`; };
+            const onUp = (e) => { if (!dragging) return; dragging = false; if (cardEl) cardEl.style.cursor = 'grab'; const x = (e.changedTouches ? e.changedTouches[0].clientX : e.clientX) - sx; if (Math.abs(x) > 110) decide(x > 0); else if (cardEl) { cardEl.style.transition = 'transform .2s'; cardEl.style.transform = ''; } };
+            document.addEventListener('mousemove', onMove); document.addEventListener('touchmove', onMove, { passive: true });
+            document.addEventListener('mouseup', onUp); document.addEventListener('touchend', onUp);
+            track(() => { document.removeEventListener('mousemove', onMove); document.removeEventListener('touchmove', onMove); document.removeEventListener('mouseup', onUp); document.removeEventListener('touchend', onUp); });
+            function bindCard(node) {
+                const down = (e) => { if (idx >= pool.length) return; dragging = true; sx = (e.touches ? e.touches[0].clientX : e.clientX); node.style.transition = 'none'; node.style.cursor = 'grabbing'; };
                 node.addEventListener('mousedown', down); node.addEventListener('touchstart', down, { passive: true });
-                document.addEventListener('mousemove', move); document.addEventListener('touchmove', move, { passive: true });
-                document.addEventListener('mouseup', up); document.addEventListener('touchend', up);
-                track(() => { document.removeEventListener('mousemove', move); document.removeEventListener('touchmove', move); document.removeEventListener('mouseup', up); document.removeEventListener('touchend', up); });
             }
             render();
             return runCleanups;
@@ -14024,17 +14025,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             let tx = 60, ty = 120, scale = 1;
             const apply = () => { world.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`; };
             const nodes = []; // {elm, x, y}
+            // 노드 드래그: document 리스너는 1세트만. build() 재호출 시 누적 방지.
+            let dragObj = null, ox = 0, oy = 0;
+            const nodeMove = (e) => { if (!dragObj) return; dragObj.x = (e.clientX - ox) / scale; dragObj.y = (e.clientY - oy) / scale; dragObj.elm.style.left = dragObj.x + 'px'; dragObj.elm.style.top = dragObj.y + 'px'; drawWires(); };
+            const nodeUp = () => { dragObj = null; };
+            document.addEventListener('mousemove', nodeMove); document.addEventListener('mouseup', nodeUp);
+            track(() => { document.removeEventListener('mousemove', nodeMove); document.removeEventListener('mouseup', nodeUp); });
             function addNode(text, sub, x, y, cls) {
                 const n = el('div', { class: 'pl-node-box' + (cls ? ' ' + cls : ''), style: `left:${x}px; top:${y}px;` },
                     el('div', { html: esc(text) }), sub ? el('div', { class: 'pl-node-en', html: esc(sub) }) : null);
                 world.appendChild(n); const obj = { elm: n, x, y };
-                // 드래그
-                let dragging = false, ox = 0, oy = 0;
-                n.addEventListener('mousedown', (e) => { e.stopPropagation(); dragging = true; ox = e.clientX - obj.x * scale; oy = e.clientY - obj.y * scale; });
-                const mv = (e) => { if (!dragging) return; obj.x = (e.clientX - ox) / scale; obj.y = (e.clientY - oy) / scale; n.style.left = obj.x + 'px'; n.style.top = obj.y + 'px'; drawWires(); };
-                const up = () => dragging = false;
-                document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
-                track(() => { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); });
+                n.addEventListener('mousedown', (e) => { e.stopPropagation(); dragObj = obj; ox = e.clientX - obj.x * scale; oy = e.clientY - obj.y * scale; });
                 nodes.push(obj); return obj;
             }
             let wires = []; // [{a,b}]
