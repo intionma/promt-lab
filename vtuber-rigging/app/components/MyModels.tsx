@@ -5,54 +5,46 @@ import Link from "next/link";
 import { ExternalLink, Trash2, Calendar, Layers, Boxes, Link as LinkIcon, Loader2, HardDrive, Lock, X } from "lucide-react";
 import {
   supabase,
-  getMySessionIds,
-  removeMySessionId,
   getStorageUsage,
   formatBytes,
   STORAGE_LIMIT_BYTES,
   type Session,
 } from "@/lib/supabase";
 
+type Props = {
+  ownerHash: string | null;
+  onRequestPin: () => void;
+};
+
 type VersionItem = Session & { versionNo: number; size: number };
 type ModelGroup = { name: string; versions: VersionItem[] };
 
-export default function MyModels() {
+export default function MyModels({ ownerHash, onRequestPin }: Props) {
   const [groups, setGroups] = useState<ModelGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [totalUsage, setTotalUsage] = useState(0);
 
-  // 비밀번호 모달
   const [pwTarget, setPwTarget] = useState<Session | null>(null);
   const [pwInput, setPwInput] = useState("");
   const [pwError, setPwError] = useState(false);
 
   const load = useCallback(async () => {
+    if (!ownerHash) { setLoading(false); return; }
     setLoading(true);
-    const ids = getMySessionIds();
-    if (ids.length === 0) {
-      setGroups([]);
-      setTotalUsage(0);
-      setLoading(false);
-      return;
-    }
 
-    const { data } = await supabase.from("sessions").select("*").in("id", ids);
-    if (!data) {
-      setGroups([]);
-      setLoading(false);
-      return;
-    }
+    const { data } = await supabase
+      .from("sessions")
+      .select("*")
+      .eq("owner_hash", ownerHash);
 
-    // 각 세션의 용량 계산
-    const sizes = await Promise.all(
-      (data as Session[]).map((s) => getStorageUsage(s.id))
-    );
+    if (!data) { setGroups([]); setLoading(false); return; }
+
+    const sizes = await Promise.all((data as Session[]).map((s) => getStorageUsage(s.id)));
     const sizeMap = new Map<string, number>();
     (data as Session[]).forEach((s, i) => sizeMap.set(s.id, sizes[i]));
     setTotalUsage(sizes.reduce((a, b) => a + b, 0));
 
-    // model_name 기준으로 묶기
     const map = new Map<string, Session[]>();
     for (const s of data as Session[]) {
       const key = s.model_name || s.title;
@@ -67,52 +59,37 @@ export default function MyModels() {
       );
       result.push({
         name,
-        versions: sorted
-          .map((s, i) => ({ ...s, versionNo: i + 1, size: sizeMap.get(s.id) || 0 }))
-          .reverse(),
+        versions: sorted.map((s, i) => ({ ...s, versionNo: i + 1, size: sizeMap.get(s.id) || 0 })).reverse(),
       });
     }
     result.sort((a, b) => {
-      const aLatest = Math.max(...a.versions.map((v) => new Date(v.created_at).getTime()));
-      const bLatest = Math.max(...b.versions.map((v) => new Date(v.created_at).getTime()));
-      return bLatest - aLatest;
+      const al = Math.max(...a.versions.map((v) => new Date(v.created_at).getTime()));
+      const bl = Math.max(...b.versions.map((v) => new Date(v.created_at).getTime()));
+      return bl - al;
     });
 
     setGroups(result);
     setLoading(false);
-  }, []);
+  }, [ownerHash]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
-  // 비밀번호는 서버에서만 검증 — 브라우저 코드엔 비번이 없음
   async function confirmDelete() {
     if (!pwTarget) return;
     const session = pwTarget;
     const password = pwInput;
     setDeleting(session.id);
-
     try {
       const res = await fetch("/api/delete-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId: session.id, password }),
       });
-
-      if (res.status === 403) {
-        // 비밀번호 틀림 — 모달 유지
-        setPwError(true);
-        setDeleting(null);
-        return;
-      }
+      if (res.status === 403) { setPwError(true); setDeleting(null); return; }
       if (!res.ok) throw new Error();
-
-      // 성공
       setPwTarget(null);
       setPwInput("");
       setPwError(false);
-      removeMySessionId(session.id);
       await load();
     } catch {
       alert("삭제 중 오류가 발생했어요");
@@ -132,32 +109,52 @@ export default function MyModels() {
 
   const usagePct = Math.min(100, (totalUsage / STORAGE_LIMIT_BYTES) * 100);
 
+  // PIN 미설정 시
+  if (!ownerHash) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center fade-up">
+        <div className="w-16 h-16 rounded-2xl bg-[var(--purple-deep)]/20 flex items-center justify-center">
+          <Lock className="w-8 h-8 text-[var(--purple)]" />
+        </div>
+        <div className="space-y-1">
+          <p className="text-base font-semibold text-[var(--fg)]">PIN을 설정하세요</p>
+          <p className="text-xs text-[var(--muted)] max-w-[240px]">
+            PIN으로 묶으면 휴대폰·PC 어디서든 내가 올린 모델을 한 곳에서 볼 수 있어요
+          </p>
+        </div>
+        <button
+          onClick={onRequestPin}
+          className="bg-gradient-to-br from-[var(--purple-deep)] to-[#9333ea] rounded-xl px-5 py-2.5 text-sm font-medium text-white transition-all hover:opacity-90"
+        >
+          PIN 설정하기
+        </button>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
+        <Loader2 className="w-6 h-6 animate-spin text-[var(--purple)]" />
       </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full">
-      {/* 용량 표시 */}
+      {/* 용량 */}
       {groups.length > 0 && (
-        <div className="px-4 py-3 border-b border-white/10 space-y-1.5">
+        <div className="px-4 py-3 border-b border-white/5 space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="flex items-center gap-1.5 text-slate-400">
-              <HardDrive className="w-3.5 h-3.5" />
-              저장 용량
+            <span className="flex items-center gap-1.5 text-[var(--muted)]">
+              <HardDrive className="w-3.5 h-3.5" /> 저장 용량
             </span>
-            <span className="text-slate-300 font-mono">
-              {formatBytes(totalUsage)} / 1 GB
-            </span>
+            <span className="text-[var(--fg)] font-mono">{formatBytes(totalUsage)} / 1 GB</span>
           </div>
-          <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+          <div className="h-2 bg-white/5 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
-                usagePct > 80 ? "bg-red-500" : usagePct > 50 ? "bg-amber-500" : "bg-gradient-to-r from-purple-600 to-pink-500"
+                usagePct > 80 ? "bg-red-500" : usagePct > 50 ? "bg-amber-500" : "bg-gradient-to-r from-[var(--purple)] to-[var(--pink)]"
               }`}
               style={{ width: `${Math.max(2, usagePct)}%` }}
             />
@@ -166,70 +163,57 @@ export default function MyModels() {
       )}
 
       {groups.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-600 p-8">
-          <Boxes className="w-10 h-10" />
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--muted)] p-8">
+          <Boxes className="w-12 h-12 opacity-40" />
           <p className="text-sm text-center">
             아직 업로드한 모델이 없어요
             <br />
-            <span className="text-xs text-slate-700">리뷰 공유 탭에서 모델을 올려보세요</span>
+            <span className="text-xs opacity-60">리뷰 공유 탭에서 모델을 올려보세요</span>
           </p>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto chat-scroll p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto chat-scroll p-4 space-y-5">
           {groups.map((group) => (
-            <div key={group.name} className="space-y-2">
+            <div key={group.name} className="space-y-2 fade-up">
               <div className="flex items-center gap-2 px-1">
-                <Boxes className="w-4 h-4 text-purple-400" />
-                <span className="text-sm font-semibold text-slate-200">{group.name}</span>
-                <span className="text-[10px] text-slate-500 bg-slate-700/50 px-2 py-0.5 rounded-full">
+                <Boxes className="w-4 h-4 text-[var(--purple)]" />
+                <span className="text-sm font-bold text-[var(--fg)]">{group.name}</span>
+                <span className="text-[10px] text-[var(--muted)] bg-white/5 px-2 py-0.5 rounded-full">
                   {group.versions.length}개 버전
                 </span>
               </div>
 
               <div className="space-y-1.5">
                 {group.versions.map((v) => (
-                  <div key={v.id} className="glass rounded-xl p-3 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-purple-600/20 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-bold text-purple-300">v{v.versionNo}</span>
+                  <div key={v.id} className="glass glass-hover rounded-xl p-3 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--purple-deep)]/30 to-[var(--pink)]/20 border border-[var(--purple)]/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-bold text-[var(--purple)]">v{v.versionNo}</span>
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-slate-200 truncate">{v.title}</p>
-                      <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                      <p className="text-sm text-[var(--fg)] truncate">{v.title}</p>
+                      <div className="flex items-center gap-2 text-[10px] text-[var(--muted)]">
                         <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {formatDate(v.created_at)}
+                          <Calendar className="w-3 h-3" /> {formatDate(v.created_at)}
                         </span>
-                        <span className="text-slate-600">·</span>
+                        <span className="opacity-40">·</span>
                         <span>{formatBytes(v.size)}</span>
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => copyLink(v.id)}
-                      className="glass glass-hover p-2 rounded-lg transition-all text-slate-400 hover:text-purple-300"
-                      title="링크 복사"
-                    >
+                    <button onClick={() => copyLink(v.id)} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="링크 복사">
                       <LinkIcon className="w-3.5 h-3.5" />
                     </button>
-                    <Link
-                      href={`/review/${v.id}`}
-                      className="glass glass-hover p-2 rounded-lg transition-all text-slate-400 hover:text-purple-300"
-                      title="열기"
-                    >
+                    <Link href={`/review/${v.id}`} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="열기">
                       <ExternalLink className="w-3.5 h-3.5" />
                     </Link>
                     <button
                       onClick={() => { setPwTarget(v); setPwInput(""); setPwError(false); }}
                       disabled={deleting === v.id}
-                      className="glass glass-hover p-2 rounded-lg transition-all text-slate-400 hover:text-red-400"
+                      className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-red-400"
                       title="삭제"
                     >
-                      {deleting === v.id ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-3.5 h-3.5" />
-                      )}
+                      {deleting === v.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                     </button>
                   </div>
                 ))}
@@ -237,7 +221,7 @@ export default function MyModels() {
             </div>
           ))}
 
-          <div className="flex items-center gap-2 text-[10px] text-slate-600 px-1 pt-2">
+          <div className="flex items-center gap-2 text-[10px] text-[var(--muted)] px-1 pt-1">
             <Layers className="w-3 h-3" />
             같은 모델 파일명으로 올리면 버전으로 묶여요
           </div>
@@ -246,19 +230,21 @@ export default function MyModels() {
 
       {/* 비밀번호 모달 */}
       {pwTarget && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setPwTarget(null)}>
-          <div className="glass rounded-2xl p-5 w-full max-w-xs space-y-4" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setPwTarget(null)}>
+          <div className="glass-strong rounded-2xl p-6 w-full max-w-xs space-y-4 fade-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-red-400" />
-                <span className="text-sm font-semibold text-slate-200">삭제 확인</span>
+                <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center">
+                  <Lock className="w-4 h-4 text-red-400" />
+                </div>
+                <span className="text-sm font-semibold">삭제 확인</span>
               </div>
-              <button onClick={() => setPwTarget(null)} className="text-slate-500 hover:text-slate-300">
+              <button onClick={() => setPwTarget(null)} className="text-[var(--muted)] hover:text-[var(--fg)]">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-xs text-slate-400">
-              <span className="text-slate-200">{pwTarget.title}</span> 을(를) 삭제하려면 비밀번호를 입력하세요. 되돌릴 수 없어요.
+            <p className="text-xs text-[var(--muted)]">
+              <span className="text-[var(--fg)]">{pwTarget.title}</span> 을(를) 삭제하려면 비밀번호를 입력하세요. 되돌릴 수 없어요.
             </p>
             <input
               type="password"
@@ -268,20 +254,14 @@ export default function MyModels() {
               onKeyDown={(e) => { if (e.key === "Enter") confirmDelete(); }}
               placeholder="비밀번호"
               autoFocus
-              className={`w-full glass rounded-lg px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 outline-none ${pwError ? "border border-red-500/50" : ""}`}
+              className={`w-full glass rounded-xl px-4 py-3 text-sm text-center tracking-widest outline-none ${pwError ? "border border-red-500/50" : ""}`}
             />
             {pwError && <p className="text-xs text-red-400">비밀번호가 틀렸어요</p>}
             <div className="flex gap-2">
-              <button
-                onClick={() => setPwTarget(null)}
-                className="flex-1 glass hover:bg-white/10 rounded-lg py-2 text-sm text-slate-400 transition-all"
-              >
+              <button onClick={() => setPwTarget(null)} className="flex-1 glass glass-hover rounded-xl py-2.5 text-sm text-[var(--muted)]">
                 취소
               </button>
-              <button
-                onClick={confirmDelete}
-                className="flex-1 bg-red-600 hover:bg-red-500 rounded-lg py-2 text-sm text-white transition-all"
-              >
+              <button onClick={confirmDelete} className="flex-1 bg-red-600 hover:bg-red-500 rounded-xl py-2.5 text-sm text-white transition-all">
                 삭제
               </button>
             </div>

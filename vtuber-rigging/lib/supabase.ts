@@ -10,34 +10,38 @@ export type Session = {
   title: string;
   description: string | null;
   model_name: string | null;
+  owner_hash: string | null;
   created_at: string;
   expires_at: string;
 };
 
-// 이 브라우저에서 업로드한 세션 ID 추적 (로그인 없이 "내 모델" 구현)
-const MY_SESSIONS_KEY = "my_sessions";
+// ===== PIN 기반 소유권 (모든 기기에서 내 모델 보기) =====
+// PIN은 SHA-256으로 해싱해서만 저장/조회 — 평문은 어디에도 남지 않음
+const PIN_SALT = "vtuber-rig::"; // 레인보우 테이블 방지용 솔트
 
-export function getMySessionIds(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    return JSON.parse(localStorage.getItem(MY_SESSIONS_KEY) || "[]");
-  } catch {
-    return [];
-  }
+export async function hashPin(pin: string): Promise<string> {
+  const data = new TextEncoder().encode(PIN_SALT + pin);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
-export function addMySessionId(id: string) {
-  if (typeof window === "undefined") return;
-  const ids = getMySessionIds();
-  if (!ids.includes(id)) {
-    localStorage.setItem(MY_SESSIONS_KEY, JSON.stringify([id, ...ids]));
-  }
+const OWNER_HASH_KEY = "owner_hash";
+
+export function getOwnerHash(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(OWNER_HASH_KEY);
 }
 
-export function removeMySessionId(id: string) {
+export function setOwnerHash(hash: string) {
   if (typeof window === "undefined") return;
-  const ids = getMySessionIds().filter((x) => x !== id);
-  localStorage.setItem(MY_SESSIONS_KEY, JSON.stringify(ids));
+  localStorage.setItem(OWNER_HASH_KEY, hash);
+}
+
+export function clearOwnerHash() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(OWNER_HASH_KEY);
 }
 
 // Storage 폴더 안의 모든 파일 경로를 재귀적으로 수집

@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Upload, FileUp, Link, CheckCircle, AlertCircle, X, FolderOpen } from "lucide-react";
-import { supabase, addMySessionId } from "@/lib/supabase";
+import { Upload, FileUp, Link, CheckCircle, AlertCircle, X, FolderOpen, Lock } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+
+type Props = {
+  ownerHash: string | null;
+  onRequestPin: () => void;
+};
 
 type UploadedFile = { name: string; done: boolean; error?: boolean };
 
@@ -102,7 +107,7 @@ async function findMissingFiles(files: File[]): Promise<string[]> {
   return missing;
 }
 
-export default function UploadSession() {
+export default function UploadSession({ ownerHash, onRequestPin }: Props) {
   const [title, setTitle] = useState("");
   const [titleEdited, setTitleEdited] = useState(false);
   const [description, setDescription] = useState("");
@@ -181,6 +186,7 @@ export default function UploadSession() {
           title: finalTitle,
           description: description.trim() || null,
           model_name: modelName,
+          owner_hash: ownerHash,
         })
         .select()
         .single();
@@ -204,7 +210,6 @@ export default function UploadSession() {
         if (uploadErr) throw new Error(`${file.name} 업로드 실패`);
       }
 
-      addMySessionId(session.id);
       setShareUrl(`${window.location.origin}/review/${session.id}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "업로드 실패");
@@ -221,20 +226,20 @@ export default function UploadSession() {
 
   if (shareUrl) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-6 p-8">
-        <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center">
-          <CheckCircle className="w-8 h-8 text-green-400" />
+      <div className="flex flex-col items-center justify-center h-full gap-6 p-8 fade-up">
+        <div className="w-20 h-20 rounded-full bg-green-500/15 flex items-center justify-center glow">
+          <CheckCircle className="w-10 h-10 text-green-400" />
         </div>
         <div className="text-center space-y-1">
-          <h2 className="text-lg font-semibold text-slate-200">업로드 완료!</h2>
-          <p className="text-sm text-slate-400">아래 링크를 친구들에게 공유하세요</p>
+          <h2 className="text-xl font-bold text-[var(--fg)]">업로드 완료! 🎉</h2>
+          <p className="text-sm text-[var(--muted)]">아래 링크를 친구들에게 공유하세요</p>
         </div>
-        <div className="glass rounded-xl p-4 flex items-center gap-3 w-full">
-          <Link className="w-4 h-4 text-purple-400 flex-shrink-0" />
-          <span className="text-sm text-slate-300 flex-1 truncate">{shareUrl}</span>
+        <div className="glass rounded-xl p-3 flex items-center gap-2 w-full">
+          <Link className="w-4 h-4 text-[var(--purple)] flex-shrink-0" />
+          <span className="text-xs text-[var(--fg)] flex-1 truncate font-mono">{shareUrl}</span>
           <button
             onClick={copyUrl}
-            className="bg-purple-600 hover:bg-purple-500 text-white text-xs px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
+            className="bg-gradient-to-br from-[var(--purple-deep)] to-[#9333ea] text-white text-xs px-4 py-2 rounded-lg transition-all whitespace-nowrap font-medium"
           >
             복사
           </button>
@@ -249,49 +254,54 @@ export default function UploadSession() {
             setProgress([]);
             setSkippedCount(0);
           }}
-          className="text-sm text-slate-500 hover:text-slate-300 transition-all"
+          className="text-sm text-[var(--muted)] hover:text-[var(--fg)] transition-all"
         >
-          새 세션 만들기
+          + 새 세션 만들기
         </button>
       </div>
     );
   }
 
+  const allGood = hasModel3 && hasMoc3 && !parseError && !tooManyMain && realMissing.length === 0;
+
   return (
-    <div className="flex flex-col h-full overflow-y-auto chat-scroll p-4 gap-4">
-      <div className="space-y-2">
-        <label className="text-xs text-slate-400">세션 이름 (모델 파일명 자동)</label>
+    <div className="flex flex-col h-full overflow-y-auto chat-scroll p-4 gap-3.5">
+      {/* PIN 안내 */}
+      {!ownerHash && (
+        <button
+          onClick={onRequestPin}
+          className="glass glass-hover rounded-xl p-3 flex items-center gap-3 text-left"
+        >
+          <div className="w-8 h-8 rounded-lg bg-[var(--purple-deep)]/30 flex items-center justify-center shrink-0">
+            <Lock className="w-4 h-4 text-[var(--purple)]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-[var(--fg)]">PIN을 설정하면 좋아요</p>
+            <p className="text-[11px] text-[var(--muted)]">설정하면 모든 기기에서 내 모델을 모아볼 수 있어요</p>
+          </div>
+          <span className="text-xs text-[var(--purple)] shrink-0">설정 →</span>
+        </button>
+      )}
+
+      <div className="space-y-1.5">
+        <label className="text-xs text-[var(--muted)] px-1">세션 이름</label>
         <input
           value={title}
-          onChange={(e) => {
-            setTitle(e.target.value);
-            setTitleEdited(true);
-          }}
+          onChange={(e) => { setTitle(e.target.value); setTitleEdited(true); }}
           placeholder="모델 파일을 올리면 자동으로 채워져요"
-          className="w-full glass rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-600 outline-none"
+          className="w-full glass rounded-xl px-4 py-3 text-sm placeholder-[var(--muted)]/60 outline-none focus:border-[var(--purple)]/50 transition-colors"
         />
       </div>
 
-      <div className="space-y-2">
-        <label className="text-xs text-slate-400">설명 (선택)</label>
+      <div className="space-y-1.5">
+        <label className="text-xs text-[var(--muted)] px-1">설명 (선택)</label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="친구들에게 확인 요청할 내용..."
           rows={2}
-          className="w-full glass rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-600 outline-none resize-none"
+          className="w-full glass rounded-xl px-4 py-3 text-sm placeholder-[var(--muted)]/60 outline-none resize-none focus:border-[var(--purple)]/50 transition-colors"
         />
-      </div>
-
-      {/* 업로드 방법 안내 */}
-      <div className="glass rounded-xl p-3 space-y-1.5">
-        <p className="text-xs font-medium text-purple-300">파일 준비 방법</p>
-        <p className="text-xs text-slate-400">
-          Cubism Editor → 파일 → 내보내기 → <span className="text-slate-300">런타임 파일 내보내기</span>
-        </p>
-        <p className="text-xs text-slate-500">
-          내보낸 폴더 전체를 아래에 드래그하거나, 폴더 선택 버튼을 사용하세요
-        </p>
       </div>
 
       {/* Drop zone */}
@@ -299,15 +309,19 @@ export default function UploadSession() {
         onDrop={onDrop}
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
-        className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all ${
-          dragging ? "border-purple-400 bg-purple-500/10" : "border-white/10 hover:border-purple-500/40"
+        className={`relative border-2 border-dashed rounded-2xl p-6 text-center transition-all ${
+          dragging ? "border-[var(--purple)] bg-[var(--purple)]/10 scale-[1.01]" : "border-white/10 hover:border-[var(--purple)]/40"
         }`}
       >
-        <FileUp className="w-7 h-7 text-slate-500 mx-auto mb-2" />
-        <p className="text-sm text-slate-400 mb-3">파일을 드래그하거나</p>
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--purple-deep)]/30 to-[var(--pink)]/20 flex items-center justify-center mx-auto mb-3">
+          <FileUp className="w-6 h-6 text-[var(--purple)]" />
+        </div>
+        <p className="text-sm text-[var(--fg)] mb-1">파일을 드래그하거나</p>
+        <p className="text-[11px] text-[var(--muted)] mb-4">
+          Cubism Editor → 내보내기 → 런타임 파일 폴더 전체
+        </p>
         <div className="flex gap-2 justify-center">
-          {/* 폴더 선택 */}
-          <label className="relative cursor-pointer bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 rounded-lg px-3 py-2 text-xs text-purple-300 flex items-center gap-1.5 transition-all">
+          <label className="relative cursor-pointer bg-gradient-to-br from-[var(--purple-deep)] to-[#9333ea] rounded-lg px-4 py-2 text-xs text-white flex items-center gap-1.5 transition-all font-medium hover:opacity-90">
             <FolderOpen className="w-3.5 h-3.5" />
             폴더 선택
             <input
@@ -319,8 +333,7 @@ export default function UploadSession() {
               className="absolute inset-0 opacity-0 cursor-pointer"
             />
           </label>
-          {/* 파일 선택 */}
-          <label className="relative cursor-pointer glass hover:bg-white/10 rounded-lg px-3 py-2 text-xs text-slate-400 flex items-center gap-1.5 transition-all">
+          <label className="relative cursor-pointer glass glass-hover rounded-lg px-4 py-2 text-xs text-[var(--muted)] flex items-center gap-1.5 transition-all">
             <Upload className="w-3.5 h-3.5" />
             파일 선택
             <input
@@ -336,22 +349,22 @@ export default function UploadSession() {
 
       {/* 필수 파일 체크 */}
       {files.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <span className={`text-xs px-2 py-1 rounded-full ${hasMoc3 ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
+        <div className="space-y-2 fade-up">
+          <div className="flex gap-2 flex-wrap">
+            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${hasMoc3 ? "bg-green-500/15 text-green-400" : "bg-red-500/15 text-red-400"}`}>
               {hasMoc3 ? "✓" : "✗"} .moc3
             </span>
-            <span className={`text-xs px-2 py-1 rounded-full ${hasModel3 ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
+            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${hasModel3 ? "bg-green-500/15 text-green-400" : "bg-red-500/15 text-red-400"}`}>
               {hasModel3 ? "✓" : "✗"} .model3.json
             </span>
-            <span className="text-xs px-2 py-1 rounded-full bg-slate-700/50 text-slate-400">
+            <span className="text-xs px-2.5 py-1 rounded-full bg-white/5 text-[var(--muted)]">
               총 {files.length}개
             </span>
           </div>
 
           {skippedCount > 0 && (
-            <p className="text-[11px] text-slate-500">
-              💡 런타임에 불필요한 파일 {skippedCount}개는 자동 제외됐어요 (cmo3, psd 등)
+            <p className="text-[11px] text-[var(--muted)] px-1">
+              💡 불필요한 파일 {skippedCount}개는 자동 제외됐어요 (cmo3, psd 등)
             </p>
           )}
 
@@ -361,17 +374,17 @@ export default function UploadSession() {
               const p = progress[i];
               return (
                 <div key={path} className="flex items-center gap-2 glass rounded-lg px-3 py-1.5">
-                  <span className="text-xs text-slate-400 flex-1 truncate">{path}</span>
-                  <span className="text-xs text-slate-600 flex-shrink-0">
+                  <span className="text-xs text-[var(--muted)] flex-1 truncate">{path}</span>
+                  <span className="text-[10px] text-[var(--muted)]/60 flex-shrink-0 font-mono">
                     {(f.size / 1024).toFixed(0)}KB
                   </span>
                   {p ? (
                     p.error ? <AlertCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" /> :
                     p.done ? <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" /> :
-                    <div className="w-3.5 h-3.5 rounded-full border-2 border-purple-500 border-t-transparent animate-spin flex-shrink-0" />
+                    <div className="w-3.5 h-3.5 rounded-full border-2 border-[var(--purple)] border-t-transparent animate-spin flex-shrink-0" />
                   ) : (
                     <button onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))} className="flex-shrink-0">
-                      <X className="w-3.5 h-3.5 text-slate-600 hover:text-red-400" />
+                      <X className="w-3.5 h-3.5 text-[var(--muted)]/60 hover:text-red-400" />
                     </button>
                   )}
                 </div>
@@ -392,7 +405,7 @@ export default function UploadSession() {
         </div>
       )}
 
-      {/* moc3 / model3.json 중복 경고 */}
+      {/* 중복 경고 */}
       {tooManyMain && (
         <div className="rounded-xl px-4 py-3 text-sm text-red-400 bg-red-500/10 border border-red-500/30 space-y-1">
           <div className="flex gap-2 items-center font-medium">
@@ -402,12 +415,12 @@ export default function UploadSession() {
           <p className="text-xs text-red-400/70">
             {moc3Count > 1 && `.moc3 ${moc3Count}개 `}
             {model3Count > 1 && `.model3.json ${model3Count}개 `}
-            — 한 모델에는 각각 1개만 있어야 해요. 다른 모델 폴더가 섞였는지 확인해주세요.
+            — 한 모델에는 각각 1개만 있어야 해요.
           </p>
         </div>
       )}
 
-      {/* 참조 파일 누락 경고 */}
+      {/* 누락 경고 */}
       {realMissing.length > 0 && (
         <div className="rounded-xl px-4 py-3 text-sm text-amber-400 bg-amber-500/10 border border-amber-500/30 space-y-1.5">
           <div className="flex gap-2 items-center font-medium">
@@ -415,7 +428,7 @@ export default function UploadSession() {
             빠진 파일이 {realMissing.length}개 있어요
           </div>
           <p className="text-xs text-amber-400/70">
-            이대로 올리면 모델이 깨지거나 안 보일 수 있어요. 폴더 전체를 선택했는지 확인하세요.
+            이대로 올리면 모델이 깨질 수 있어요. 폴더 전체를 선택했는지 확인하세요.
           </p>
           <div className="space-y-0.5 max-h-24 overflow-y-auto chat-scroll">
             {realMissing.map((m) => (
@@ -425,9 +438,9 @@ export default function UploadSession() {
         </div>
       )}
 
-      {/* 모든 파일 정상 */}
-      {hasModel3 && hasMoc3 && !parseError && !tooManyMain && realMissing.length === 0 && files.length > 0 && (
-        <div className="rounded-xl px-4 py-2.5 text-sm text-green-400 bg-green-500/10 border border-green-500/30 flex gap-2 items-center">
+      {/* 정상 */}
+      {allGood && files.length > 0 && (
+        <div className="rounded-xl px-4 py-2.5 text-sm text-green-400 bg-green-500/10 border border-green-500/30 flex gap-2 items-center fade-up">
           <CheckCircle className="w-4 h-4 flex-shrink-0" />
           필요한 파일이 모두 준비됐어요
         </div>
@@ -443,12 +456,12 @@ export default function UploadSession() {
       <button
         onClick={upload}
         disabled={uploading || !hasModel3 || !hasMoc3 || parseError || tooManyMain}
-        className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 text-sm font-medium transition-all flex items-center justify-center gap-2"
+        className="w-full bg-gradient-to-br from-[var(--purple-deep)] to-[#9333ea] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3.5 text-sm font-semibold text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-900/30 mt-1"
       >
         {uploading ? (
           <><div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" /> 업로드 중...</>
         ) : (
-          <><Upload className="w-4 h-4" /> 업로드 & 공유 링크 생성</>
+          <><Upload className="w-4 h-4" /> 업로드 &amp; 공유 링크 생성</>
         )}
       </button>
     </div>
