@@ -3765,6 +3765,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const pid      = entry[1];
                     const workflow = entry[2]; // 전체 워크플로우 JSON
                     if (!pid) continue;
+                    if (_comfyJobMeta[pid]?.done) continue; // 이미 완료된 job은 유령 재등록 방지
                     if (!_comfyJobs[pid]) {
                         // 새로고침 복구: 저장된 메타가 있으면 _multi/seed/batch/inline 되살림
                         const m = _comfyJobMeta[pid] || {};
@@ -4530,6 +4531,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     });
                 }
             } catch (e) {}
+            _comfyJobMeta[pid] = { ...(_comfyJobMeta[pid] || {}), done: true }; // 유령 재등록 방지 마킹
             delete _comfyJobs[pid];
             _comfyQueueCount = Math.max(0, _comfyQueueCount - 1);
             _comfyBatchDone++;
@@ -5254,9 +5256,29 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         function multiGenClearAll() {
             if (!_mgImages.length) return;
-            if (!confirm('저장된 미리보기를 모두 지울까요? (갤러리에 저장된 재출력본은 그대로 유지됩니다)')) return;
-            _mgImages = []; _mgSelected.clear(); _mgSave(); _mgRenderGrid(); _mgUpdateSelCount();
-            const st = document.getElementById('mg-status'); if (st) st.textContent = '';
+            _uiConfirm('저장된 미리보기를 모두 지울까요?', '갤러리에 저장된 재출력본은 그대로 유지됩니다.', () => {
+                _mgImages = []; _mgSelected.clear(); _mgSave(); _mgRenderGrid(); _mgUpdateSelCount();
+                const st = document.getElementById('mg-status'); if (st) st.textContent = '';
+            });
+        }
+
+        // 글래스 UI 스타일 확인 다이얼로그 (네이티브 confirm() 대체)
+        function _uiConfirm(title, desc, onOk, onCancel) {
+            const ov = document.createElement('div');
+            ov.style.cssText = 'position:fixed;inset:0;background:var(--overlay-bg);z-index:99999;display:flex;align-items:center;justify-content:center;';
+            ov.innerHTML = `<div style="background:var(--glass-bg);backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);border:1px solid var(--glass-border);border-radius:18px;padding:28px 28px 20px;max-width:360px;width:90%;box-shadow:0 16px 48px rgba(0,0,0,0.5);">
+                <div style="font-size:16px;font-weight:700;color:var(--text-main);margin-bottom:8px;">${title}</div>
+                ${desc ? `<div style="font-size:13px;color:var(--text-dim);margin-bottom:20px;">${desc}</div>` : '<div style="margin-bottom:20px;"></div>'}
+                <div style="display:flex;gap:10px;justify-content:flex-end;">
+                    <button class="action-btn" id="_uicf-cancel" style="min-width:72px;">취소</button>
+                    <button class="btn-add-db" id="_uicf-ok" style="border:none;min-width:72px;background:#ef4444;">확인</button>
+                </div>
+            </div>`;
+            document.body.appendChild(ov);
+            const close = () => document.body.removeChild(ov);
+            ov.querySelector('#_uicf-cancel').onclick = () => { close(); if (onCancel) onCancel(); };
+            ov.querySelector('#_uicf-ok').onclick    = () => { close(); if (onOk) onOk(); };
+            ov.addEventListener('click', e => { if (e.target === ov) { close(); if (onCancel) onCancel(); } });
         }
 
         // 아직 끝나지 않은 미리보기(_multi) 작업 취소 — 재출력이 대기열 뒤에서 막히지 않게
