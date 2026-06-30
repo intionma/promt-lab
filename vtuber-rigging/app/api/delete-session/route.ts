@@ -38,8 +38,10 @@ export async function POST(request: Request) {
 
   const { sessionId, password } = body;
 
-  // 비밀번호 검증 (서버 환경변수와 비교 — 브라우저 코드엔 없음)
-  if (!password || password !== process.env.DELETE_PASSWORD) {
+  // 비밀번호 검증 (서버 전용 — 브라우저 코드엔 노출 안 됨).
+  // Vercel 환경변수 DELETE_PASSWORD 가 우선, 미설정 시 기본값으로 폴백.
+  const expected = process.env.DELETE_PASSWORD || "12290505";
+  if (!password || password !== expected) {
     return Response.json({ error: "비밀번호가 틀렸어요" }, { status: 403 });
   }
 

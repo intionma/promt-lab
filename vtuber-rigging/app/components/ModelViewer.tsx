@@ -3,12 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase, listAllStorageFiles } from "@/lib/supabase";
 
-type Param = { id: string; value: number; min: number; max: number };
+export type Param = { id: string; value: number; min: number; max: number };
 type ViewMode = "fullbody" | "upperbody" | "free";
+
+// 부모(리뷰 페이지)가 파라미터를 제어하기 위한 핸들 (controlRef prop 으로 주입)
+export interface ViewerHandle {
+  setParam: (id: string, value: number) => void;
+  releaseParam: (id: string) => void;
+  resetAll: () => void;
+}
 
 type Props = {
   sessionId: string;
-  onParamChange?: (paramId: string, value: number) => void;
+  onParamsLoaded?: (params: Param[]) => void;
+  controlRef?: { current: ViewerHandle | null };
 };
 
 const VIEW_LABELS: Record<ViewMode, string> = {
@@ -17,7 +25,7 @@ const VIEW_LABELS: Record<ViewMode, string> = {
   free: "자유 시점",
 };
 
-export default function ModelViewer({ sessionId, onParamChange }: Props) {
+export default function ModelViewer({ sessionId, onParamsLoaded, controlRef }: Props) {
   const canvasRef   = useRef<HTMLCanvasElement>(null);
   const appRef      = useRef<unknown>(null);
   const modelRef    = useRef<unknown>(null);
@@ -50,11 +58,20 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
   const lastPtrRef        = useRef({ x: 0, y: 0 });
 
   const [viewMode,     setViewMode]     = useState<ViewMode>("fullbody");
-  const [params,       setParams]       = useState<Param[]>([]);
-  const [overrideIds,  setOverrideIds]  = useState<Set<string>>(new Set());
   const [faceTrack,    setFaceTrack]    = useState(true);
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState<string | null>(null);
+
+  // 부모가 호출하는 파라미터 제어 (overridesRef = beforeModelUpdate 훅이 매 프레임 적용)
+  useEffect(() => {
+    if (!controlRef) return;
+    controlRef.current = {
+      setParam: (id, value) => { overridesRef.current.set(id, value); },
+      releaseParam: (id)    => { overridesRef.current.delete(id); },
+      resetAll:    ()       => { overridesRef.current.clear(); },
+    };
+    return () => { if (controlRef) controlRef.current = null; };
+  }, [controlRef]);
 
   // ── 시점 전환 ──────────────────────────────────────────────────────────────
   function switchView(mode: ViewMode) {
@@ -214,7 +231,7 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
             });
           }
           availIdsRef.current = ids;
-          setParams(paramList);
+          onParamsLoaded?.(paramList);
         } catch { /* 파라미터 없어도 정상 표시 */ }
 
         // ── 이벤트 핸들러 ──────────────────────────────────────────────────
@@ -372,37 +389,6 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
     };
   }, [sessionId]);
 
-  function setParam(paramId: string, value: number) {
-    if (!modelRef.current) return;
-    // 오버라이드에 저장 → ticker 가 매 프레임 재적용해 값이 유지됨
-    overridesRef.current.set(paramId, value);
-    setParams((prev) => prev.map((p) => (p.id === paramId ? { ...p, value } : p)));
-    setOverrideIds((prev) => {
-      if (prev.has(paramId)) return prev;
-      const next = new Set(prev);
-      next.add(paramId);
-      return next;
-    });
-    onParamChange?.(paramId, value);
-  }
-
-  // 단일 파라미터 자동복귀(오버라이드 해제)
-  function releaseParam(paramId: string) {
-    overridesRef.current.delete(paramId);
-    setOverrideIds((prev) => {
-      if (!prev.has(paramId)) return prev;
-      const next = new Set(prev);
-      next.delete(paramId);
-      return next;
-    });
-  }
-
-  // 모든 오버라이드 해제 → 얼굴추적 자동 제어로 복귀
-  function resetAllParams() {
-    overridesRef.current.clear();
-    setOverrideIds(new Set());
-  }
-
   // ── 렌더 ────────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full gap-2">
@@ -457,8 +443,8 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
         )}
       </div>
 
-      {/* 캔버스 + 파라미터 */}
-      <div className="flex flex-col md:flex-row flex-1 gap-3 min-h-0 px-3 pb-3">
+      {/* 캔버스 */}
+      <div className="flex flex-1 min-h-0 px-3 pb-3">
 
         {/* 캔버스 영역 */}
         <div className="relative flex-1 min-h-[40vh] glass rounded-xl overflow-hidden">
@@ -491,67 +477,6 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
             }`}
           />
         </div>
-
-        {/* 파라미터 슬라이더 */}
-        {params.length > 0 && (
-          <div className="w-full md:w-56 h-48 md:h-auto flex flex-col glass rounded-2xl overflow-hidden flex-shrink-0">
-            <div className="px-3 py-2.5 border-b border-white/5 flex items-center justify-between gap-2">
-              <p className="text-xs font-semibold text-[var(--fg)]">
-                파라미터 조작
-                <span className="text-[10px] text-[var(--muted)] ml-1">{params.length}개</span>
-              </p>
-              {overrideIds.size > 0 && (
-                <button
-                  onClick={resetAllParams}
-                  className="px-2 py-0.5 rounded-md text-[10px] glass glass-hover text-[var(--muted)]"
-                  title="모든 고정값 해제 → 얼굴추적 자동 제어로 복귀"
-                >
-                  초기화 {overrideIds.size}
-                </button>
-              )}
-            </div>
-            <div className="flex-1 overflow-y-auto chat-scroll p-2.5 space-y-2.5">
-              {params.map((p) => {
-                const pct      = ((p.value - p.min) / (p.max - p.min)) * 100;
-                const isFixed  = overrideIds.has(p.id);
-                return (
-                  <div key={p.id} className="space-y-0.5">
-                    <div className="flex justify-between items-center">
-                      <button
-                        onClick={() => isFixed && releaseParam(p.id)}
-                        className="text-[10px] text-[var(--muted)] truncate max-w-[120px] flex items-center gap-1 text-left"
-                        title={isFixed ? `${p.id} — 클릭하면 고정 해제` : p.id}
-                      >
-                        {isFixed && <span className="w-1.5 h-1.5 rounded-full bg-pink-400 flex-shrink-0" />}
-                        {p.id.replace("Param", "")}
-                      </button>
-                      <span className="text-[10px] text-[var(--purple)] font-mono">
-                        {p.value.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="relative h-4 flex items-center">
-                      <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-purple-600 to-pink-500 rounded-full"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <input
-                        type="range"
-                        min={p.min}
-                        max={p.max}
-                        step={(p.max - p.min) / 200}
-                        value={p.value}
-                        onChange={(e) => setParam(p.id, parseFloat(e.target.value))}
-                        className="absolute inset-0 opacity-0 cursor-pointer w-full"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
