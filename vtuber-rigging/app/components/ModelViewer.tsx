@@ -24,6 +24,7 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
 
   // 원본 크기 (scale 전)
   const origWRef = useRef(0);
+  const origHRef = useRef(0);
 
   // 전신 기준 transform
   const baseRef = useRef({ x: 0, y: 0, scale: 1 });
@@ -76,11 +77,16 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
       mdl.y = base.y;
 
     } else if (mode === "upperbody") {
-      // 상반신: 전신 대비 ~1.85× 확대 후 상단 고정 → 얼굴·어깨 영역만 표시
-      const upScale = base.scale * 1.85;
+      // 상반신: 머리~어깨(본문 상단 약 45%)가 화면 세로를 채우도록 확대.
+      // 머리 위 약간의 여백을 두어 얼굴이 잘 보이는 바스트 샷 각도.
+      const H      = app.renderer.height;
+      const W      = app.renderer.width;
+      const origH  = origHRef.current || (H / base.scale);
+      const SHOW   = 0.45;                         // 본문 상단 45% = 얼굴+어깨
+      const upScale = (H * 0.92) / (origH * SHOW);
       mdl.scale.set(upScale);
-      mdl.x = (app.renderer.width - origW * upScale) / 2;
-      mdl.y = base.y;  // 상단 여백 유지 → 하단이 화면 밖으로
+      mdl.x = (W - origW * upScale) / 2;
+      mdl.y = H * 0.04;  // 머리 위 여백 → 아래(하반신)는 화면 밖
 
     } else {
       // 자유 시점: 전신 위치에서 시작
@@ -91,6 +97,11 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
     }
 
     targetFaceRef.current  = { x: 0, y: 0 };
+  }
+
+  // 얼굴 정면 복귀 (터치로 돌려둔 각도 초기화)
+  function centerFace() {
+    targetFaceRef.current = { x: 0, y: 0 };
   }
 
   // 얼굴 반응(터치/마우스 추적) 토글
@@ -166,6 +177,7 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
         const origW  = model.width;
         const origH  = model.height;
         origWRef.current = origW;
+        origHRef.current = origH;
 
         const scale  = Math.min(
           (app.renderer.width  * 0.8) / origW,
@@ -213,14 +225,18 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
             y: -(((e.clientY - rect.top)  / rect.height) * 2 - 1),
           };
         }
-        function onFaceLeave() {
-          targetFaceRef.current = { x: 0, y: 0 };
+        function onFaceLeave(e: PointerEvent) {
+          // 마우스 hover 가 캔버스를 벗어나면 정면 복귀.
+          // 터치/펜은 손을 떼도 마지막 각도를 '유지'(탭으로 각도 테스트 가능)
+          if (e.pointerType === "mouse") targetFaceRef.current = { x: 0, y: 0 };
         }
 
-        // 자유 시점: 드래그 이동 / 전신·상반신: 탭하면 그쪽을 바라봄
+        // 자유 시점: 드래그 이동 / 전신·상반신: 탭·드래그로 그쪽을 바라봄
         function onPtrDown(e: PointerEvent) {
           if (viewModeRef.current !== "free") {
-            onFaceMove(e);  // 탭/터치 즉시 반응 (모바일 대응)
+            // 모바일: 포인터 캡처로 손가락이 살짝 벗어나도 계속 추종
+            try { canvas.setPointerCapture(e.pointerId); } catch { /* noop */ }
+            onFaceMove(e);  // 탭/터치 즉시 반응
             return;
           }
           canvas.setPointerCapture(e.pointerId);
@@ -261,10 +277,8 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
             isDraggingRef.current    = false;
             lastPinchDistRef.current = 0;
           }
-          // 터치는 hover 가 없으므로 손을 떼면 중앙으로 복귀
-          if (e.pointerType === "touch" && viewModeRef.current !== "free") {
-            targetFaceRef.current = { x: 0, y: 0 };
-          }
+          try { canvas.releasePointerCapture(e.pointerId); } catch { /* noop */ }
+          // 터치/펜은 손을 떼도 마지막 각도를 유지 → '정면' 버튼으로 복귀
         }
 
         // 마우스 휠 줌
@@ -308,11 +322,11 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
             mdl.x = base.x + free.offsetX;
             mdl.y = base.y + free.offsetY;
           } else {
-            // 얼굴 추적 부드러운 보간 (lerp)
+            // 얼굴 추적 보간 (lerp) — 손가락 움직임을 빠르게 추종
             const cur = currentFaceRef.current;
             const tgt = targetFaceRef.current;
-            cur.x += (tgt.x - cur.x) * 0.1;
-            cur.y += (tgt.y - cur.y) * 0.1;
+            cur.x += (tgt.x - cur.x) * 0.3;
+            cur.y += (tgt.y - cur.y) * 0.3;
           }
 
           // ── 파라미터 적용 (모든 시점 공통) ─────────────────────────────
@@ -425,18 +439,29 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
             초기화
           </button>
         ) : (
-          <button
-            onClick={toggleFaceTrack}
-            className={`ml-auto px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 ${
-              faceTrack
-                ? "bg-[var(--purple)]/20 text-[var(--purple)]"
-                : "glass glass-hover text-[var(--muted)]"
-            }`}
-            title="터치·마우스에 얼굴이 반응하는 기능을 켜고 끕니다"
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${faceTrack ? "bg-[var(--purple)]" : "bg-[var(--muted)]/40"}`} />
-            얼굴 반응 {faceTrack ? "ON" : "OFF"}
-          </button>
+          <div className="ml-auto flex items-center gap-1.5">
+            {faceTrack && (
+              <button
+                onClick={centerFace}
+                className="px-2.5 py-1 rounded-lg text-[10px] glass glass-hover text-[var(--muted)]"
+                title="터치로 돌려둔 얼굴 각도를 정면으로 되돌립니다"
+              >
+                정면
+              </button>
+            )}
+            <button
+              onClick={toggleFaceTrack}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 ${
+                faceTrack
+                  ? "bg-[var(--purple)]/20 text-[var(--purple)]"
+                  : "glass glass-hover text-[var(--muted)]"
+              }`}
+              title="터치·마우스에 얼굴이 반응하는 기능을 켜고 끕니다"
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${faceTrack ? "bg-[var(--purple)]" : "bg-[var(--muted)]/40"}`} />
+              얼굴 반응 {faceTrack ? "ON" : "OFF"}
+            </button>
+          </div>
         )}
       </div>
 
@@ -462,7 +487,7 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
                 {viewMode === "free"
                   ? "드래그 이동 · 핀치/휠 확대축소"
                   : faceTrack
-                    ? "터치·마우스로 얼굴이 따라봐요"
+                    ? "터치·드래그로 각도 조절 · 손 떼면 유지 · 정면 버튼으로 복귀"
                     : "얼굴 반응 꺼짐 · 슬라이더로 직접 조작"}
               </span>
             </div>
