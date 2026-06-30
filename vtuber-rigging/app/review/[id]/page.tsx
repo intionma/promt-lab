@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { ArrowLeft, MessageSquare, Sliders, Clapperboard, Layers, EyeOff, Eye } from "lucide-react";
 import Link from "next/link";
 import { supabase, type Session, type MeshGroup, type MeshConfig } from "@/lib/supabase";
+import { getSilhouettePref, setSilhouettePref, DEFAULT_SILHOUETTE_COLOR } from "@/lib/prefs";
 import FeedbackPanel from "@/app/components/FeedbackPanel";
 import ParamPanel from "@/app/components/ParamPanel";
 import ProductionPanel from "@/app/components/ProductionPanel";
@@ -58,8 +59,9 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [autoIdle, setAutoIdle] = useState(true);
   const [bgKey, setBgKey] = useState("transparent");
   // 실루엣 모드(회사 등에서 캐릭터 아트 대신 단색 형체만)
+  // SSR 안전: 초기엔 false, 마운트 후 저장된 사전 설정으로 동기화(모델 적용은 ModelViewer가 직접)
   const [silhouette, setSilhouette] = useState(false);
-  const [silhouetteColor, setSilhouetteColor] = useState(0x6b7280);
+  const [silhouetteColor, setSilhouetteColor] = useState(DEFAULT_SILHOUETTE_COLOR);
   // 메쉬 그룹/숨김 (id 기준, 모두에게 공유 저장)
   const [meshGroups, setMeshGroups] = useState<MeshGroup[]>([]);
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
@@ -210,10 +212,16 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     setParamList(defaultParams.current.map((p) => ({ ...p })));
   }
 
-  // 실루엣 토글 (헤더 빠른 버튼·연출 탭 공용)
+  // 실루엣 토글 (헤더 빠른 버튼·연출 탭 공용) — 사전 설정에도 저장
   function toggleSilhouette(on: boolean) {
     setSilhouette(on);
     viewerControl.current?.setSilhouette(on, silhouetteColor);
+    setSilhouettePref(on, silhouetteColor);
+  }
+  function changeSilhouetteColor(color: number) {
+    setSilhouetteColor(color);
+    viewerControl.current?.setSilhouette(silhouette, color);
+    setSilhouettePref(silhouette, color);
   }
 
   // 코멘트에 첨부된 상태로 복원
@@ -272,6 +280,14 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     }
     load();
   }, [id]);
+
+  // 저장된 실루엣 사전 설정으로 헤더/연출 상태 동기화 (모델 적용은 ModelViewer가 직접)
+  useEffect(() => {
+    const p = getSilhouettePref();
+    if (p.on) setSilhouette(true);
+    setSilhouetteColor(p.color);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // PC(마우스) 환경 감지 — 마운트 후 1회. 감지되면 '모델 클릭으로 선택' 기본 ON
   // (SSR 안전: useState/useRef 초기값은 서버에서 false 로 고정되므로 마운트 후 감지)
@@ -430,7 +446,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               silhouette={silhouette}
               silhouetteColor={silhouetteColor}
               onToggleSilhouette={toggleSilhouette}
-              onSetSilhouetteColor={(c) => { setSilhouetteColor(c); viewerControl.current?.setSilhouette(silhouette, c); }}
+              onSetSilhouetteColor={changeSilhouetteColor}
               onPlayMotion={(g, i) => viewerControl.current?.playMotion(g, i)}
               onPlayExpression={(n) => viewerControl.current?.playExpression(n)}
               onStop={() => viewerControl.current?.stopMotion()}

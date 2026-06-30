@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase, listAllStorageFiles } from "@/lib/supabase";
+import { getSilhouettePref } from "@/lib/prefs";
 
 export type Param = { id: string; value: number; min: number; max: number };
 export type ViewMode = "fullbody" | "upperbody" | "free";
@@ -170,9 +171,10 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const drawOpacitiesRef = useRef<any>(null);
   // 실루엣 모드(회사 등에서 캐릭터 아트 대신 단색 형체만 보이게)
+  // 저장된 사전 설정으로 초기화 → 모델 첫 렌더부터 실루엣 적용(그림 노출 0프레임)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pixiRef         = useRef<any>(null);
-  const silhouetteRef   = useRef<{ on: boolean; color: number }>({ on: false, color: 0x6b7280 });
+  const silhouetteRef   = useRef<{ on: boolean; color: number }>(getSilhouettePref());
   // 메쉬 선택 모드 — 켜면 캔버스 클릭으로 그 자리 ArtMesh 선택
   const meshSelectRef   = useRef(false);
   // 같은 지점 반복 클릭 시 겹친 메쉬 순환용

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Upload, Sliders, GitBranch, Boxes, HardDrive } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Upload, Sliders, GitBranch, Boxes, HardDrive, EyeOff, Eye } from "lucide-react";
 import dynamic from "next/dynamic";
+import { getSilhouettePref, setSilhouettePref } from "@/lib/prefs";
 import UploadSession from "./components/UploadSession";
 import MyModels from "./components/MyModels";
 import ParamCalculator from "./components/ParamCalculator";
@@ -30,6 +31,14 @@ const TABS: { id: Tab; label: string; icon: typeof Upload }[] = [
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("upload");
+  // 실루엣 사전 설정 — 리뷰에 들어가기 전에 미리 켜두면, 모델이 처음부터 실루엣으로 열림
+  const [silhouette, setSilhouette] = useState(false);
+  useEffect(() => { setSilhouette(getSilhouettePref().on); }, []);
+  function toggleSilhouette() {
+    const next = !silhouette;
+    setSilhouette(next);
+    setSilhouettePref(next, getSilhouettePref().color);
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center py-4 sm:py-6 px-3 sm:px-4">
@@ -58,6 +67,21 @@ export default function Home() {
               업데이트 {APP_UPDATED_AT}
             </p>
           </div>
+          {/* 실루엣 사전 설정 — 리뷰 들어가기 전에 미리 켜두면, 열 때부터 실루엣으로 보임 */}
+          <button
+            onClick={toggleSilhouette}
+            title={silhouette
+              ? "실루엣 켜짐 — 모든 리뷰가 그림 없이 실루엣으로 열립니다 (끄려면 클릭)"
+              : "리뷰를 열 때 처음부터 실루엣(단색 형체)으로 보이게 — 회사 등에서 미리 켜두세요"}
+            className={`flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl shrink-0 transition-all ${
+              silhouette
+                ? "bg-[var(--purple)] text-white shadow-lg shadow-[var(--purple)]/30"
+                : "glass glass-hover text-[var(--muted)]"
+            }`}
+          >
+            {silhouette ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            <span className="text-[8px] font-semibold leading-none">{silhouette ? "실루엣 ON" : "실루엣"}</span>
+          </button>
         </header>
 
         {/* Tabs */}

@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { checkAdminPassword } from "@/lib/auth";
 
 function adminClient() {
   return createClient(
@@ -49,8 +50,7 @@ export async function POST(request: Request) {
   try { body = await request.json(); } catch { return Response.json({ error: "잘못된 요청" }, { status: 400 }); }
 
   const { folder, title, password } = body;
-  const expected = process.env.DELETE_PASSWORD || "12290505";
-  if (!password || password !== expected) return Response.json({ error: "비밀번호가 틀렸어요" }, { status: 403 });
+  if (!checkAdminPassword(password)) return Response.json({ error: "비밀번호가 틀렸어요" }, { status: 403 });
   if (!folder) return Response.json({ error: "폴더가 없어요" }, { status: 400 });
 
   try {
