@@ -204,6 +204,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
   }
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState<string | null>(null);
+  const [errorDetail,  setErrorDetail]  = useState<string | null>(null); // 실제 기술적 원인(진단용)
 
   // 자동 깜빡임/호흡/아이들모션 on/off
   function applyAutoIdle(on: boolean) {
@@ -466,6 +467,37 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
         const { data: urlData } = supabase.storage.from("models").getPublicUrl(model3Path);
         const modelUrl = urlData.publicUrl;
 
+        // ── 사전 점검: model3.json 이 참조하는 파일이 실제 저장소에 다 있는지 ──
+        // PC 는 캐시로 넘어가도 모바일은 새로 받으며 누락 파일에서 404 → 로드 실패.
+        // 기기와 무관하게 "무엇이 빠졌는지"를 정확히 안내하기 위함.
+        try {
+          const res0 = await fetch(modelUrl, { cache: "no-store" });
+          if (res0.ok) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const fr = ((await res0.json()) as any)?.FileReferences ?? {};
+            const refs: string[] = [];
+            if (fr.Moc) refs.push(fr.Moc);
+            if (Array.isArray(fr.Textures)) refs.push(...fr.Textures);
+            if (fr.Physics) refs.push(fr.Physics);
+            if (fr.Pose) refs.push(fr.Pose);
+            if (fr.DisplayInfo) refs.push(fr.DisplayInfo);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            if (Array.isArray(fr.Expressions)) fr.Expressions.forEach((e: any) => { if (e?.File) refs.push(e.File); });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            if (fr.Motions) for (const g of Object.values(fr.Motions) as any[]) if (Array.isArray(g)) g.forEach((m: any) => { if (m?.File) refs.push(m.File); });
+
+            const baseDir = model3Path.includes("/") ? model3Path.slice(0, model3Path.lastIndexOf("/")) : "";
+            const have = new Set(allFiles);
+            const norm = (r: string) => (baseDir ? baseDir + "/" : "") + r.replace(/^\.?\//, "");
+            // 핵심 파일(moc3·텍스처)만 빠져도 렌더 불가 → 명확히 차단
+            const criticalMissing = refs.filter((r) => /\.moc3$|\.png$|\.jpe?g$/i.test(r) && !have.has(norm(r)));
+            if (criticalMissing.length) throw new Error("MISSING_FILES::" + criticalMissing.join(", "));
+          }
+        } catch (e) {
+          if (e instanceof Error && e.message.startsWith("MISSING_FILES::")) throw e;
+          // 점검 자체(네트워크 등) 실패는 무시하고 정상 로드 시도
+        }
+
         const PIXI = await import("pixi.js");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (window as any).PIXI = PIXI;
@@ -473,11 +505,14 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
 
         if (destroyed || !canvasRef.current) return;
 
+        // 모바일은 메모리/GPU 한도가 낮음 → 안티앨리어싱을 꺼 메모리를 절약.
+        // (해상도는 기본 1 유지가 모바일 메모리에 안전)
+        const isMobile = typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
         const app = new PIXI.Application({
           view: canvasRef.current,
           backgroundAlpha: 0,
           resizeTo: canvasRef.current.parentElement!,
-          antialias: true,
+          antialias: !isMobile,
         });
         appRef.current = app;
 
@@ -830,12 +865,19 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
         if (!destroyed) {
           const raw = err instanceof Error ? err.message : String(err);
           let msg = raw;
-          if (raw.includes("model3.json"))             msg = "model3.json 파일을 찾을 수 없어요. 업로드가 제대로 됐는지 확인해주세요.";
-          else if (/texture|\.png|image/i.test(raw))   msg = "텍스처(이미지) 파일을 불러오지 못했어요. 텍스처 파일이 빠졌을 수 있어요.";
-          else if (/moc/i.test(raw))                   msg = "moc3 파일을 불러오지 못했어요. 파일이 손상됐거나 빠졌을 수 있어요.";
+          let detail: string | null = raw; // 기본적으로 실제 원인을 함께 노출(특히 모바일 진단)
+          if (raw.startsWith("MISSING_FILES::")) {
+            msg = "이 모델은 일부 핵심 파일이 저장소에 없어요. 업로드가 도중에 실패한 것 같아요. 다시 업로드하면 해결됩니다. (PC에선 캐시로 보이지만 모바일은 새로 받으며 실패해요)";
+            detail = "누락된 파일: " + raw.slice("MISSING_FILES::".length);
+          }
+          else if (raw.includes("model3.json"))         msg = "model3.json 파일을 찾을 수 없어요. 업로드가 제대로 됐는지 확인해주세요.";
+          else if (/texture|\.png|image/i.test(raw))    msg = "텍스처(이미지) 파일을 불러오지 못했어요. 텍스처가 빠졌거나, 모바일 GPU 한도를 넘는 큰 텍스처일 수 있어요.";
+          else if (/moc/i.test(raw))                    msg = "moc3 파일을 불러오지 못했어요. 파일이 손상됐거나 빠졌을 수 있어요.";
+          else if (/context|webgl|gpu|memory|size/i.test(raw)) msg = "모바일 그래픽(WebGL)에서 모델을 그리지 못했어요. 텍스처가 너무 크거나 메모리가 부족할 수 있어요.";
           else if (/fetch|network|404|load/i.test(raw)) msg = "모델 파일을 불러오지 못했어요. 일부 파일이 누락됐거나 만료됐을 수 있어요.";
           else                                          msg = "모델을 불러오지 못했어요. 파일이 올바른지 확인해주세요.";
           setError(msg);
+          setErrorDetail(detail);
           setLoading(false);
         }
       }
@@ -940,8 +982,17 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
             </div>
           )}
           {error && (
-            <div className="absolute inset-0 flex items-center justify-center z-10 p-6">
-              <p className="text-sm text-red-400 text-center">{error}</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-6 gap-3">
+              <p className="text-sm text-red-400 text-center max-w-md">{error}</p>
+              {errorDetail && (
+                <p className="text-[10px] text-[var(--muted)]/70 text-center font-mono break-all max-w-md leading-relaxed">{errorDetail}</p>
+              )}
+              <button
+                onClick={() => { if (typeof window !== "undefined") window.location.reload(); }}
+                className="mt-1 px-4 py-1.5 rounded-lg bg-[var(--purple)]/20 text-[var(--purple)] text-xs font-medium hover:bg-[var(--purple)]/30"
+              >
+                다시 시도
+              </button>
             </div>
           )}
           {!loading && !error && (
