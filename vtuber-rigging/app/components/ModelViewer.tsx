@@ -33,6 +33,7 @@ export interface ViewerHandle {
   stopMotion: () => void;
   setAutoIdle: (on: boolean) => void;
   setBackground: (key: string) => void;
+  setBackgroundImage: (url: string) => void;
   getState: () => ViewerState;
   applyState: (s: ViewerState) => void;
   screenshot: () => void;
@@ -50,14 +51,78 @@ type Props = {
   controlRef?: { current: ViewerHandle | null };
 };
 
-// 배경 옵션 (캔버스 컨테이너 CSS 배경)
-export const BG_OPTIONS: { key: string; label: string; css: string }[] = [
+// 배경 옵션 (캔버스 컨테이너 CSS 배경 + 스크린샷 합성용 draw)
+export type BgOption = {
+  key: string;
+  label: string;
+  css: string;
+  draw?: (ctx: CanvasRenderingContext2D, W: number, H: number) => void;
+};
+
+// 세로 그라데이션 헬퍼
+function vGrad(stops: [number, string][]): (ctx: CanvasRenderingContext2D, W: number, H: number) => void {
+  return (ctx, W, H) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    for (const [o, c] of stops) g.addColorStop(o, c);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  };
+}
+
+export const BG_OPTIONS: BgOption[] = [
   { key: "transparent", label: "투명",    css: "transparent" },
   { key: "white",       label: "흰색",    css: "#ffffff" },
   { key: "dark",        label: "다크",    css: "#0b0b14" },
   { key: "green",       label: "크로마키", css: "#00b140" },
   { key: "blue",        label: "블루백",  css: "#1f4fd6" },
-  { key: "grad",        label: "그라데이션", css: "linear-gradient(160deg,#3b1d6e 0%,#0b0b14 100%)" },
+  {
+    key: "sky", label: "하늘",
+    css: "linear-gradient(to bottom,#4aa3df 0%,#9fd4f0 60%,#cdeefb 100%)",
+    draw: vGrad([[0, "#4aa3df"], [0.6, "#9fd4f0"], [1, "#cdeefb"]]),
+  },
+  {
+    key: "sunset", label: "노을",
+    css: "linear-gradient(to bottom,#ff7e5f 0%,#feb47b 45%,#ffe6b3 100%)",
+    draw: vGrad([[0, "#ff7e5f"], [0.45, "#feb47b"], [1, "#ffe6b3"]]),
+  },
+  {
+    key: "night", label: "밤하늘",
+    css: "radial-gradient(circle at 50% 28%,#2b2b63 0%,#10102a 70%,#070714 100%)",
+    draw: (ctx, W, H) => {
+      const g = ctx.createRadialGradient(W * 0.5, H * 0.28, 0, W * 0.5, H * 0.28, Math.max(W, H) * 0.8);
+      g.addColorStop(0, "#2b2b63"); g.addColorStop(0.7, "#10102a"); g.addColorStop(1, "#070714");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      // 별 몇 개
+      ctx.fillStyle = "rgba(255,255,255,.8)";
+      const pts = [[0.15, 0.2], [0.8, 0.15], [0.6, 0.3], [0.3, 0.12], [0.9, 0.4], [0.45, 0.22], [0.7, 0.5]];
+      for (const [px, py] of pts) { ctx.beginPath(); ctx.arc(W * px, H * py, 1.6, 0, Math.PI * 2); ctx.fill(); }
+    },
+  },
+  {
+    key: "park", label: "공원",
+    css: "linear-gradient(to bottom,#8fd0f0 0%,#cdeefb 52%,#8bc34a 52%,#4e7d2e 100%)",
+    draw: vGrad([[0, "#8fd0f0"], [0.52, "#cdeefb"], [0.521, "#8bc34a"], [1, "#4e7d2e"]]),
+  },
+  {
+    key: "classroom", label: "교실",
+    css: "linear-gradient(to bottom,#dccfa8 0%,#cdbb95 60%,#9c7b46 60%,#6e5230 100%)",
+    draw: vGrad([[0, "#dccfa8"], [0.6, "#cdbb95"], [0.601, "#9c7b46"], [1, "#6e5230"]]),
+  },
+  {
+    key: "stage", label: "무대",
+    css: "radial-gradient(ellipse at 50% 38%,rgba(255,255,255,.28) 0%,#241433 55%,#0c0718 100%)",
+    draw: (ctx, W, H) => {
+      ctx.fillStyle = "#0c0718"; ctx.fillRect(0, 0, W, H);
+      const g = ctx.createRadialGradient(W * 0.5, H * 0.38, 0, W * 0.5, H * 0.38, Math.max(W, H) * 0.6);
+      g.addColorStop(0, "rgba(255,255,255,.28)"); g.addColorStop(0.55, "rgba(36,20,51,.6)"); g.addColorStop(1, "rgba(12,7,24,0)");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    },
+  },
+  {
+    key: "sakura", label: "벚꽃",
+    css: "linear-gradient(to bottom,#ffd0e6 0%,#ffe3f0 55%,#fff3f8 100%)",
+    draw: vGrad([[0, "#ffd0e6"], [0.55, "#ffe3f0"], [1, "#fff3f8"]]),
+  },
 ];
 
 const VIEW_LABELS: Record<ViewMode, string> = {
@@ -112,6 +177,8 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
   const camLockRef        = useRef(false);
   // 현재 배경 키 (스크린샷 합성용)
   const bgKeyRef          = useRef("transparent");
+  // 사용자 업로드 배경 이미지 (스크린샷 합성용 Image 요소)
+  const bgImageElRef      = useRef<HTMLImageElement | null>(null);
   const activePointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
   const lastPinchDistRef  = useRef(0);
   const isDraggingRef     = useRef(false);
@@ -122,6 +189,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
   const [camLock,      setCamLock]      = useState(false);
   const [meshSelect,   setMeshSelect]   = useState(false);
   const [bgKey,        setBgKey]        = useState("transparent");
+  const [bgImageUrl,   setBgImageUrl]   = useState<string | null>(null);
 
   function toggleCamLock() {
     const next = !camLockRef.current;
@@ -192,6 +260,13 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
       stopMotion: () => { internalRef.current?.motionManager?.stopAllMotions?.(); },
       setAutoIdle: (on) => { applyAutoIdle(on); },
       setBackground: (key) => { setBgKey(key); bgKeyRef.current = key; },
+      setBackgroundImage: (url) => {
+        const img = new Image();
+        img.onload = () => { bgImageElRef.current = img; };
+        img.src = url;
+        setBgImageUrl(url);
+        setBgKey("__image__"); bgKeyRef.current = "__image__";
+      },
       screenshot: () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const app = appRef.current as any;
@@ -204,17 +279,19 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
           out.width = W; out.height = H;
           const ctx = out.getContext("2d");
           if (!ctx) return;
-          // 배경 합성 (투명이 아니면 색/그라데이션을 먼저 칠함)
-          const bg = BG_OPTIONS.find((b) => b.key === bgKeyRef.current);
-          if (bg && bg.key !== "transparent") {
-            if (bg.key === "grad") {
-              const g = ctx.createLinearGradient(0, 0, W * 0.4, H);
-              g.addColorStop(0, "#3b1d6e"); g.addColorStop(1, "#0b0b14");
-              ctx.fillStyle = g;
-            } else {
-              ctx.fillStyle = bg.css;
+          // 배경 합성
+          if (bgKeyRef.current === "__image__" && bgImageElRef.current?.complete) {
+            // cover 맞춤
+            const img = bgImageElRef.current;
+            const s = Math.max(W / img.width, H / img.height);
+            const dw = img.width * s, dh = img.height * s;
+            ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+          } else {
+            const bg = BG_OPTIONS.find((b) => b.key === bgKeyRef.current);
+            if (bg && bg.key !== "transparent") {
+              if (bg.draw) bg.draw(ctx, W, H);
+              else { ctx.fillStyle = bg.css; ctx.fillRect(0, 0, W, H); }
             }
-            ctx.fillRect(0, 0, W, H);
           }
           ctx.drawImage(modelCanvas, 0, 0);
           out.toBlob((blob) => {
@@ -804,7 +881,13 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
         {/* 캔버스 영역 */}
         <div
           className={`relative flex-1 min-h-[40vh] rounded-xl overflow-hidden ${bgKey === "transparent" ? "glass" : ""}`}
-          style={bgKey === "transparent" ? undefined : { background: BG_OPTIONS.find((b) => b.key === bgKey)?.css }}
+          style={
+            bgKey === "transparent"
+              ? undefined
+              : bgKey === "__image__" && bgImageUrl
+                ? { backgroundImage: `url(${bgImageUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
+                : { background: BG_OPTIONS.find((b) => b.key === bgKey)?.css }
+          }
         >
           {loading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10">

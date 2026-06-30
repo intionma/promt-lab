@@ -13,6 +13,7 @@ type Props = {
   onStop: () => void;
   onToggleIdle: (on: boolean) => void;
   onSetBg: (key: string) => void;
+  onSetBgImage: (file: File) => void;
   onCopyStateLink: () => void;
   onScreenshot: () => void;
   onFreeze: () => void;
@@ -28,6 +29,7 @@ export default function ProductionPanel({
   onStop,
   onToggleIdle,
   onSetBg,
+  onSetBgImage,
   onCopyStateLink,
   onScreenshot,
   onFreeze,
@@ -167,7 +169,26 @@ export default function ProductionPanel({
               <span className="text-[9px] text-[var(--muted)]">{b.label}</span>
             </button>
           ))}
+          {/* 내 이미지 업로드 */}
+          <label
+            className={`flex flex-col items-center gap-1 py-1.5 rounded-lg border cursor-pointer transition-all ${
+              bgKey === "__image__" ? "border-[var(--purple)]" : "border-white/10 hover:border-white/25"
+            }`}
+            title="학교·공원 등 원하는 배경 이미지를 올려요"
+          >
+            <span className="w-7 h-5 rounded flex items-center justify-center bg-white/10">
+              <ImageIcon className="w-3.5 h-3.5 text-[var(--muted)]" />
+            </span>
+            <span className="text-[9px] text-[var(--muted)]">이미지</span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) onSetBgImage(f); e.target.value = ""; }}
+            />
+          </label>
         </div>
+        <p className="text-[9px] text-[var(--muted)]/70">학교·공원 사진은 “이미지”로 직접 올려서 쓸 수 있어요</p>
       </section>
 
       {/* 저장 / 공유 */}

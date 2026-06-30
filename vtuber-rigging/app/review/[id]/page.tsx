@@ -296,6 +296,11 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               onStop={() => viewerControl.current?.stopMotion()}
               onToggleIdle={(on) => { setAutoIdle(on); viewerControl.current?.setAutoIdle(on); }}
               onSetBg={(k) => { setBgKey(k); viewerControl.current?.setBackground(k); }}
+              onSetBgImage={(file) => {
+                const url = URL.createObjectURL(file);
+                setBgKey("__image__");
+                viewerControl.current?.setBackgroundImage(url);
+              }}
               onCopyStateLink={copyStateLink}
               onScreenshot={() => viewerControl.current?.screenshot()}
               onFreeze={handleFreeze}
