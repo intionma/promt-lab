@@ -42,6 +42,7 @@ export interface ViewerHandle {
   flashMesh: (index: number) => void;
   setMeshSelectMode: (on: boolean) => void;
   setParamSweep: (on: boolean) => void;
+  setSilhouette: (on: boolean, color?: number) => void;
 }
 
 type Props = {
@@ -168,6 +169,10 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
   const flashMeshesRef  = useRef<Set<number>>(new Set());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const drawOpacitiesRef = useRef<any>(null);
+  // 실루엣 모드(회사 등에서 캐릭터 아트 대신 단색 형체만 보이게)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pixiRef         = useRef<any>(null);
+  const silhouetteRef   = useRef<{ on: boolean; color: number }>({ on: false, color: 0x6b7280 });
   // 메쉬 선택 모드 — 켜면 캔버스 클릭으로 그 자리 ArtMesh 선택
   const meshSelectRef   = useRef(false);
   // 같은 지점 반복 클릭 시 겹친 메쉬 순환용
@@ -333,6 +338,10 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
           if (core) defaultsRef.current.forEach((v, id) => { try { core.setParameterValueById(id, v); } catch { /* noop */ } });
         }
       },
+      setSilhouette: (on, color = 0x6b7280) => {
+        silhouetteRef.current = { on, color };
+        applySilhouette();
+      },
       flashMesh: (index) => {
         // 해당 메쉬를 잠깐 깜빡여 어떤 부위인지 눈으로 찾게 함
         const fset = flashMeshesRef.current;
@@ -357,6 +366,22 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
   }, [controlRef]);
 
   // 현재 viewport 기준으로 전신 transform(baseRef) 재계산 (로드·리사이즈 시)
+  // 실루엣 모드: 모델의 모든 픽셀 RGB를 단색으로 치환(알파=형태 유지) → 평면 실루엣
+  function applySilhouette() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const model = modelRef.current as any;
+    const PIXI = pixiRef.current;
+    if (!model || !PIXI) return;
+    const { on, color } = silhouetteRef.current;
+    if (!on) { model.filters = null; return; }
+    const r = ((color >> 16) & 255) / 255;
+    const g = ((color >> 8) & 255) / 255;
+    const b = (color & 255) / 255;
+    const f = new PIXI.ColorMatrixFilter();
+    f.matrix = [0, 0, 0, 0, r,  0, 0, 0, 0, g,  0, 0, 0, 0, b,  0, 0, 0, 1, 0];
+    model.filters = [f];
+  }
+
   function recomputeBase() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const app = appRef.current as any;
@@ -499,6 +524,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
         }
 
         const PIXI = await import("pixi.js");
+        pixiRef.current = PIXI; // 실루엣 필터 생성에 사용
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (window as any).PIXI = PIXI;
         const { Live2DModel } = await import("pixi-live2d-display/cubism4");
@@ -527,6 +553,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
         modelRef.current = model;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         app.stage.addChild(model as any);
+        applySilhouette(); // 실루엣 모드가 켜져 있으면 재적용
 
         // 기준 transform 계산 (전신 기준) + 현재 시점 적용
         origWRef.current = model.width;

@@ -57,6 +57,9 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [meta, setMeta] = useState<ModelMeta | null>(null);
   const [autoIdle, setAutoIdle] = useState(true);
   const [bgKey, setBgKey] = useState("transparent");
+  // 실루엣 모드(회사 등에서 캐릭터 아트 대신 단색 형체만)
+  const [silhouette, setSilhouette] = useState(false);
+  const [silhouetteColor, setSilhouetteColor] = useState(0x6b7280);
   // 메쉬 그룹/숨김 (id 기준, 모두에게 공유 저장)
   const [meshGroups, setMeshGroups] = useState<MeshGroup[]>([]);
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
@@ -405,6 +408,10 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               meta={meta}
               autoIdle={autoIdle}
               bgKey={bgKey}
+              silhouette={silhouette}
+              silhouetteColor={silhouetteColor}
+              onToggleSilhouette={(on) => { setSilhouette(on); viewerControl.current?.setSilhouette(on, silhouetteColor); }}
+              onSetSilhouetteColor={(c) => { setSilhouetteColor(c); viewerControl.current?.setSilhouette(silhouette, c); }}
               onPlayMotion={(g, i) => viewerControl.current?.playMotion(g, i)}
               onPlayExpression={(n) => viewerControl.current?.playExpression(n)}
               onStop={() => viewerControl.current?.stopMotion()}

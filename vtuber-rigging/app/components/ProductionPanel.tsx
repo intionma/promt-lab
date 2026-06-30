@@ -1,19 +1,31 @@
 "use client";
 
-import { Play, Square, Smile, Sparkles, Image as ImageIcon, Link2, Check, Pause, RotateCcw, Camera } from "lucide-react";
+import { Play, Square, Smile, Sparkles, Image as ImageIcon, Link2, Check, Pause, RotateCcw, Camera, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { BG_OPTIONS, type ModelMeta } from "./ModelViewer";
+
+// 실루엣 색상 옵션 (회사 등에서 캐릭터 아트 대신 단색 형체만)
+export const SILHOUETTE_COLORS = [
+  { label: "회색", value: 0x6b7280 },
+  { label: "검정", value: 0x111318 },
+  { label: "남색", value: 0x1e293b },
+  { label: "보라", value: 0x7c3aed },
+];
 
 type Props = {
   meta: ModelMeta | null;
   autoIdle: boolean;
   bgKey: string;
+  silhouette: boolean;
+  silhouetteColor: number;
   onPlayMotion: (group: string, index: number) => void;
   onPlayExpression: (name: string) => void;
   onStop: () => void;
   onToggleIdle: (on: boolean) => void;
   onSetBg: (key: string) => void;
   onSetBgImage: (file: File) => void;
+  onToggleSilhouette: (on: boolean) => void;
+  onSetSilhouetteColor: (color: number) => void;
   onCopyStateLink: () => void;
   onScreenshot: () => void;
   onFreeze: () => void;
@@ -24,12 +36,16 @@ export default function ProductionPanel({
   meta,
   autoIdle,
   bgKey,
+  silhouette,
+  silhouetteColor,
   onPlayMotion,
   onPlayExpression,
   onStop,
   onToggleIdle,
   onSetBg,
   onSetBgImage,
+  onToggleSilhouette,
+  onSetSilhouetteColor,
   onCopyStateLink,
   onScreenshot,
   onFreeze,
@@ -64,6 +80,41 @@ export default function ProductionPanel({
           <RotateCcw className="w-3.5 h-3.5" /> 연출 초기화
         </button>
       </div>
+
+      {/* 실루엣 모드 (프라이버시 — 회사 등에서 캐릭터 아트 가리기) */}
+      <section className="space-y-2">
+        <button
+          onClick={() => onToggleSilhouette(!silhouette)}
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[11px] transition-all ${
+            silhouette ? "bg-[var(--purple)]/15 text-[var(--purple)]" : "glass glass-hover text-[var(--muted)]"
+          }`}
+          title="캐릭터 그림 대신 단색 형체(실루엣)만 보이게 — 움직임은 그대로"
+        >
+          <span className="flex items-center gap-1.5"><EyeOff className="w-3.5 h-3.5" /> 실루엣 모드 (회사용)</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${silhouette ? "bg-[var(--purple)]/30" : "bg-white/10"}`}>
+            {silhouette ? "ON" : "OFF"}
+          </span>
+        </button>
+        {silhouette && (
+          <div className="flex items-center gap-2 pl-1">
+            <span className="text-[9px] text-[var(--muted)]/70">색상</span>
+            <div className="flex gap-1.5">
+              {SILHOUETTE_COLORS.map((c) => (
+                <button
+                  key={c.value}
+                  onClick={() => onSetSilhouetteColor(c.value)}
+                  title={c.label}
+                  className={`w-6 h-6 rounded-md border-2 transition-all ${
+                    silhouetteColor === c.value ? "border-[var(--purple)] scale-110" : "border-white/15"
+                  }`}
+                  style={{ background: `#${c.value.toString(16).padStart(6, "0")}` }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        <p className="text-[9px] text-[var(--muted)]/70 pl-1">그림 없이 형체만 보여서, 옆에서 봐도 부담 없어요. 움직임·연출은 그대로예요.</p>
+      </section>
 
       {/* 모션 */}
       <section className="space-y-2">
