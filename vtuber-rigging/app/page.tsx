@@ -1,0 +1,71 @@
+"use client";
+
+import { useState } from "react";
+import { Upload, Sliders, GitBranch } from "lucide-react";
+import dynamic from "next/dynamic";
+import UploadSession from "./components/UploadSession";
+import ParamCalculator from "./components/ParamCalculator";
+
+const DeformerTree = dynamic(() => import("./components/DeformerTree"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
+      로딩 중...
+    </div>
+  ),
+});
+
+type Tab = "upload" | "params" | "deformer";
+
+const TABS: { id: Tab; label: string; icon: typeof Upload }[] = [
+  { id: "upload", label: "리뷰 공유", icon: Upload },
+  { id: "params", label: "파라미터", icon: Sliders },
+  { id: "deformer", label: "디포머 계층", icon: GitBranch },
+];
+
+export default function Home() {
+  const [activeTab, setActiveTab] = useState<Tab>("upload");
+
+  return (
+    <div className="flex flex-col h-screen overflow-hidden">
+      {/* Header */}
+      <header className="flex items-center gap-3 px-4 py-3 border-b border-white/10 glass flex-shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-lg glow">
+          🎭
+        </div>
+        <div>
+          <h1 className="text-sm font-semibold text-slate-200">VTuber Rigging Assistant</h1>
+          <p className="text-[10px] text-slate-500">Live2D · VTube Studio · VBridger</p>
+        </div>
+      </header>
+
+      {/* Tabs */}
+      <nav className="flex gap-1 px-4 pt-2 flex-shrink-0">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-all ${
+                activeTab === tab.id
+                  ? "bg-purple-600/20 border border-purple-500/30 border-b-transparent text-purple-300"
+                  : "text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Content */}
+      <main className="flex-1 glass border border-white/10 mx-4 mb-4 rounded-b-xl rounded-tr-xl overflow-hidden flex flex-col">
+        {activeTab === "upload" && <UploadSession />}
+        {activeTab === "params" && <ParamCalculator />}
+        {activeTab === "deformer" && <DeformerTree />}
+      </main>
+    </div>
+  );
+}
