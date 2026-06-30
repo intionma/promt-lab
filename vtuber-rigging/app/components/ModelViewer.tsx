@@ -127,13 +127,13 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
       <div className="relative flex-1 min-h-[40vh] glass rounded-xl overflow-hidden">
         {loading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10">
-            <div className="w-8 h-8 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
-            <p className="text-sm text-slate-400">모델 불러오는 중...</p>
+            <div className="w-8 h-8 rounded-full border-2 border-[var(--purple)] border-t-transparent animate-spin" />
+            <p className="text-sm text-[var(--muted)]">모델 불러오는 중...</p>
           </div>
         )}
         {error && (
-          <div className="absolute inset-0 flex items-center justify-center z-10">
-            <p className="text-sm text-red-400">{error}</p>
+          <div className="absolute inset-0 flex items-center justify-center z-10 p-6">
+            <p className="text-sm text-red-400 text-center">{error}</p>
           </div>
         )}
         <canvas ref={canvasRef} className="w-full h-full" />
@@ -141,20 +141,20 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
 
       {/* 파라미터 슬라이더 */}
       {params.length > 0 && (
-        <div className="w-full md:w-56 h-48 md:h-auto flex flex-col glass rounded-xl overflow-hidden flex-shrink-0">
-          <div className="px-3 py-2 border-b border-white/10">
-            <p className="text-xs font-medium text-slate-400">파라미터 조작</p>
+        <div className="w-full md:w-56 h-48 md:h-auto flex flex-col glass rounded-2xl overflow-hidden flex-shrink-0">
+          <div className="px-3 py-2.5 border-b border-white/5">
+            <p className="text-xs font-semibold text-[var(--fg)]">파라미터 조작</p>
           </div>
-          <div className="flex-1 overflow-y-auto chat-scroll p-2 space-y-2">
+          <div className="flex-1 overflow-y-auto chat-scroll p-2.5 space-y-2.5">
             {params.map((p) => {
               const pct = ((p.value - p.min) / (p.max - p.min)) * 100;
               return (
                 <div key={p.id} className="space-y-0.5">
                   <div className="flex justify-between">
-                    <span className="text-[10px] text-slate-500 truncate max-w-[110px]" title={p.id}>
+                    <span className="text-[10px] text-[var(--muted)] truncate max-w-[110px]" title={p.id}>
                       {p.id.replace("Param", "")}
                     </span>
-                    <span className="text-[10px] text-purple-400 font-mono">
+                    <span className="text-[10px] text-[var(--purple)] font-mono">
                       {p.value.toFixed(2)}
                     </span>
                   </div>

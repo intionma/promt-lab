@@ -38,8 +38,8 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   if (notFound) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4">
-        <p className="text-slate-400">세션을 찾을 수 없거나 만료되었어요</p>
-        <Link href="/" className="text-purple-400 hover:text-purple-300 text-sm">
+        <p className="text-[var(--muted)]">세션을 찾을 수 없거나 만료되었어요</p>
+        <Link href="/" className="text-[var(--purple)] hover:opacity-80 text-sm">
           홈으로 돌아가기
         </Link>
       </div>
@@ -47,27 +47,27 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-[100dvh] overflow-hidden p-2 sm:p-3 gap-2 sm:gap-3">
       {/* Header */}
-      <header className="flex items-center gap-3 px-4 py-3 border-b border-white/10 glass flex-shrink-0">
-        <Link href="/" className="text-slate-500 hover:text-slate-300 transition-colors">
+      <header className="flex items-center gap-3 px-4 py-3 glass-strong rounded-2xl flex-shrink-0">
+        <Link href="/" className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--fg)] transition-colors">
           <ArrowLeft className="w-4 h-4" />
         </Link>
-        <div>
-          <h1 className="text-sm font-semibold text-slate-200">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-sm font-bold text-[var(--fg)] truncate">
             {session?.title ?? "로딩 중..."}
           </h1>
           {session?.description && (
-            <p className="text-[11px] text-slate-500">{session.description}</p>
+            <p className="text-[11px] text-[var(--muted)] truncate">{session.description}</p>
           )}
         </div>
-        <div className="ml-auto text-[10px] text-slate-600">
-          7일 후 만료
-        </div>
+        <span className="text-[10px] text-[var(--muted)] glass px-2.5 py-1 rounded-full shrink-0">
+          리뷰 모드
+        </span>
       </header>
 
       {/* Content — 모바일: 세로 스택 / PC: 좌우 분할 */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden p-3 gap-3">
+      <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden gap-2 sm:gap-3 min-h-0">
         {/* Model Viewer */}
         <div className="flex-1 min-h-[60vh] md:min-h-0 overflow-hidden">
           {session && (

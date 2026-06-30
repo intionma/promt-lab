@@ -207,15 +207,15 @@ export default function ParamCalculator() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Category filter */}
-      <div className="flex gap-2 p-4 border-b border-white/10 overflow-x-auto">
+      <div className="flex gap-2 p-4 border-b border-white/5 overflow-x-auto chat-scroll">
         {["전체", ...CATEGORIES].map((cat) => (
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
               selectedCategory === cat
-                ? "bg-purple-600 text-white"
-                : "glass text-slate-400 hover:text-slate-200"
+                ? "bg-gradient-to-br from-[var(--purple-deep)] to-[#9333ea] text-white shadow-lg shadow-purple-900/30"
+                : "glass glass-hover text-[var(--muted)]"
             }`}
           >
             {cat}
