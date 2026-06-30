@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, listAllStorageFiles } from "@/lib/supabase";
 
 type Param = { id: string; value: number; min: number; max: number };
 
@@ -23,17 +23,14 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
 
     async function init() {
       try {
-        // model3.json URL 가져오기
-        const { data: files } = await supabase.storage
-          .from("models")
-          .list(sessionId);
-
-        const model3File = files?.find((f) => f.name.endsWith(".model3.json"));
-        if (!model3File) throw new Error("model3.json 파일을 찾을 수 없어요");
+        // 하위 폴더까지 재귀적으로 뒤져서 model3.json 찾기
+        const allFiles = await listAllStorageFiles(sessionId);
+        const model3Path = allFiles.find((p) => p.endsWith(".model3.json"));
+        if (!model3Path) throw new Error("model3.json 파일을 찾을 수 없어요");
 
         const { data: urlData } = supabase.storage
           .from("models")
-          .getPublicUrl(`${sessionId}/${model3File.name}`);
+          .getPublicUrl(model3Path);
 
         const modelUrl = urlData.publicUrl;
 
@@ -125,9 +122,9 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
   }
 
   return (
-    <div className="flex h-full gap-3">
+    <div className="flex flex-col md:flex-row h-full gap-3">
       {/* 캔버스 */}
-      <div className="relative flex-1 glass rounded-xl overflow-hidden">
+      <div className="relative flex-1 min-h-[40vh] glass rounded-xl overflow-hidden">
         {loading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10">
             <div className="w-8 h-8 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
@@ -144,7 +141,7 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
 
       {/* 파라미터 슬라이더 */}
       {params.length > 0 && (
-        <div className="w-56 flex flex-col glass rounded-xl overflow-hidden">
+        <div className="w-full md:w-56 h-48 md:h-auto flex flex-col glass rounded-xl overflow-hidden flex-shrink-0">
           <div className="px-3 py-2 border-b border-white/10">
             <p className="text-xs font-medium text-slate-400">파라미터 조작</p>
           </div>

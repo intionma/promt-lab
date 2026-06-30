@@ -66,10 +66,10 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
         </div>
       </header>
 
-      {/* Content */}
-      <div className="flex-1 flex overflow-hidden p-3 gap-3">
+      {/* Content — 모바일: 세로 스택 / PC: 좌우 분할 */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden p-3 gap-3">
         {/* Model Viewer */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 min-h-[60vh] md:min-h-0 overflow-hidden">
           {session && (
             <ModelViewer
               sessionId={id}
@@ -81,7 +81,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
         </div>
 
         {/* Feedback Panel */}
-        <div className="w-72 glass rounded-xl overflow-hidden flex-shrink-0">
+        <div className="w-full md:w-72 h-80 md:h-auto glass rounded-xl overflow-hidden flex-shrink-0">
           <FeedbackPanel sessionId={id} currentParam={currentParam} />
         </div>
       </div>
