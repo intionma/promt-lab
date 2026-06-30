@@ -2488,7 +2488,7 @@
                 const sentence = _nbBundleSentence(cat.layer, b.tags);
                 const title = b.kors.slice(0, 3).join(' · ') + (b.kors.length > 3 ? ' …' : '');
                 card.innerHTML = `<i class="fa-solid fa-circle-check nb-check"></i>` +
-                    `<div style="font-size:15px; font-weight:800; color:var(--text-main); padding-right:14px; line-height:1.4;">${title}</div>` +
+                    `<div style="font-size:15px; font-weight:800; color:var(--text-main); padding-right:14px; line-height:1.4;">${_esc(title)}</div>` +
                     `<div style="font-size:11px; color:var(--text-dim); margin-top:5px; line-height:1.5;">${sentence}</div>`;
                 card.onclick = () => { if (sel.has(idx)) sel.delete(idx); else sel.add(idx); _nbRender(); };
                 grid.appendChild(card);
@@ -3672,7 +3672,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             box.innerHTML =
                 `<div style="font-size:12px; margin-bottom:6px;"><b>모드:</b> ${modeLabel} · <b>노드 ${classes.length}개</b></div>` +
                 `<div style="font-size:12px; margin-bottom:8px; display:flex; gap:14px; flex-wrap:wrap;">${flag(hasLora, 'LoRA')} ${flag(hasDetailer, '디테일러')} ${flag(hasUpscale, '업스케일')}</div>` +
-                `<div style="font-size:11px; color:var(--text-dim); font-family:var(--font-code); max-height:120px; overflow:auto;">${classes.map(x => `#${x.id} ${x.c}`).join('<br>')}</div>` +
+                `<div style="font-size:11px; color:var(--text-dim); font-family:var(--font-code); max-height:120px; overflow:auto;">${classes.map(x => `#${_esc(x.id)} ${_esc(x.c)}`).join('<br>')}</div>` +
                 (!hasLora && !hasDetailer ? `<div style="margin-top:8px; font-size:11px; color:#f59e0b;">⚠ LoRA·디테일러가 안 보입니다. ① '내 워크플로우' 모드인지 ② 최신 <code>Save (API Format)</code> JSON을 다시 붙여넣고 분석했는지 ③ 토글 그룹이 OFF가 아닌지 확인하세요.</div>` : '');
         }
 
@@ -6469,7 +6469,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         subFolder.className = 'sub-folder collapsed';
                         subFolder.dataset.folderKey = subLayerRaw;
                         subFolder.dataset.layerId = i;
-                        subFolder.innerHTML = `<div class="sub-folder-header" style="border-left-color: ${subColor};" onclick="this.parentElement.classList.toggle('collapsed')"><i class="fa-solid fa-grip-vertical sidebar-drag-handle folder-drag-handle"></i><div class="folder-meta"><span style="color:${subColor}">${subLayerName}</span><span class="folder-badge" id="${folderId}" style="background-color: ${subColor};">0</span>${recommendHtml}</div><i class="fa-solid fa-chevron-down"></i></div>`;
+                        subFolder.innerHTML = `<div class="sub-folder-header" style="border-left-color: ${subColor};" onclick="this.parentElement.classList.toggle('collapsed')"><i class="fa-solid fa-grip-vertical sidebar-drag-handle folder-drag-handle"></i><div class="folder-meta"><span style="color:${subColor}">${_esc(subLayerName)}</span><span class="folder-badge" id="${_esc(folderId)}" style="background-color: ${subColor};">0</span>${recommendHtml}</div><i class="fa-solid fa-chevron-down"></i></div>`;
                         setupFolderDrag(subFolder, i);
 
                         const subContent = document.createElement('div');
@@ -6485,7 +6485,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             const firstPrompt = data.t.split(',')[0].trim();
                             const displayLabel = data.k || (isMulti ? firstPrompt : data.t);
                             const titleAttr = isMulti ? ` title="${data.t.replace(/"/g,'&quot;')}"` : '';
-                            btn.innerHTML = `<span class="tag-kr"${titleAttr}>${displayLabel}</span><span class="tag-en">${data.t}</span>`;
+                            btn.innerHTML = `<span class="tag-kr"${titleAttr}>${_esc(displayLabel)}</span><span class="tag-en">${_esc(data.t)}</span>`;
                             if (isMulti) {
                                 const tooltip = document.createElement('div');
                                 tooltip.style.cssText = 'display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a1e27;border:1px solid var(--border-dim);color:#94a3b8;font-size:11px;font-family:var(--font-code);padding:6px 10px;border-radius:6px;white-space:pre;z-index:200;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
@@ -7540,8 +7540,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (w > 1) chip.classList.add('weight-high');
                 if (w < 1) chip.classList.add('weight-low');
                 chip.innerHTML = korLabel && korLabel !== clean
-                    ? `<span class="chip-kr">${displayLabel}</span><span class="chip-tooltip">${tok}</span>`
-                    : `<span class="chip-kr">${displayLabel}</span>`;
+                    ? `<span class="chip-kr">${_esc(displayLabel)}</span><span class="chip-tooltip">${_esc(tok)}</span>`
+                    : `<span class="chip-kr">${_esc(displayLabel)}</span>`;
 
                 const _updateCCMSel = () => {
                     container.querySelectorAll('.prompt-chip').forEach((c, i) => {
@@ -9404,8 +9404,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const weightSuffix = weightMatch ? `(${parseFloat(weightMatch[2]).toFixed(1)})` : '';
                 const displayLabel = weightSuffix ? `${baseLabel}${weightSuffix}` : baseLabel;
                 chip.innerHTML = korLabel && korLabel !== mapKey
-                    ? `<span class="chip-kr">${displayLabel}</span><span class="chip-tooltip">${tag}</span>`
-                    : `<span class="chip-kr">${displayLabel}</span>`;
+                    ? `<span class="chip-kr">${_esc(displayLabel)}</span><span class="chip-tooltip">${_esc(tag)}</span>`
+                    : `<span class="chip-kr">${_esc(displayLabel)}</span>`;
 
                 // 드래그 (단일 또는 다중 선택)
                 chip.addEventListener('dragstart', (e) => {
@@ -10107,7 +10107,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 dups.forEach(d => {
                     const row = document.createElement('div');
                     row.style.cssText = 'display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px;font-size:12px;';
-                    row.innerHTML = `<span style="flex:1;color:var(--text-main);font-family:var(--font-code);">${d.first.raw}<span style="color:var(--text-dim)"> (레이어${d.first.layer})</span></span><span style="color:var(--text-dim)">↔</span><span style="flex:1;color:var(--text-main);font-family:var(--font-code);">${d.second.raw}<span style="color:var(--text-dim)"> (레이어${d.second.layer})</span></span>`;
+                    row.innerHTML = `<span style="flex:1;color:var(--text-main);font-family:var(--font-code);">${_esc(d.first.raw)}<span style="color:var(--text-dim)"> (레이어${d.first.layer})</span></span><span style="color:var(--text-dim)">↔</span><span style="flex:1;color:var(--text-main);font-family:var(--font-code);">${_esc(d.second.raw)}<span style="color:var(--text-dim)"> (레이어${d.second.layer})</span></span>`;
                     const btn = document.createElement('button');
                     btn.textContent = '두 번째 삭제';
                     btn.style.cssText = 'background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0;';
@@ -10244,7 +10244,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 misplaced.forEach(mp => {
                     const row = document.createElement('div');
                     row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--border-dim);font-size:12px;';
-                    row.innerHTML = `<span style="flex:1;min-width:0;"><span style="font-family:var(--font-code);color:var(--text-main);font-weight:600;">${mp.core}</span> <span style="color:var(--text-dim);font-size:11px;">${mp.recKor||''}</span><br><span style="color:var(--text-dim);font-size:11px;">${mp.curLid}계층 <i class="fa-solid fa-arrow-right" style="font-size:9px;"></i> <span style="color:#22c55e;">${mp.recLid}계층</span> (${_layerName(mp.recLid)})</span></span>`;
+                    row.innerHTML = `<span style="flex:1;min-width:0;"><span style="font-family:var(--font-code);color:var(--text-main);font-weight:600;">${_esc(mp.core)}</span> <span style="color:var(--text-dim);font-size:11px;">${_esc(mp.recKor||'')}</span><br><span style="color:var(--text-dim);font-size:11px;">${mp.curLid}계층 <i class="fa-solid fa-arrow-right" style="font-size:9px;"></i> <span style="color:#22c55e;">${mp.recLid}계층</span> (${_esc(_layerName(mp.recLid))})</span></span>`;
                     const mvBtn = document.createElement('button');
                     mvBtn.textContent = '이동';
                     mvBtn.style.cssText = 'background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.35);color:#22c55e;border-radius:6px;padding:4px 12px;font-size:11px;cursor:pointer;flex-shrink:0;';
@@ -10287,12 +10287,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const row = document.createElement('div');
                     row.style.cssText = 'padding:8px 12px;border-top:1px solid var(--border-dim);font-size:12px;display:flex;flex-direction:column;gap:5px;';
                     const head = document.createElement('div');
-                    head.innerHTML = `<span style="font-family:var(--font-code);color:var(--text-main);font-weight:600;">${dp.core}</span> <span style="color:var(--text-dim);font-size:11px;">${dp.locs.length}곳 중복</span>`;
+                    head.innerHTML = `<span style="font-family:var(--font-code);color:var(--text-main);font-weight:600;">${_esc(dp.core)}</span> <span style="color:var(--text-dim);font-size:11px;">${dp.locs.length}곳 중복</span>`;
                     row.appendChild(head);
                     dp.locs.forEach((loc, i) => {
                         const locRow = document.createElement('div');
                         locRow.style.cssText = 'display:flex;align-items:center;gap:8px;padding-left:8px;';
-                        locRow.innerHTML = `<span style="flex:1;color:var(--text-dim);font-size:11px;">${loc.lid}계층 · 📂${loc.fk.split('|')[0]} <span style="opacity:0.6;font-family:var(--font-code);">(${loc.tok})</span></span>`;
+                        locRow.innerHTML = `<span style="flex:1;color:var(--text-dim);font-size:11px;">${loc.lid}계층 · 📂${_esc(loc.fk.split('|')[0])} <span style="opacity:0.6;font-family:var(--font-code);">(${_esc(loc.tok)})</span></span>`;
                         if (i > 0) {
                             const delBtn = document.createElement('button');
                             delBtn.textContent = '이 위치에서 제거';
@@ -10503,12 +10503,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             conflicts.forEach(cf => {
                 const sec = document.createElement('div');
                 sec.style.cssText = 'border:1px solid rgba(234,179,8,0.3);border-radius:10px;overflow:hidden;';
-                sec.innerHTML = `<div style="padding:7px 12px;background:rgba(234,179,8,0.12);font-size:12px;font-weight:700;color:#eab308;">[${cf.group}] 그룹 · ${cf.tags.length}개 충돌</div>`;
+                sec.innerHTML = `<div style="padding:7px 12px;background:rgba(234,179,8,0.12);font-size:12px;font-weight:700;color:#eab308;">[${_esc(cf.group)}] 그룹 · ${cf.tags.length}개 충돌</div>`;
                 const list = document.createElement('div');
                 cf.tags.forEach(core => {
                     const row = document.createElement('div');
                     row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--border-dim);font-size:13px;';
-                    row.innerHTML = `<span style="flex:1;"><span style="font-weight:700;">${_kor(core)}</span> <span style="color:var(--text-dim);font-family:var(--font-code);font-size:11px;">${core}</span></span>`;
+                    row.innerHTML = `<span style="flex:1;"><span style="font-weight:700;">${_esc(_kor(core))}</span> <span style="color:var(--text-dim);font-family:var(--font-code);font-size:11px;">${_esc(core)}</span></span>`;
                     const keep = document.createElement('button');
                     keep.textContent = '이것만 유지';
                     keep.style.cssText = 'background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#22c55e;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;flex-shrink:0;';
@@ -10647,7 +10647,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     clean = clean.replace(/^[()\[\]]+|[()\[\]]+$/g, '').trim();
                     if (!clean) return;
                     const d = activeTagsMap[clean];
-                    out.push({ raw: clean, kor: d?.kor || customKorMap[clean] || clean, c: d?.c || '', li });
+                    out.push({ raw: _esc(clean), kor: _esc(d?.kor || customKorMap[clean] || clean), c: d?.c || '', li });
                 });
                 return out;
             }
@@ -11667,10 +11667,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             conflicts.forEach((c, idx) => {
                 const row = document.createElement('div');
                 row.style.cssText = 'background:var(--bg-base);border-radius:8px;padding:10px;border:1px solid var(--border-dim);';
-                row.innerHTML = `<div style="font-size:11px;color:var(--text-dim);">${c.lid}계층 › ${c.fk.split('|')[0]}</div>
+                row.innerHTML = `<div style="font-size:11px;color:var(--text-dim);">${c.lid}계층 › ${_esc(c.fk.split('|')[0])}</div>
                     <div style="font-size:12px;margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;">
-                        <span style="color:var(--text-dim);">기존: <code style="font-family:var(--font-code);color:var(--text-main);">${c.existing.t} / ${c.existing.k||''}</code></span>
-                        <span style="color:var(--accent-blue);">→ 변경: <code style="font-family:var(--font-code);">${c.newTag.t} / ${c.newTag.k||''}</code></span>
+                        <span style="color:var(--text-dim);">기존: <code style="font-family:var(--font-code);color:var(--text-main);">${_esc(c.existing.t)} / ${_esc(c.existing.k||'')}</code></span>
+                        <span style="color:var(--accent-blue);">→ 변경: <code style="font-family:var(--font-code);">${_esc(c.newTag.t)} / ${_esc(c.newTag.k||'')}</code></span>
                     </div>
                     <div style="display:flex;gap:6px;margin-top:8px;">
                         <button data-idx="${idx}" data-action="approve" style="padding:4px 12px;border-radius:6px;border:none;background:var(--accent-green);color:#fff;font-size:12px;cursor:pointer;font-weight:700;">승인</button>
@@ -11919,27 +11919,42 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function renderDBFolderChips(layerId) {
             const chipsContainer = document.getElementById('db-folder-chips'); chipsContainer.innerHTML = '';
             if(promptDB[layerId]) {
-                let htmlStr = '';
                 Object.keys(promptDB[layerId]).forEach(folder => {
-                    htmlStr += `<div class="db-folder-chip" onclick="document.getElementById('add-folder').value = '${layerId}_${folder.split('|')[0]}'; document.querySelectorAll('.db-folder-chip').forEach(c => c.style.borderColor = 'var(--border-dim)'); this.style.borderColor = 'var(--accent-blue)';">${folder.split('|')[0]}</div>`;
+                    const chip = document.createElement('div');
+                    chip.className = 'db-folder-chip';
+                    chip.textContent = folder.split('|')[0];
+                    chip.onclick = () => {
+                        document.getElementById('add-folder').value = `${layerId}_${folder.split('|')[0]}`;
+                        document.querySelectorAll('.db-folder-chip').forEach(c => c.style.borderColor = 'var(--border-dim)');
+                        chip.style.borderColor = 'var(--accent-blue)';
+                    };
+                    chipsContainer.appendChild(chip);
                 });
-                chipsContainer.innerHTML = htmlStr;
             }
         }
 
         function renderDBTable() {
             const tbody = document.getElementById('db-table-body');
-            let htmlStr = '';
+            tbody.innerHTML = '';
             for(let i=1; i<=7; i++) {
                 if(promptDB[i]) {
                     Object.keys(promptDB[i]).forEach(folderName => {
                         promptDB[i][folderName].forEach((data, index) => {
-                            htmlStr += `<tr><td>${i}계층</td><td>${folderName.split('|')[0]}</td><td style="font-family:var(--font-code); color:var(--accent-blue); font-weight:bold;">${data.t}</td><td>${data.k||''}</td><td><span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px;">${data.c||''}</span></td><td><button class="btn-edit-tb" onclick="editTagSetup(${i}, '${folderName.replace(/'/g, "\\'")}', ${index})">수정</button><button class="btn-delete-tb" onclick="deleteTag(${i}, '${folderName.replace(/'/g, "\\'")}', ${index})">삭제</button></td></tr>`;
+                            const tr = document.createElement('tr');
+                            const tdL = document.createElement('td'); tdL.textContent = `${i}계층`; tr.appendChild(tdL);
+                            const tdF = document.createElement('td'); tdF.textContent = folderName.split('|')[0]; tr.appendChild(tdF);
+                            const tdT = document.createElement('td'); tdT.style.cssText = 'font-family:var(--font-code);color:var(--accent-blue);font-weight:bold;'; tdT.textContent = data.t; tr.appendChild(tdT);
+                            const tdK = document.createElement('td'); tdK.textContent = data.k||''; tr.appendChild(tdK);
+                            const tdC = document.createElement('td'); const sp = document.createElement('span'); sp.style.cssText = 'background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;'; sp.textContent = data.c||''; tdC.appendChild(sp); tr.appendChild(tdC);
+                            const tdA = document.createElement('td');
+                            const editBtn = document.createElement('button'); editBtn.className = 'btn-edit-tb'; editBtn.textContent = '수정'; editBtn.onclick = () => editTagSetup(i, folderName, index); tdA.appendChild(editBtn);
+                            const delBtn = document.createElement('button'); delBtn.className = 'btn-delete-tb'; delBtn.textContent = '삭제'; delBtn.onclick = () => deleteTag(i, folderName, index); tdA.appendChild(delBtn);
+                            tr.appendChild(tdA);
+                            tbody.appendChild(tr);
                         });
                     });
                 }
             }
-            tbody.innerHTML = htmlStr;
         }
 
         function editTagSetup(layerId, folderName, index) { const data = promptDB[layerId][folderName][index]; document.getElementById('add-folder').value = `${layerId}_${folderName.split('|')[0]}`; document.getElementById('add-en').value = data.t; document.getElementById('add-kr').value = data.k || ""; document.getElementById('add-conflict').value = data.c || ""; document.getElementById('edit-original-layer').value = layerId; document.getElementById('edit-original-folder').value = folderName; document.getElementById('edit-original-index').value = index; const btn = document.getElementById('btn-save-tag'); btn.innerText = "수정 완료"; btn.style.backgroundColor = "#eab308"; }

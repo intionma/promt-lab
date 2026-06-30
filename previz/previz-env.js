@@ -19,6 +19,7 @@ export class WeatherSystem {
             this._pts.material.dispose();
             this._pts = null;
         }
+        this._velocities = null;
     }
 
     setWeather(type) {
@@ -78,7 +79,8 @@ export class WeatherSystem {
         const pos = this._pts.geometry.attributes.position.array;
         const vel = this._velocities;
         const rising = this._type === 'sparks';
-        for (let i = 0; i < pos.length / 3; i++) {
+        const count = pos.length / 3;
+        for (let i = 0; i < count; i++) {
             pos[i*3]   += vel[i*3];
             pos[i*3+1] += vel[i*3+1];
             pos[i*3+2] += vel[i*3+2];

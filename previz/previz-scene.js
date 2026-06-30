@@ -494,8 +494,8 @@ export class PrevizScene {
         set('leftLowerArm', p.lLowerArm); set('rightLowerArm', p.rLowerArm);
         set('leftUpperLeg', p.lUpperLeg); set('rightUpperLeg', p.rUpperLeg);
         set('leftLowerLeg', p.lLowerLeg); set('rightLowerLeg', p.rLowerLeg);
-        if (p._rootRotX) this._charWrap.rotation.x = p._rootRotX;
-        if (p._rootRotZ) this._charWrap.rotation.z = p._rootRotZ;
+        if (p._rootRotX != null) this._charWrap.rotation.x = p._rootRotX;
+        if (p._rootRotZ != null) this._charWrap.rotation.z = p._rootRotZ;
         if (p._rootY != null) this._charWrap.position.y = p._rootY;
         if (poseName === 'sit' || poseName === 'sitting') this._charWrap.position.y = -0.28;
         this.vrm.update(0);
