@@ -13,6 +13,75 @@ function extractModelName(files: File[]): string | null {
   return model3.name.replace(/\.model3\.json$/i, "");
 }
 
+// 파일의 저장 경로 계산 (폴더 구조 유지) — 최상위 폴더명 제거
+function getStoragePath(file: File): string {
+  const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
+  if (rel) {
+    const parts = rel.split("/");
+    return parts.slice(1).join("/") || file.name;
+  }
+  return file.name;
+}
+
+// 경로 정규화 (./ 제거)
+function normalizePath(p: string): string {
+  return p.replace(/^\.\//, "").replace(/\\/g, "/");
+}
+
+// model3.json을 파싱해서 참조하는 모든 파일이 실제로 선택됐는지 검사
+async function findMissingFiles(files: File[]): Promise<string[]> {
+  const model3 = files.find((f) => f.name.endsWith(".model3.json"));
+  if (!model3) return [];
+
+  let json: {
+    FileReferences?: {
+      Moc?: string;
+      Textures?: string[];
+      Physics?: string;
+      Pose?: string;
+      DisplayInfo?: string;
+      UserData?: string;
+      Expressions?: { File?: string }[];
+      Motions?: Record<string, { File?: string }[]>;
+    };
+  };
+  try {
+    json = JSON.parse(await model3.text());
+  } catch {
+    return ["__PARSE_ERROR__"];
+  }
+
+  const refs = json.FileReferences || {};
+  const referenced: string[] = [];
+  if (refs.Moc) referenced.push(refs.Moc);
+  if (Array.isArray(refs.Textures)) referenced.push(...refs.Textures);
+  if (refs.Physics) referenced.push(refs.Physics);
+  if (refs.Pose) referenced.push(refs.Pose);
+  if (refs.DisplayInfo) referenced.push(refs.DisplayInfo);
+  if (refs.UserData) referenced.push(refs.UserData);
+  if (Array.isArray(refs.Expressions))
+    referenced.push(...refs.Expressions.map((e) => e.File).filter((x): x is string => !!x));
+  if (refs.Motions)
+    for (const group of Object.values(refs.Motions))
+      if (Array.isArray(group))
+        referenced.push(...group.map((m) => m.File).filter((x): x is string => !!x));
+
+  // model3.json 위치 기준으로 참조 경로 해석
+  const model3Path = getStoragePath(model3);
+  const baseDir = model3Path.includes("/")
+    ? model3Path.slice(0, model3Path.lastIndexOf("/") + 1)
+    : "";
+
+  const available = new Set(files.map((f) => normalizePath(getStoragePath(f))));
+
+  const missing: string[] = [];
+  for (const ref of referenced) {
+    const expected = normalizePath(baseDir + normalizePath(ref));
+    if (!available.has(expected)) missing.push(ref);
+  }
+  return missing;
+}
+
 export default function UploadSession() {
   const [title, setTitle] = useState("");
   const [titleEdited, setTitleEdited] = useState(false);
@@ -23,9 +92,12 @@ export default function UploadSession() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [missingFiles, setMissingFiles] = useState<string[]>([]);
 
   const hasModel3 = files.some((f) => f.name.endsWith(".model3.json"));
   const hasMoc3 = files.some((f) => f.name.endsWith(".moc3"));
+  const parseError = missingFiles.includes("__PARSE_ERROR__");
+  const realMissing = missingFiles.filter((m) => m !== "__PARSE_ERROR__");
 
   // 모델 파일이 선택되면 세션 이름을 모델 파일명으로 자동 설정 (사용자가 직접 수정하기 전까지)
   useEffect(() => {
@@ -34,16 +106,14 @@ export default function UploadSession() {
     if (name) setTitle(name);
   }, [files, titleEdited]);
 
-  // 파일의 저장 경로 계산 (폴더 구조 유지)
-  function getStoragePath(file: File): string {
-    const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
-    if (rel) {
-      // 최상위 폴더명 제거 (e.g. "modelFolder/textures/tex.png" → "textures/tex.png")
-      const parts = rel.split("/");
-      return parts.slice(1).join("/") || file.name;
-    }
-    return file.name;
-  }
+  // 파일이 바뀔 때마다 model3.json이 참조하는 파일이 다 있는지 검사
+  useEffect(() => {
+    let cancelled = false;
+    findMissingFiles(files).then((m) => {
+      if (!cancelled) setMissingFiles(m);
+    });
+    return () => { cancelled = true; };
+  }, [files]);
 
   const addFiles = useCallback((newFiles: File[]) => {
     setFiles((prev) => {
@@ -274,6 +344,43 @@ export default function UploadSession() {
         </div>
       )}
 
+      {/* model3.json 파싱 오류 */}
+      {parseError && (
+        <div className="rounded-xl px-4 py-3 text-sm text-red-400 flex gap-2 bg-red-500/10 border border-red-500/30">
+          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">model3.json 파일이 손상됐어요</p>
+            <p className="text-xs text-red-400/70 mt-0.5">Cubism Editor에서 다시 내보내 주세요</p>
+          </div>
+        </div>
+      )}
+
+      {/* 참조 파일 누락 경고 */}
+      {realMissing.length > 0 && (
+        <div className="rounded-xl px-4 py-3 text-sm text-amber-400 bg-amber-500/10 border border-amber-500/30 space-y-1.5">
+          <div className="flex gap-2 items-center font-medium">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            빠진 파일이 {realMissing.length}개 있어요
+          </div>
+          <p className="text-xs text-amber-400/70">
+            이대로 올리면 모델이 깨지거나 안 보일 수 있어요. 폴더 전체를 선택했는지 확인하세요.
+          </p>
+          <div className="space-y-0.5 max-h-24 overflow-y-auto chat-scroll">
+            {realMissing.map((m) => (
+              <p key={m} className="text-xs font-mono text-amber-300/80 truncate">· {m}</p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 모든 파일 정상 */}
+      {hasModel3 && hasMoc3 && !parseError && realMissing.length === 0 && files.length > 0 && (
+        <div className="rounded-xl px-4 py-2.5 text-sm text-green-400 bg-green-500/10 border border-green-500/30 flex gap-2 items-center">
+          <CheckCircle className="w-4 h-4 flex-shrink-0" />
+          필요한 파일이 모두 준비됐어요
+        </div>
+      )}
+
       {error && (
         <div className="glass rounded-xl px-4 py-3 text-sm text-red-400 flex gap-2">
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -283,7 +390,7 @@ export default function UploadSession() {
 
       <button
         onClick={upload}
-        disabled={uploading || !hasModel3 || !hasMoc3}
+        disabled={uploading || !hasModel3 || !hasMoc3 || parseError}
         className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 text-sm font-medium transition-all flex items-center justify-center gap-2"
       >
         {uploading ? (

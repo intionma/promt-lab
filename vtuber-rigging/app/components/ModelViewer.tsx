@@ -85,7 +85,21 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
         setLoading(false);
       } catch (err: unknown) {
         if (!destroyed) {
-          setError(err instanceof Error ? err.message : "모델 로드 실패");
+          const raw = err instanceof Error ? err.message : String(err);
+          // 자주 나는 오류를 한국어로 친절하게 안내
+          let friendly = raw;
+          if (raw.includes("model3.json")) {
+            friendly = "model3.json 파일을 찾을 수 없어요. 업로드가 제대로 됐는지 확인해주세요.";
+          } else if (/texture|\.png|image/i.test(raw)) {
+            friendly = "텍스처(이미지) 파일을 불러오지 못했어요. 텍스처 파일이 빠졌을 수 있어요.";
+          } else if (/moc/i.test(raw)) {
+            friendly = "moc3 파일을 불러오지 못했어요. 파일이 손상됐거나 빠졌을 수 있어요.";
+          } else if (/fetch|network|404|load/i.test(raw)) {
+            friendly = "모델 파일을 불러오지 못했어요. 일부 파일이 누락됐거나 만료됐을 수 있어요.";
+          } else {
+            friendly = "모델을 불러오지 못했어요. 파일이 올바른지 확인해주세요.";
+          }
+          setError(friendly);
           setLoading(false);
         }
       }
