@@ -6,10 +6,11 @@ import { supabase, listAllStorageFiles } from "@/lib/supabase";
 export type Param = { id: string; value: number; min: number; max: number };
 export type ViewMode = "fullbody" | "upperbody" | "free";
 
-// 모델이 가진 모션·표정 메타
+// 모델이 가진 모션·표정·아트메쉬 메타
 export type ModelMeta = {
   motions: { group: string; count: number }[];
   expressions: string[];
+  meshes: { index: number; id: string }[];
 };
 
 // 공유/딥링크용 뷰어 상태 스냅샷
@@ -35,6 +36,8 @@ export interface ViewerHandle {
   getState: () => ViewerState;
   applyState: (s: ViewerState) => void;
   screenshot: () => void;
+  setMeshHidden: (index: number, hidden: boolean) => void;
+  showAllMeshes: () => void;
 }
 
 type Props = {
@@ -84,6 +87,11 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
 
   // 파라미터 기본값 (초기화·기본포즈에서 되돌림)
   const defaultsRef    = useRef<Map<string, number>>(new Map());
+
+  // 숨긴 ArtMesh(drawable) 인덱스 + 원본 opacity 배열 참조
+  const hiddenMeshesRef = useRef<Set<number>>(new Set());
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const drawOpacitiesRef = useRef<any>(null);
 
   // 얼굴 반응(터치/마우스 추적) ON/OFF
   const faceTrackRef   = useRef(true);
@@ -210,6 +218,11 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
           }, "image/png");
         } catch { /* 추출 실패 무시 */ }
       },
+      setMeshHidden: (index, hidden) => {
+        if (hidden) hiddenMeshesRef.current.add(index);
+        else hiddenMeshesRef.current.delete(index);
+      },
+      showAllMeshes: () => { hiddenMeshesRef.current.clear(); },
       getState: () => ({
         overrides: Object.fromEntries(overridesRef.current),
         viewMode: viewModeRef.current,
@@ -432,7 +445,18 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
           const expressions: string[] = (settings.expressions ?? [])
             .map((e: any) => e?.Name ?? e?.name)
             .filter((n: unknown): n is string => typeof n === "string");
-          onModelMeta?.({ motions, expressions });
+
+          // ArtMesh(drawable) 목록 수집 + opacity 배열 참조 확보
+          const meshes: { index: number; id: string }[] = [];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const cm: any = internalModel.coreModel;
+          const rawModel = typeof cm.getModel === "function" ? cm.getModel() : cm._model;
+          const dd = rawModel?.drawables;
+          if (dd && typeof dd.count === "number" && dd.ids) {
+            drawOpacitiesRef.current = dd.opacities;
+            for (let i = 0; i < dd.count; i++) meshes.push({ index: i, id: String(dd.ids[i]) });
+          }
+          onModelMeta?.({ motions, expressions, meshes });
         } catch { /* 메타 없어도 정상 */ }
 
         const onBeforeModelUpdate = () => {
@@ -442,6 +466,18 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
           });
         };
         internalModel.on("beforeModelUpdate", onBeforeModelUpdate);
+
+        // ArtMesh 숨김: model.update()(변형) 직후 ~ draw 직전에 opacity 를 0 으로.
+        // internalModel.update 를 감싸 원본 실행 후 숨긴 drawable 만 투명 처리.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const origUpdate = internalModel.update.bind(internalModel);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        internalModel.update = (dt: number, now: number) => {
+          origUpdate(dt, now);
+          const op = drawOpacitiesRef.current;
+          const hidden = hiddenMeshesRef.current;
+          if (op && hidden.size) hidden.forEach((i) => { op[i] = 0; });
+        };
 
         // 얼굴 추적: 라이브러리 내장 focusController 사용(올바른 타이밍·스무딩 내장)
         function setFocus(e: PointerEvent, instant = false) {

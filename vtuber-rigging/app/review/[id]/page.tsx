@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useRef, use } from "react";
 import dynamic from "next/dynamic";
-import { ArrowLeft, MessageSquare, Sliders, Clapperboard } from "lucide-react";
+import { ArrowLeft, MessageSquare, Sliders, Clapperboard, Layers } from "lucide-react";
 import Link from "next/link";
 import { supabase, type Session } from "@/lib/supabase";
 import FeedbackPanel from "@/app/components/FeedbackPanel";
 import ParamPanel from "@/app/components/ParamPanel";
 import ProductionPanel from "@/app/components/ProductionPanel";
+import MeshPanel from "@/app/components/MeshPanel";
 import type { Param, ViewerHandle, ModelMeta, ViewerState } from "@/app/components/ModelViewer";
 
 const ModelViewer = dynamic(() => import("@/app/components/ModelViewer"), {
@@ -19,7 +20,7 @@ const ModelViewer = dynamic(() => import("@/app/components/ModelViewer"), {
   ),
 });
 
-type PanelTab = "comments" | "params" | "production";
+type PanelTab = "comments" | "params" | "production" | "mesh";
 
 // URL ?s= 파라미터에서 공유 상태 디코드
 function parseSharedState(): ViewerState | null {
@@ -49,6 +50,20 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [meta, setMeta] = useState<ModelMeta | null>(null);
   const [autoIdle, setAutoIdle] = useState(true);
   const [bgKey, setBgKey] = useState("transparent");
+  const [hiddenMeshes, setHiddenMeshes] = useState<Set<number>>(new Set());
+
+  function toggleMesh(index: number, hide: boolean) {
+    viewerControl.current?.setMeshHidden(index, hide);
+    setHiddenMeshes((prev) => {
+      const next = new Set(prev);
+      if (hide) next.add(index); else next.delete(index);
+      return next;
+    });
+  }
+  function showAllMeshes() {
+    viewerControl.current?.showAllMeshes();
+    setHiddenMeshes(new Set());
+  }
 
   // 딥링크: URL ?s= 의 공유 상태를 모델 로드 후 1회 적용
   const pendingState = useRef<ViewerState | null>(parseSharedState());
@@ -196,7 +211,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
           <div className="flex gap-1 p-1 border-b border-white/5 flex-shrink-0">
             <button
               onClick={() => setPanelTab("comments")}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex-1 flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
                 panelTab === "comments"
                   ? "bg-gradient-to-br from-[var(--purple-deep)] to-[#9333ea] text-white shadow"
                   : "text-[var(--muted)] hover:text-[var(--fg)] hover:bg-white/5"
@@ -207,7 +222,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
             </button>
             <button
               onClick={() => setPanelTab("params")}
-              className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex-1 flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
                 panelTab === "params"
                   ? "bg-gradient-to-br from-[var(--purple-deep)] to-[#9333ea] text-white shadow"
                   : "text-[var(--muted)] hover:text-[var(--fg)] hover:bg-white/5"
@@ -218,7 +233,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
             </button>
             <button
               onClick={() => setPanelTab("production")}
-              className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex-1 flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
                 panelTab === "production"
                   ? "bg-gradient-to-br from-[var(--purple-deep)] to-[#9333ea] text-white shadow"
                   : "text-[var(--muted)] hover:text-[var(--fg)] hover:bg-white/5"
@@ -226,6 +241,17 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
             >
               <Clapperboard className="w-3.5 h-3.5" />
               연출
+            </button>
+            <button
+              onClick={() => setPanelTab("mesh")}
+              className={`flex-1 flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+                panelTab === "mesh"
+                  ? "bg-gradient-to-br from-[var(--purple-deep)] to-[#9333ea] text-white shadow"
+                  : "text-[var(--muted)] hover:text-[var(--fg)] hover:bg-white/5"
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              메쉬
             </button>
           </div>
 
@@ -261,6 +287,14 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               onScreenshot={() => viewerControl.current?.screenshot()}
               onFreeze={handleFreeze}
               onReset={handleResetProduction}
+            />
+          </div>
+          <div className={`flex-1 min-h-0 ${panelTab === "mesh" ? "flex flex-col" : "hidden"}`}>
+            <MeshPanel
+              meshes={meta?.meshes ?? []}
+              hidden={hiddenMeshes}
+              onToggle={toggleMesh}
+              onShowAll={showAllMeshes}
             />
           </div>
         </div>
