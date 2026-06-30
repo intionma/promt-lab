@@ -80,19 +80,36 @@ export async function POST(request: Request) {
     if (sErr) throw sErr;
 
     const prefixLen = `${basePrefix}/`.length;
+    const failed: string[] = [];
     for (const full of files) {
       const rel = full.slice(prefixLen); // drive 에 이미 안전 이름으로 저장됨
       const dest = `${session.id}/${rel}`;
       if (full === model3Path) {
-        await sb.storage.from("models").upload(dest, model3Body, { upsert: true, contentType: "application/json" });
+        const { error: upErr } = await sb.storage.from("models").upload(dest, model3Body, { upsert: true, contentType: "application/json" });
+        if (upErr) failed.push(`${rel}: ${upErr.message}`);
       } else {
         const { error: cpErr } = await sb.storage.from("models").copy(full, dest);
         if (cpErr) {
           // 복사 실패 시 다운로드→업로드 폴백
-          const { data: b } = await sb.storage.from("models").download(full);
-          if (b) await sb.storage.from("models").upload(dest, b, { upsert: true });
+          const { data: b, error: dErr } = await sb.storage.from("models").download(full);
+          if (b) {
+            const { error: u2 } = await sb.storage.from("models").upload(dest, b, { upsert: true });
+            if (u2) failed.push(`${rel}: ${u2.message}`);
+          } else {
+            failed.push(`${rel}: ${dErr?.message || cpErr.message}`);
+          }
         }
       }
+    }
+
+    // model3 또는 일부 파일 복사 실패 → 깨진 세션이므로 롤백 후 오류 반환
+    const model3Rel = model3Path.slice(prefixLen);
+    const model3Failed = failed.some((f) => f.startsWith(`${model3Rel}:`));
+    if (model3Failed || failed.length) {
+      // 깨진 세션 정리(베스트 에포트)
+      try { await sb.storage.from("models").remove(files.map((f) => `${session.id}/${f.slice(prefixLen)}`)); } catch { /* noop */ }
+      try { await sb.from("sessions").delete().eq("id", session.id); } catch { /* noop */ }
+      return Response.json({ error: `파일 복사 실패(${failed.length}개): ${failed[0]}` }, { status: 500 });
     }
 
     return Response.json({ ok: true, id: session.id });

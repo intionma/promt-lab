@@ -62,8 +62,9 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   // PC(마우스 환경)면 '모델 클릭으로 선택' 기본 ON
-  const isPC = useRef(typeof window !== "undefined" && window.matchMedia?.("(pointer: fine)").matches).current;
-  const [meshSelectMode, setMeshSelectMode] = useState(isPC);
+  // (useRef 로 마운트 시 1회 평가하면 SSR 값 false 에 고정되므로 useState + effect 로 감지)
+  const [isPC, setIsPC] = useState(false);
+  const [meshSelectMode, setMeshSelectMode] = useState(false);
   const [selectedMesh, setSelectedMesh] = useState<number | null>(null);
   const [meshSaving, setMeshSaving] = useState(false);
   const pendingMeshConfig = useRef<MeshConfig | null>(null);
@@ -148,18 +149,20 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     }
   }
 
+  function applyMeshConfig(cfg: MeshConfig, m: ModelMeta) {
+    setMeshGroups(cfg.groups ?? []);
+    const hid = new Set(cfg.hidden ?? []);
+    setHiddenIds(hid);
+    hid.forEach((mid) => {
+      const idx = m.meshes.find((x) => x.id === mid)?.index ?? -1;
+      if (idx >= 0) viewerControl.current?.setMeshHidden(idx, true);
+    });
+  }
   function handleModelMeta(m: ModelMeta) {
     setMeta(m);
     if (isPC) viewerControl.current?.setMeshSelectMode(true); // PC 기본 ON
-    const cfg = pendingMeshConfig.current;
-    if (cfg) {
-      setMeshGroups(cfg.groups ?? []);
-      const hid = new Set(cfg.hidden ?? []);
-      setHiddenIds(hid);
-      hid.forEach((mid) => {
-        const idx = m.meshes.find((x) => x.id === mid)?.index ?? -1;
-        if (idx >= 0) viewerControl.current?.setMeshHidden(idx, true);
-      });
+    if (pendingMeshConfig.current) {
+      applyMeshConfig(pendingMeshConfig.current, m);
       pendingMeshConfig.current = null;
     }
   }
@@ -260,6 +263,26 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     }
     load();
   }, [id]);
+
+  // PC(마우스) 환경 감지 — 마운트 후 1회. 감지되면 '모델 클릭으로 선택' 기본 ON
+  // (SSR 안전: useState/useRef 초기값은 서버에서 false 로 고정되므로 마운트 후 감지)
+  useEffect(() => {
+    const pc = typeof window !== "undefined" && !!window.matchMedia?.("(pointer: fine)").matches;
+    if (pc) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsPC(true);
+      setMeshSelectMode(true);
+      viewerControl.current?.setMeshSelectMode(true);
+    }
+  }, []);
+
+  // 모델 메타가 DB 응답보다 먼저 도착한 경우, 세션이 도착하면 저장된 mesh_config 적용
+  useEffect(() => {
+    if (meta && pendingMeshConfig.current) {
+      applyMeshConfig(pendingMeshConfig.current, meta);
+      pendingMeshConfig.current = null;
+    }
+  }, [meta, session]);
 
   if (notFound) {
     return (

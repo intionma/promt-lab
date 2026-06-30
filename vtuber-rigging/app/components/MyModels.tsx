@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { ExternalLink, Trash2, Calendar, Layers, Boxes, Link as LinkIcon, Loader2, HardDrive, Lock, X, FileText, Download, FolderInput } from "lucide-react";
 import {
@@ -31,7 +31,8 @@ export default function MyModels() {
   // 버전 이동
   const [moveTarget, setMoveTarget] = useState<Session | null>(null);
   // PC 드래그앤드롭 이동 (모바일은 이동 버튼만 — 터치 오류 방지)
-  const isPC = useRef(typeof window !== "undefined" && window.matchMedia?.("(pointer: fine)").matches).current;
+  // (SSR 안전: 마운트 후 감지. useRef(...).current 는 서버 값 false 에 고정돼 PC에서도 비활성됨)
+  const [isPC, setIsPC] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverName, setDragOverName] = useState<string | null>(null);
 
@@ -101,6 +102,14 @@ export default function MyModels() {
 
   useEffect(() => { load(); }, [load]);
 
+  // PC(마우스) 환경 감지 — 마운트 후 1회. 감지되면 드래그앤드롭 이동 활성화
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.matchMedia?.("(pointer: fine)").matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsPC(true);
+    }
+  }, []);
+
   // 삭제 시작: 비번이 캐시돼 있으면 네/아니요 확인만, 아니면 비번 모달
   function startDelete(session: Session) {
     if (verifiedPw) setConfirmTarget(session);
@@ -108,6 +117,7 @@ export default function MyModels() {
   }
 
   async function doDelete(session: Session, password: string) {
+    if (deleting) return; // 중복 제출 방지(빠른 더블클릭/Enter 동시)
     setDeleting(session.id);
     try {
       const res = await fetch("/api/delete-session", {
@@ -350,8 +360,8 @@ export default function MyModels() {
               <button onClick={() => setPwTarget(null)} className="flex-1 glass glass-hover rounded-xl py-2.5 text-sm text-[var(--muted)]">
                 취소
               </button>
-              <button onClick={() => pwTarget && doDelete(pwTarget, pwInput)} className="flex-1 bg-red-600 hover:bg-red-500 rounded-xl py-2.5 text-sm text-white transition-all">
-                삭제
+              <button onClick={() => pwTarget && doDelete(pwTarget, pwInput)} disabled={deleting === pwTarget.id} className="flex-1 bg-red-600 hover:bg-red-500 rounded-xl py-2.5 text-sm text-white transition-all disabled:opacity-60">
+                {deleting === pwTarget.id ? "삭제 중..." : "삭제"}
               </button>
             </div>
           </div>
