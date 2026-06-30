@@ -555,7 +555,9 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
           for (let i = 0; i < dd.count; i++) {
             if (hiddenMeshesRef.current.has(i)) continue;
             if ((dd.opacities?.[i] ?? 1) <= 0.02) continue;
-            const verts = dd.vertexPositions[i];
+            // 라이브러리와 동일 좌표계의 변환된 정점 사용
+            // (x*pixelsPerUnit + W/2, -y*pixelsPerUnit + H/2) — toModelPosition 과 매칭
+            const verts = internalModel.getDrawableVertices(i);
             const idx = dd.indices[i];
             if (!verts || !idx) continue;
             let hit = false;
