@@ -1,13 +1,21 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Upload, FileUp, Link, CheckCircle, AlertCircle, X, FolderOpen } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabase, addMySessionId } from "@/lib/supabase";
 
 type UploadedFile = { name: string; done: boolean; error?: boolean };
 
+// .model3.json 파일명에서 모델 이름 추출 (e.g. "rina.model3.json" → "rina")
+function extractModelName(files: File[]): string | null {
+  const model3 = files.find((f) => f.name.endsWith(".model3.json"));
+  if (!model3) return null;
+  return model3.name.replace(/\.model3\.json$/i, "");
+}
+
 export default function UploadSession() {
   const [title, setTitle] = useState("");
+  const [titleEdited, setTitleEdited] = useState(false);
   const [description, setDescription] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -18,6 +26,13 @@ export default function UploadSession() {
 
   const hasModel3 = files.some((f) => f.name.endsWith(".model3.json"));
   const hasMoc3 = files.some((f) => f.name.endsWith(".moc3"));
+
+  // 모델 파일이 선택되면 세션 이름을 모델 파일명으로 자동 설정 (사용자가 직접 수정하기 전까지)
+  useEffect(() => {
+    if (titleEdited) return;
+    const name = extractModelName(files);
+    if (name) setTitle(name);
+  }, [files, titleEdited]);
 
   // 파일의 저장 경로 계산 (폴더 구조 유지)
   function getStoragePath(file: File): string {
@@ -55,13 +70,18 @@ export default function UploadSession() {
     setError(null);
     setProgress(files.map((f) => ({ name: getStoragePath(f), done: false })));
 
+    const modelName = extractModelName(files);
     const finalTitle =
-      title.trim() || `리깅 리뷰 ${new Date().toLocaleDateString("ko-KR")}`;
+      title.trim() || modelName || `리깅 리뷰 ${new Date().toLocaleDateString("ko-KR")}`;
 
     try {
       const { data: session, error: sessionErr } = await supabase
         .from("sessions")
-        .insert({ title: finalTitle, description: description.trim() || null })
+        .insert({
+          title: finalTitle,
+          description: description.trim() || null,
+          model_name: modelName,
+        })
         .select()
         .single();
 
@@ -84,6 +104,7 @@ export default function UploadSession() {
         if (uploadErr) throw new Error(`${file.name} 업로드 실패`);
       }
 
+      addMySessionId(session.id);
       setShareUrl(`${window.location.origin}/review/${session.id}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "업로드 실패");
@@ -123,6 +144,7 @@ export default function UploadSession() {
             setShareUrl(null);
             setFiles([]);
             setTitle("");
+            setTitleEdited(false);
             setDescription("");
             setProgress([]);
           }}
@@ -137,11 +159,14 @@ export default function UploadSession() {
   return (
     <div className="flex flex-col h-full overflow-y-auto chat-scroll p-4 gap-4">
       <div className="space-y-2">
-        <label className="text-xs text-slate-400">세션 이름 (선택)</label>
+        <label className="text-xs text-slate-400">세션 이름 (모델 파일명 자동)</label>
         <input
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="예: 리나 v2 눈 리깅 피드백 (비워두면 자동 생성)"
+          onChange={(e) => {
+            setTitle(e.target.value);
+            setTitleEdited(true);
+          }}
+          placeholder="모델 파일을 올리면 자동으로 채워져요"
           className="w-full glass rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-600 outline-none"
         />
       </div>

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Upload, Sliders, GitBranch } from "lucide-react";
+import { Upload, Sliders, GitBranch, Boxes } from "lucide-react";
 import dynamic from "next/dynamic";
 import UploadSession from "./components/UploadSession";
+import MyModels from "./components/MyModels";
 import ParamCalculator from "./components/ParamCalculator";
 
 const DeformerTree = dynamic(() => import("./components/DeformerTree"), {
@@ -15,10 +16,11 @@ const DeformerTree = dynamic(() => import("./components/DeformerTree"), {
   ),
 });
 
-type Tab = "upload" | "params" | "deformer";
+type Tab = "upload" | "models" | "params" | "deformer";
 
 const TABS: { id: Tab; label: string; icon: typeof Upload }[] = [
   { id: "upload", label: "리뷰 공유", icon: Upload },
+  { id: "models", label: "내 모델", icon: Boxes },
   { id: "params", label: "파라미터", icon: Sliders },
   { id: "deformer", label: "디포머 계층", icon: GitBranch },
 ];
@@ -48,7 +50,7 @@ export default function Home() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition-all ${
                   activeTab === tab.id
                     ? "bg-purple-600/20 border border-purple-500/30 border-b-transparent text-purple-300"
                     : "text-slate-500 hover:text-slate-300"
@@ -67,6 +69,7 @@ export default function Home() {
           <div className={activeTab === "upload" ? "flex-1 flex flex-col min-h-0" : "hidden"}>
             <UploadSession />
           </div>
+          {activeTab === "models" && <MyModels />}
           {activeTab === "params" && <ParamCalculator />}
           {activeTab === "deformer" && <DeformerTree />}
         </main>
