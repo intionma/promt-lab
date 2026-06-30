@@ -464,7 +464,7 @@ export class PrevizScene {
     }
 
     // ── 전체 적용 ─────────────────────────────────────────────────
-    _applyAll(state) {
+    _applyAll(state, skipSave = false) {
         this._tintGroup(this._mat?.hair, state.hair.color);
         this._tintGroup(this._mat?.eye,  state.eye.color);
         this._tintGroup(this._mat?.skin, SKIN_TONES[state.skin.tone] ?? 0xffffff);
@@ -475,7 +475,7 @@ export class PrevizScene {
         this._applyPose(state.pose);
         this._applyExpression(state.expression);
         this._applyBody(state.body);
-        this._saveState(state);
+        if (!skipSave) this._saveState(state);
     }
 
     _applyPose(poseName) {
@@ -683,7 +683,7 @@ export class PrevizScene {
         });
 
         this.state = ns;
-        this._applyAll(ns);
+        this._applyAll(ns, true); // skipSave=true — 아래에서 한 번만 저장
         this._applyEnv(ns.env);
         this._applyLight(ns._light);
         this._applyProps(tags.map(x => (x.token || '').toLowerCase().trim()));
@@ -693,6 +693,7 @@ export class PrevizScene {
         ns.promptOnly = ns.promptOnly.filter(tk => !PROP_DEFS[(tk || '').toLowerCase().trim()]);
         if (typeof window.__previzUpdateUnmapped === 'function')
             window.__previzUpdateUnmapped(ns.promptOnly);
+        this._saveState(ns); // 모든 상태 적용 후 한 번만 저장
     }
 
     _tagToCamera(t, ns) {
@@ -721,6 +722,11 @@ export class PrevizScene {
     }
     _applyLight(l) {
         const L = this._lights; if (!L.key) return;
+        // 조명 태그 적용 전 항상 기본값으로 리셋 — 이전 태그 색상 잔존 방지
+        L.key.color.setHex(0xfff8f0); L.key.intensity = 1.6;
+        L.amb.intensity = 1.4;
+        if (L.rim)  { L.rim.color.setHex(0xffffff);  L.rim.intensity  = 0.8; }
+        if (L.fill) { L.fill.intensity = 0.6; }
         switch (l) {
             case 'cinematic_lighting': L.key.intensity = 2.1; L.amb.intensity = 0.9; break;
             case 'soft_lighting':      L.key.intensity = 1.2; L.amb.intensity = 1.9; break;

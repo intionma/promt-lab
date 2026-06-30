@@ -103,21 +103,3 @@ export class WeatherSystem {
     }
 }
 
-// ── 태그 → 환경 매핑 ─────────────────────────────────────────────
-export const ENV_TAG_MAP = {
-    // 배경
-    park:      { env: 'park' },   outdoors:   { env: 'park' },
-    nature:    { env: 'park' },   garden:     { env: 'park' },
-    indoors:   { env: 'indoor' }, bedroom:    { env: 'indoor' },
-    classroom: { env: 'indoor' }, cafe:       { env: 'indoor' },
-    street:    { env: 'street' }, city:       { env: 'street' },
-    urban:     { env: 'street' }, road:       { env: 'street' },
-    sky:       { env: 'sky' },    cloud:      { env: 'sky' },
-    // 날씨
-    rain:      { weather: 'rain' },  rainy:   { weather: 'rain' },
-    snow:      { weather: 'snow' },  snowy:   { weather: 'snow' },
-    // 시간대
-    night:     { timeOfDay: 0.95 }, evening: { timeOfDay: 0.75 },
-    morning:   { timeOfDay: 0.25 }, day:     { timeOfDay: 0.5  },
-    sunset:    { timeOfDay: 0.70 },
-};

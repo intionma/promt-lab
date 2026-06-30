@@ -2090,6 +2090,19 @@
             return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
         }
 
+        // localStorage 저장 래퍼 — QuotaExceededError 시 사용자에게 경고 1회
+        let _lsWarnShown = false;
+        function _lsSet(key, value) {
+            try {
+                localStorage.setItem(key, value);
+            } catch (e) {
+                if (!_lsWarnShown && (e.name === 'QuotaExceededError' || e.code === 22)) {
+                    _lsWarnShown = true;
+                    showToast('저장 공간이 가득 찼습니다. 갤러리나 조합을 일부 정리해 주세요.', 'warning', 6000);
+                }
+            }
+        }
+
         function showToast(msg, type = 'info', duration = 2500) {
             const container = document.getElementById('toast-container');
             const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
@@ -2203,7 +2216,7 @@
             const i = _gtPins.indexOf(key);
             if (i >= 0) { _gtPins.splice(i, 1); showToast(`'${GT_TOOLS[key].label}' 단축 해제`, 'info', 1600); }
             else { _gtPins.push(key); showToast(`'${GT_TOOLS[key].label}' 상단에 고정됨`, 'success', 1800); }
-            try { localStorage.setItem('gt_pins', JSON.stringify(_gtPins)); } catch (e) {}
+            _lsSet('gt_pins', JSON.stringify(_gtPins));
             gtRenderPins();
         }
 
@@ -2765,7 +2778,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!url) { showToast('종료 도우미 주소를 입력하세요.', 'error'); return; }
             if (!/^https?:\/\//i.test(url)) url = 'http://' + url;
             url = url.replace(/\/+$/, '');
-            try { localStorage.setItem(SHUTDOWN_KEY, JSON.stringify({ url, token })); } catch (e) {}
+            _lsSet(SHUTDOWN_KEY, JSON.stringify({ url, token }));
             showConfirm('정말 PC를 종료할까요? 진행 중인 작업이 모두 종료됩니다.', async () => {
                 const st = document.getElementById('shutdown-status');
                 st.textContent = '종료 요청 중...'; st.style.color = 'var(--text-dim)';
@@ -2787,7 +2800,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!url) return null;
             if (!/^https?:\/\//i.test(url)) url = 'http://' + url;
             url = url.replace(/\/+$/, '');
-            try { localStorage.setItem(SHUTDOWN_KEY, JSON.stringify({ url, token })); } catch (e) {}
+            _lsSet(SHUTDOWN_KEY, JSON.stringify({ url, token }));
             return { url, token };
         }
 
@@ -2852,7 +2865,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // 마감시각 설정 + 저장 + 카운트다운 시작 (모달·상단바 공용)
         function _shutdownSetDeadline(ts) {
             _shutdownDeadline = ts;
-            try { localStorage.setItem(SHUTDOWN_DEADLINE_KEY, String(ts)); } catch (e) {}
+            _lsSet(SHUTDOWN_DEADLINE_KEY, String(ts));
             _shutdownStartCountdown();
         }
         function _shutdownFmt(left) {
@@ -2911,10 +2924,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         // ── 탭/앱 복귀 시 WebSocket 재연결 + 서버 큐 동기화 ──────────────
         document.addEventListener('visibilitychange', () => {
-            if (document.hidden) return;
+            if (document.hidden) {
+                _mgStopSysMonitor(); // 탭 숨김 시 ComfyUI stats 폴링 중단
+                return;
+            }
             _comfyEnsureSocket();
             // 서버 큐와 전체 동기화 (새로고침 없이도 항상 정확한 상태 유지)
             _comfySyncQueue();
+            // 다중생성 모달이 열려 있으면 stats 재시작
+            if (document.getElementById('multigen-modal')?.style.display !== 'none') _mgStartSysMonitor();
         });
 
         // ── 개발자 모드 (확장 가능한 구조) ──────────────────────────────
@@ -2962,7 +2980,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 });
             },
             save() {
-                try { localStorage.setItem(this.KEY, JSON.stringify({ on: this.on, features: this.features })); } catch (e) {}
+                _lsSet(this.KEY, JSON.stringify({ on: this.on, features: this.features }));
             },
             feature(id) { return this.on && this.features[id] !== false; },
             // 전체 ON/OFF에 따른 시각/기능 적용
@@ -3829,18 +3847,19 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 meta[pid] = { _multi: !!j._multi, seed: j.seed, batch: j.batch, inline: j.inline || null, label: j.label || '' };
             }
             _comfyJobMeta = meta;
-            try { localStorage.setItem(_COMFY_JOBS_KEY, JSON.stringify(meta)); } catch (e) {}
+            _lsSet(_COMFY_JOBS_KEY, JSON.stringify(meta));
         }
 
         function _comfyEnsureSocket() {
-            if (_comfySocket && _comfySocket.readyState <= 1) return; // 연결됨/연결중
+            if (_comfySocket && _comfySocket.readyState <= 1) return; // 연결됨/연결중 — 중복 방지
             if (!_comfyClientId) _comfyClientId = _comfyUUID();
             try {
                 const wsBase = _comfyBase().replace(/^http/, 'ws');
-                _comfySocket = new WebSocket(`${wsBase}/ws?clientId=${_comfyClientId}`);
-                _comfySocket.onmessage = _comfyOnSocketMessage;
-                _comfySocket.onclose = () => { _comfySocket = null; };
-                _comfySocket.onerror = () => {};
+                const sock = new WebSocket(`${wsBase}/ws?clientId=${_comfyClientId}`);
+                sock.onmessage = _comfyOnSocketMessage;
+                sock.onclose = () => { if (_comfySocket === sock) _comfySocket = null; }; // 이 소켓이 현재 소켓일 때만 null 처리
+                sock.onerror = () => {};
+                _comfySocket = sock;
             } catch (e) { _comfySocket = null; }
         }
 
@@ -4061,7 +4080,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // 미리보기 썸네일 크기 (CSS 변수 --lb-h, 전체 미리보기에 적용) — 슬라이더들 동기화
         function setPreviewSize(v) {
             document.documentElement.style.setProperty('--lb-h', v + 'px');
-            try { localStorage.setItem('preview_thumb_h', v); } catch (e) {}
+            _lsSet('preview_thumb_h', v);
             document.querySelectorAll('.preview-size-slider').forEach(s => { if (s.value != v) s.value = v; });
         }
         (function () {
@@ -4711,8 +4730,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _galleryUrls.slice(200).forEach(u => delete _galleryMeta[u]);
                 _galleryUrls = _galleryUrls.slice(0, 200);
             }
-            try { localStorage.setItem(GALLERY_KEY, JSON.stringify(_galleryUrls)); } catch (e) {}
-            try { localStorage.setItem(GALLERY_META_KEY, JSON.stringify(_galleryMeta)); } catch (e) {}
+            _lsSet(GALLERY_KEY, JSON.stringify(_galleryUrls));
+            _lsSet(GALLERY_META_KEY, JSON.stringify(_galleryMeta));
             _galleryRenderOne(url, false, sec);
             _galleryUpdateCount();
         }
@@ -4729,8 +4748,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!_galleryUrls.length) return;
             showConfirm('갤러리의 모든 이미지를 목록에서 지웁니다. (ComfyUI에 저장된 원본 파일은 유지) 계속할까요?', () => {
                 _galleryUrls = []; _galleryMeta = {};
-                try { localStorage.setItem(GALLERY_KEY, JSON.stringify(_galleryUrls)); } catch (e) {}
-                try { localStorage.setItem(GALLERY_META_KEY, JSON.stringify(_galleryMeta)); } catch (e) {}
+                _lsSet(GALLERY_KEY, JSON.stringify(_galleryUrls));
+                _lsSet(GALLERY_META_KEY, JSON.stringify(_galleryMeta));
                 renderImageGallery();
                 showToast('갤러리를 비웠습니다.', 'success');
             });
@@ -4929,8 +4948,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         let _mgImages = [];
         try { const _s = JSON.parse(localStorage.getItem(MG_PREVIEW_KEY) || '[]'); if (Array.isArray(_s)) _mgImages = _s; } catch (e) {}
         function _mgSave() {
-            try { localStorage.setItem(MG_PREVIEW_KEY, JSON.stringify(_mgImages.map(im => ({ url: im.url, seed: im.seed })))); }
-            catch (e) { /* 용량 초과 등 무시 */ }
+            _lsSet(MG_PREVIEW_KEY, JSON.stringify(_mgImages.map(im => ({ url: im.url, seed: im.seed }))));
         }
         const _mgSelected = new Set();
         let _mgTarget = 0, _mgNotified = false;
@@ -5844,7 +5862,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         function toggleRecommend() {
             _recommendOn = !_recommendOn;
-            try { localStorage.setItem('recommend_on', _recommendOn ? '1' : '0'); } catch (e) {}
+            _lsSet('recommend_on', _recommendOn ? '1' : '0');
             _recUpdateBtn();
             renderRecommendArea();
             if (_recommendOn) {
@@ -5994,7 +6012,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         function saveGenMemo() {
             const el = document.getElementById('generation-memo');
-            if (el) { try { localStorage.setItem('pro_generation_memo', el.value); } catch (e) {} }
+            if (el) { _lsSet('pro_generation_memo', el.value); }
         }
         function _restoreGenMemo() {
             const el = document.getElementById('generation-memo');
@@ -6017,7 +6035,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (caret) caret.style.transform = willCollapse ? 'rotate(-90deg)' : '';
             // 접으면 버튼이 번역 라벨 바로 아래로 올라오고, 펼치면 다시 하단 고정
             if (row) row.style.marginTop = willCollapse ? '12px' : 'auto';
-            try { localStorage.setItem('kor_preview_' + which + '_collapsed', willCollapse ? '1' : '0'); } catch (e) {}
+            _lsSet('kor_preview_' + which + '_collapsed', willCollapse ? '1' : '0');
         }
 
         function performUndo() {
@@ -11583,7 +11601,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 for (const url of parsed.galleryUrls) {
                     if (!existing.has(url)) { _galleryUrls.push(url); existing.add(url); addedCount++; }
                 }
-                try { localStorage.setItem(GALLERY_KEY, JSON.stringify(_galleryUrls)); } catch(e) {}
+                _lsSet(GALLERY_KEY, JSON.stringify(_galleryUrls));
                 if (typeof renderImageGallery === 'function') renderImageGallery();
             }
 
@@ -11592,21 +11610,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 for (const pin of parsed.gtPins) {
                     if (!_gtPins.includes(pin)) { _gtPins.push(pin); addedCount++; }
                 }
-                try { localStorage.setItem('gt_pins', JSON.stringify(_gtPins)); } catch(e) {}
+                _lsSet('gt_pins', JSON.stringify(_gtPins));
                 if (typeof gtRenderPins === 'function') gtRenderPins();
             }
 
             // Merge comfySettings (기존 설정이 없을 때만 채움 — 싱글값이라 덮어쓰지 않음)
             if (parsed.comfySettings && typeof parsed.comfySettings === 'object') {
                 let cur = null; try { cur = JSON.parse(localStorage.getItem(COMFY_KEY) || 'null'); } catch(e) {}
-                if (!cur) { try { localStorage.setItem(COMFY_KEY, JSON.stringify(parsed.comfySettings)); addedCount++; } catch(e) {} }
+                if (!cur) { _lsSet(COMFY_KEY, JSON.stringify(parsed.comfySettings)); addedCount++; }
             }
 
             // Merge generationMemo (기존 메모가 비어있을 때만 추가)
             if (typeof parsed.generationMemo === 'string' && parsed.generationMemo) {
                 let curMemo = ''; try { curMemo = localStorage.getItem('pro_generation_memo') || ''; } catch(e) {}
                 if (!curMemo.trim()) {
-                    try { localStorage.setItem('pro_generation_memo', parsed.generationMemo); } catch(e) {}
+                    _lsSet('pro_generation_memo', parsed.generationMemo);
                     const memoEl = document.getElementById('generation-memo');
                     if (memoEl) memoEl.value = parsed.generationMemo;
                     addedCount++;
@@ -11616,7 +11634,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // Merge appPrefs (기타 설정 — 현재 값이 없는 키만 채움)
             if (parsed.appPrefs && typeof parsed.appPrefs === 'object') {
                 for (const [k, v] of Object.entries(parsed.appPrefs)) {
-                    if (localStorage.getItem(k) === null) { try { localStorage.setItem(k, v); addedCount++; } catch(e) {} }
+                    if (localStorage.getItem(k) === null) { try { _lsSet(k, v); addedCount++; } catch(e) {} }
                 }
             }
 
@@ -11762,7 +11780,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             safeSetStorage('pro_prompt_presets_v7_0', userPresets);
                         }
                         if (parsed.comfySettings && typeof parsed.comfySettings === 'object') {
-                            try { localStorage.setItem(COMFY_KEY, JSON.stringify(parsed.comfySettings)); } catch(e) {}
+                            _lsSet(COMFY_KEY, JSON.stringify(parsed.comfySettings));
                             // 인메모리 상태·입력칸·버튼도 즉시 동기화 (새로고침 없이 반영)
                             try {
                                 _comfyConnectedOnce = !!parsed.comfySettings.connectedOnce;
@@ -11773,16 +11791,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         }
                         if (parsed.galleryUrls && Array.isArray(parsed.galleryUrls)) {
                             _galleryUrls = parsed.galleryUrls;
-                            try { localStorage.setItem(GALLERY_KEY, JSON.stringify(_galleryUrls)); } catch(e) {}
+                            _lsSet(GALLERY_KEY, JSON.stringify(_galleryUrls));
                             if (typeof renderImageGallery === 'function') renderImageGallery();
                         }
                         if (parsed.gtPins && Array.isArray(parsed.gtPins)) {
                             _gtPins = parsed.gtPins;
-                            try { localStorage.setItem('gt_pins', JSON.stringify(_gtPins)); } catch(e) {}
+                            _lsSet('gt_pins', JSON.stringify(_gtPins));
                             if (typeof gtRenderPins === 'function') gtRenderPins();
                         }
                         if (typeof parsed.generationMemo === 'string') {
-                            try { localStorage.setItem('pro_generation_memo', parsed.generationMemo); } catch(e) {}
+                            _lsSet('pro_generation_memo', parsed.generationMemo);
                             const memoEl = document.getElementById('generation-memo');
                             if (memoEl) memoEl.value = parsed.generationMemo;
                         }
@@ -11790,7 +11808,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         let _needReload = false;
                         if (parsed.appPrefs && typeof parsed.appPrefs === 'object') {
                             for (const [k, v] of Object.entries(parsed.appPrefs)) {
-                                try { localStorage.setItem(k, v); } catch(e) {}
+                                _lsSet(k, v);
                             }
                             _needReload = true; // 테마/레이아웃은 로드시 적용되므로 새로고침으로 완벽 반영
                         }
@@ -13339,7 +13357,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const newIdx = Math.max(0, Math.min(PANELS.length - 1, idx));
                 const changed = newIdx !== currentIdx;
                 currentIdx = newIdx;
-                try { localStorage.setItem(PANEL_IDX_KEY, currentIdx); } catch (e) {}
+                _lsSet(PANEL_IDX_KEY, currentIdx);
                 track.style.transition = animate ? 'transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none';
                 track.style.transform = `translateX(${-currentIdx * 100}vw)`;
                 // 탭바 하이라이트
