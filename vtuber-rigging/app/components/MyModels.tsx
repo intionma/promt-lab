@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { ExternalLink, Trash2, Calendar, Layers, Boxes, Link as LinkIcon, Loader2, HardDrive, Lock, X, ChevronDown, FileText, Download } from "lucide-react";
+import { ExternalLink, Trash2, Calendar, Layers, Boxes, Link as LinkIcon, Loader2, HardDrive, Lock, X, FileText, Download, FolderInput } from "lucide-react";
 import {
   supabase,
   getStorageUsage,
@@ -25,6 +25,22 @@ export default function MyModels() {
   const [pwTarget, setPwTarget] = useState<Session | null>(null);
   const [pwInput, setPwInput] = useState("");
   const [pwError, setPwError] = useState(false);
+  // 비번 1회 입력 후 캐시 → 이후엔 네/아니요 확인만
+  const [verifiedPw, setVerifiedPw] = useState<string | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<Session | null>(null);
+  // 버전 이동
+  const [moveTarget, setMoveTarget] = useState<Session | null>(null);
+  // PC 드래그앤드롭 이동 (모바일은 이동 버튼만 — 터치 오류 방지)
+  const isPC = useRef(typeof window !== "undefined" && window.matchMedia?.("(pointer: fine)").matches).current;
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverName, setDragOverName] = useState<string | null>(null);
+
+  function dropOnGroup(targetName: string) {
+    const s = groups.flatMap((g) => g.versions).find((v) => v.id === dragId);
+    setDragId(null);
+    setDragOverName(null);
+    if (s && (s.model_name || s.title) !== targetName) moveVersion(s, targetName);
+  }
 
   // 버전별 파일 목록 펼치기
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -85,10 +101,13 @@ export default function MyModels() {
 
   useEffect(() => { load(); }, [load]);
 
-  async function confirmDelete() {
-    if (!pwTarget) return;
-    const session = pwTarget;
-    const password = pwInput;
+  // 삭제 시작: 비번이 캐시돼 있으면 네/아니요 확인만, 아니면 비번 모달
+  function startDelete(session: Session) {
+    if (verifiedPw) setConfirmTarget(session);
+    else { setPwTarget(session); setPwInput(""); setPwError(false); }
+  }
+
+  async function doDelete(session: Session, password: string) {
     setDeleting(session.id);
     try {
       const res = await fetch("/api/delete-session", {
@@ -96,16 +115,45 @@ export default function MyModels() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId: session.id, password }),
       });
-      if (res.status === 403) { setPwError(true); setDeleting(null); return; }
-      if (!res.ok) throw new Error();
+      if (res.status === 403) {
+        setVerifiedPw(null);
+        if (pwTarget) setPwError(true);
+        else { setConfirmTarget(null); alert("비밀번호가 만료됐어요. 다시 입력해주세요"); }
+        return;
+      }
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        alert(j.error || "삭제 실패");
+        return;
+      }
+      setVerifiedPw(password); // 성공 → 비번 캐시
       setPwTarget(null);
+      setConfirmTarget(null);
       setPwInput("");
       setPwError(false);
       await load();
-    } catch {
-      alert("삭제 중 오류가 발생했어요");
     } finally {
       setDeleting(null);
+    }
+  }
+
+  // 버전을 다른 모델로 이동 (model_name 변경)
+  async function moveVersion(session: Session, targetName: string) {
+    const password = verifiedPw || window.prompt("이동하려면 비밀번호를 입력하세요");
+    if (!password) return;
+    try {
+      const res = await fetch("/api/move-version", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: session.id, modelName: targetName, password }),
+      });
+      if (res.status === 403) { setVerifiedPw(null); alert("비밀번호가 틀렸어요"); return; }
+      if (!res.ok) { const j = await res.json().catch(() => ({})); alert(j.error || "이동 실패"); return; }
+      setVerifiedPw(password);
+      setMoveTarget(null);
+      await load();
+    } catch {
+      alert("이동 중 오류가 발생했어요");
     }
   }
 
@@ -162,13 +210,20 @@ export default function MyModels() {
       ) : (
         <div className="flex-1 overflow-y-auto chat-scroll p-4 space-y-5">
           {groups.map((group) => (
-            <div key={group.name} className="space-y-2 fade-up">
+            <div
+              key={group.name}
+              className={`space-y-2 fade-up rounded-xl transition-all ${dragOverName === group.name ? "ring-2 ring-[var(--purple)] ring-offset-2 ring-offset-transparent bg-[var(--purple)]/5" : ""}`}
+              onDragOver={(e) => { if (isPC && dragId) { e.preventDefault(); setDragOverName(group.name); } }}
+              onDragLeave={() => { if (dragOverName === group.name) setDragOverName(null); }}
+              onDrop={(e) => { if (isPC && dragId) { e.preventDefault(); dropOnGroup(group.name); } }}
+            >
               <div className="flex items-center gap-2 px-1">
                 <Boxes className="w-4 h-4 text-[var(--purple)]" />
                 <span className="text-sm font-bold text-[var(--fg)]">{group.name}</span>
                 <span className="text-[10px] text-[var(--muted)] bg-white/5 px-2 py-0.5 rounded-full">
                   {group.versions.length}개 버전
                 </span>
+                {isPC && dragId && <span className="text-[9px] text-[var(--purple)]">여기로 드롭</span>}
               </div>
 
               <div className="space-y-1.5">
@@ -176,8 +231,14 @@ export default function MyModels() {
                   const files = fileCache[v.id];
                   const open = expandedId === v.id;
                   return (
-                  <div key={v.id} className="glass rounded-xl overflow-hidden">
-                    <div className="glass-hover p-3 flex items-center gap-3">
+                  <div key={v.id} className={`glass rounded-xl overflow-hidden ${dragId === v.id ? "opacity-50" : ""}`}>
+                    <div
+                      className="glass-hover p-3 flex items-center gap-3"
+                      draggable={isPC}
+                      onDragStart={() => setDragId(v.id)}
+                      onDragEnd={() => { setDragId(null); setDragOverName(null); }}
+                      title={isPC ? "드래그해서 다른 모델로 이동" : undefined}
+                    >
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--purple-deep)]/30 to-[var(--pink)]/20 border border-[var(--purple)]/20 flex items-center justify-center flex-shrink-0">
                         <span className="text-xs font-bold text-[var(--purple)]">v{v.versionNo}</span>
                       </div>
@@ -202,8 +263,11 @@ export default function MyModels() {
                       <Link href={`/review/${v.id}`} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="열기">
                         <ExternalLink className="w-3.5 h-3.5" />
                       </Link>
+                      <button onClick={() => setMoveTarget(v)} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="다른 모델로 이동">
+                        <FolderInput className="w-3.5 h-3.5" />
+                      </button>
                       <button
-                        onClick={() => { setPwTarget(v); setPwInput(""); setPwError(false); }}
+                        onClick={() => startDelete(v)}
                         disabled={deleting === v.id}
                         className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-red-400"
                         title="삭제"
@@ -276,7 +340,7 @@ export default function MyModels() {
               inputMode="numeric"
               value={pwInput}
               onChange={(e) => { setPwInput(e.target.value); setPwError(false); }}
-              onKeyDown={(e) => { if (e.key === "Enter") confirmDelete(); }}
+              onKeyDown={(e) => { if (e.key === "Enter" && pwTarget) doDelete(pwTarget, pwInput); }}
               placeholder="비밀번호"
               autoFocus
               className={`w-full glass rounded-xl px-4 py-3 text-sm text-center tracking-widest outline-none ${pwError ? "border border-red-500/50" : ""}`}
@@ -286,10 +350,60 @@ export default function MyModels() {
               <button onClick={() => setPwTarget(null)} className="flex-1 glass glass-hover rounded-xl py-2.5 text-sm text-[var(--muted)]">
                 취소
               </button>
-              <button onClick={confirmDelete} className="flex-1 bg-red-600 hover:bg-red-500 rounded-xl py-2.5 text-sm text-white transition-all">
+              <button onClick={() => pwTarget && doDelete(pwTarget, pwInput)} className="flex-1 bg-red-600 hover:bg-red-500 rounded-xl py-2.5 text-sm text-white transition-all">
                 삭제
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 네/아니요 삭제 확인 (비번 캐시 상태) */}
+      {confirmTarget && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setConfirmTarget(null)}>
+          <div className="glass-strong rounded-2xl p-6 w-full max-w-xs space-y-4 fade-up" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center"><Trash2 className="w-4 h-4 text-red-400" /></div>
+              <span className="text-sm font-semibold">삭제할까요?</span>
+            </div>
+            <p className="text-xs text-[var(--muted)]">
+              <span className="text-[var(--fg)]">{confirmTarget.title}</span> 을(를) 삭제합니다. (비밀번호 확인됨 · 되돌릴 수 없어요)
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmTarget(null)} className="flex-1 glass glass-hover rounded-xl py-2.5 text-sm text-[var(--muted)]">아니요</button>
+              <button onClick={() => confirmTarget && verifiedPw && doDelete(confirmTarget, verifiedPw)} disabled={deleting === confirmTarget.id} className="flex-1 bg-red-600 hover:bg-red-500 rounded-xl py-2.5 text-sm text-white transition-all">
+                {deleting === confirmTarget.id ? "삭제 중..." : "네, 삭제"}
+              </button>
+            </div>
+            <button onClick={() => { setVerifiedPw(null); setConfirmTarget(null); }} className="w-full text-[10px] text-[var(--muted)]/60 hover:text-[var(--muted)]">비밀번호 저장 해제</button>
+          </div>
+        </div>
+      )}
+
+      {/* 버전 이동 모달 */}
+      {moveTarget && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setMoveTarget(null)}>
+          <div className="glass-strong rounded-2xl p-5 w-full max-w-sm space-y-3 fade-up" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-[var(--purple)]/20 flex items-center justify-center"><FolderInput className="w-4 h-4 text-[var(--purple)]" /></div>
+                <span className="text-sm font-semibold">다른 모델로 이동</span>
+              </div>
+              <button onClick={() => setMoveTarget(null)} className="text-[var(--muted)] hover:text-[var(--fg)]"><X className="w-4 h-4" /></button>
+            </div>
+            <p className="text-xs text-[var(--muted)]"><span className="text-[var(--fg)]">{moveTarget.title}</span> 을(를) 옮길 모델을 고르세요. (파일명이 달라 분리된 버전을 합칠 때)</p>
+            <div className="max-h-52 overflow-y-auto chat-scroll space-y-1">
+              {groups.filter((g) => g.name !== (moveTarget.model_name || moveTarget.title)).map((g) => (
+                <button key={g.name} onClick={() => moveVersion(moveTarget, g.name)} className="w-full text-left glass glass-hover rounded-lg px-3 py-2 text-xs text-[var(--fg)] flex items-center gap-2">
+                  <Boxes className="w-3.5 h-3.5 text-[var(--purple)]" /> <span className="truncate">{g.name}</span>
+                  <span className="ml-auto text-[10px] text-[var(--muted)]">{g.versions.length}개</span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => { const n = window.prompt("새 모델 이름 입력"); if (n?.trim()) moveVersion(moveTarget, n.trim()); }}
+              className="w-full glass glass-hover rounded-lg px-3 py-2 text-xs text-[var(--muted)]"
+            >＋ 새 이름으로 이동</button>
           </div>
         </div>
       )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Send, MessageSquare, Clock, Camera, Eye } from "lucide-react";
+import { Send, MessageSquare, Clock, Camera, Eye, Trash2 } from "lucide-react";
 import { supabase, type Feedback } from "@/lib/supabase";
 import type { ViewerState } from "./ModelViewer";
 
@@ -21,6 +21,22 @@ export default function FeedbackPanel({ sessionId, currentParam, captureState, o
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [attachState, setAttachState] = useState(true); // 현재 상태(파라미터·시점) 첨부
+  const [pwCache, setPwCache] = useState<string | null>(null); // 삭제 비번 1회 캐시
+
+  async function deleteFeedback(fb: Feedback) {
+    let pw = pwCache;
+    if (pw) { if (!window.confirm("이 코멘트를 삭제할까요?")) return; }
+    else { pw = window.prompt("코멘트 삭제 — 비밀번호를 입력하세요"); if (!pw) return; }
+    const res = await fetch("/api/delete-feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ feedbackId: fb.id, password: pw }),
+    });
+    if (res.status === 403) { setPwCache(null); alert("비밀번호가 틀렸어요"); return; }
+    if (!res.ok) { const j = await res.json().catch(() => ({})); alert("삭제 실패: " + (j.error || "")); return; }
+    setPwCache(pw);
+    setFeedbacks((prev) => prev.filter((f) => f.id !== fb.id));
+  }
 
   useEffect(() => {
     loadFeedbacks();
@@ -126,10 +142,15 @@ export default function FeedbackPanel({ sessionId, currentParam, captureState, o
             <div key={fb.id} className="glass rounded-xl p-3 space-y-1.5 fade-up">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-[var(--purple)]">{fb.author}</span>
-                <span className="text-[10px] text-[var(--muted)] flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {timeAgo(fb.created_at)}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-[var(--muted)] flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {timeAgo(fb.created_at)}
+                  </span>
+                  <button onClick={() => deleteFeedback(fb)} className="text-[var(--muted)]/50 hover:text-red-400 p-0.5" title="코멘트 삭제">
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
               {fb.param_name && (
                 <div className="flex items-center gap-1.5">

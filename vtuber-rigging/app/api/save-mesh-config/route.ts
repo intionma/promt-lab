@@ -29,11 +29,31 @@ export async function POST(request: Request) {
 
   try {
     const supabase = adminClient();
-    const { error } = await supabase
-      .from("sessions")
-      .update({ mesh_config: config })
-      .eq("id", sessionId);
-    if (error) throw error;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cfg = config as any;
+    const groups = cfg?.groups ?? [];
+    const hidden = cfg?.hidden ?? [];
+
+    // 같은 모델(model_name)의 모든 버전에 '그룹'은 공유, '숨김'은 현재 버전만
+    const { data: cur } = await supabase.from("sessions").select("model_name").eq("id", sessionId).single();
+    const modelName = cur?.model_name ?? null;
+
+    if (modelName) {
+      const { data: siblings } = await supabase.from("sessions").select("id, mesh_config").eq("model_name", modelName);
+      for (const s of siblings ?? []) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const existing = (s as any).mesh_config ?? {};
+        const next = {
+          groups,
+          hidden: s.id === sessionId ? hidden : (existing.hidden ?? []),
+        };
+        const { error } = await supabase.from("sessions").update({ mesh_config: next }).eq("id", s.id);
+        if (error) throw error;
+      }
+    } else {
+      const { error } = await supabase.from("sessions").update({ mesh_config: { groups, hidden } }).eq("id", sessionId);
+      if (error) throw error;
+    }
     return Response.json({ ok: true });
   } catch (e) {
     const msg = e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "저장 실패";

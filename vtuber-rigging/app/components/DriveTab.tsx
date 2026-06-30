@@ -1,10 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { FileUp, Download, Trash2, Loader2, HardDrive, CheckCircle, AlertCircle, File as FileIcon } from "lucide-react";
+import { FileUp, FolderUp, Download, Trash2, Loader2, HardDrive, CheckCircle, AlertCircle, File as FileIcon } from "lucide-react";
 import { supabase, listDriveFiles, publicUrl, formatBytes, DRIVE_PREFIX } from "@/lib/supabase";
 
 type DriveFile = { path: string; size: number; name: string };
+
+// 저장 키로 안전한 경로 (슬래시 유지 → 폴더 구조 보존)
+function safeSeg(s: string) { return s.replace(/[^A-Za-z0-9._-]+/g, "_"); }
+function safePath(p: string) { return p.replace(/\\/g, "/").split("/").map(safeSeg).join("/"); }
 
 export default function DriveTab() {
   const [files, setFiles] = useState<DriveFile[]>([]);
@@ -27,15 +31,22 @@ export default function DriveTab() {
     setMsg(null);
     let ok = 0;
     const fails: string[] = [];
+    const stamp = Date.now();
     for (let i = 0; i < list.length; i++) {
       const f = list[i];
-      // 어떤 파일이든 업로드되게 — 이름을 안전하게 변환 + 타임스탬프로 충돌 방지
-      const safe = f.name.replace(/[^A-Za-z0-9._-]+/g, "_");
-      const path = `${DRIVE_PREFIX}/${Date.now()}_${i}_${safe}`;
-      const { error } = await supabase.storage
-        .from("models")
-        .upload(path, f, { upsert: true, contentType: f.type || undefined });
-      if (error) fails.push(`${f.name}: ${error.message}`); else ok += 1;
+      // 폴더로 올린 경우 webkitRelativePath 로 구조 보존, 아니면 파일명만
+      const rel = (f as File & { webkitRelativePath?: string }).webkitRelativePath;
+      const path = rel
+        ? `${DRIVE_PREFIX}/${safePath(rel)}`
+        : `${DRIVE_PREFIX}/${stamp}_${i}_${safePath(f.name)}`;
+      try {
+        const { error } = await supabase.storage
+          .from("models")
+          .upload(path, f, { upsert: true, contentType: f.type || undefined });
+        if (error) fails.push(`${f.name}: ${error.message}`); else ok += 1;
+      } catch (e) {
+        fails.push(`${f.name}: ${e instanceof Error ? e.message : String(e)}`);
+      }
     }
     setUploading(false);
     setMsg(
@@ -90,16 +101,31 @@ export default function DriveTab() {
           {uploading ? <Loader2 className="w-5 h-5 text-[var(--purple)] animate-spin" /> : <FileUp className="w-5 h-5 text-[var(--purple)]" />}
         </div>
         <p className="text-sm text-[var(--fg)] mb-2">{uploading ? "업로드 중..." : "파일을 드래그하거나"}</p>
-        <label className="inline-flex cursor-pointer bg-gradient-to-br from-[var(--purple-deep)] to-[#9333ea] rounded-lg px-4 py-2 text-xs text-white items-center gap-1.5 font-medium hover:opacity-90">
-          <FileUp className="w-3.5 h-3.5" /> 파일 선택
-          <input
-            type="file"
-            multiple
-            className="hidden"
-            disabled={uploading}
-            onChange={(e) => { if (e.target.files) uploadFiles(Array.from(e.target.files)); e.target.value = ""; }}
-          />
-        </label>
+        <div className="flex gap-2 justify-center">
+          <label className="inline-flex cursor-pointer bg-gradient-to-br from-[var(--purple-deep)] to-[#9333ea] rounded-lg px-4 py-2 text-xs text-white items-center gap-1.5 font-medium hover:opacity-90">
+            <FileUp className="w-3.5 h-3.5" /> 파일 선택
+            <input
+              type="file"
+              multiple
+              className="hidden"
+              disabled={uploading}
+              onChange={(e) => { if (e.target.files) uploadFiles(Array.from(e.target.files)); e.target.value = ""; }}
+            />
+          </label>
+          <label className="inline-flex cursor-pointer glass glass-hover rounded-lg px-4 py-2 text-xs text-[var(--muted)] items-center gap-1.5 font-medium">
+            <FolderUp className="w-3.5 h-3.5" /> 폴더 선택
+            <input
+              type="file"
+              // @ts-expect-error webkitdirectory 는 비표준
+              webkitdirectory=""
+              multiple
+              className="hidden"
+              disabled={uploading}
+              onChange={(e) => { if (e.target.files) uploadFiles(Array.from(e.target.files)); e.target.value = ""; }}
+            />
+          </label>
+        </div>
+        <p className="text-[10px] text-[var(--muted)]/60 mt-2">폴더를 올리면 폴더 구조 그대로 백업돼요</p>
       </div>
 
       {msg && (

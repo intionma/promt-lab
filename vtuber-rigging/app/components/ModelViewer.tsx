@@ -41,6 +41,7 @@ export interface ViewerHandle {
   showAllMeshes: () => void;
   flashMesh: (index: number) => void;
   setMeshSelectMode: (on: boolean) => void;
+  setParamSweep: (on: boolean) => void;
 }
 
 type Props = {
@@ -133,6 +134,7 @@ const VIEW_LABELS: Record<ViewMode, string> = {
 
 export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, onMeshPicked, controlRef }: Props) {
   const canvasRef   = useRef<HTMLCanvasElement>(null);
+  const gazeDotRef  = useRef<HTMLDivElement>(null);
   const appRef      = useRef<unknown>(null);
   const modelRef    = useRef<unknown>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -155,6 +157,10 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
 
   // 파라미터 기본값 (초기화·기본포즈에서 되돌림)
   const defaultsRef    = useRef<Map<string, number>>(new Map());
+  // 파라미터 범위 (극한값 테스트용)
+  const paramRangesRef = useRef<Map<string, { min: number; max: number }>>(new Map());
+  // 극한값 스윕 상태
+  const sweepRef       = useRef<{ active: boolean; map: Map<string, { min: number; max: number; phase: number; speed: number }> }>({ active: false, map: new Map() });
 
   // 숨긴 ArtMesh(drawable) 인덱스 + 원본 opacity 배열 참조
   const hiddenMeshesRef = useRef<Set<number>>(new Set());
@@ -311,6 +317,21 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
       },
       showAllMeshes: () => { hiddenMeshesRef.current.clear(); },
       setMeshSelectMode: (on) => { meshSelectRef.current = on; setMeshSelect(on); lastPickRef.current = null; },
+      setParamSweep: (on) => {
+        if (on) {
+          const m = new Map<string, { min: number; max: number; phase: number; speed: number }>();
+          paramRangesRef.current.forEach((r, id) => {
+            // 랜덤 속도 — 일부 빠르게, 일부 느리게
+            m.set(id, { min: r.min, max: r.max, phase: Math.random() * Math.PI * 2, speed: 0.004 + Math.random() * 0.03 });
+          });
+          sweepRef.current = { active: true, map: m };
+        } else {
+          sweepRef.current = { active: false, map: new Map() };
+          // 기본값 복원
+          const core = internalRef.current?.coreModel;
+          if (core) defaultsRef.current.forEach((v, id) => { try { core.setParameterValueById(id, v); } catch { /* noop */ } });
+        }
+      },
       flashMesh: (index) => {
         // 해당 메쉬를 잠깐 깜빡여 어떤 부위인지 눈으로 찾게 함
         const fset = flashMeshesRef.current;
@@ -488,6 +509,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
           const core = (model as any).internalModel.coreModel;
           const paramList: Param[] = [];
           defaultsRef.current.clear();
+          paramRangesRef.current.clear();
 
           // 1순위: raw core model 의 parameters 배열 (가장 확실 — 모든 파라미터)
           const raw = typeof core.getModel === "function" ? core.getModel() : core._model;
@@ -496,13 +518,11 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
             for (let i = 0; i < pp.count; i++) {
               const id  = String(pp.ids[i]);
               const def = pp.defaultValues?.[i] ?? pp.values?.[i] ?? 0;
+              const mn  = pp.minimumValues?.[i] ?? -30;
+              const mx  = pp.maximumValues?.[i] ??  30;
               defaultsRef.current.set(id, def);
-              paramList.push({
-                id,
-                value: def,
-                min:   pp.minimumValues?.[i] ?? -30,
-                max:   pp.maximumValues?.[i] ??  30,
-              });
+              paramRangesRef.current.set(id, { min: mn, max: mx });
+              paramList.push({ id, value: def, min: mn, max: mx });
             }
           } else if (typeof core.getParameterCount === "function") {
             // 2순위(폴백): framework API + 내부 _parameterIds 로 id 확보
@@ -511,13 +531,11 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
             for (let i = 0; i < core.getParameterCount(); i++) {
               const id  = String(ids[i] ?? `param_${i}`);
               const def = core.getParameterDefaultValue?.(i) ?? core.getParameterValueByIndex?.(i) ?? 0;
+              const mn  = core.getParameterMinimumValue(i);
+              const mx  = core.getParameterMaximumValue(i);
               defaultsRef.current.set(id, def);
-              paramList.push({
-                id,
-                value: def,
-                min:   core.getParameterMinimumValue(i),
-                max:   core.getParameterMaximumValue(i),
-              });
+              paramRangesRef.current.set(id, { min: mn, max: mx });
+              paramList.push({ id, value: def, min: mn, max: mx });
             }
           }
           onParamsLoaded?.(paramList);
@@ -567,6 +585,15 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
 
         const onBeforeModelUpdate = () => {
           const core = internalModel.coreModel;
+          // 극한값 테스트(스윕): 각 파라미터를 랜덤 속도로 min↔max 부드럽게 왕복
+          if (sweepRef.current.active) {
+            sweepRef.current.map.forEach((s, id) => {
+              s.phase += s.speed;
+              const t = 0.5 - 0.5 * Math.cos(s.phase); // 0..1
+              try { core.setParameterValueById(id, s.min + (s.max - s.min) * t); } catch { /* noop */ }
+            });
+            return; // 스윕 중엔 일반 오버라이드 무시
+          }
           overridesRef.current.forEach((v, id) => {
             try { core.setParameterValueById(id, v); } catch { /* noop */ }
           });
@@ -780,6 +807,23 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
           // 모델 업데이트 구동: deltaTime 누적 → 렌더 시 internalModel.update 실행
           // (focusController 얼굴추적 · beforeModelUpdate 오버라이드 · 물리 · breath · 변형)
           mdl.update(app.ticker.deltaMS);
+
+          // 시선 포인터: 캐릭터가 보고 있는 방향(focusController)을 화면 점으로 표시
+          const gd = gazeDotRef.current;
+          if (gd) {
+            const fc = internalModel.focusController;
+            const free = viewModeRef.current === "free";
+            const tracking = (!free && faceTrackRef.current) || (free && camLockRef.current);
+            if (tracking && (Math.abs(fc.x) + Math.abs(fc.y)) > 0.03) {
+              const px = ((fc.x + 1) / 2) * canvas.clientWidth;
+              const py = ((1 - fc.y) / 2) * canvas.clientHeight;
+              gd.style.left = `${px}px`;
+              gd.style.top = `${py}px`;
+              gd.style.opacity = "1";
+            } else {
+              gd.style.opacity = "0";
+            }
+          }
         });
 
       } catch (err: unknown) {
@@ -921,6 +965,16 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
               meshSelect ? "cursor-crosshair" : viewMode === "free" && !camLock ? "cursor-grab active:cursor-grabbing" : ""
             }`}
           />
+          {/* 시선 포인터 — 캐릭터가 바라보는 지점 */}
+          <div
+            ref={gazeDotRef}
+            className="absolute z-20 pointer-events-none -translate-x-1/2 -translate-y-1/2 transition-opacity duration-150"
+            style={{ left: 0, top: 0, opacity: 0 }}
+          >
+            <div className="w-5 h-5 rounded-full border-2 border-[var(--purple)] flex items-center justify-center" style={{ boxShadow: "0 0 8px rgba(168,85,247,.7)" }}>
+              <div className="w-1.5 h-1.5 rounded-full bg-[var(--purple)]" />
+            </div>
+          </div>
         </div>
       </div>
     </div>

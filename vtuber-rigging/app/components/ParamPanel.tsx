@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Search } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, Zap } from "lucide-react";
 import type { Param } from "./ModelViewer";
 
 type Props = {
   params: Param[];
   overrideIds: Set<string>;
+  sweepOn: boolean;
   onChange: (id: string, value: number) => void;
   onRelease: (id: string) => void;
   onResetAll: () => void;
+  onToggleSweep: (on: boolean) => void;
 };
 
 // 기본(주요) 파라미터 — VTube Studio / Cubism 표준 얼굴·몸 파라미터.
@@ -72,9 +74,11 @@ function Slider({
 export default function ParamPanel({
   params,
   overrideIds,
+  sweepOn,
   onChange,
   onRelease,
   onResetAll,
+  onToggleSweep,
 }: Props) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [query, setQuery] = useState("");
@@ -104,15 +108,24 @@ export default function ParamPanel({
           파라미터 조작
           <span className="text-[10px] text-[var(--muted)] ml-1">{params.length}개</span>
         </p>
-        {overrideIds.size > 0 && (
+        <div className="flex items-center gap-1">
           <button
-            onClick={onResetAll}
-            className="px-2 py-0.5 rounded-md text-[10px] glass glass-hover text-[var(--muted)]"
-            title="모든 고정값 해제 → 얼굴추적 자동 제어로 복귀"
+            onClick={() => onToggleSweep(!sweepOn)}
+            className={`px-2 py-0.5 rounded-md text-[10px] flex items-center gap-1 transition-all ${sweepOn ? "bg-[var(--purple)]/25 text-[var(--purple)]" : "glass glass-hover text-[var(--muted)]"}`}
+            title="모든 파라미터를 랜덤 속도로 끝값까지 왕복 — 한 번에 전체 테스트"
           >
-            초기화 {overrideIds.size}
+            <Zap className="w-2.5 h-2.5" /> {sweepOn ? "테스트 중" : "극한값 테스트"}
           </button>
-        )}
+          {overrideIds.size > 0 && (
+            <button
+              onClick={onResetAll}
+              className="px-2 py-0.5 rounded-md text-[10px] glass glass-hover text-[var(--muted)]"
+              title="모든 고정값 해제 → 얼굴추적 자동 제어로 복귀"
+            >
+              초기화 {overrideIds.size}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto chat-scroll p-2.5 space-y-2.5">

@@ -44,7 +44,14 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const viewerControl = useRef<ViewerHandle | null>(null);
   const [paramList, setParamList]   = useState<Param[]>([]);
   const [overrideIds, setOverrideIds] = useState<Set<string>>(new Set());
+  const [paramSweep, setParamSweep] = useState(false);
   const [panelTab, setPanelTab] = useState<PanelTab>("comments");
+
+  function toggleSweep(on: boolean) {
+    setParamSweep(on);
+    viewerControl.current?.setParamSweep(on);
+    if (!on) { setOverrideIds(new Set()); setParamList(defaultParams.current.map((p) => ({ ...p }))); }
+  }
 
   // 연출(모션/표정/배경/아이들) 상태
   const [meta, setMeta] = useState<ModelMeta | null>(null);
@@ -54,7 +61,9 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [meshGroups, setMeshGroups] = useState<MeshGroup[]>([]);
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
-  const [meshSelectMode, setMeshSelectMode] = useState(false);
+  // PC(마우스 환경)면 '모델 클릭으로 선택' 기본 ON
+  const isPC = useRef(typeof window !== "undefined" && window.matchMedia?.("(pointer: fine)").matches).current;
+  const [meshSelectMode, setMeshSelectMode] = useState(isPC);
   const [selectedMesh, setSelectedMesh] = useState<number | null>(null);
   const [meshSaving, setMeshSaving] = useState(false);
   const pendingMeshConfig = useRef<MeshConfig | null>(null);
@@ -141,6 +150,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
 
   function handleModelMeta(m: ModelMeta) {
     setMeta(m);
+    if (isPC) viewerControl.current?.setMeshSelectMode(true); // PC 기본 ON
     const cfg = pendingMeshConfig.current;
     if (cfg) {
       setMeshGroups(cfg.groups ?? []);
@@ -360,9 +370,11 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
             <ParamPanel
               params={paramList}
               overrideIds={overrideIds}
+              sweepOn={paramSweep}
               onChange={handleSetParam}
               onRelease={handleRelease}
               onResetAll={handleResetAll}
+              onToggleSweep={toggleSweep}
             />
           </div>
           <div className={`flex-1 min-h-0 ${panelTab === "production" ? "flex flex-col" : "hidden"}`}>

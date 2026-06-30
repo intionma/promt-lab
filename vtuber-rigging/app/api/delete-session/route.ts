@@ -52,18 +52,22 @@ export async function POST(request: Request) {
   try {
     const supabase = adminClient();
 
-    // 1. Storage 파일 전체 삭제
-    const paths = await listAll(supabase, sessionId);
-    if (paths.length > 0) {
-      await supabase.storage.from("models").remove(paths);
-    }
+    // 1. Storage 파일 정리 (실패해도 DB 행은 지움 — best-effort)
+    try {
+      const paths = await listAll(supabase, sessionId);
+      if (paths.length > 0) await supabase.storage.from("models").remove(paths);
+    } catch { /* 스토리지 정리 실패 무시 */ }
 
-    // 2. DB 행 삭제 (피드백도 cascade)
+    // 2. 피드백 먼저 삭제 (외래키 cascade 미설정 대비)
+    try { await supabase.from("feedback").delete().eq("session_id", sessionId); } catch { /* noop */ }
+
+    // 3. 세션 행 삭제
     const { error } = await supabase.from("sessions").delete().eq("id", sessionId);
     if (error) throw error;
 
     return Response.json({ ok: true });
-  } catch {
-    return Response.json({ error: "삭제 중 오류가 발생했어요" }, { status: 500 });
+  } catch (e) {
+    const msg = e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : String(e);
+    return Response.json({ error: `삭제 실패: ${msg}` }, { status: 500 });
   }
 }
