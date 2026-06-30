@@ -27,45 +27,47 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("upload");
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
-      {/* Header */}
-      <header className="flex items-center gap-3 px-4 py-3 border-b border-white/10 glass flex-shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-lg glow">
-          🎭
-        </div>
-        <div>
-          <h1 className="text-sm font-semibold text-slate-200">VTuber Rigging Assistant</h1>
-          <p className="text-[10px] text-slate-500">Live2D · VTube Studio · VBridger</p>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col items-center py-6 px-4">
+      <div className="w-full max-w-2xl flex flex-col" style={{ height: "calc(100vh - 3rem)" }}>
+        {/* Header */}
+        <header className="flex items-center gap-3 px-4 py-3 border-b border-white/10 glass rounded-t-xl flex-shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-lg glow">
+            🎭
+          </div>
+          <div>
+            <h1 className="text-sm font-semibold text-slate-200">VTuber Rigging Assistant</h1>
+            <p className="text-[10px] text-slate-500">Live2D · VTube Studio · VBridger</p>
+          </div>
+        </header>
 
-      {/* Tabs */}
-      <nav className="flex gap-1 px-4 pt-2 flex-shrink-0">
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-all ${
-                activeTab === tab.id
-                  ? "bg-purple-600/20 border border-purple-500/30 border-b-transparent text-purple-300"
-                  : "text-slate-500 hover:text-slate-300"
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          );
-        })}
-      </nav>
+        {/* Tabs */}
+        <nav className="flex gap-1 px-4 pt-2 flex-shrink-0 bg-transparent">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-all ${
+                  activeTab === tab.id
+                    ? "bg-purple-600/20 border border-purple-500/30 border-b-transparent text-purple-300"
+                    : "text-slate-500 hover:text-slate-300"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
 
-      {/* Content */}
-      <main className="flex-1 glass border border-white/10 mx-4 mb-4 rounded-b-xl rounded-tr-xl overflow-hidden flex flex-col">
-        {activeTab === "upload" && <UploadSession />}
-        {activeTab === "params" && <ParamCalculator />}
-        {activeTab === "deformer" && <DeformerTree />}
-      </main>
+        {/* Content */}
+        <main className="flex-1 glass border border-white/10 rounded-b-xl rounded-tr-xl overflow-hidden flex flex-col min-h-0">
+          {activeTab === "upload" && <UploadSession />}
+          {activeTab === "params" && <ParamCalculator />}
+          {activeTab === "deformer" && <DeformerTree />}
+        </main>
+      </div>
     </div>
   );
 }

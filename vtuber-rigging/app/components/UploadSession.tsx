@@ -165,7 +165,10 @@ export default function UploadSession() {
         <p className="text-sm text-slate-400">
           파일을 드래그하거나 클릭해서 선택
         </p>
-        <p className="text-xs text-slate-600 mt-1">
+        <p className="text-xs text-slate-500 mt-1">
+          Cubism Editor → 파일 → 내보내기 → moc3 내보내기 후 폴더 전체 선택
+        </p>
+        <p className="text-xs text-slate-600 mt-0.5">
           .moc3, .model3.json, 텍스처(.png) 필요
         </p>
       </div>
