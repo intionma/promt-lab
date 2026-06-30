@@ -179,15 +179,18 @@ export default function UploadSession({ ownerHash, onRequestPin }: Props) {
     const finalTitle =
       title.trim() || modelName || `리깅 리뷰 ${new Date().toLocaleDateString("ko-KR")}`;
 
+    // owner_hash는 PIN을 설정한 경우에만 포함 (없으면 모두에게 공유되는 일반 업로드)
+    const insertData: Record<string, unknown> = {
+      title: finalTitle,
+      description: description.trim() || null,
+      model_name: modelName,
+    };
+    if (ownerHash) insertData.owner_hash = ownerHash;
+
     try {
       const { data: session, error: sessionErr } = await supabase
         .from("sessions")
-        .insert({
-          title: finalTitle,
-          description: description.trim() || null,
-          model_name: modelName,
-          owner_hash: ownerHash,
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -212,7 +215,13 @@ export default function UploadSession({ ownerHash, onRequestPin }: Props) {
 
       setShareUrl(`${window.location.origin}/review/${session.id}`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "업로드 실패");
+      // Supabase 오류(PostgrestError 등)는 Error 인스턴스가 아니라 객체 — 실제 메시지를 꺼냄
+      let msg = "업로드 실패";
+      if (err instanceof Error) msg = err.message;
+      else if (err && typeof err === "object" && "message" in err) {
+        msg = String((err as { message: unknown }).message);
+      }
+      setError(msg);
     } finally {
       setUploading(false);
     }

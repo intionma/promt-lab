@@ -7,6 +7,7 @@ import UploadSession from "./components/UploadSession";
 import MyModels from "./components/MyModels";
 import ParamCalculator from "./components/ParamCalculator";
 import { hashPin, getOwnerHash, setOwnerHash, clearOwnerHash } from "@/lib/supabase";
+import { APP_VERSION, APP_UPDATED_AT } from "@/lib/version";
 
 const DeformerTree = dynamic(() => import("./components/DeformerTree"), {
   ssr: false,
@@ -62,11 +63,19 @@ export default function Home() {
             🎭
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-sm font-bold text-[var(--fg)] truncate">
-              VTuber Rigging <span className="gradient-text">Assistant</span>
-            </h1>
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-sm font-bold text-[var(--fg)] truncate">
+                VTuber Rigging <span className="gradient-text">Assistant</span>
+              </h1>
+              <span className="text-[9px] font-mono text-[var(--purple)] bg-[var(--purple)]/15 px-1.5 py-0.5 rounded-full shrink-0">
+                {APP_VERSION}
+              </span>
+            </div>
             <p className="text-[10px] text-[var(--muted)] truncate">
               Live2D · VTube Studio · VBridger
+            </p>
+            <p className="text-[8px] text-[var(--muted)]/50 truncate mt-0.5">
+              업데이트 {APP_UPDATED_AT}
             </p>
           </div>
 
