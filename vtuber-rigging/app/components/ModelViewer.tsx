@@ -58,28 +58,35 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         app.stage.addChild(model as any);
 
-        // 모델 크기/위치 조정
+        // 모델 크기/위치 조정 (model.width는 scale 적용 후 이미 스케일된 값)
+        const origW = model.width;
+        const origH = model.height;
         const scale = Math.min(
-          (app.renderer.width * 0.8) / model.width,
-          (app.renderer.height * 0.9) / model.height
+          (app.renderer.width * 0.8) / origW,
+          (app.renderer.height * 0.9) / origH
         );
         model.scale.set(scale);
-        model.x = app.renderer.width / 2 - (model.width * scale) / 2;
+        model.x = (app.renderer.width - origW * scale) / 2;
         model.y = app.renderer.height * 0.05;
 
-        // 파라미터 목록 추출
-        const core = (model as unknown as { internalModel: { coreModel: { getParameterCount: () => number; getParameterId: (i: number) => string; getParameterValue: (i: number) => number; getParameterMinimumValue: (i: number) => number; getParameterMaximumValue: (i: number) => number } } }).internalModel.coreModel;
-        const paramList: Param[] = [];
-        for (let i = 0; i < core.getParameterCount(); i++) {
-          paramList.push({
-            id: core.getParameterId(i),
-            value: core.getParameterValue(i),
-            min: core.getParameterMinimumValue(i),
-            max: core.getParameterMaximumValue(i),
-          });
-        }
-        setParams(paramList);
         setLoading(false);
+
+        // 파라미터 목록 추출 (실패해도 모델은 그대로 표시)
+        try {
+          const core = (model as unknown as { internalModel: { coreModel: { getParameterCount: () => number; getParameterId: (i: number) => string; getParameterValue: (i: number) => number; getParameterMinimumValue: (i: number) => number; getParameterMaximumValue: (i: number) => number } } }).internalModel.coreModel;
+          const paramList: Param[] = [];
+          for (let i = 0; i < core.getParameterCount(); i++) {
+            paramList.push({
+              id: core.getParameterId(i),
+              value: core.getParameterValue(i),
+              min: core.getParameterMinimumValue(i),
+              max: core.getParameterMaximumValue(i),
+            });
+          }
+          setParams(paramList);
+        } catch {
+          // 파라미터 추출 실패해도 모델 뷰어는 정상 작동
+        }
       } catch (err: unknown) {
         if (!destroyed) {
           const raw = err instanceof Error ? err.message : String(err);
