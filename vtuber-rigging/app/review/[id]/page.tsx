@@ -24,13 +24,18 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
-        .from("sessions")
-        .select("*")
-        .eq("id", id)
-        .single();
-      if (data) setSession(data);
-      else setNotFound(true);
+      try {
+        const { data } = await supabase
+          .from("sessions")
+          .select("*")
+          .eq("id", id)
+          .single();
+        if (data) setSession(data);
+        else setNotFound(true);
+      } catch {
+        // 네트워크 오류 등 — 무한 로딩 대신 안내 표시
+        setNotFound(true);
+      }
     }
     load();
   }, [id]);
