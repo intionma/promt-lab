@@ -29,9 +29,8 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
   // 전신 기준 transform
   const baseRef = useRef({ x: 0, y: 0, scale: 1 });
 
-  // 얼굴 추적 (전신·상반신 모드)
-  const targetFaceRef  = useRef({ x: 0, y: 0 });
-  const currentFaceRef = useRef({ x: 0, y: 0 });
+  // 얼굴 추적: 라이브러리 focusController 를 호출하는 함수(effect 안에서 주입)
+  const focusFnRef = useRef<((nx: number, ny: number, instant: boolean) => void) | null>(null);
 
   // 수동 파라미터 오버라이드 (슬라이더로 고정한 값 — 매 프레임 재적용해야 유지됨)
   const overridesRef   = useRef<Map<string, number>>(new Map());
@@ -77,16 +76,16 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
       mdl.y = base.y;
 
     } else if (mode === "upperbody") {
-      // 상반신: 머리~어깨(본문 상단 약 45%)가 화면 세로를 채우도록 확대.
-      // 머리 위 약간의 여백을 두어 얼굴이 잘 보이는 바스트 샷 각도.
+      // 상반신: 머리~어깨가 화면 세로를 채우도록 확대한 바스트 샷.
+      // 머리 위 약간의 여백을 두어 얼굴이 잘 보이게 함.
       const H      = app.renderer.height;
       const W      = app.renderer.width;
       const origH  = origHRef.current || (H / base.scale);
-      const SHOW   = 0.45;                         // 본문 상단 45% = 얼굴+어깨
-      const upScale = (H * 0.92) / (origH * SHOW);
+      const SHOW   = 0.32;                         // 본문 상단 32%(얼굴+어깨) = 바스트 샷
+      const upScale = (H * 0.96) / (origH * SHOW);
       mdl.scale.set(upScale);
       mdl.x = (W - origW * upScale) / 2;
-      mdl.y = H * 0.04;  // 머리 위 여백 → 아래(하반신)는 화면 밖
+      mdl.y = H * 0.05;  // 머리 위 약간의 여백 → 어깨 아래는 화면 밖
 
     } else {
       // 자유 시점: 전신 위치에서 시작
@@ -96,12 +95,12 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
       mdl.y = base.y;
     }
 
-    targetFaceRef.current  = { x: 0, y: 0 };
+    focusFnRef.current?.(0, 0, true);  // 시점 바꾸면 얼굴 정면으로
   }
 
   // 얼굴 정면 복귀 (터치로 돌려둔 각도 초기화)
   function centerFace() {
-    targetFaceRef.current = { x: 0, y: 0 };
+    focusFnRef.current?.(0, 0, false);
   }
 
   // 얼굴 반응(터치/마우스 추적) 토글
@@ -109,7 +108,7 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
     const next = !faceTrackRef.current;
     faceTrackRef.current = next;
     setFaceTrack(next);
-    if (!next) targetFaceRef.current = { x: 0, y: 0 };  // 끄면 중앙으로 복귀
+    if (!next) focusFnRef.current?.(0, 0, false);  // 끄면 정면으로 복귀
   }
 
   function resetFreeView() {
@@ -169,6 +168,11 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
         const model = await Live2DModel.from(modelUrl, { autoInteract: false });
         if (destroyed) { app.destroy(); return; }
 
+        // 모델 업데이트를 우리가 직접 구동(아래 app.ticker 에서 model.update 호출).
+        // 라이브러리 자동 업데이트는 Ticker.shared 가동 여부에 의존해 불안정하므로 끔.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (model as any).autoUpdate = false;
+
         modelRef.current = model;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         app.stage.addChild(model as any);
@@ -216,19 +220,35 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
         // ── 이벤트 핸들러 ──────────────────────────────────────────────────
         const canvas = canvasRef.current!;
 
-        // 전신·상반신: 얼굴 추적
-        function onFaceMove(e: PointerEvent) {
-          if (viewModeRef.current === "free") return;
+        // ── 파라미터 강제 적용 훅 ────────────────────────────────────────────
+        // 라이브러리는 model.update()(변형 계산) 직전에 'beforeModelUpdate' 를 emit.
+        // 이 시점에 오버라이드를 setParameterValueById 하면 모션·물리에 안 덮이고
+        // 변형에 확실히 반영됨. (app.ticker 에서 따로 set 하면 타이밍이 어긋나 무시됨)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const internalModel = (model as any).internalModel;
+        const onBeforeModelUpdate = () => {
+          const core = internalModel.coreModel;
+          overridesRef.current.forEach((v, id) => {
+            try { core.setParameterValueById(id, v); } catch { /* noop */ }
+          });
+        };
+        internalModel.on("beforeModelUpdate", onBeforeModelUpdate);
+
+        // 얼굴 추적: 라이브러리 내장 focusController 사용(올바른 타이밍·스무딩 내장)
+        function setFocus(e: PointerEvent, instant = false) {
+          if (viewModeRef.current === "free" || !faceTrackRef.current) return;
           const rect = canvas.getBoundingClientRect();
-          targetFaceRef.current = {
-            x:  ((e.clientX - rect.left) / rect.width)  * 2 - 1,
-            y: -(((e.clientY - rect.top)  / rect.height) * 2 - 1),
-          };
+          const nx = ((e.clientX - rect.left) / rect.width)  * 2 - 1;  // -1(좌)~+1(우)
+          const ny = ((e.clientY - rect.top)  / rect.height) * 2 - 1;  // -1(상)~+1(하)
+          internalModel.focusController.focus(nx, -ny, instant);
         }
+        focusFnRef.current = (nx: number, ny: number, instant: boolean) =>
+          internalModel.focusController.focus(nx, ny, instant);
+
         function onFaceLeave(e: PointerEvent) {
           // 마우스 hover 가 캔버스를 벗어나면 정면 복귀.
           // 터치/펜은 손을 떼도 마지막 각도를 '유지'(탭으로 각도 테스트 가능)
-          if (e.pointerType === "mouse") targetFaceRef.current = { x: 0, y: 0 };
+          if (e.pointerType === "mouse") internalModel.focusController.focus(0, 0);
         }
 
         // 자유 시점: 드래그 이동 / 전신·상반신: 탭·드래그로 그쪽을 바라봄
@@ -236,7 +256,7 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
           if (viewModeRef.current !== "free") {
             // 모바일: 포인터 캡처로 손가락이 살짝 벗어나도 계속 추종
             try { canvas.setPointerCapture(e.pointerId); } catch { /* noop */ }
-            onFaceMove(e);  // 탭/터치 즉시 반응
+            setFocus(e, true);  // 탭/터치 즉시 그 각도로 (responsive)
             return;
           }
           canvas.setPointerCapture(e.pointerId);
@@ -246,7 +266,7 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
         }
 
         function onPtrMove(e: PointerEvent) {
-          if (viewModeRef.current !== "free") { onFaceMove(e); return; }
+          if (viewModeRef.current !== "free") { setFocus(e, false); return; }
           if (!activePointersRef.current.has(e.pointerId)) return;
           activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
@@ -309,50 +329,22 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
 
         // ── PIXI 렌더 루프 ──────────────────────────────────────────────────
         app.ticker.add(() => {
-          const mode = viewModeRef.current;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const mdl  = modelRef.current as any;
+          const mdl = modelRef.current as any;
           if (!mdl) return;
 
-          if (mode === "free") {
-            // 자유 시점: 팬·줌 transform 적용
+          // 자유 시점: 팬·줌 transform 적용
+          if (viewModeRef.current === "free") {
             const base = baseRef.current;
             const free = freeRef.current;
             mdl.scale.set(base.scale * free.zoom);
             mdl.x = base.x + free.offsetX;
             mdl.y = base.y + free.offsetY;
-          } else {
-            // 얼굴 추적 보간 (lerp) — 손가락 움직임을 빠르게 추종
-            const cur = currentFaceRef.current;
-            const tgt = targetFaceRef.current;
-            cur.x += (tgt.x - cur.x) * 0.3;
-            cur.y += (tgt.y - cur.y) * 0.3;
           }
 
-          // ── 파라미터 적용 (모든 시점 공통) ─────────────────────────────
-          // 1) 얼굴 추적값은 "오버라이드 안 됨 + 모델에 실제 존재"하는 파라미터에만 적용
-          // 2) 슬라이더로 고정한 오버라이드는 매 프레임 재적용 → 값 유지
-          try {
-            const core  = mdl.internalModel.coreModel;
-            const ov    = overridesRef.current;
-            const avail = availIdsRef.current;
-            if (mode !== "free" && faceTrackRef.current) {
-              const cur = currentFaceRef.current;
-              const track: [string, number][] = [
-                ["ParamAngleX",     cur.x * 30],   // 얼굴 좌우
-                ["ParamAngleY",     cur.y * 20],   // 얼굴 상하
-                ["ParamAngleZ",     cur.x * -8],   // 얼굴 기울기
-                ["ParamEyeBallX",   cur.x * 0.8],  // 시선 좌우
-                ["ParamEyeBallY",   cur.y * 0.6],  // 시선 상하
-                ["ParamBodyAngleX", cur.x * 8],    // 몸 연동
-              ];
-              for (const [id, v] of track) {
-                if (!ov.has(id) && avail.has(id)) core.setParameterValueById(id, v);
-              }
-            }
-            // 수동 오버라이드 강제 적용 (Live2D 가 매 프레임 리셋하므로 필수)
-            ov.forEach((v, id) => core.setParameterValueById(id, v));
-          } catch { /* 파라미터 없는 모델도 정상 표시 */ }
+          // 모델 업데이트 구동: deltaTime 누적 → 렌더 시 internalModel.update 실행
+          // (focusController 얼굴추적 · beforeModelUpdate 오버라이드 · 물리 · breath · 변형)
+          mdl.update(app.ticker.deltaMS);
         });
 
       } catch (err: unknown) {
