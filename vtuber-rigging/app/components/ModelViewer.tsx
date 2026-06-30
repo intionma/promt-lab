@@ -552,6 +552,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
           (model as any).toModelPosition({ x: (clientX - rect.left) * sx, y: (clientY - rect.top) * sy }, mp);
 
           const hits: number[] = [];
+          const bboxHits: number[] = [];   // 삼각형엔 안 맞아도 바운딩박스 안 (폴백)
           for (let i = 0; i < dd.count; i++) {
             if (hiddenMeshesRef.current.has(i)) continue;
             if ((dd.opacities?.[i] ?? 1) <= 0.02) continue;
@@ -559,7 +560,15 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
             // (x*pixelsPerUnit + W/2, -y*pixelsPerUnit + H/2) — toModelPosition 과 매칭
             const verts = internalModel.getDrawableVertices(i);
             const idx = dd.indices[i];
-            if (!verts || !idx) continue;
+            if (!verts || !idx || !verts.length) continue;
+            // 바운딩박스 먼저(빠른 제외 + 폴백)
+            let minX = verts[0], maxX = verts[0], minY = verts[1], maxY = verts[1];
+            for (let k = 2; k < verts.length; k += 2) {
+              if (verts[k] < minX) minX = verts[k]; else if (verts[k] > maxX) maxX = verts[k];
+              if (verts[k + 1] < minY) minY = verts[k + 1]; else if (verts[k + 1] > maxY) maxY = verts[k + 1];
+            }
+            if (mp.x < minX || mp.x > maxX || mp.y < minY || mp.y > maxY) continue;
+            bboxHits.push(i);
             let hit = false;
             for (let t = 0; t < idx.length; t += 3) {
               const a = idx[t] * 2, b = idx[t + 1] * 2, c = idx[t + 2] * 2;
@@ -567,17 +576,19 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
             }
             if (hit) hits.push(i);
           }
-          if (!hits.length) { lastPickRef.current = null; return null; }
-          // 렌더 순서 앞쪽(큰 값)부터
           const ro = dd.renderOrders;
-          hits.sort((a, b) => (ro?.[b] ?? 0) - (ro?.[a] ?? 0));
+          // 삼각형 히트 우선, 없으면 바운딩박스 폴백
+          const pool = hits.length ? hits : bboxHits;
+          if (!pool.length) { lastPickRef.current = null; return null; }
+          // 렌더 순서 앞쪽(큰 값)부터
+          pool.sort((a, b) => (ro?.[b] ?? 0) - (ro?.[a] ?? 0));
           // 같은 지점 반복 클릭이면 겹친 메쉬 순환
           const last = lastPickRef.current;
           const same = last && Math.abs(last.x - clientX) < 10 && Math.abs(last.y - clientY) < 10
-            && last.cands.length === hits.length && last.cands.every((v, k) => v === hits[k]);
-          const cursor = same ? (last!.cursor + 1) % hits.length : 0;
-          lastPickRef.current = { x: clientX, y: clientY, cands: hits, cursor };
-          return hits[cursor];
+            && last.cands.length === pool.length && last.cands.every((v, k) => v === pool[k]);
+          const cursor = same ? (last!.cursor + 1) % pool.length : 0;
+          lastPickRef.current = { x: clientX, y: clientY, cands: pool, cursor };
+          return pool[cursor];
         }
 
         // 자유 시점: 드래그 이동 / 전신·상반신: 탭·드래그로 그쪽을 바라봄
