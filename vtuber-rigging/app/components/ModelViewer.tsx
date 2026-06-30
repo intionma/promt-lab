@@ -14,16 +14,18 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const appRef = useRef<unknown>(null);
   const modelRef = useRef<unknown>(null);
+  const targetFaceRef = useRef({ x: 0, y: 0 });
+  const currentFaceRef = useRef({ x: 0, y: 0 });
   const [params, setParams] = useState<Param[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let destroyed = false;
+    let pointerCleanup: (() => void) | null = null;
 
     async function init() {
       try {
-        // 하위 폴더까지 재귀적으로 뒤져서 model3.json 찾기
         const allFiles = await listAllStorageFiles(sessionId);
         const model3Path = allFiles.find((p) => p.endsWith(".model3.json"));
         if (!model3Path) throw new Error("model3.json 파일을 찾을 수 없어요");
@@ -34,10 +36,9 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
 
         const modelUrl = urlData.publicUrl;
 
-        // pixi-live2d-display 동적 로드
         const PIXI = await import("pixi.js");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window as any).PIXI = PIXI; // 애니메이션 ticker 자동 연결용
+        (window as any).PIXI = PIXI;
         const { Live2DModel } = await import("pixi-live2d-display/cubism4");
 
         if (destroyed || !canvasRef.current) return;
@@ -58,7 +59,7 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         app.stage.addChild(model as any);
 
-        // 모델 크기/위치 조정 (model.width는 scale 적용 후 이미 스케일된 값)
+        // 모델 크기/위치 조정 (origW/H는 scale 적용 전 원본 크기)
         const origW = model.width;
         const origH = model.height;
         const scale = Math.min(
@@ -73,7 +74,8 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
 
         // 파라미터 목록 추출 (실패해도 모델은 그대로 표시)
         try {
-          const core = (model as unknown as { internalModel: { coreModel: { getParameterCount: () => number; getParameterId: (i: number) => string; getParameterValue: (i: number) => number; getParameterMinimumValue: (i: number) => number; getParameterMaximumValue: (i: number) => number } } }).internalModel.coreModel;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const core = (model as any).internalModel.coreModel;
           const paramList: Param[] = [];
           for (let i = 0; i < core.getParameterCount(); i++) {
             paramList.push({
@@ -84,13 +86,55 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
             });
           }
           setParams(paramList);
-        } catch {
-          // 파라미터 추출 실패해도 모델 뷰어는 정상 작동
+        } catch { /* 파라미터 추출 실패해도 뷰어는 정상 작동 */ }
+
+        // ── 터치·마우스 → 얼굴 각도·시선 추적 ──
+        const canvas = canvasRef.current!;
+
+        function onPointerMove(e: PointerEvent) {
+          const rect = canvas.getBoundingClientRect();
+          // 캔버스 중심 기준 -1 ~ 1 정규화 (Y는 위가 양수)
+          targetFaceRef.current = {
+            x: ((e.clientX - rect.left) / rect.width) * 2 - 1,
+            y: -(((e.clientY - rect.top) / rect.height) * 2 - 1),
+          };
         }
+
+        function onPointerLeave() {
+          // 포인터가 캔버스 밖으로 나가면 중립 위치로 복귀
+          targetFaceRef.current = { x: 0, y: 0 };
+        }
+
+        canvas.addEventListener("pointermove", onPointerMove);
+        canvas.addEventListener("pointerleave", onPointerLeave);
+        pointerCleanup = () => {
+          canvas.removeEventListener("pointermove", onPointerMove);
+          canvas.removeEventListener("pointerleave", onPointerLeave);
+        };
+
+        // PIXI 렌더 루프마다 부드럽게 보간(lerp) 후 파라미터 적용
+        app.ticker.add(() => {
+          const cur = currentFaceRef.current;
+          const tgt = targetFaceRef.current;
+          cur.x += (tgt.x - cur.x) * 0.08;
+          cur.y += (tgt.y - cur.y) * 0.08;
+
+          if (!modelRef.current) return;
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const core = (modelRef.current as any).internalModel.coreModel;
+            core.setParameterValueById("ParamAngleX",    cur.x * 30);   // 얼굴 좌우
+            core.setParameterValueById("ParamAngleY",    cur.y * 20);   // 얼굴 상하
+            core.setParameterValueById("ParamAngleZ",    cur.x * -8);   // 얼굴 기울기
+            core.setParameterValueById("ParamEyeBallX",  cur.x * 0.8);  // 시선 좌우
+            core.setParameterValueById("ParamEyeBallY",  cur.y * 0.6);  // 시선 상하
+            core.setParameterValueById("ParamBodyAngleX", cur.x * 8);   // 몸 약간 따라오기
+          } catch { /* 파라미터 없는 모델도 정상 표시 */ }
+        });
+
       } catch (err: unknown) {
         if (!destroyed) {
           const raw = err instanceof Error ? err.message : String(err);
-          // 자주 나는 오류를 한국어로 친절하게 안내
           let friendly = raw;
           if (raw.includes("model3.json")) {
             friendly = "model3.json 파일을 찾을 수 없어요. 업로드가 제대로 됐는지 확인해주세요.";
@@ -112,6 +156,7 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
     init();
     return () => {
       destroyed = true;
+      pointerCleanup?.();
       if (appRef.current) {
         (appRef.current as { destroy: (v: boolean) => void }).destroy(true);
       }
@@ -120,7 +165,8 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
 
   function setParam(paramId: string, value: number) {
     if (!modelRef.current) return;
-    const core = (modelRef.current as unknown as { internalModel: { coreModel: { setParameterValueById: (id: string, v: number) => void } } }).internalModel.coreModel;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const core = (modelRef.current as any).internalModel.coreModel;
     core.setParameterValueById(paramId, value);
     setParams((prev) =>
       prev.map((p) => (p.id === paramId ? { ...p, value } : p))
@@ -143,7 +189,7 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
             <p className="text-sm text-red-400 text-center">{error}</p>
           </div>
         )}
-        <canvas ref={canvasRef} className="w-full h-full" />
+        <canvas ref={canvasRef} className="w-full h-full touch-none" />
       </div>
 
       {/* 파라미터 슬라이더 */}
