@@ -39,6 +39,8 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
 
         // pixi-live2d-display 동적 로드
         const PIXI = await import("pixi.js");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).PIXI = PIXI; // 애니메이션 ticker 자동 연결용
         const { Live2DModel } = await import("pixi-live2d-display/cubism4");
 
         if (destroyed || !canvasRef.current) return;
