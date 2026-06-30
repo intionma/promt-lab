@@ -83,9 +83,6 @@ export function formatBytes(bytes: number): string {
 // Supabase 무료 플랜 Storage 한도 (1GB)
 export const STORAGE_LIMIT_BYTES = 1024 * 1024 * 1024;
 
-// 삭제 비밀번호
-export const DELETE_PASSWORD = "12290505";
-
 export type Feedback = {
   id: string;
   session_id: string;

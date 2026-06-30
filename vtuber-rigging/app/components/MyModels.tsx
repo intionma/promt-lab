@@ -7,11 +7,9 @@ import {
   supabase,
   getMySessionIds,
   removeMySessionId,
-  listAllStorageFiles,
   getStorageUsage,
   formatBytes,
   STORAGE_LIMIT_BYTES,
-  DELETE_PASSWORD,
   type Session,
 } from "@/lib/supabase";
 
@@ -88,24 +86,32 @@ export default function MyModels() {
     load();
   }, [load]);
 
-  // 비밀번호 확인 후 실제 삭제
+  // 비밀번호는 서버에서만 검증 — 브라우저 코드엔 비번이 없음
   async function confirmDelete() {
     if (!pwTarget) return;
-    if (pwInput !== DELETE_PASSWORD) {
-      setPwError(true);
-      return;
-    }
     const session = pwTarget;
-    setPwTarget(null);
-    setPwInput("");
-    setPwError(false);
+    const password = pwInput;
     setDeleting(session.id);
+
     try {
-      const paths = await listAllStorageFiles(session.id);
-      if (paths.length > 0) {
-        await supabase.storage.from("models").remove(paths);
+      const res = await fetch("/api/delete-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: session.id, password }),
+      });
+
+      if (res.status === 403) {
+        // 비밀번호 틀림 — 모달 유지
+        setPwError(true);
+        setDeleting(null);
+        return;
       }
-      await supabase.from("sessions").delete().eq("id", session.id);
+      if (!res.ok) throw new Error();
+
+      // 성공
+      setPwTarget(null);
+      setPwInput("");
+      setPwError(false);
       removeMySessionId(session.id);
       await load();
     } catch {
