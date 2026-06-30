@@ -35,6 +35,12 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
   // 수동 파라미터 오버라이드 (슬라이더로 고정한 값 — 매 프레임 재적용해야 유지됨)
   const overridesRef   = useRef<Map<string, number>>(new Map());
 
+  // 이 모델이 실제 보유한 파라미터 ID 집합 (없는 ID 는 건드리지 않음 → 커스텀 리깅 대응)
+  const availIdsRef    = useRef<Set<string>>(new Set());
+
+  // 얼굴 반응(터치/마우스 추적) ON/OFF
+  const faceTrackRef   = useRef(true);
+
   // 자유 시점 상태
   const viewModeRef       = useRef<ViewMode>("fullbody");
   const freeRef           = useRef({ offsetX: 0, offsetY: 0, zoom: 1 });
@@ -46,6 +52,7 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
   const [viewMode,     setViewMode]     = useState<ViewMode>("fullbody");
   const [params,       setParams]       = useState<Param[]>([]);
   const [overrideIds,  setOverrideIds]  = useState<Set<string>>(new Set());
+  const [faceTrack,    setFaceTrack]    = useState(true);
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState<string | null>(null);
 
@@ -84,6 +91,14 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
     }
 
     targetFaceRef.current  = { x: 0, y: 0 };
+  }
+
+  // 얼굴 반응(터치/마우스 추적) 토글
+  function toggleFaceTrack() {
+    const next = !faceTrackRef.current;
+    faceTrackRef.current = next;
+    setFaceTrack(next);
+    if (!next) targetFaceRef.current = { x: 0, y: 0 };  // 끄면 중앙으로 복귀
   }
 
   function resetFreeView() {
@@ -171,14 +186,18 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const core = (model as any).internalModel.coreModel;
           const paramList: Param[] = [];
+          const ids = new Set<string>();
           for (let i = 0; i < core.getParameterCount(); i++) {
+            const id = core.getParameterId(i);
+            ids.add(id);
             paramList.push({
-              id:    core.getParameterId(i),
+              id,
               value: core.getParameterValue(i),
               min:   core.getParameterMinimumValue(i),
               max:   core.getParameterMaximumValue(i),
             });
           }
+          availIdsRef.current = ids;
           setParams(paramList);
         } catch { /* 파라미터 없어도 정상 표시 */ }
 
@@ -297,12 +316,13 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
           }
 
           // ── 파라미터 적용 (모든 시점 공통) ─────────────────────────────
-          // 1) 얼굴 추적값은 "오버라이드되지 않은" 파라미터에만 적용
+          // 1) 얼굴 추적값은 "오버라이드 안 됨 + 모델에 실제 존재"하는 파라미터에만 적용
           // 2) 슬라이더로 고정한 오버라이드는 매 프레임 재적용 → 값 유지
           try {
-            const core = mdl.internalModel.coreModel;
-            const ov   = overridesRef.current;
-            if (mode !== "free") {
+            const core  = mdl.internalModel.coreModel;
+            const ov    = overridesRef.current;
+            const avail = availIdsRef.current;
+            if (mode !== "free" && faceTrackRef.current) {
               const cur = currentFaceRef.current;
               const track: [string, number][] = [
                 ["ParamAngleX",     cur.x * 30],   // 얼굴 좌우
@@ -313,7 +333,7 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
                 ["ParamBodyAngleX", cur.x * 8],    // 몸 연동
               ];
               for (const [id, v] of track) {
-                if (!ov.has(id)) core.setParameterValueById(id, v);
+                if (!ov.has(id) && avail.has(id)) core.setParameterValueById(id, v);
               }
             }
             // 수동 오버라이드 강제 적용 (Live2D 가 매 프레임 리셋하므로 필수)
@@ -397,12 +417,25 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
             {VIEW_LABELS[mode]}
           </button>
         ))}
-        {viewMode === "free" && (
+        {viewMode === "free" ? (
           <button
             onClick={resetFreeView}
             className="ml-auto px-2 py-1 rounded-lg text-[10px] glass glass-hover text-[var(--muted)]"
           >
             초기화
+          </button>
+        ) : (
+          <button
+            onClick={toggleFaceTrack}
+            className={`ml-auto px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 ${
+              faceTrack
+                ? "bg-[var(--purple)]/20 text-[var(--purple)]"
+                : "glass glass-hover text-[var(--muted)]"
+            }`}
+            title="터치·마우스에 얼굴이 반응하는 기능을 켜고 끕니다"
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${faceTrack ? "bg-[var(--purple)]" : "bg-[var(--muted)]/40"}`} />
+            얼굴 반응 {faceTrack ? "ON" : "OFF"}
           </button>
         )}
       </div>
@@ -428,7 +461,9 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
               <span className="text-[10px] text-[var(--muted)]/50 bg-black/20 rounded-full px-2 py-0.5">
                 {viewMode === "free"
                   ? "드래그 이동 · 핀치/휠 확대축소"
-                  : "터치·마우스로 얼굴이 따라봐요"}
+                  : faceTrack
+                    ? "터치·마우스로 얼굴이 따라봐요"
+                    : "얼굴 반응 꺼짐 · 슬라이더로 직접 조작"}
               </span>
             </div>
           )}
