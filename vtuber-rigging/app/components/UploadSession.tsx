@@ -115,8 +115,12 @@ export default function UploadSession() {
   const [missingFiles, setMissingFiles] = useState<string[]>([]);
   const [skippedCount, setSkippedCount] = useState(0);
 
-  const hasModel3 = files.some((f) => f.name.endsWith(".model3.json"));
-  const hasMoc3 = files.some((f) => f.name.endsWith(".moc3"));
+  const moc3Count = files.filter((f) => f.name.endsWith(".moc3")).length;
+  const model3Count = files.filter((f) => f.name.endsWith(".model3.json")).length;
+  const hasModel3 = model3Count > 0;
+  const hasMoc3 = moc3Count > 0;
+  // moc3 / model3.json은 모델당 1개여야 함 — 2개 이상이면 다른 모델이 섞인 것
+  const tooManyMain = moc3Count > 1 || model3Count > 1;
   const parseError = missingFiles.includes("__PARSE_ERROR__");
   const realMissing = missingFiles.filter((m) => m !== "__PARSE_ERROR__");
 
@@ -388,6 +392,21 @@ export default function UploadSession() {
         </div>
       )}
 
+      {/* moc3 / model3.json 중복 경고 */}
+      {tooManyMain && (
+        <div className="rounded-xl px-4 py-3 text-sm text-red-400 bg-red-500/10 border border-red-500/30 space-y-1">
+          <div className="flex gap-2 items-center font-medium">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            모델 파일이 중복됐어요
+          </div>
+          <p className="text-xs text-red-400/70">
+            {moc3Count > 1 && `.moc3 ${moc3Count}개 `}
+            {model3Count > 1 && `.model3.json ${model3Count}개 `}
+            — 한 모델에는 각각 1개만 있어야 해요. 다른 모델 폴더가 섞였는지 확인해주세요.
+          </p>
+        </div>
+      )}
+
       {/* 참조 파일 누락 경고 */}
       {realMissing.length > 0 && (
         <div className="rounded-xl px-4 py-3 text-sm text-amber-400 bg-amber-500/10 border border-amber-500/30 space-y-1.5">
@@ -407,7 +426,7 @@ export default function UploadSession() {
       )}
 
       {/* 모든 파일 정상 */}
-      {hasModel3 && hasMoc3 && !parseError && realMissing.length === 0 && files.length > 0 && (
+      {hasModel3 && hasMoc3 && !parseError && !tooManyMain && realMissing.length === 0 && files.length > 0 && (
         <div className="rounded-xl px-4 py-2.5 text-sm text-green-400 bg-green-500/10 border border-green-500/30 flex gap-2 items-center">
           <CheckCircle className="w-4 h-4 flex-shrink-0" />
           필요한 파일이 모두 준비됐어요
@@ -423,7 +442,7 @@ export default function UploadSession() {
 
       <button
         onClick={upload}
-        disabled={uploading || !hasModel3 || !hasMoc3 || parseError}
+        disabled={uploading || !hasModel3 || !hasMoc3 || parseError || tooManyMain}
         className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 text-sm font-medium transition-all flex items-center justify-center gap-2"
       >
         {uploading ? (
