@@ -277,8 +277,8 @@ export default function ParamCalculator() {
 
                 {/* Slider */}
                 <div className="space-y-1">
-                  <div className="relative">
-                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div className="relative h-6 flex items-center">
+                    <div className="absolute inset-x-0 h-1.5 bg-white/10 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-purple-600 to-pink-500 rounded-full transition-all"
                         style={{ width: `${pct}%` }}
@@ -297,7 +297,7 @@ export default function ParamCalculator() {
                         }))
                       }
                       onClick={(e) => e.stopPropagation()}
-                      className="absolute inset-0 w-full opacity-0 cursor-pointer h-full"
+                      className="param-slider absolute inset-0"
                     />
                   </div>
                   <div className="flex justify-between text-xs text-slate-600">

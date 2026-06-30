@@ -120,3 +120,40 @@ input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
 }
+
+/* ===== 파라미터 슬라이더 — 보이는 thumb + 터치 드래그 대응 ===== */
+.param-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  /* 가로 드래그는 슬라이더가, 세로 스크롤은 페이지가 처리 */
+  touch-action: pan-y;
+}
+.param-slider::-webkit-slider-runnable-track { background: transparent; height: 24px; }
+.param-slider::-moz-range-track { background: transparent; height: 24px; }
+.param-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 2px solid #a855f7;
+  box-shadow: 0 1px 5px rgba(0,0,0,.5);
+  cursor: pointer;
+  margin-top: 3px; /* 24px 트랙 중앙 정렬 */
+}
+.param-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 2px solid #a855f7;
+  box-shadow: 0 1px 5px rgba(0,0,0,.5);
+  cursor: pointer;
+}

@@ -48,8 +48,8 @@ function Slider({
         </button>
         <span className="text-[10px] text-[var(--purple)] font-mono">{p.value.toFixed(2)}</span>
       </div>
-      <div className="relative h-5 flex items-center">
-        <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+      <div className="relative h-6 flex items-center">
+        <div className="absolute inset-x-0 h-1.5 bg-white/10 rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-purple-600 to-pink-500 rounded-full"
             style={{ width: `${pct}%` }}
@@ -62,7 +62,7 @@ function Slider({
           step={(p.max - p.min) / 200}
           value={p.value}
           onChange={(e) => onChange(p.id, parseFloat(e.target.value))}
-          className="absolute inset-0 opacity-0 cursor-pointer w-full"
+          className="param-slider absolute inset-0"
         />
       </div>
     </div>

@@ -4,20 +4,52 @@ import { useEffect, useRef, useState } from "react";
 import { supabase, listAllStorageFiles } from "@/lib/supabase";
 
 export type Param = { id: string; value: number; min: number; max: number };
-type ViewMode = "fullbody" | "upperbody" | "free";
+export type ViewMode = "fullbody" | "upperbody" | "free";
 
-// 부모(리뷰 페이지)가 파라미터를 제어하기 위한 핸들 (controlRef prop 으로 주입)
+// 모델이 가진 모션·표정 메타
+export type ModelMeta = {
+  motions: { group: string; count: number }[];
+  expressions: string[];
+};
+
+// 공유/딥링크용 뷰어 상태 스냅샷
+export type ViewerState = {
+  overrides: Record<string, number>;
+  viewMode: ViewMode;
+  free: { offsetX: number; offsetY: number; zoom: number };
+  faceTrack: boolean;
+};
+
+// 부모(리뷰 페이지)가 뷰어를 제어하기 위한 핸들 (controlRef prop 으로 주입)
 export interface ViewerHandle {
   setParam: (id: string, value: number) => void;
   releaseParam: (id: string) => void;
   resetAll: () => void;
+  playMotion: (group: string, index: number) => void;
+  playExpression: (name: string) => void;
+  stopMotion: () => void;
+  setAutoIdle: (on: boolean) => void;
+  setBackground: (key: string) => void;
+  getState: () => ViewerState;
+  applyState: (s: ViewerState) => void;
 }
 
 type Props = {
   sessionId: string;
   onParamsLoaded?: (params: Param[]) => void;
+  onModelMeta?: (meta: ModelMeta) => void;
   controlRef?: { current: ViewerHandle | null };
 };
+
+// 배경 옵션 (캔버스 컨테이너 CSS 배경)
+export const BG_OPTIONS: { key: string; label: string; css: string }[] = [
+  { key: "transparent", label: "투명",    css: "transparent" },
+  { key: "white",       label: "흰색",    css: "#ffffff" },
+  { key: "dark",        label: "다크",    css: "#0b0b14" },
+  { key: "green",       label: "크로마키", css: "#00b140" },
+  { key: "blue",        label: "블루백",  css: "#1f4fd6" },
+  { key: "grad",        label: "그라데이션", css: "linear-gradient(160deg,#3b1d6e 0%,#0b0b14 100%)" },
+];
 
 const VIEW_LABELS: Record<ViewMode, string> = {
   fullbody: "전신",
@@ -25,10 +57,14 @@ const VIEW_LABELS: Record<ViewMode, string> = {
   free: "자유 시점",
 };
 
-export default function ModelViewer({ sessionId, onParamsLoaded, controlRef }: Props) {
+export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, controlRef }: Props) {
   const canvasRef   = useRef<HTMLCanvasElement>(null);
   const appRef      = useRef<unknown>(null);
   const modelRef    = useRef<unknown>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const internalRef = useRef<any>(null);
+  // 자동 깜빡임/호흡 원본 보관 (토글 off 시 제거, on 시 복원)
+  const idleStashRef = useRef<{ eyeBlink: unknown; breath: unknown } | null>(null);
 
   // 원본 크기 (scale 전)
   const origWRef = useRef(0);
@@ -56,8 +92,31 @@ export default function ModelViewer({ sessionId, onParamsLoaded, controlRef }: P
 
   const [viewMode,     setViewMode]     = useState<ViewMode>("fullbody");
   const [faceTrack,    setFaceTrack]    = useState(true);
+  const [bgKey,        setBgKey]        = useState("transparent");
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState<string | null>(null);
+
+  // 자동 깜빡임/호흡 on/off
+  function applyAutoIdle(on: boolean) {
+    const im = internalRef.current;
+    if (!im) return;
+    if (!idleStashRef.current) {
+      idleStashRef.current = { eyeBlink: im.eyeBlink, breath: im.breath };
+    }
+    im.eyeBlink = on ? idleStashRef.current.eyeBlink : undefined;
+    im.breath   = on ? idleStashRef.current.breath   : undefined;
+  }
+
+  // 공유 상태 적용 (딥링크/주석 복원)
+  function applyState(s: ViewerState) {
+    overridesRef.current.clear();
+    for (const [id, v] of Object.entries(s.overrides || {})) overridesRef.current.set(id, v);
+    faceTrackRef.current = s.faceTrack;
+    setFaceTrack(s.faceTrack);
+    freeRef.current = { ...s.free };
+    switchView(s.viewMode);
+    if (s.viewMode === "free") { freeRef.current = { ...s.free }; applyView("free"); }
+  }
 
   // 부모가 호출하는 파라미터 제어 (overridesRef = beforeModelUpdate 훅이 매 프레임 적용)
   useEffect(() => {
@@ -66,6 +125,20 @@ export default function ModelViewer({ sessionId, onParamsLoaded, controlRef }: P
       setParam: (id, value) => { overridesRef.current.set(id, value); },
       releaseParam: (id)    => { overridesRef.current.delete(id); },
       resetAll:    ()       => { overridesRef.current.clear(); },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      playMotion: (group, index) => { (modelRef.current as any)?.motion?.(group, index); },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      playExpression: (name) => { (modelRef.current as any)?.expression?.(name); },
+      stopMotion: () => { internalRef.current?.motionManager?.stopAllMotions?.(); },
+      setAutoIdle: (on) => { applyAutoIdle(on); },
+      setBackground: (key) => { setBgKey(key); },
+      getState: () => ({
+        overrides: Object.fromEntries(overridesRef.current),
+        viewMode: viewModeRef.current,
+        free: { ...freeRef.current },
+        faceTrack: faceTrackRef.current,
+      }),
+      applyState: (s) => { applyState(s); },
     };
     return () => { if (controlRef) controlRef.current = null; };
   }, [controlRef]);
@@ -261,6 +334,22 @@ export default function ModelViewer({ sessionId, onParamsLoaded, controlRef }: P
         // 변형에 확실히 반영됨. (app.ticker 에서 따로 set 하면 타이밍이 어긋나 무시됨)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const internalModel = (model as any).internalModel;
+        internalRef.current = internalModel;
+
+        // 모션·표정 메타 수집 → 부모(연출 탭)에 전달
+        try {
+          const settings = internalModel.settings ?? {};
+          const motionsObj = settings.motions ?? {};
+          const motions = Object.entries(motionsObj)
+            .map(([group, arr]) => ({ group, count: Array.isArray(arr) ? arr.length : 0 }))
+            .filter((m) => m.count > 0);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const expressions: string[] = (settings.expressions ?? [])
+            .map((e: any) => e?.Name ?? e?.name)
+            .filter((n: unknown): n is string => typeof n === "string");
+          onModelMeta?.({ motions, expressions });
+        } catch { /* 메타 없어도 정상 */ }
+
         const onBeforeModelUpdate = () => {
           const core = internalModel.coreModel;
           overridesRef.current.forEach((v, id) => {
@@ -471,7 +560,10 @@ export default function ModelViewer({ sessionId, onParamsLoaded, controlRef }: P
       <div className="flex flex-1 min-h-0 px-3 pb-3">
 
         {/* 캔버스 영역 */}
-        <div className="relative flex-1 min-h-[40vh] glass rounded-xl overflow-hidden">
+        <div
+          className={`relative flex-1 min-h-[40vh] rounded-xl overflow-hidden ${bgKey === "transparent" ? "glass" : ""}`}
+          style={bgKey === "transparent" ? undefined : { background: BG_OPTIONS.find((b) => b.key === bgKey)?.css }}
+        >
           {loading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10">
               <div className="w-8 h-8 rounded-full border-2 border-[var(--purple)] border-t-transparent animate-spin" />

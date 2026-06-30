@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useRef, use } from "react";
 import dynamic from "next/dynamic";
-import { ArrowLeft, MessageSquare, Sliders } from "lucide-react";
+import { ArrowLeft, MessageSquare, Sliders, Clapperboard } from "lucide-react";
 import Link from "next/link";
 import { supabase, type Session } from "@/lib/supabase";
 import FeedbackPanel from "@/app/components/FeedbackPanel";
 import ParamPanel from "@/app/components/ParamPanel";
-import type { Param, ViewerHandle } from "@/app/components/ModelViewer";
+import ProductionPanel from "@/app/components/ProductionPanel";
+import type { Param, ViewerHandle, ModelMeta, ViewerState } from "@/app/components/ModelViewer";
 
 const ModelViewer = dynamic(() => import("@/app/components/ModelViewer"), {
   ssr: false,
@@ -18,7 +19,19 @@ const ModelViewer = dynamic(() => import("@/app/components/ModelViewer"), {
   ),
 });
 
-type PanelTab = "comments" | "params";
+type PanelTab = "comments" | "params" | "production";
+
+// URL ?s= 파라미터에서 공유 상태 디코드
+function parseSharedState(): ViewerState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = new URLSearchParams(window.location.search).get("s");
+    if (!raw) return null;
+    return JSON.parse(atob(decodeURIComponent(raw))) as ViewerState;
+  } catch {
+    return null;
+  }
+}
 
 export default function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -31,6 +44,35 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [paramList, setParamList]   = useState<Param[]>([]);
   const [overrideIds, setOverrideIds] = useState<Set<string>>(new Set());
   const [panelTab, setPanelTab] = useState<PanelTab>("comments");
+
+  // 연출(모션/표정/배경/아이들) 상태
+  const [meta, setMeta] = useState<ModelMeta | null>(null);
+  const [autoIdle, setAutoIdle] = useState(true);
+  const [bgKey, setBgKey] = useState("transparent");
+
+  // 딥링크: URL ?s= 의 공유 상태를 모델 로드 후 1회 적용
+  const pendingState = useRef<ViewerState | null>(parseSharedState());
+
+  function handleParamsLoaded(params: Param[]) {
+    const st = pendingState.current;
+    if (st) {
+      viewerControl.current?.applyState(st);
+      const ov = st.overrides || {};
+      setOverrideIds(new Set(Object.keys(ov)));
+      setParamList(params.map((p) => (ov[p.id] !== undefined ? { ...p, value: ov[p.id] } : p)));
+      pendingState.current = null;
+    } else {
+      setParamList(params);
+    }
+  }
+
+  function copyStateLink() {
+    const st = viewerControl.current?.getState();
+    if (!st) return;
+    const encoded = encodeURIComponent(btoa(JSON.stringify(st)));
+    const url = `${window.location.origin}/review/${id}?s=${encoded}`;
+    navigator.clipboard?.writeText(url);
+  }
 
   function handleSetParam(pid: string, value: number) {
     viewerControl.current?.setParam(pid, value);
@@ -109,7 +151,8 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
             <ModelViewer
               sessionId={id}
               controlRef={viewerControl}
-              onParamsLoaded={setParamList}
+              onParamsLoaded={handleParamsLoaded}
+              onModelMeta={setMeta}
             />
           )}
         </div>
@@ -131,7 +174,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
             </button>
             <button
               onClick={() => setPanelTab("params")}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 panelTab === "params"
                   ? "bg-gradient-to-br from-[var(--purple-deep)] to-[#9333ea] text-white shadow"
                   : "text-[var(--muted)] hover:text-[var(--fg)] hover:bg-white/5"
@@ -139,13 +182,21 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
             >
               <Sliders className="w-3.5 h-3.5" />
               파라미터
-              {paramList.length > 0 && (
-                <span className="text-[9px] opacity-70">{paramList.length}</span>
-              )}
+            </button>
+            <button
+              onClick={() => setPanelTab("production")}
+              className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                panelTab === "production"
+                  ? "bg-gradient-to-br from-[var(--purple-deep)] to-[#9333ea] text-white shadow"
+                  : "text-[var(--muted)] hover:text-[var(--fg)] hover:bg-white/5"
+              }`}
+            >
+              <Clapperboard className="w-3.5 h-3.5" />
+              연출
             </button>
           </div>
 
-          {/* 탭 내용 (display 토글로 둘 다 마운트 유지 → 상태 보존) */}
+          {/* 탭 내용 (display 토글로 모두 마운트 유지 → 상태 보존) */}
           <div className={`flex-1 min-h-0 ${panelTab === "comments" ? "flex flex-col" : "hidden"}`}>
             <FeedbackPanel sessionId={id} currentParam={currentParam} />
           </div>
@@ -156,6 +207,19 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               onChange={handleSetParam}
               onRelease={handleRelease}
               onResetAll={handleResetAll}
+            />
+          </div>
+          <div className={`flex-1 min-h-0 ${panelTab === "production" ? "flex flex-col" : "hidden"}`}>
+            <ProductionPanel
+              meta={meta}
+              autoIdle={autoIdle}
+              bgKey={bgKey}
+              onPlayMotion={(g, i) => viewerControl.current?.playMotion(g, i)}
+              onPlayExpression={(n) => viewerControl.current?.playExpression(n)}
+              onStop={() => viewerControl.current?.stopMotion()}
+              onToggleIdle={(on) => { setAutoIdle(on); viewerControl.current?.setAutoIdle(on); }}
+              onSetBg={(k) => { setBgKey(k); viewerControl.current?.setBackground(k); }}
+              onCopyStateLink={copyStateLink}
             />
           </div>
         </div>
