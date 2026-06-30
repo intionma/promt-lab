@@ -5,6 +5,10 @@ export const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// 사용자가 만든 ArtMesh 그룹 + 숨김 상태 (모두에게 공유 저장)
+export type MeshGroup = { id: string; name: string; ids: string[] };
+export type MeshConfig = { groups: MeshGroup[]; hidden: string[] };
+
 export type Session = {
   id: string;
   title: string;
@@ -13,6 +17,8 @@ export type Session = {
   owner_hash: string | null;
   created_at: string;
   expires_at: string;
+  // 메쉬 그룹/숨김 설정 (컬럼 없으면 undefined)
+  mesh_config?: MeshConfig | null;
 };
 
 // ===== PIN 기반 소유권 (모든 기기에서 내 모델 보기) =====

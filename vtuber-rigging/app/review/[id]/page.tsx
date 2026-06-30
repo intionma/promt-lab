@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, use } from "react";
 import dynamic from "next/dynamic";
 import { ArrowLeft, MessageSquare, Sliders, Clapperboard, Layers } from "lucide-react";
 import Link from "next/link";
-import { supabase, type Session } from "@/lib/supabase";
+import { supabase, type Session, type MeshGroup, type MeshConfig } from "@/lib/supabase";
 import FeedbackPanel from "@/app/components/FeedbackPanel";
 import ParamPanel from "@/app/components/ParamPanel";
 import ProductionPanel from "@/app/components/ProductionPanel";
@@ -50,31 +50,108 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [meta, setMeta] = useState<ModelMeta | null>(null);
   const [autoIdle, setAutoIdle] = useState(true);
   const [bgKey, setBgKey] = useState("transparent");
-  const [hiddenMeshes, setHiddenMeshes] = useState<Set<number>>(new Set());
+  // 메쉬 그룹/숨김 (id 기준, 모두에게 공유 저장)
+  const [meshGroups, setMeshGroups] = useState<MeshGroup[]>([]);
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [meshSelectMode, setMeshSelectMode] = useState(false);
   const [selectedMesh, setSelectedMesh] = useState<number | null>(null);
+  const [meshSaving, setMeshSaving] = useState(false);
+  const pendingMeshConfig = useRef<MeshConfig | null>(null);
 
+  function idxOf(meshId: string): number {
+    return meta?.meshes.find((m) => m.id === meshId)?.index ?? -1;
+  }
+  function setHiddenById(meshId: string, hide: boolean) {
+    const idx = idxOf(meshId);
+    if (idx >= 0) viewerControl.current?.setMeshHidden(idx, hide);
+    setHiddenIds((prev) => {
+      const n = new Set(prev);
+      if (hide) n.add(meshId); else n.delete(meshId);
+      return n;
+    });
+  }
+  function toggleGroup(g: MeshGroup) {
+    const allHidden = g.ids.length > 0 && g.ids.every((id) => hiddenIds.has(id));
+    const hide = !allHidden;
+    g.ids.forEach((id) => { const idx = idxOf(id); if (idx >= 0) viewerControl.current?.setMeshHidden(idx, hide); });
+    setHiddenIds((prev) => {
+      const n = new Set(prev);
+      g.ids.forEach((id) => { if (hide) n.add(id); else n.delete(id); });
+      return n;
+    });
+  }
+  function createGroup(name: string) {
+    const g: MeshGroup = { id: `g_${Date.now()}`, name: name.trim() || "새 그룹", ids: [] };
+    setMeshGroups((p) => [...p, g]);
+    setEditingGroupId(g.id);
+  }
+  function deleteGroup(gid: string) {
+    setMeshGroups((p) => p.filter((g) => g.id !== gid));
+    if (editingGroupId === gid) setEditingGroupId(null);
+  }
+  function toggleMembership(gid: string, meshId: string) {
+    setMeshGroups((p) => p.map((g) =>
+      g.id === gid
+        ? { ...g, ids: g.ids.includes(meshId) ? g.ids.filter((x) => x !== meshId) : [...g.ids, meshId] }
+        : g
+    ));
+  }
   function toggleMeshSelectMode(on: boolean) {
     setMeshSelectMode(on);
     viewerControl.current?.setMeshSelectMode(on);
   }
   function handleMeshPicked(index: number) {
-    setSelectedMesh(index);
+    const m = meta?.meshes.find((x) => x.index === index);
+    viewerControl.current?.flashMesh(index);
     setPanelTab("mesh");
-    viewerControl.current?.flashMesh(index); // 모델에서 깜빡여 확인
+    if (m && editingGroupId) {
+      toggleMembership(editingGroupId, m.id); // 그룹 편집 중이면 멤버 토글
+    } else {
+      setSelectedMesh(index);
+    }
   }
-
-  function toggleMesh(index: number, hide: boolean) {
-    viewerControl.current?.setMeshHidden(index, hide);
-    setHiddenMeshes((prev) => {
-      const next = new Set(prev);
-      if (hide) next.add(index); else next.delete(index);
-      return next;
-    });
-  }
+  function toggleMesh(meshId: string, hide: boolean) { setHiddenById(meshId, hide); }
   function showAllMeshes() {
     viewerControl.current?.showAllMeshes();
-    setHiddenMeshes(new Set());
+    setHiddenIds(new Set());
+  }
+  async function saveMeshConfig() {
+    const pw = window.prompt("모두에게 저장 — 비밀번호를 입력하세요");
+    if (!pw) return;
+    setMeshSaving(true);
+    try {
+      const config: MeshConfig = { groups: meshGroups, hidden: Array.from(hiddenIds) };
+      const res = await fetch("/api/save-mesh-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: id, config, password: pw }),
+      });
+      if (res.status === 403) { alert("비밀번호가 틀렸어요"); return; }
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        alert("저장 실패: " + (j.error || "") + "\n(Supabase 에 mesh_config 컬럼이 필요할 수 있어요)");
+        return;
+      }
+      alert("저장됐어요 — 이제 이 모델을 여는 모두에게 반영됩니다");
+    } finally {
+      setMeshSaving(false);
+    }
+  }
+
+  function handleModelMeta(m: ModelMeta) {
+    setMeta(m);
+    const cfg = pendingMeshConfig.current;
+    if (cfg) {
+      setMeshGroups(cfg.groups ?? []);
+      const hid = new Set(cfg.hidden ?? []);
+      setHiddenIds(hid);
+      hid.forEach((mid) => {
+        const idx = m.meshes.find((x) => x.id === mid)?.index ?? -1;
+        if (idx >= 0) viewerControl.current?.setMeshHidden(idx, true);
+      });
+      pendingMeshConfig.current = null;
+    }
   }
 
   // 딥링크: URL ?s= 의 공유 상태를 모델 로드 후 1회 적용
@@ -162,8 +239,10 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
           .select("*")
           .eq("id", id)
           .single();
-        if (data) setSession(data);
-        else setNotFound(true);
+        if (data) {
+          setSession(data);
+          pendingMeshConfig.current = (data.mesh_config as MeshConfig | null) ?? null;
+        } else setNotFound(true);
       } catch {
         // 네트워크 오류 등 — 무한 로딩 대신 안내 표시
         setNotFound(true);
@@ -212,7 +291,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               sessionId={id}
               controlRef={viewerControl}
               onParamsLoaded={handleParamsLoaded}
-              onModelMeta={setMeta}
+              onModelMeta={handleModelMeta}
               onMeshPicked={handleMeshPicked}
             />
           )}
@@ -310,13 +389,22 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
           <div className={`flex-1 min-h-0 ${panelTab === "mesh" ? "flex flex-col" : "hidden"}`}>
             <MeshPanel
               meshes={meta?.meshes ?? []}
-              hidden={hiddenMeshes}
+              hiddenIds={hiddenIds}
+              groups={meshGroups}
+              editingGroupId={editingGroupId}
               selected={selectedMesh}
               selectMode={meshSelectMode}
-              onToggle={toggleMesh}
+              saving={meshSaving}
+              onToggleMesh={toggleMesh}
+              onToggleGroup={toggleGroup}
               onShowAll={showAllMeshes}
               onFlash={(i) => viewerControl.current?.flashMesh(i)}
               onToggleSelectMode={toggleMeshSelectMode}
+              onCreateGroup={createGroup}
+              onDeleteGroup={deleteGroup}
+              onSetEditingGroup={setEditingGroupId}
+              onToggleMembership={toggleMembership}
+              onSave={saveMeshConfig}
             />
           </div>
         </div>
