@@ -8849,9 +8849,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
             const displayKor = data.kor ? data.kor : tagText;
             if (isMini) {
-                btn.innerHTML = `<span class="tag-kr">${displayKor}</span>`;
+                btn.innerHTML = `<span class="tag-kr">${_esc(displayKor)}</span>`;
             } else {
-                btn.innerHTML = `<span class="tag-kr">${data.kor}</span><span class="tag-en">${tagText}</span>`;
+                btn.innerHTML = `<span class="tag-kr">${_esc(data.kor)}</span><span class="tag-en">${_esc(tagText)}</span>`;
             }
 
             const star = document.createElement('i');
