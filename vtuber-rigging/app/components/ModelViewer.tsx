@@ -43,9 +43,6 @@ export default function ModelViewer({ sessionId, onParamsLoaded, controlRef }: P
   // 수동 파라미터 오버라이드 (슬라이더로 고정한 값 — 매 프레임 재적용해야 유지됨)
   const overridesRef   = useRef<Map<string, number>>(new Map());
 
-  // 이 모델이 실제 보유한 파라미터 ID 집합 (없는 ID 는 건드리지 않음 → 커스텀 리깅 대응)
-  const availIdsRef    = useRef<Set<string>>(new Set());
-
   // 얼굴 반응(터치/마우스 추적) ON/OFF
   const faceTrackRef   = useRef(true);
 
@@ -73,11 +70,26 @@ export default function ModelViewer({ sessionId, onParamsLoaded, controlRef }: P
     return () => { if (controlRef) controlRef.current = null; };
   }, [controlRef]);
 
-  // ── 시점 전환 ──────────────────────────────────────────────────────────────
-  function switchView(mode: ViewMode) {
-    setViewMode(mode);
-    viewModeRef.current = mode;
+  // 현재 viewport 기준으로 전신 transform(baseRef) 재계산 (로드·리사이즈 시)
+  function recomputeBase() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = appRef.current as any;
+    const origW = origWRef.current;
+    const origH = origHRef.current;
+    if (!app || !origW || !origH) return;
+    const scale = Math.min(
+      (app.renderer.width  * 0.8) / origW,
+      (app.renderer.height * 0.9) / origH,
+    );
+    baseRef.current = {
+      x: (app.renderer.width - origW * scale) / 2,
+      y: app.renderer.height * 0.05,
+      scale,
+    };
+  }
 
+  // 시점에 맞는 transform 을 모델에 적용 (state 변경 없음 — 리사이즈에서도 재사용)
+  function applyView(mode: ViewMode) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mdl = modelRef.current as any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -87,31 +99,33 @@ export default function ModelViewer({ sessionId, onParamsLoaded, controlRef }: P
     const base  = baseRef.current;
     const origW = origWRef.current;
 
-    if (mode === "fullbody") {
-      mdl.scale.set(base.scale);
-      mdl.x = base.x;
-      mdl.y = base.y;
-
-    } else if (mode === "upperbody") {
+    if (mode === "upperbody") {
       // 상반신: 머리~어깨가 화면 세로를 채우도록 확대한 바스트 샷.
-      // 머리 위 약간의 여백을 두어 얼굴이 잘 보이게 함.
-      const H      = app.renderer.height;
-      const W      = app.renderer.width;
-      const origH  = origHRef.current || (H / base.scale);
-      const SHOW   = 0.32;                         // 본문 상단 32%(얼굴+어깨) = 바스트 샷
+      const H       = app.renderer.height;
+      const W       = app.renderer.width;
+      const origH   = origHRef.current || (H / base.scale);
+      const SHOW    = 0.32;                          // 본문 상단 32%(얼굴+어깨)
       const upScale = (H * 0.96) / (origH * SHOW);
       mdl.scale.set(upScale);
       mdl.x = (W - origW * upScale) / 2;
-      mdl.y = H * 0.05;  // 머리 위 약간의 여백 → 어깨 아래는 화면 밖
-
+      mdl.y = H * 0.05;
+    } else if (mode === "free") {
+      mdl.scale.set(base.scale * freeRef.current.zoom);
+      mdl.x = base.x + freeRef.current.offsetX;
+      mdl.y = base.y + freeRef.current.offsetY;
     } else {
-      // 자유 시점: 전신 위치에서 시작
-      freeRef.current = { offsetX: 0, offsetY: 0, zoom: 1 };
       mdl.scale.set(base.scale);
       mdl.x = base.x;
       mdl.y = base.y;
     }
+  }
 
+  // ── 시점 전환 ──────────────────────────────────────────────────────────────
+  function switchView(mode: ViewMode) {
+    setViewMode(mode);
+    viewModeRef.current = mode;
+    if (mode === "free") freeRef.current = { offsetX: 0, offsetY: 0, zoom: 1 };
+    applyView(mode);
     focusFnRef.current?.(0, 0, true);  // 시점 바꾸면 얼굴 정면으로
   }
 
@@ -194,23 +208,11 @@ export default function ModelViewer({ sessionId, onParamsLoaded, controlRef }: P
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         app.stage.addChild(model as any);
 
-        // 기준 transform 계산 (전신 기준)
-        const origW  = model.width;
-        const origH  = model.height;
-        origWRef.current = origW;
-        origHRef.current = origH;
-
-        const scale  = Math.min(
-          (app.renderer.width  * 0.8) / origW,
-          (app.renderer.height * 0.9) / origH,
-        );
-        const baseX = (app.renderer.width - origW * scale) / 2;
-        const baseY = app.renderer.height * 0.05;
-        baseRef.current = { x: baseX, y: baseY, scale };
-
-        model.scale.set(scale);
-        model.x = baseX;
-        model.y = baseY;
+        // 기준 transform 계산 (전신 기준) + 현재 시점 적용
+        origWRef.current = model.width;
+        origHRef.current = model.height;
+        recomputeBase();
+        applyView(viewModeRef.current);
 
         setLoading(false);
 
@@ -219,18 +221,14 @@ export default function ModelViewer({ sessionId, onParamsLoaded, controlRef }: P
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const core = (model as any).internalModel.coreModel;
           const paramList: Param[] = [];
-          const ids = new Set<string>();
           for (let i = 0; i < core.getParameterCount(); i++) {
-            const id = core.getParameterId(i);
-            ids.add(id);
             paramList.push({
-              id,
+              id:    core.getParameterId(i),
               value: core.getParameterValue(i),
               min:   core.getParameterMinimumValue(i),
               max:   core.getParameterMaximumValue(i),
             });
           }
-          availIdsRef.current = ids;
           onParamsLoaded?.(paramList);
         } catch { /* 파라미터 없어도 정상 표시 */ }
 
@@ -335,6 +333,10 @@ export default function ModelViewer({ sessionId, onParamsLoaded, controlRef }: P
         canvas.addEventListener("pointerleave", onFaceLeave);
         canvas.addEventListener("wheel",        onWheel, { passive: false });
 
+        // 화면 회전·리사이즈 시 모델 재정렬 (모바일 가로↔세로 대응)
+        const onResize = () => { recomputeBase(); applyView(viewModeRef.current); };
+        app.renderer.on("resize", onResize);
+
         eventCleanup = () => {
           canvas.removeEventListener("pointermove",  onPtrMove);
           canvas.removeEventListener("pointerdown",  onPtrDown);
@@ -342,6 +344,8 @@ export default function ModelViewer({ sessionId, onParamsLoaded, controlRef }: P
           canvas.removeEventListener("pointercancel",onPtrUp);
           canvas.removeEventListener("pointerleave", onFaceLeave);
           canvas.removeEventListener("wheel",        onWheel);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (app.renderer as any)?.off?.("resize", onResize);
         };
 
         // ── PIXI 렌더 루프 ──────────────────────────────────────────────────
