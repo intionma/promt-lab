@@ -50,15 +50,18 @@ export default function UploadSession() {
   };
 
   async function upload() {
-    if (!title.trim() || !hasModel3 || !hasMoc3) return;
+    if (!hasModel3 || !hasMoc3) return;
     setUploading(true);
     setError(null);
     setProgress(files.map((f) => ({ name: getStoragePath(f), done: false })));
 
+    const finalTitle =
+      title.trim() || `리깅 리뷰 ${new Date().toLocaleDateString("ko-KR")}`;
+
     try {
       const { data: session, error: sessionErr } = await supabase
         .from("sessions")
-        .insert({ title: title.trim(), description: description.trim() || null })
+        .insert({ title: finalTitle, description: description.trim() || null })
         .select()
         .single();
 
@@ -134,11 +137,11 @@ export default function UploadSession() {
   return (
     <div className="flex flex-col h-full overflow-y-auto chat-scroll p-4 gap-4">
       <div className="space-y-2">
-        <label className="text-xs text-slate-400">세션 이름 *</label>
+        <label className="text-xs text-slate-400">세션 이름 (선택)</label>
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="예: 리나 v2 눈 리깅 피드백"
+          placeholder="예: 리나 v2 눈 리깅 피드백 (비워두면 자동 생성)"
           className="w-full glass rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-600 outline-none"
         />
       </div>
@@ -255,7 +258,7 @@ export default function UploadSession() {
 
       <button
         onClick={upload}
-        disabled={uploading || !title.trim() || !hasModel3 || !hasMoc3}
+        disabled={uploading || !hasModel3 || !hasMoc3}
         className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 text-sm font-medium transition-all flex items-center justify-center gap-2"
       >
         {uploading ? (

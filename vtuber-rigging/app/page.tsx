@@ -63,7 +63,10 @@ export default function Home() {
 
         {/* Content */}
         <main className="flex-1 glass border border-white/10 rounded-b-xl rounded-tr-xl overflow-hidden flex flex-col min-h-0">
-          {activeTab === "upload" && <UploadSession />}
+          {/* 업로드 탭은 항상 마운트 유지 — 탭 전환해도 선택한 파일이 유지됨 */}
+          <div className={activeTab === "upload" ? "flex-1 flex flex-col min-h-0" : "hidden"}>
+            <UploadSession />
+          </div>
           {activeTab === "params" && <ParamCalculator />}
           {activeTab === "deformer" && <DeformerTree />}
         </main>
