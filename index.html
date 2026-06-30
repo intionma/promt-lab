@@ -944,6 +944,10 @@
         #pl-stage { position:fixed; inset:0; top:var(--pl-topbar-h,54px); z-index:900; display:none; overflow:hidden; }
         body.pl-stage-on #pl-stage { display:block; }
         body.pl-stage-on .app-container { visibility:hidden; }
+        /* 기능 레이아웃 종료/전환 버튼 (스테이지 위에 항상 떠있음) */
+        .pl-stage-exit { position:fixed; top:calc(var(--pl-topbar-h,54px) + 10px); right:14px; z-index:906; display:flex; align-items:center; gap:7px; background:var(--glass-bg); backdrop-filter:blur(24px) saturate(160%); -webkit-backdrop-filter:blur(24px) saturate(160%); border:1px solid var(--glass-border); color:var(--text-main); border-radius:22px; padding:8px 15px; font-size:12px; font-weight:800; cursor:pointer; box-shadow:0 6px 22px rgba(0,0,0,0.45); font-family:var(--font-ui); transition:border-color .15s, transform .15s; }
+        .pl-stage-exit:hover { border-color:#f472b6; transform:translateY(-1px); }
+        .pl-stage-exit i { color:#f472b6; }
 
         /* =========================================================
            A군 — 재배치형
@@ -14104,6 +14108,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const s = steps[si]; bot(s.q);
                 const opts = PL.dbTags().filter(t => t.layer === s.layer);
                 for (let i = opts.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[opts[i], opts[j]] = [opts[j], opts[i]]; }
+                if (!opts.length) bot('<span style="opacity:0.7;font-size:13px;">이 계층엔 사전 태그가 없어요. 아래에 직접 입력하거나 건너뛰세요.</span>');
                 opts.slice(0, 8).forEach(o => chips.appendChild(el('button', { html: `${esc(o.k)}`, title: o.t, onclick: () => { pick(o.t, o.k, s.layer); } })));
                 chips.appendChild(el('button', { style: 'border-color:var(--text-dim);color:var(--text-dim);', html: '건너뛰기 →', onclick: () => { usr('(건너뜀)'); si++; showStep(); } }));
             }
@@ -14364,6 +14369,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const def = LAYOUTS.find(l => l.id === id) || LAYOUTS[0];
             if (_plTeardown) { try { _plTeardown(); } catch (e) {} _plTeardown = null; }
             runCleanups();
+            document.querySelectorAll('.pl-stage-exit').forEach(e => e.remove());
             document.body.classList.remove('pl-stage-on', 'pl-mf-perform');
             const stage = ensureStage(); stage.innerHTML = '';
             document.body.setAttribute('data-layout', def.id);
@@ -14372,6 +14378,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const lbl = document.getElementById('pl-current-name'); if (lbl) lbl.textContent = '현재: ' + def.name;
             setTopbarVar();
             if (def.init) { try { _plTeardown = def.init() || null; } catch (e) { console.error('layout init error', e); } }
+            // 기능 오버레이가 켜졌으면 종료/전환 버튼을 띄운다 (앱 전체가 가려지므로)
+            if (document.body.classList.contains('pl-stage-on')) {
+                document.body.appendChild(el('button', { class: 'pl-stage-exit', title: '레이아웃 선택기 열기', html: '<i class="fa-solid fa-table-cells-large"></i> 레이아웃', onclick: openLayoutPicker }));
+            }
             renderPickerCards();
         }
         window.applyLayout = applyLayout;
