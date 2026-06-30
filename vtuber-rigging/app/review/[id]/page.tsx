@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, use } from "react";
 import dynamic from "next/dynamic";
-import { ArrowLeft, MessageSquare, Sliders, Clapperboard, Layers } from "lucide-react";
+import { ArrowLeft, MessageSquare, Sliders, Clapperboard, Layers, EyeOff, Eye } from "lucide-react";
 import Link from "next/link";
 import { supabase, type Session, type MeshGroup, type MeshConfig } from "@/lib/supabase";
 import FeedbackPanel from "@/app/components/FeedbackPanel";
@@ -210,6 +210,12 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     setParamList(defaultParams.current.map((p) => ({ ...p })));
   }
 
+  // 실루엣 토글 (헤더 빠른 버튼·연출 탭 공용)
+  function toggleSilhouette(on: boolean) {
+    setSilhouette(on);
+    viewerControl.current?.setSilhouette(on, silhouetteColor);
+  }
+
   // 코멘트에 첨부된 상태로 복원
   function restoreState(s: ViewerState) {
     viewerControl.current?.applyState(s);
@@ -313,7 +319,20 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
             <p className="text-[11px] text-[var(--muted)] truncate">{session.description}</p>
           )}
         </div>
-        <span className="text-[10px] text-[var(--muted)] glass px-2.5 py-1 rounded-full shrink-0">
+        {/* 항상 보이는 실루엣 빠른 토글 — 옆에서 누가 오면 한 번에 가리기 */}
+        <button
+          onClick={() => toggleSilhouette(!silhouette)}
+          title={silhouette ? "실루엣 끄기 (원래 그림 보이기)" : "실루엣 켜기 (그림 가리기)"}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold shrink-0 transition-all ${
+            silhouette
+              ? "bg-[var(--purple)] text-white shadow-lg shadow-[var(--purple)]/30"
+              : "glass glass-hover text-[var(--muted)]"
+          }`}
+        >
+          {silhouette ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+          <span>{silhouette ? "실루엣" : "가리기"}</span>
+        </button>
+        <span className="text-[10px] text-[var(--muted)] glass px-2.5 py-1 rounded-full shrink-0 hidden sm:inline">
           리뷰 모드
         </span>
       </header>
@@ -410,7 +429,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               bgKey={bgKey}
               silhouette={silhouette}
               silhouetteColor={silhouetteColor}
-              onToggleSilhouette={(on) => { setSilhouette(on); viewerControl.current?.setSilhouette(on, silhouetteColor); }}
+              onToggleSilhouette={toggleSilhouette}
               onSetSilhouetteColor={(c) => { setSilhouetteColor(c); viewerControl.current?.setSilhouette(silhouette, c); }}
               onPlayMotion={(g, i) => viewerControl.current?.playMotion(g, i)}
               onPlayExpression={(n) => viewerControl.current?.playExpression(n)}
