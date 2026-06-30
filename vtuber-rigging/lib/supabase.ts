@@ -95,4 +95,6 @@ export type Feedback = {
   param_value: number | null;
   comment: string;
   created_at: string;
+  // 코멘트 작성 시점의 뷰어 상태(파라미터·시점·줌 등) — 선택(컬럼 없으면 무시)
+  state?: Record<string, unknown> | null;
 };

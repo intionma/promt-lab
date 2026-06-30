@@ -1,6 +1,6 @@
 "use client";
 
-import { Play, Square, Smile, Sparkles, Image as ImageIcon, Link2, Check, Pause, RotateCcw } from "lucide-react";
+import { Play, Square, Smile, Sparkles, Image as ImageIcon, Link2, Check, Pause, RotateCcw, Camera } from "lucide-react";
 import { useState } from "react";
 import { BG_OPTIONS, type ModelMeta } from "./ModelViewer";
 
@@ -14,6 +14,7 @@ type Props = {
   onToggleIdle: (on: boolean) => void;
   onSetBg: (key: string) => void;
   onCopyStateLink: () => void;
+  onScreenshot: () => void;
   onFreeze: () => void;
   onReset: () => void;
 };
@@ -28,6 +29,7 @@ export default function ProductionPanel({
   onToggleIdle,
   onSetBg,
   onCopyStateLink,
+  onScreenshot,
   onFreeze,
   onReset,
 }: Props) {
@@ -168,8 +170,14 @@ export default function ProductionPanel({
         </div>
       </section>
 
-      {/* 상태 공유 */}
+      {/* 저장 / 공유 */}
       <section className="space-y-2 pt-1">
+        <button
+          onClick={onScreenshot}
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg glass glass-hover text-[var(--fg)] text-[11px] font-medium"
+        >
+          <Camera className="w-3.5 h-3.5" /> 스크린샷 저장 (PNG)
+        </button>
         <button
           onClick={copyLink}
           className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-br from-[var(--purple-deep)] to-[#9333ea] text-white text-[11px] font-medium"
@@ -178,7 +186,7 @@ export default function ProductionPanel({
           {copied ? "링크 복사됨!" : "현재 상태 링크 복사"}
         </button>
         <p className="text-[9px] text-[var(--muted)]/70 text-center">
-          파라미터·시점·줌·얼굴반응 상태를 링크로 공유해요
+          현재 화면을 이미지로 저장하거나 상태를 링크로 공유해요
         </p>
       </section>
     </div>

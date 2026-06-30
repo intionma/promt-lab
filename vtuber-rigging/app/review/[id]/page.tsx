@@ -90,6 +90,14 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     setParamList(defaultParams.current.map((p) => ({ ...p })));
   }
 
+  // 코멘트에 첨부된 상태로 복원
+  function restoreState(s: ViewerState) {
+    viewerControl.current?.applyState(s);
+    const ov = s.overrides || {};
+    setOverrideIds(new Set(Object.keys(ov)));
+    setParamList(defaultParams.current.map((p) => (ov[p.id] !== undefined ? { ...p, value: ov[p.id] } : { ...p })));
+  }
+
   function copyStateLink() {
     const st = viewerControl.current?.getState();
     if (!st) return;
@@ -223,7 +231,12 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
 
           {/* 탭 내용 (display 토글로 모두 마운트 유지 → 상태 보존) */}
           <div className={`flex-1 min-h-0 ${panelTab === "comments" ? "flex flex-col" : "hidden"}`}>
-            <FeedbackPanel sessionId={id} currentParam={currentParam} />
+            <FeedbackPanel
+              sessionId={id}
+              currentParam={currentParam}
+              captureState={() => viewerControl.current?.getState() ?? null}
+              onRestoreState={restoreState}
+            />
           </div>
           <div className={`flex-1 min-h-0 ${panelTab === "params" ? "flex flex-col" : "hidden"}`}>
             <ParamPanel
@@ -245,6 +258,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               onToggleIdle={(on) => { setAutoIdle(on); viewerControl.current?.setAutoIdle(on); }}
               onSetBg={(k) => { setBgKey(k); viewerControl.current?.setBackground(k); }}
               onCopyStateLink={copyStateLink}
+              onScreenshot={() => viewerControl.current?.screenshot()}
               onFreeze={handleFreeze}
               onReset={handleResetProduction}
             />

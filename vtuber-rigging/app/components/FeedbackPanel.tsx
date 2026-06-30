@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Send, MessageSquare, Clock } from "lucide-react";
+import { Send, MessageSquare, Clock, Camera, Eye } from "lucide-react";
 import { supabase, type Feedback } from "@/lib/supabase";
+import type { ViewerState } from "./ModelViewer";
 
 type Props = {
   sessionId: string;
   currentParam?: { id: string; value: number } | null;
+  captureState?: () => ViewerState | null;
+  onRestoreState?: (s: ViewerState) => void;
 };
 
-export default function FeedbackPanel({ sessionId, currentParam }: Props) {
+export default function FeedbackPanel({ sessionId, currentParam, captureState, onRestoreState }: Props) {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [author, setAuthor] = useState(() =>
     typeof window !== "undefined" ? localStorage.getItem("feedback_author") || "" : ""
@@ -17,6 +20,7 @@ export default function FeedbackPanel({ sessionId, currentParam }: Props) {
   const [comment, setComment] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attachState, setAttachState] = useState(true); // 현재 상태(파라미터·시점) 첨부
 
   useEffect(() => {
     loadFeedbacks();
@@ -53,18 +57,26 @@ export default function FeedbackPanel({ sessionId, currentParam }: Props) {
     setError(null);
     localStorage.setItem("feedback_author", author);
 
-    const { data, error: err } = await supabase
-      .from("feedback")
-      .insert({
-        session_id: sessionId,
-        author: author.trim(),
-        comment: comment.trim(),
-        param_name: currentParam?.id ?? null,
-        param_value: currentParam?.value ?? null,
-      })
-      .select()
-      .single();
+    const base = {
+      session_id: sessionId,
+      author: author.trim(),
+      comment: comment.trim(),
+      param_name: currentParam?.id ?? null,
+      param_value: currentParam?.value ?? null,
+    };
+    const snapshot = attachState ? captureState?.() ?? null : null;
+    const payload: Record<string, unknown> = snapshot ? { ...base, state: snapshot } : { ...base };
 
+    // state 컬럼 포함해 시도 → 컬럼이 없으면 빼고 재시도(그레이스풀)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let res = await supabase.from("feedback").insert(payload as any).select().single();
+
+    if (res.error && snapshot && /state|column|schema|find/i.test(res.error.message)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      res = await supabase.from("feedback").insert(base as any).select().single();
+    }
+
+    const { data, error: err } = res;
     if (err) {
       // 실제 오류 노출 (테이블/RLS 권한 문제 등 바로 파악 가능)
       setError(err.message || "전송에 실패했어요");
@@ -130,6 +142,15 @@ export default function FeedbackPanel({ sessionId, currentParam }: Props) {
                 </div>
               )}
               <p className="text-sm text-[var(--fg)]/90">{fb.comment}</p>
+              {fb.state && onRestoreState && (
+                <button
+                  onClick={() => onRestoreState(fb.state as unknown as ViewerState)}
+                  className="mt-1 inline-flex items-center gap-1 text-[10px] glass glass-hover px-2 py-1 rounded-md text-[var(--purple)]"
+                  title="이 코멘트를 작성한 시점의 파라미터·시점으로 모델을 되돌립니다"
+                >
+                  <Eye className="w-3 h-3" /> 이 상태 보기
+                </button>
+              )}
             </div>
           ))
         )}
@@ -141,6 +162,20 @@ export default function FeedbackPanel({ sessionId, currentParam }: Props) {
           <div className="text-[10px] text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-2.5 py-1.5">
             전송 실패: {error}
           </div>
+        )}
+        {captureState && (
+          <button
+            onClick={() => setAttachState((v) => !v)}
+            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[10px] transition-all ${
+              attachState ? "bg-[var(--purple)]/15 text-[var(--purple)]" : "glass glass-hover text-[var(--muted)]"
+            }`}
+            title="켜면 코멘트에 현재 파라미터·시점·줌 상태가 함께 저장돼, 나중에 '이 상태 보기'로 복원할 수 있어요"
+          >
+            <span className="flex items-center gap-1"><Camera className="w-3 h-3" /> 현재 상태 첨부</span>
+            <span className={`px-1.5 py-0.5 rounded-full font-bold ${attachState ? "bg-[var(--purple)]/30" : "bg-white/10"}`}>
+              {attachState ? "ON" : "OFF"}
+            </span>
+          </button>
         )}
         {currentParam && (
           <div className="text-[10px] text-[var(--muted)] px-1 flex items-center gap-1">

@@ -34,6 +34,7 @@ export interface ViewerHandle {
   setBackground: (key: string) => void;
   getState: () => ViewerState;
   applyState: (s: ViewerState) => void;
+  screenshot: () => void;
 }
 
 type Props = {
@@ -92,6 +93,8 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
   const freeRef           = useRef({ offsetX: 0, offsetY: 0, zoom: 1 });
   // 자유시점 카메라 잠금 — 켜면 드래그가 팬 대신 시선/고개 돌리기
   const camLockRef        = useRef(false);
+  // 현재 배경 키 (스크린샷 합성용)
+  const bgKeyRef          = useRef("transparent");
   const activePointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
   const lastPinchDistRef  = useRef(0);
   const isDraggingRef     = useRef(false);
@@ -170,7 +173,43 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
       playExpression: (name) => { (modelRef.current as any)?.expression?.(name); },
       stopMotion: () => { internalRef.current?.motionManager?.stopAllMotions?.(); },
       setAutoIdle: (on) => { applyAutoIdle(on); },
-      setBackground: (key) => { setBgKey(key); },
+      setBackground: (key) => { setBgKey(key); bgKeyRef.current = key; },
+      screenshot: () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const app = appRef.current as any;
+        if (!app) return;
+        try {
+          // 모델만 렌더된 캔버스(배경 투명) 추출
+          const modelCanvas: HTMLCanvasElement = app.renderer.extract.canvas(app.stage);
+          const W = modelCanvas.width, H = modelCanvas.height;
+          const out = document.createElement("canvas");
+          out.width = W; out.height = H;
+          const ctx = out.getContext("2d");
+          if (!ctx) return;
+          // 배경 합성 (투명이 아니면 색/그라데이션을 먼저 칠함)
+          const bg = BG_OPTIONS.find((b) => b.key === bgKeyRef.current);
+          if (bg && bg.key !== "transparent") {
+            if (bg.key === "grad") {
+              const g = ctx.createLinearGradient(0, 0, W * 0.4, H);
+              g.addColorStop(0, "#3b1d6e"); g.addColorStop(1, "#0b0b14");
+              ctx.fillStyle = g;
+            } else {
+              ctx.fillStyle = bg.css;
+            }
+            ctx.fillRect(0, 0, W, H);
+          }
+          ctx.drawImage(modelCanvas, 0, 0);
+          out.toBlob((blob) => {
+            if (!blob) return;
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `vtuber-${Date.now()}.png`;
+            document.body.appendChild(a); a.click(); a.remove();
+            URL.revokeObjectURL(url);
+          }, "image/png");
+        } catch { /* 추출 실패 무시 */ }
+      },
       getState: () => ({
         overrides: Object.fromEntries(overridesRef.current),
         viewMode: viewModeRef.current,
