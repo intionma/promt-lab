@@ -295,6 +295,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               hidden={hiddenMeshes}
               onToggle={toggleMesh}
               onShowAll={showAllMeshes}
+              onFlash={(i) => viewerControl.current?.flashMesh(i)}
             />
           </div>
         </div>

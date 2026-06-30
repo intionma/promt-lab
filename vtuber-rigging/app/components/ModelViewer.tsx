@@ -10,7 +10,7 @@ export type ViewMode = "fullbody" | "upperbody" | "free";
 export type ModelMeta = {
   motions: { group: string; count: number }[];
   expressions: string[];
-  meshes: { index: number; id: string }[];
+  meshes: { index: number; id: string; part: string }[];
 };
 
 // 공유/딥링크용 뷰어 상태 스냅샷
@@ -38,6 +38,7 @@ export interface ViewerHandle {
   screenshot: () => void;
   setMeshHidden: (index: number, hidden: boolean) => void;
   showAllMeshes: () => void;
+  flashMesh: (index: number) => void;
 }
 
 type Props = {
@@ -90,6 +91,8 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
 
   // 숨긴 ArtMesh(drawable) 인덱스 + 원본 opacity 배열 참조
   const hiddenMeshesRef = useRef<Set<number>>(new Set());
+  // 깜빡임(찾기)용 임시 숨김 세트
+  const flashMeshesRef  = useRef<Set<number>>(new Set());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const drawOpacitiesRef = useRef<any>(null);
 
@@ -223,6 +226,18 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
         else hiddenMeshesRef.current.delete(index);
       },
       showAllMeshes: () => { hiddenMeshesRef.current.clear(); },
+      flashMesh: (index) => {
+        // 해당 메쉬를 잠깐 깜빡여 어떤 부위인지 눈으로 찾게 함
+        const fset = flashMeshesRef.current;
+        let n = 0;
+        const tick = () => {
+          if (fset.has(index)) fset.delete(index); else fset.add(index);
+          n += 1;
+          if (n >= 6) { fset.delete(index); return; }
+          setTimeout(tick, 160);
+        };
+        tick();
+      },
       getState: () => ({
         overrides: Object.fromEntries(overridesRef.current),
         viewMode: viewModeRef.current,
@@ -447,14 +462,20 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
             .filter((n: unknown): n is string => typeof n === "string");
 
           // ArtMesh(drawable) 목록 수집 + opacity 배열 참조 확보
-          const meshes: { index: number; id: string }[] = [];
+          const meshes: { index: number; id: string; part: string }[] = [];
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const cm: any = internalModel.coreModel;
           const rawModel = typeof cm.getModel === "function" ? cm.getModel() : cm._model;
           const dd = rawModel?.drawables;
+          const partIds: string[] = rawModel?.parts?.ids ?? [];
+          const parentParts: ArrayLike<number> = dd?.parentPartIndices ?? [];
           if (dd && typeof dd.count === "number" && dd.ids) {
             drawOpacitiesRef.current = dd.opacities;
-            for (let i = 0; i < dd.count; i++) meshes.push({ index: i, id: String(dd.ids[i]) });
+            for (let i = 0; i < dd.count; i++) {
+              const pIdx = parentParts[i];
+              const part = pIdx != null && partIds[pIdx] != null ? String(partIds[pIdx]) : "";
+              meshes.push({ index: i, id: String(dd.ids[i]), part });
+            }
           }
           onModelMeta?.({ motions, expressions, meshes });
         } catch { /* 메타 없어도 정상 */ }
@@ -475,8 +496,9 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, co
         internalModel.update = (dt: number, now: number) => {
           origUpdate(dt, now);
           const op = drawOpacitiesRef.current;
-          const hidden = hiddenMeshesRef.current;
-          if (op && hidden.size) hidden.forEach((i) => { op[i] = 0; });
+          if (!op) return;
+          if (hiddenMeshesRef.current.size) hiddenMeshesRef.current.forEach((i) => { op[i] = 0; });
+          if (flashMeshesRef.current.size)  flashMeshesRef.current.forEach((i) => { op[i] = 0; });
         };
 
         // 얼굴 추적: 라이브러리 내장 focusController 사용(올바른 타이밍·스무딩 내장)
