@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { FileUp, FolderUp, Download, Trash2, Loader2, HardDrive, CheckCircle, AlertCircle, File as FileIcon } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { FileUp, FolderUp, Download, Trash2, Loader2, HardDrive, CheckCircle, AlertCircle, File as FileIcon, Boxes } from "lucide-react";
 import { supabase, listDriveFiles, publicUrl, formatBytes, DRIVE_PREFIX } from "@/lib/supabase";
 
 type DriveFile = { path: string; size: number; name: string };
@@ -17,6 +17,45 @@ export default function DriveTab() {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [publishing, setPublishing] = useState<string | null>(null);
+
+  // 드라이브의 최상위 폴더들 (모델로 등록 가능한지 = .model3.json 포함)
+  const folders = useMemo(() => {
+    const map = new Map<string, DriveFile[]>();
+    for (const f of files) {
+      const seg = f.name.split("/");
+      if (seg.length > 1) {
+        const top = seg[0];
+        if (!map.has(top)) map.set(top, []);
+        map.get(top)!.push(f);
+      }
+    }
+    return Array.from(map.entries()).map(([name, fs]) => ({
+      name,
+      count: fs.length,
+      hasModel: fs.some((x) => x.name.toLowerCase().endsWith(".model3.json")),
+    }));
+  }, [files]);
+
+  async function publishFolder(folder: string) {
+    const pw = window.prompt("모델 갤러리에 등록 — 비밀번호를 입력하세요");
+    if (!pw) return;
+    const title = window.prompt("세션 이름 (비우면 모델 파일명)", folder) ?? "";
+    setPublishing(folder);
+    try {
+      const res = await fetch("/api/publish-from-drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder, title, password: pw }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (res.status === 403) { alert("비밀번호가 틀렸어요"); return; }
+      if (!res.ok) { alert("등록 실패: " + (j.error || "")); return; }
+      alert("모델 갤러리에 등록됐어요! '모델 갤러리' 탭에서 확인하세요.");
+    } finally {
+      setPublishing(null);
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -132,6 +171,32 @@ export default function DriveTab() {
         <div className={`rounded-xl px-3 py-2 text-xs flex gap-2 items-start ${msg.ok ? "bg-green-500/10 text-green-400 border border-green-500/30" : "bg-red-500/10 text-red-400 border border-red-500/30"}`}>
           {msg.ok ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />}
           {msg.text}
+        </div>
+      )}
+
+      {/* 폴더 → 모델 갤러리 등록 */}
+      {folders.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-semibold text-[var(--muted)]">폴더 ({folders.length})</p>
+          {folders.map((fo) => (
+            <div key={fo.name} className="glass rounded-xl p-2.5 flex items-center gap-2.5">
+              <FolderUp className="w-4 h-4 text-[var(--purple)]/80 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-[var(--fg)] truncate" title={fo.name}>{fo.name}</p>
+                <p className="text-[10px] text-[var(--muted)]/60">{fo.count}개 파일{fo.hasModel ? " · 모델" : ""}</p>
+              </div>
+              {fo.hasModel && (
+                <button
+                  onClick={() => publishFolder(fo.name)}
+                  disabled={publishing === fo.name}
+                  className="px-2.5 py-1.5 rounded-lg bg-[var(--purple)]/20 text-[var(--purple)] text-[11px] font-medium flex items-center gap-1 disabled:opacity-50"
+                  title="이 폴더를 모델 갤러리에 등록"
+                >
+                  {publishing === fo.name ? <Loader2 className="w-3 h-3 animate-spin" /> : <Boxes className="w-3 h-3" />} 갤러리 등록
+                </button>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
