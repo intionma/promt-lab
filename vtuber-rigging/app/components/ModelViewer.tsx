@@ -32,6 +32,9 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
   const targetFaceRef  = useRef({ x: 0, y: 0 });
   const currentFaceRef = useRef({ x: 0, y: 0 });
 
+  // 수동 파라미터 오버라이드 (슬라이더로 고정한 값 — 매 프레임 재적용해야 유지됨)
+  const overridesRef   = useRef<Map<string, number>>(new Map());
+
   // 자유 시점 상태
   const viewModeRef       = useRef<ViewMode>("fullbody");
   const freeRef           = useRef({ offsetX: 0, offsetY: 0, zoom: 1 });
@@ -40,10 +43,11 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
   const isDraggingRef     = useRef(false);
   const lastPtrRef        = useRef({ x: 0, y: 0 });
 
-  const [viewMode, setViewMode] = useState<ViewMode>("fullbody");
-  const [params,   setParams]   = useState<Param[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState<string | null>(null);
+  const [viewMode,     setViewMode]     = useState<ViewMode>("fullbody");
+  const [params,       setParams]       = useState<Param[]>([]);
+  const [overrideIds,  setOverrideIds]  = useState<Set<string>>(new Set());
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState<string | null>(null);
 
   // ── 시점 전환 ──────────────────────────────────────────────────────────────
   function switchView(mode: ViewMode) {
@@ -194,9 +198,12 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
           targetFaceRef.current = { x: 0, y: 0 };
         }
 
-        // 자유 시점: 드래그 이동
+        // 자유 시점: 드래그 이동 / 전신·상반신: 탭하면 그쪽을 바라봄
         function onPtrDown(e: PointerEvent) {
-          if (viewModeRef.current !== "free") return;
+          if (viewModeRef.current !== "free") {
+            onFaceMove(e);  // 탭/터치 즉시 반응 (모바일 대응)
+            return;
+          }
           canvas.setPointerCapture(e.pointerId);
           activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
           isDraggingRef.current = true;
@@ -235,6 +242,10 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
             isDraggingRef.current    = false;
             lastPinchDistRef.current = 0;
           }
+          // 터치는 hover 가 없으므로 손을 떼면 중앙으로 복귀
+          if (e.pointerType === "touch" && viewModeRef.current !== "free") {
+            targetFaceRef.current = { x: 0, y: 0 };
+          }
         }
 
         // 마우스 휠 줌
@@ -270,31 +281,44 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
           const mdl  = modelRef.current as any;
           if (!mdl) return;
 
-          if (mode !== "free") {
-            // 얼굴 추적 부드러운 보간 (lerp)
-            const cur = currentFaceRef.current;
-            const tgt = targetFaceRef.current;
-            cur.x += (tgt.x - cur.x) * 0.08;
-            cur.y += (tgt.y - cur.y) * 0.08;
-
-            try {
-              const core = mdl.internalModel.coreModel;
-              core.setParameterValueById("ParamAngleX",     cur.x * 30);  // 얼굴 좌우
-              core.setParameterValueById("ParamAngleY",     cur.y * 20);  // 얼굴 상하
-              core.setParameterValueById("ParamAngleZ",     cur.x * -8);  // 얼굴 기울기
-              core.setParameterValueById("ParamEyeBallX",   cur.x * 0.8); // 시선 좌우
-              core.setParameterValueById("ParamEyeBallY",   cur.y * 0.6); // 시선 상하
-              core.setParameterValueById("ParamBodyAngleX", cur.x * 8);   // 몸 연동
-            } catch { /* 파라미터 없는 모델도 정상 표시 */ }
-
-          } else {
+          if (mode === "free") {
             // 자유 시점: 팬·줌 transform 적용
             const base = baseRef.current;
             const free = freeRef.current;
             mdl.scale.set(base.scale * free.zoom);
             mdl.x = base.x + free.offsetX;
             mdl.y = base.y + free.offsetY;
+          } else {
+            // 얼굴 추적 부드러운 보간 (lerp)
+            const cur = currentFaceRef.current;
+            const tgt = targetFaceRef.current;
+            cur.x += (tgt.x - cur.x) * 0.1;
+            cur.y += (tgt.y - cur.y) * 0.1;
           }
+
+          // ── 파라미터 적용 (모든 시점 공통) ─────────────────────────────
+          // 1) 얼굴 추적값은 "오버라이드되지 않은" 파라미터에만 적용
+          // 2) 슬라이더로 고정한 오버라이드는 매 프레임 재적용 → 값 유지
+          try {
+            const core = mdl.internalModel.coreModel;
+            const ov   = overridesRef.current;
+            if (mode !== "free") {
+              const cur = currentFaceRef.current;
+              const track: [string, number][] = [
+                ["ParamAngleX",     cur.x * 30],   // 얼굴 좌우
+                ["ParamAngleY",     cur.y * 20],   // 얼굴 상하
+                ["ParamAngleZ",     cur.x * -8],   // 얼굴 기울기
+                ["ParamEyeBallX",   cur.x * 0.8],  // 시선 좌우
+                ["ParamEyeBallY",   cur.y * 0.6],  // 시선 상하
+                ["ParamBodyAngleX", cur.x * 8],    // 몸 연동
+              ];
+              for (const [id, v] of track) {
+                if (!ov.has(id)) core.setParameterValueById(id, v);
+              }
+            }
+            // 수동 오버라이드 강제 적용 (Live2D 가 매 프레임 리셋하므로 필수)
+            ov.forEach((v, id) => core.setParameterValueById(id, v));
+          } catch { /* 파라미터 없는 모델도 정상 표시 */ }
         });
 
       } catch (err: unknown) {
@@ -324,10 +348,33 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
 
   function setParam(paramId: string, value: number) {
     if (!modelRef.current) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (modelRef.current as any).internalModel.coreModel.setParameterValueById(paramId, value);
+    // 오버라이드에 저장 → ticker 가 매 프레임 재적용해 값이 유지됨
+    overridesRef.current.set(paramId, value);
     setParams((prev) => prev.map((p) => (p.id === paramId ? { ...p, value } : p)));
+    setOverrideIds((prev) => {
+      if (prev.has(paramId)) return prev;
+      const next = new Set(prev);
+      next.add(paramId);
+      return next;
+    });
     onParamChange?.(paramId, value);
+  }
+
+  // 단일 파라미터 자동복귀(오버라이드 해제)
+  function releaseParam(paramId: string) {
+    overridesRef.current.delete(paramId);
+    setOverrideIds((prev) => {
+      if (!prev.has(paramId)) return prev;
+      const next = new Set(prev);
+      next.delete(paramId);
+      return next;
+    });
+  }
+
+  // 모든 오버라이드 해제 → 얼굴추적 자동 제어로 복귀
+  function resetAllParams() {
+    overridesRef.current.clear();
+    setOverrideIds(new Set());
   }
 
   // ── 렌더 ────────────────────────────────────────────────────────────────────
@@ -376,10 +423,12 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
               <p className="text-sm text-red-400 text-center">{error}</p>
             </div>
           )}
-          {viewMode === "free" && !loading && !error && (
+          {!loading && !error && (
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
               <span className="text-[10px] text-[var(--muted)]/50 bg-black/20 rounded-full px-2 py-0.5">
-                드래그 이동 · 핀치/휠 확대축소
+                {viewMode === "free"
+                  ? "드래그 이동 · 핀치/휠 확대축소"
+                  : "터치·마우스로 얼굴이 따라봐요"}
               </span>
             </div>
           )}
@@ -394,18 +443,36 @@ export default function ModelViewer({ sessionId, onParamChange }: Props) {
         {/* 파라미터 슬라이더 */}
         {params.length > 0 && (
           <div className="w-full md:w-56 h-48 md:h-auto flex flex-col glass rounded-2xl overflow-hidden flex-shrink-0">
-            <div className="px-3 py-2.5 border-b border-white/5">
-              <p className="text-xs font-semibold text-[var(--fg)]">파라미터 조작</p>
+            <div className="px-3 py-2.5 border-b border-white/5 flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-[var(--fg)]">
+                파라미터 조작
+                <span className="text-[10px] text-[var(--muted)] ml-1">{params.length}개</span>
+              </p>
+              {overrideIds.size > 0 && (
+                <button
+                  onClick={resetAllParams}
+                  className="px-2 py-0.5 rounded-md text-[10px] glass glass-hover text-[var(--muted)]"
+                  title="모든 고정값 해제 → 얼굴추적 자동 제어로 복귀"
+                >
+                  초기화 {overrideIds.size}
+                </button>
+              )}
             </div>
             <div className="flex-1 overflow-y-auto chat-scroll p-2.5 space-y-2.5">
               {params.map((p) => {
-                const pct = ((p.value - p.min) / (p.max - p.min)) * 100;
+                const pct      = ((p.value - p.min) / (p.max - p.min)) * 100;
+                const isFixed  = overrideIds.has(p.id);
                 return (
                   <div key={p.id} className="space-y-0.5">
-                    <div className="flex justify-between">
-                      <span className="text-[10px] text-[var(--muted)] truncate max-w-[110px]" title={p.id}>
+                    <div className="flex justify-between items-center">
+                      <button
+                        onClick={() => isFixed && releaseParam(p.id)}
+                        className="text-[10px] text-[var(--muted)] truncate max-w-[120px] flex items-center gap-1 text-left"
+                        title={isFixed ? `${p.id} — 클릭하면 고정 해제` : p.id}
+                      >
+                        {isFixed && <span className="w-1.5 h-1.5 rounded-full bg-pink-400 flex-shrink-0" />}
                         {p.id.replace("Param", "")}
-                      </span>
+                      </button>
                       <span className="text-[10px] text-[var(--purple)] font-mono">
                         {p.value.toFixed(2)}
                       </span>
