@@ -216,18 +216,38 @@ export default function ModelViewer({ sessionId, onParamsLoaded, controlRef }: P
 
         setLoading(false);
 
-        // 파라미터 목록 추출
+        // 파라미터 목록 추출 — Cubism4 raw core model 에서 직접 읽음.
+        // (framework CubismModel 에는 getParameterId/getParameterValue 가 없어
+        //  raw 의 parameters.ids/values/min/max 배열을 써야 전체가 나옴)
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const core = (model as any).internalModel.coreModel;
           const paramList: Param[] = [];
-          for (let i = 0; i < core.getParameterCount(); i++) {
-            paramList.push({
-              id:    core.getParameterId(i),
-              value: core.getParameterValue(i),
-              min:   core.getParameterMinimumValue(i),
-              max:   core.getParameterMaximumValue(i),
-            });
+
+          // 1순위: raw core model 의 parameters 배열 (가장 확실 — 모든 파라미터)
+          const raw = typeof core.getModel === "function" ? core.getModel() : core._model;
+          const pp  = raw?.parameters;
+          if (pp && typeof pp.count === "number" && pp.ids) {
+            for (let i = 0; i < pp.count; i++) {
+              paramList.push({
+                id:    String(pp.ids[i]),
+                value: pp.values?.[i] ?? pp.defaultValues?.[i] ?? 0,
+                min:   pp.minimumValues?.[i] ?? -30,
+                max:   pp.maximumValues?.[i] ??  30,
+              });
+            }
+          } else if (typeof core.getParameterCount === "function") {
+            // 2순위(폴백): framework API + 내부 _parameterIds 로 id 확보
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const ids = (core as any)._parameterIds ?? [];
+            for (let i = 0; i < core.getParameterCount(); i++) {
+              paramList.push({
+                id:    String(ids[i] ?? `param_${i}`),
+                value: core.getParameterValueByIndex?.(i) ?? core.getParameterDefaultValue?.(i) ?? 0,
+                min:   core.getParameterMinimumValue(i),
+                max:   core.getParameterMaximumValue(i),
+              });
+            }
           }
           onParamsLoaded?.(paramList);
         } catch { /* 파라미터 없어도 정상 표시 */ }
