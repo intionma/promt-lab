@@ -2,11 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { ExternalLink, Trash2, Calendar, Layers, Boxes, Link as LinkIcon, Loader2, HardDrive, Lock, X } from "lucide-react";
+import { ExternalLink, Trash2, Calendar, Layers, Boxes, Link as LinkIcon, Loader2, HardDrive, Lock, X, ChevronDown, FileText, Download } from "lucide-react";
 import {
   supabase,
   getStorageUsage,
   formatBytes,
+  listFilesWithMeta,
+  publicUrl,
   STORAGE_LIMIT_BYTES,
   type Session,
 } from "@/lib/supabase";
@@ -23,6 +25,20 @@ export default function MyModels() {
   const [pwTarget, setPwTarget] = useState<Session | null>(null);
   const [pwInput, setPwInput] = useState("");
   const [pwError, setPwError] = useState(false);
+
+  // 버전별 파일 목록 펼치기
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [fileCache, setFileCache] = useState<Record<string, { path: string; size: number }[] | "loading">>({});
+
+  async function toggleFiles(id: string) {
+    if (expandedId === id) { setExpandedId(null); return; }
+    setExpandedId(id);
+    if (!fileCache[id]) {
+      setFileCache((p) => ({ ...p, [id]: "loading" }));
+      const files = await listFilesWithMeta(id);
+      setFileCache((p) => ({ ...p, [id]: files }));
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -156,39 +172,76 @@ export default function MyModels() {
               </div>
 
               <div className="space-y-1.5">
-                {group.versions.map((v) => (
-                  <div key={v.id} className="glass glass-hover rounded-xl p-3 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--purple-deep)]/30 to-[var(--pink)]/20 border border-[var(--purple)]/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-bold text-[var(--purple)]">v{v.versionNo}</span>
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-[var(--fg)] truncate">{v.title}</p>
-                      <div className="flex items-center gap-2 text-[10px] text-[var(--muted)]">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" /> {formatDate(v.created_at)}
-                        </span>
-                        <span className="opacity-40">·</span>
-                        <span>{formatBytes(v.size)}</span>
+                {group.versions.map((v) => {
+                  const files = fileCache[v.id];
+                  const open = expandedId === v.id;
+                  return (
+                  <div key={v.id} className="glass rounded-xl overflow-hidden">
+                    <div className="glass-hover p-3 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--purple-deep)]/30 to-[var(--pink)]/20 border border-[var(--purple)]/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-bold text-[var(--purple)]">v{v.versionNo}</span>
                       </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-[var(--fg)] truncate">{v.title}</p>
+                        <div className="flex items-center gap-2 text-[10px] text-[var(--muted)]">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" /> {formatDate(v.created_at)}
+                          </span>
+                          <span className="opacity-40">·</span>
+                          <span>{formatBytes(v.size)}</span>
+                        </div>
+                      </div>
+
+                      <button onClick={() => toggleFiles(v.id)} className={`glass glass-hover p-2 rounded-lg ${open ? "text-[var(--purple)]" : "text-[var(--muted)] hover:text-[var(--purple)]"}`} title="파일 목록">
+                        <FileText className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => copyLink(v.id)} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="링크 복사">
+                        <LinkIcon className="w-3.5 h-3.5" />
+                      </button>
+                      <Link href={`/review/${v.id}`} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="열기">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </Link>
+                      <button
+                        onClick={() => { setPwTarget(v); setPwInput(""); setPwError(false); }}
+                        disabled={deleting === v.id}
+                        className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-red-400"
+                        title="삭제"
+                      >
+                        {deleting === v.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      </button>
                     </div>
 
-                    <button onClick={() => copyLink(v.id)} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="링크 복사">
-                      <LinkIcon className="w-3.5 h-3.5" />
-                    </button>
-                    <Link href={`/review/${v.id}`} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="열기">
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </Link>
-                    <button
-                      onClick={() => { setPwTarget(v); setPwInput(""); setPwError(false); }}
-                      disabled={deleting === v.id}
-                      className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-red-400"
-                      title="삭제"
-                    >
-                      {deleting === v.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                    </button>
+                    {open && (
+                      <div className="border-t border-white/5 p-2.5 space-y-1 bg-black/10">
+                        {files === "loading" || !files ? (
+                          <div className="flex items-center gap-2 text-[10px] text-[var(--muted)] px-1 py-1">
+                            <Loader2 className="w-3 h-3 animate-spin" /> 파일 불러오는 중...
+                          </div>
+                        ) : files.length === 0 ? (
+                          <p className="text-[10px] text-red-400/80 px-1 py-1">업로드된 파일이 없어요 (업로드 실패 가능성)</p>
+                        ) : (
+                          <>
+                            <p className="text-[9px] text-[var(--muted)] px-1">{files.length}개 파일</p>
+                            {files.map((f) => (
+                              <div key={f.path} className="flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-white/5">
+                                <FileText className="w-3 h-3 text-[var(--muted)]/60 flex-shrink-0" />
+                                <span className="text-[10px] text-[var(--fg)]/80 truncate flex-1" title={f.path}>
+                                  {f.path.replace(`${v.id}/`, "")}
+                                </span>
+                                <span className="text-[9px] text-[var(--muted)]/60 font-mono flex-shrink-0">{formatBytes(f.size)}</span>
+                                <a href={publicUrl(f.path)} target="_blank" rel="noreferrer" download className="text-[var(--muted)] hover:text-[var(--purple)] flex-shrink-0" title="다운로드">
+                                  <Download className="w-3 h-3" />
+                                </a>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}

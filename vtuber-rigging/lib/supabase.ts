@@ -77,6 +77,35 @@ export async function getStorageUsage(prefix: string): Promise<number> {
   return total;
 }
 
+// 파일 경로 + 크기를 재귀적으로 수집
+export async function listFilesWithMeta(prefix: string): Promise<{ path: string; size: number }[]> {
+  const { data } = await supabase.storage.from("models").list(prefix, { limit: 1000 });
+  if (!data) return [];
+  let out: { path: string; size: number }[] = [];
+  for (const item of data) {
+    const full = `${prefix}/${item.name}`;
+    if (item.id === null) {
+      out = out.concat(await listFilesWithMeta(full));
+    } else {
+      out.push({ path: full, size: (item.metadata?.size as number) || 0 });
+    }
+  }
+  return out;
+}
+
+// 스토리지 경로의 공개 URL
+export function publicUrl(path: string): string {
+  return supabase.storage.from("models").getPublicUrl(path).data.publicUrl;
+}
+
+// ===== 드라이브(자유 백업) =====
+export const DRIVE_PREFIX = "drive";
+
+export async function listDriveFiles(): Promise<{ path: string; size: number; name: string }[]> {
+  const files = await listFilesWithMeta(DRIVE_PREFIX);
+  return files.map((f) => ({ ...f, name: f.path.replace(new RegExp(`^${DRIVE_PREFIX}/`), "") }));
+}
+
 // 바이트를 읽기 좋은 단위로
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Upload, Sliders, GitBranch, Boxes } from "lucide-react";
+import { Upload, Sliders, GitBranch, Boxes, HardDrive } from "lucide-react";
 import dynamic from "next/dynamic";
 import UploadSession from "./components/UploadSession";
 import MyModels from "./components/MyModels";
 import ParamCalculator from "./components/ParamCalculator";
+import DriveTab from "./components/DriveTab";
 import { APP_VERSION, APP_UPDATED_AT } from "@/lib/version";
 
 const DeformerTree = dynamic(() => import("./components/DeformerTree"), {
@@ -17,11 +18,12 @@ const DeformerTree = dynamic(() => import("./components/DeformerTree"), {
   ),
 });
 
-type Tab = "upload" | "models" | "params" | "deformer";
+type Tab = "upload" | "models" | "params" | "deformer" | "drive";
 
 const TABS: { id: Tab; label: string; icon: typeof Upload }[] = [
   { id: "upload", label: "리뷰 공유", icon: Upload },
   { id: "models", label: "모델 갤러리", icon: Boxes },
+  { id: "drive", label: "드라이브", icon: HardDrive },
   { id: "params", label: "파라미터", icon: Sliders },
   { id: "deformer", label: "디포머", icon: GitBranch },
 ];
@@ -86,6 +88,7 @@ export default function Home() {
             <UploadSession />
           </div>
           {activeTab === "models" && <MyModels />}
+          {activeTab === "drive" && <DriveTab />}
           {activeTab === "params" && <ParamCalculator />}
           {activeTab === "deformer" && <DeformerTree />}
         </main>
