@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.9.95 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.9.96 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.95 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.96 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1941,7 +1941,14 @@
         const CHANGELOG = [
             // ── 2026-07-01 ──────────────────────────────────────────────────
             {
-                version: 'v9.9.95', date: '2026-07-01', time: '최신',
+                version: 'v9.9.96', date: '2026-07-01', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[자동 분류] 계층 추정 정확도 향상 — DB에 없는 태그도 내장 사전(6천+ 예정)과 유사도 비교해 계층을 추정. 프롬프트 가져오기·자동 분류에서 "미분류"가 크게 줄어듦',
+                ]
+            },
+            {
+                version: 'v9.9.95', date: '2026-07-01', time: '오후',
                 tag: 'fix',
                 items: [
                     '[번역 세션] 에디터에 올라간 캡슐 태그가 번역 목록에 안 잡히던 문제 수정 — 이제 화면에 뜨는 모든 태그(DB에 없어도)가 번역 대상, 적용 시 캡슐이 바로 한글로 표시',
@@ -2566,6 +2573,22 @@
             } catch (e) {}
             _dictByLayerCache = map;
             return map;
+        }
+
+        // 사전 평탄화 캐시 (퍼지 계층 추정용) — [{t(소문자), l}]
+        let _dictFlatCache = null;
+        function _dictFlat() {
+            if (_dictFlatCache) return _dictFlatCache;
+            const arr = [];
+            try {
+                Object.entries(TAG_DICT).forEach(([t, info]) => {
+                    const l = info && info.l;
+                    if (!l) return;
+                    arr.push({ t: t.trim().toLowerCase(), l });
+                });
+            } catch (e) {}
+            _dictFlatCache = arr;
+            return arr;
         }
 
         function _nbGatherCats() {
@@ -8732,6 +8755,34 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         }
 
                         if (tagScore > 0.12) updateBest(lid, fk, tagScore);
+                    }
+                }
+            }
+
+            // ── 1.5단계: 내장 사전(TAG_DICT) 유사도 ─────────────────────────
+            //   DB에 없어도 코어 사전과 비교해 계층 추정 (정확도 극대화)
+            const dexact = (typeof _tagDictLookup === 'function') ? _tagDictLookup(p) : null;
+            if (dexact && dexact.l) {
+                updateBest(dexact.l, null, 1.0);
+            } else {
+                for (const d of _dictFlat()) {
+                    const tp = d.t;
+                    if (!tp) continue;
+                    if (tp === p) { updateBest(d.l, null, 1.0); continue; }
+                    if (tp.includes(p) || p.includes(tp)) {
+                        const ratio = Math.min(tp.length, p.length) / Math.max(tp.length, p.length);
+                        updateBest(d.l, null, 0.55 + 0.35 * ratio);
+                        continue;
+                    }
+                    const dc = _dice(p, tp);
+                    if (dc > 0.45) {
+                        let s = dc * 0.85;
+                        const lcs = _lcsSim(p, tp);
+                        if (lcs > 0.5) s = Math.max(s, lcs * 0.7);
+                        updateBest(d.l, null, s);
+                    } else {
+                        const j = _tokenJaccard(p, tp);
+                        if (j > 0.4) updateBest(d.l, null, j * 0.9);
                     }
                 }
             }
