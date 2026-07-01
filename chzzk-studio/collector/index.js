@@ -10,6 +10,7 @@
 import 'dotenv/config'
 import { ChzzkClient } from 'chzzk'
 import { createClient } from '@supabase/supabase-js'
+import { buildDashboard } from './dashboard.js'
 
 const { SUPABASE_URL, SUPABASE_SERVICE_KEY, CHANNEL_ID } = process.env
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !CHANNEL_ID) {
@@ -289,6 +290,8 @@ async function main() {
   setInterval(pollClips, 60 * 60 * 1000)
   heartbeat()
   setInterval(heartbeat, 5 * 60 * 1000)
+  buildDashboard(supabase, SUPABASE_URL).catch((e) => console.warn('dash:', e.message))
+  setInterval(() => buildDashboard(supabase, SUPABASE_URL).catch((e) => console.warn('dash:', e.message)), 20 * 60 * 1000)
 }
 
 main().catch((e) => {
