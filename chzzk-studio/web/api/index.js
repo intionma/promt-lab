@@ -10,6 +10,11 @@ import { createClient } from '@supabase/supabase-js'
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 const num = (n) => (n == null ? '-' : Number(n).toLocaleString())
+// 채팅 메시지 안의 이모티콘 코드 {:code:} → <img>. (esc는 { } : 를 안 건드리므로 escape 후 치환해도 안전)
+const renderMsg = (message, emojis) => {
+  const map = emojis || {}
+  return esc(message).replace(/\{:([^:}]+):\}/g, (whole, code) => (map[code] ? `<img src="${esc(map[code])}" class="emoji" alt=":${esc(code)}:" loading="lazy">` : whole))
+}
 const md = (iso) => { const d = new Date(iso); const k = new Date(d.getTime() + 9 * 36e5); return `${String(k.getUTCMonth() + 1).padStart(2, '0')}-${String(k.getUTCDate()).padStart(2, '0')}` }
 const khour = (iso) => (new Date(iso).getUTCHours() + 9) % 24
 const fmtDur = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); return `${h}:${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` }
@@ -151,9 +156,14 @@ async function loadData(supabase) {
         chatSeries: sample(rows.map((r) => r.chat_count), 40),
       }
       // 이번 방송 채팅 메시지 → 피드 / 리더보드 / 시청자별 타임라인
-      const { data: lm } = await supabase.from('chat_messages').select('nickname,message,msg_type,msg_time,is_subscriber,is_follower').eq('live_id', liveId).order('id', { ascending: false }).limit(4000)
+      const { data: lm } = await supabase.from('chat_messages').select('nickname,message,emojis,msg_type,msg_time,is_subscriber,is_follower,user_role').eq('live_id', liveId).order('id', { ascending: false }).limit(4000)
       const msgs = (lm || []).filter((m) => m.nickname)
-      L.feed = msgs.filter((m) => m.msg_type === 'chat' && m.message).slice(0, 14).reverse().map((m) => ({ nm: m.nickname, t: m.message, cls: m.is_subscriber ? 'sub' : m.is_follower ? 'fol' : '' }))
+      const isStreamer = (r) => r === 'streamer' || r === 'streaming_channel_owner'
+      L.feed = msgs.filter((m) => m.msg_type === 'chat' && m.message).slice(0, 14).reverse().map((m) => ({
+        nm: m.nickname, t: m.message, emojis: m.emojis,
+        badge: isStreamer(m.user_role) ? '👑' : /manager/.test(m.user_role || '') ? '🛡' : '',
+        cls: isStreamer(m.user_role) ? 'streamer' : m.is_subscriber ? 'sub' : m.is_follower ? 'fol' : '',
+      }))
       const cnt = new Map()
       for (const m of msgs) cnt.set(m.nickname, (cnt.get(m.nickname) || 0) + 1)
       const top = [...cnt.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
@@ -277,7 +287,7 @@ function renderLive(d) {
 
   const tl = timeline.map((s) => `<polyline fill="none" stroke="${s.color}" stroke-width="2.4" points="${s.pts}"/>`).join('')
   const legend = timeline.map((s) => `<span><i class="dotc" style="background:${s.color};width:14px;height:3px;border-radius:2px"></i> ${esc(s.nm)} (${s.total})</span>`).join('')
-  const feed = feedArr.length ? feedArr.map((f) => `<div><span class="n ${f.cls}">${esc(f.nm)}</span> ${esc(f.t)}</div>`).join('') : '<div class="muted">채팅 수집 대기 중…</div>'
+  const feed = feedArr.length ? feedArr.map((f) => `<div><span class="n ${f.cls}">${f.badge ? f.badge + ' ' : ''}${esc(f.nm)}</span> ${renderMsg(f.t, f.emojis)}</div>`).join('') : '<div class="muted">채팅 수집 대기 중…</div>'
   const rankLb = rankArr.length ? rankArr.map((r, i) => `<div class="li"><span class="rk">${['🥇', '🥈', '🥉'][i] || (i + 1)}</span><div class="nm">${esc(r.nm)}<div class="bar" style="width:${r.w}%"></div></div><span class="ct" style="font-weight:700">${r.c}</span></div>`).join('') : '<div class="muted">-</div>'
   const rankDelta = rankStart != null && rank != null ? `▲ 시작 ${rankStart}위` : '실시간'
   const tlNote = real ? '↑ 방송 시작부터 지금까지 상위 4명의 분당 채팅량' : '↑ 예시: 시청자별 채팅 활동 추이 (실제 방송 데이터로 대체됨)'
@@ -342,7 +352,8 @@ td{padding:8px;border-bottom:1px solid #f4f4f4}td.tt{max-width:200px;overflow:hi
 .axis{display:flex;justify-content:space-between;color:var(--dim);font-size:10px;margin-top:6px}
 .pie{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.donut{width:104px;height:104px;border-radius:50%;background:conic-gradient(#7c3aed 0 92%,#0070f3 92% 97%,#f5a623 97% 100%);flex-shrink:0}.donut i{display:block;width:60px;height:60px;border-radius:50%;background:var(--panel);margin:22px}
 .leg{font-size:12.5px}.leg div{display:flex;align-items:center;gap:8px;margin:5px 0}.leg s{width:10px;height:10px;border-radius:2px;display:inline-block;flex-shrink:0}
-.feed{height:210px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;font-size:12.5px}.feed .n{font-weight:600}.feed .sub{color:#c026d3}.feed .fol{color:#0284c7}
+.feed{height:210px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;font-size:12.5px}.feed .n{font-weight:600}.feed .sub{color:#c026d3}.feed .fol{color:#0284c7}.feed .streamer{color:#f5a623}
+.feed img.emoji{width:22px;height:22px;vertical-align:-5px;border-radius:3px;margin:0 1px;display:inline-block}
 .livedot{display:inline-flex;align-items:center;gap:6px;color:var(--red);font-weight:650;font-size:12px}.livedot i{width:8px;height:8px;border-radius:50%;background:var(--red);animation:bk 1.2s infinite}@keyframes bk{50%{opacity:.3}}
 body.live .v-off{display:none}body:not(.live) .v-live{display:none}
 .foot{color:var(--dim2);font-size:11.5px;margin-top:18px;border-top:1px solid var(--border);padding-top:12px}
