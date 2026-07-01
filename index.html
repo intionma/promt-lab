@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.2 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.1 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.2 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1942,7 +1942,14 @@
         const CHANGELOG = [
             // ── 2026-07-01 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.1', date: '2026-07-01', time: '최신',
+                version: 'v9.10.2', date: '2026-07-01', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[태그 사전] 내장 사전 계속 확장 — 1,789 → 2,036개. 전통/코스튬 의상, 무기·소품 든 동작, 탈것·음식·가구 배경 소품, 얼굴/신체 디테일 등 추가 (목표 ~3,000 향해 진행)',
+                ]
+            },
+            {
+                version: 'v9.10.1', date: '2026-07-01', time: '오후',
                 tag: 'feat',
                 items: [
                     '[태그 사전] 내장 사전 대량 확장 — 1,394 → 1,789개. 의상(제복·수영복·레그웨어·신발·장신구)·헤어(색/스타일)·동물 특징·포즈·장소·조명 등을 정확한 계층 + 자연스러운 한글로 대폭 보강',
@@ -9146,6 +9153,87 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             "lens dirt":{"k":"렌즈 얼룩","l":7},"anamorphic flare":{"k":"아나모픽 플레어","l":7},"prism light":{"k":"프리즘 빛","l":7},"stained glass light":{"k":"스테인드글라스 빛","l":7},
             "dust motes":{"k":"떠다니는 먼지","l":7},"snow drift":{"k":"흩날리는 눈","l":7},"floating leaves":{"k":"떠다니는 잎","l":7},"embers rising":{"k":"피어오르는 불티","l":7},
             "cinematic bars":{"k":"시네마 레터박스","l":7},"soft vignette":{"k":"부드러운 비네팅","l":7},"cross processing":{"k":"크로스 프로세싱","l":7},"faded colors":{"k":"바랜 색감","l":7},
+        });
+        // ═══ 대량 배치 5 (물량 확장 · 코어 3000 목표) ═══
+        _dictMerge({
+            "furisode":{"k":"후리소데","l":4},"jinbei":{"k":"진베이","l":4},"happi":{"k":"핫피","l":4},"samue":{"k":"사무에","l":4},
+            "chinese dress":{"k":"차이나 드레스","l":4},"ao dai":{"k":"아오자이","l":4},"sari":{"k":"사리","l":4},"dirndl":{"k":"디른들","l":4},
+            "folk costume":{"k":"민속 의상","l":4},"pirate costume":{"k":"해적 의상","l":4},"knight costume":{"k":"기사 코스튬","l":4},"samurai armor":{"k":"사무라이 갑옷","l":4},
+            "ninja outfit":{"k":"닌자 의상","l":4},"cowgirl outfit":{"k":"카우걸 의상","l":4},"gothic dress":{"k":"고딕 드레스","l":4},"steampunk outfit":{"k":"스팀펑크 의상","l":4},
+            "cyberpunk outfit":{"k":"사이버펑크 의상","l":4},"racing suit":{"k":"레이싱 슈트","l":4},"spacesuit":{"k":"우주복","l":4},"pilot suit":{"k":"파일럿 슈트","l":4},
+            "diving suit":{"k":"다이빙 슈트","l":4},"hazmat suit":{"k":"방호복","l":4},"zip-up hoodie":{"k":"집업 후드","l":4},"turtleneck dress":{"k":"터틀넥 원피스","l":4},
+            "shrug":{"k":"슈러그","l":4},"fur coat":{"k":"모피 코트","l":4},"long coat":{"k":"롱코트","l":4},"military coat":{"k":"밀리터리 코트","l":4},
+            "cropped jacket":{"k":"크롭 재킷","l":4},"track jacket":{"k":"트랙 재킷","l":4},"quilted jacket":{"k":"퀼팅 재킷","l":4},"messenger bag":{"k":"메신저백","l":4},
+            "waist pouch":{"k":"허리 파우치","l":4},"arm warmers":{"k":"암 워머","l":4},"leg warmers":{"k":"레그 워머","l":4},"knee pads":{"k":"무릎 보호대","l":4},
+            "ear piercing":{"k":"귀 피어싱","l":4},"lip piercing":{"k":"입술 피어싱","l":4},"body chain":{"k":"바디 체인","l":4},"shoulder cape":{"k":"숄더 케이프","l":4},
+            "monocle":{"k":"단안경","l":4},"round glasses":{"k":"동그란 안경","l":4},"cat-eye glasses":{"k":"캣아이 안경","l":4},"brooch":{"k":"브로치","l":4},
+            "epaulettes":{"k":"견장","l":4},"tabard":{"k":"타바드","l":4},"stole":{"k":"스톨","l":4},"waist cape":{"k":"허리 망토","l":4},
+            "archery":{"k":"양궁","l":5},"swimming":{"k":"수영하는","l":5},"surfing":{"k":"서핑","l":5},"skateboarding":{"k":"스케이트보드","l":5},
+            "cycling":{"k":"자전거 타기","l":5},"skating":{"k":"스케이트","l":5},"skiing":{"k":"스키","l":5},"doing yoga":{"k":"요가","l":5},
+            "lifting weights":{"k":"웨이트 운동","l":5},"jumping rope":{"k":"줄넘기","l":5},"kicking":{"k":"발차기","l":5},"punching":{"k":"주먹 지르기","l":5},
+            "drawing sword":{"k":"검 뽑기","l":5},"aiming bow":{"k":"활 겨누기","l":5},"patting head":{"k":"머리 쓰다듬기","l":5},"back to back":{"k":"등 맞대기","l":5},
+            "piggyback":{"k":"업기","l":5},"princess carry":{"k":"공주님 안기","l":5},"leaning on shoulder":{"k":"어깨에 기대기","l":5},"whispering":{"k":"귓속말","l":5},
+            "toasting":{"k":"건배","l":5},"high five":{"k":"하이파이브","l":5},"handshake":{"k":"악수","l":5},"bowing":{"k":"인사(절)","l":5},
+            "praying":{"k":"기도","l":5},"meditating":{"k":"명상","l":5},"stargazing":{"k":"별 보기","l":5},"petting animal":{"k":"동물 쓰다듬기","l":5},
+            "blowing bubbles":{"k":"비눗방울 불기","l":5},"throwing":{"k":"던지기","l":5},"catching":{"k":"받기","l":5},"cooking food":{"k":"음식 만들기","l":5},
+            "ramen shop":{"k":"라멘집","l":6},"izakaya":{"k":"이자카야","l":6},"bakery":{"k":"베이커리","l":6},"flower shop":{"k":"꽃집","l":6},
+            "bookstore":{"k":"서점","l":6},"arcade":{"k":"오락실","l":6},"karaoke room":{"k":"노래방","l":6},"movie theater":{"k":"영화관","l":6},
+            "art gallery":{"k":"미술관","l":6},"museum":{"k":"박물관","l":6},"hospital room":{"k":"병실","l":6},"church interior":{"k":"교회 내부","l":6},
+            "train platform":{"k":"승강장","l":6},"riverbank":{"k":"강가","l":6},"lakeside":{"k":"호숫가","l":6},"pier":{"k":"부두","l":6},
+            "hot spring town":{"k":"온천 마을","l":6},"shrine stairs":{"k":"신사 계단","l":6},"tea house":{"k":"찻집","l":6},"snowy town":{"k":"눈 내린 마을","l":6},
+            "winter forest":{"k":"겨울 숲","l":6},"spring meadow":{"k":"봄 초원","l":6},"summer festival":{"k":"여름 축제","l":6},"abandoned building":{"k":"버려진 건물","l":6},
+            "industrial area":{"k":"공업 지대","l":6},"skyscraper":{"k":"고층 빌딩","l":6},"tatami room":{"k":"다다미 방","l":6},"balcony view":{"k":"발코니 전망","l":6},
+            "gentle smile":{"k":"부드러운 미소","l":3},"warm smile":{"k":"따뜻한 미소","l":3},"cheerful":{"k":"밝은 표정","l":3},"playful":{"k":"장난스러운 표정","l":3},
+            "confused":{"k":"어리둥절","l":3},"thoughtful":{"k":"생각에 잠긴","l":3},"cold expression":{"k":"차가운 표정","l":3},"shy smile":{"k":"수줍은 미소","l":3},
+            "teasing":{"k":"놀리는 표정","l":3},"innocent":{"k":"순수한 표정","l":3},"dreamy expression":{"k":"몽롱한 표정","l":3},"light makeup":{"k":"옅은 화장","l":3},
+            "heavy makeup":{"k":"진한 화장","l":3},"glossy lips":{"k":"촉촉한 입술","l":3},"thin eyebrows":{"k":"얇은 눈썹","l":3},"double eyelids":{"k":"쌍꺼풀","l":3},
+            "beautiful detailed eyes":{"k":"정교하고 아름다운 눈","l":1},"perfect anatomy":{"k":"정확한 인체","l":1},"soft colors":{"k":"부드러운 색감","l":1},"bold colors":{"k":"강렬한 색감","l":1},
+            "limited palette":{"k":"제한된 색조","l":1},"duotone":{"k":"듀오톤","l":1},"looking afar":{"k":"먼 곳 응시","l":2},"glancing":{"k":"곁눈질","l":2},
+            "through window":{"k":"창 너머 구도","l":2},"reflected in mirror":{"k":"거울에 비친","l":2},"warm glow":{"k":"따뜻한 발광","l":7},"cold glow":{"k":"차가운 발광","l":7},
+            "sun rays":{"k":"태양 광선","l":7},"moonbeam":{"k":"달빛 줄기","l":7},"sparkling background":{"k":"반짝이는 배경","l":7},"glowing outline":{"k":"빛나는 윤곽","l":7},
+        });
+        // ═══ 대량 배치 6 (물량 확장 · 코어 3000 목표) ═══
+        _dictMerge({
+            // ─ L5 무기/소품 든 동작 ─
+            "holding katana":{"k":"카타나 들기","l":5},"holding gun":{"k":"총 들기","l":5},"holding rifle":{"k":"소총 들기","l":5},"holding bow (weapon)":{"k":"활 들기","l":5},
+            "holding spear":{"k":"창 들기","l":5},"holding shield":{"k":"방패 들기","l":5},"holding axe":{"k":"도끼 들기","l":5},"holding knife":{"k":"칼 들기","l":5},
+            "dual wielding":{"k":"쌍수 무기","l":5},"holding scythe":{"k":"낫 들기","l":5},"holding hammer":{"k":"망치 들기","l":5},"holding wand":{"k":"완드 들기","l":5},
+            "holding drink":{"k":"음료 들기","l":5},"holding ice cream":{"k":"아이스크림 들기","l":5},"holding fruit":{"k":"과일 들기","l":5},"holding candy":{"k":"사탕 들기","l":5},
+            "holding phone (up)":{"k":"휴대폰 들어올림","l":5},"holding tablet":{"k":"태블릿 들기","l":5},"holding controller":{"k":"게임패드 들기","l":5},"holding pen (writing)":{"k":"펜 쥐고 쓰기","l":5},
+            "holding tray":{"k":"쟁반 들기","l":5},"holding basket":{"k":"바구니 들기","l":5},"holding bag":{"k":"가방 들기","l":5},"holding sign":{"k":"팻말 들기","l":5},
+            "holding hand fan":{"k":"쥘부채 들기","l":5},"holding staff (magic)":{"k":"마법 지팡이 들기","l":5},"holding bouquet":{"k":"꽃다발 들기","l":5},"holding teacup":{"k":"찻잔 들기","l":5},
+            // ─ L6 탈것/교통 ─
+            "car":{"k":"자동차","l":6},"sports car":{"k":"스포츠카","l":6},"bicycle":{"k":"자전거","l":6},"motorcycle":{"k":"오토바이","l":6},
+            "scooter":{"k":"스쿠터","l":6},"train":{"k":"기차","l":6},"bus":{"k":"버스","l":6},"boat":{"k":"보트","l":6},
+            "sailboat":{"k":"돛단배","l":6},"ship":{"k":"배","l":6},"airplane":{"k":"비행기","l":6},"hot-air balloon":{"k":"열기구","l":6},
+            "spaceship":{"k":"우주선","l":6},"mecha":{"k":"메카","l":6},"horse":{"k":"말","l":6},"carriage":{"k":"마차","l":6},
+            // ─ L6 음식/식탁 배경 ─
+            "picnic":{"k":"소풍","l":6},"dining table":{"k":"식탁","l":6},"cake":{"k":"케이크","l":6},"birthday cake":{"k":"생일 케이크","l":6},
+            "coffee cup":{"k":"커피잔","l":6},"tea set":{"k":"찻잔 세트","l":6},"fruit basket":{"k":"과일 바구니","l":6},"bento":{"k":"도시락","l":6},
+            "ramen bowl":{"k":"라멘 그릇","l":6},"sushi":{"k":"초밥","l":6},"ice cream (scene)":{"k":"아이스크림","l":6},"pancakes":{"k":"팬케이크","l":6},
+            // ─ L6 실내 소품/가구 ─
+            "sofa":{"k":"소파","l":6},"bed":{"k":"침대","l":6},"desk":{"k":"책상","l":6},"chair":{"k":"의자","l":6},
+            "mirror":{"k":"거울","l":6},"lamp":{"k":"램프","l":6},"clock":{"k":"시계","l":6},"television":{"k":"텔레비전","l":6},
+            "computer":{"k":"컴퓨터","l":6},"piano":{"k":"피아노","l":6},"guitar (object)":{"k":"기타(소품)","l":6},"fireplace":{"k":"벽난로","l":6},
+            "aquarium tank":{"k":"어항","l":6},"plant pot":{"k":"화분","l":6},"stuffed toy":{"k":"봉제 인형","l":6},"stack of books":{"k":"쌓인 책","l":6},
+            // ─ L3 얼굴/몸 디테일 추가 ─
+            "sweat":{"k":"땀","l":3},"sweatdrop":{"k":"땀방울","l":3},"tears streaming":{"k":"흐르는 눈물","l":3},"runny makeup":{"k":"번진 화장","l":3},
+            "tongue":{"k":"혀","l":3},"fang out":{"k":"삐져나온 송곳니","l":3},"drooling":{"k":"침 흘림","l":3},"nosebleed":{"k":"코피","l":3},
+            "flushed cheeks":{"k":"발그레한 볼","l":3},"dimples":{"k":"보조개","l":3},"cleft chin":{"k":"갈라진 턱","l":3},"sharp jawline":{"k":"날렵한 턱선","l":3},
+            "hair covering face":{"k":"얼굴 덮은 머리","l":3},"hair tucked behind ear":{"k":"귀 뒤로 넘긴 머리","l":3},"loose strand":{"k":"흘러내린 잔머리","l":3},"neat hair":{"k":"단정한 머리","l":3},
+            "elf-like features":{"k":"엘프 같은 이목구비","l":3},"exotic features":{"k":"이국적 이목구비","l":3},"androgynous":{"k":"중성적 외모","l":3},"mature face":{"k":"성숙한 얼굴","l":3},
+            // ─ L4 계절/스포츠/기타 의상 ─
+            "winter clothes":{"k":"겨울옷","l":4},"summer clothes":{"k":"여름옷","l":4},"casual clothes":{"k":"캐주얼 복장","l":4},"formal wear":{"k":"정장 차림","l":4},
+            "sportswear":{"k":"스포츠웨어","l":4},"yoga pants":{"k":"요가 팬츠","l":4},"tennis outfit":{"k":"테니스 복장","l":4},"soccer uniform":{"k":"축구 유니폼","l":4},
+            "raincoat (yellow)":{"k":"노란 우비","l":4},"poncho (rain)":{"k":"비 판초","l":4},"beach cover-up":{"k":"비치 커버업","l":4},"pajamas":{"k":"파자마","l":4},
+            "loungewear":{"k":"라운지웨어","l":4},"bathrobe":{"k":"목욕 가운","l":4},"towel wrap":{"k":"수건 두르기","l":4},"tracksuit jacket":{"k":"트레이닝 자켓","l":4},
+            // ─ L1/L2/L7 보강 ─
+            "highly detailed skin":{"k":"정교한 피부 묘사","l":1},"realistic skin texture":{"k":"사실적 피부 질감","l":1},"detailed clothing":{"k":"정교한 의상","l":1},"detailed hair":{"k":"정교한 머리카락","l":1},
+            "clean lineart":{"k":"깔끔한 라인아트","l":1},"thick lineart":{"k":"두꺼운 라인아트","l":1},"soft rendering":{"k":"부드러운 렌더링","l":1},"glossy rendering":{"k":"광택 렌더링","l":1},
+            "close-up on face":{"k":"얼굴 클로즈업","l":2},"close-up on eyes":{"k":"눈 클로즈업","l":2},"close-up on hands":{"k":"손 클로즈업","l":2},"waist-up":{"k":"허리 위 구도","l":2},
+            "chest-up":{"k":"가슴 위 구도","l":2},"knees-up":{"k":"무릎 위 구도","l":2},"looking through camera":{"k":"카메라 응시","l":2},"candid shot":{"k":"자연스러운 스냅","l":2},
+            "warm ambient light":{"k":"따뜻한 앰비언트","l":7},"cool ambient light":{"k":"차가운 앰비언트","l":7},"dappled light":{"k":"얼룩덜룩한 빛","l":7},"hazy light":{"k":"뿌연 빛","l":7},
+            "glowing dust":{"k":"빛나는 먼지","l":7},"floating embers":{"k":"떠다니는 불티","l":7},"snow glow":{"k":"눈빛 반사","l":7},"neon reflection":{"k":"네온 반사","l":7},
         });
         // 기존 사전의 어색한 번역만 선별 교정 (force overwrite)
         (function () {
