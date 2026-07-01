@@ -28,6 +28,8 @@ let chatters = new Set()
 let messageBuffer = []
 let msgFailCount = 0 // 연속 저장 실패 횟수 (poison 행 감지용)
 let liveNow = false // 현재 방송 중인지 (수집 주기 결정용)
+let wasLive = false // 직전 flush 시점의 방송 여부 (종료 전이 감지용)
+let sess = null // 현재 방송 세션 {liveId, startedAt, title, category}
 
 // 수집 주기: 방송 중이면 빠르게(실시간 느낌), 꺼지면 느리게(API/DB 절약)
 const FLUSH_LIVE_MS = 20 * 1000
@@ -187,11 +189,73 @@ async function flushMessages() {
   }
 }
 
+// ── Wave-1: 방송 종료 시 그 방송을 집계해 broadcast_analytics 1행 upsert ──
+//   chat_snapshots(해당 live_id)에서 avg/max 동접·채팅수·최고순위·구간을 계산.
+//   공식 통계(plays/retention/cheese 등)는 나중에 Wave-2로 덮어씀. source='collected'.
+async function finalizeBroadcast(s) {
+  const { data: snaps } = await supabase
+    .from('chat_snapshots')
+    .select('captured_at,concurrent_users,chat_count,category_rank')
+    .eq('live_id', s.liveId)
+    .order('captured_at', { ascending: true })
+    .limit(5000)
+  const rows = snaps || []
+  if (!rows.length) return
+
+  const ccv = rows.map((r) => r.concurrent_users).filter((v) => v != null)
+  const avg_ccv = ccv.length ? Math.round(ccv.reduce((a, b) => a + b, 0) / ccv.length) : null
+  const max_ccv = ccv.length ? Math.max(...ccv) : null
+  const chat_count = rows.reduce((a, r) => a + (r.chat_count || 0), 0)
+  const ranks = rows.map((r) => r.category_rank).filter((v) => v != null)
+  const er_best_rank = ranks.length ? Math.min(...ranks) : null
+  const startMs = new Date(rows[0].captured_at).getTime()
+  const endMs = new Date(rows[rows.length - 1].captured_at).getTime()
+
+  const row = {
+    broadcast_id: s.liveId != null ? String(s.liveId) : `sess-${startMs}`,
+    title: s.title,
+    category: s.category,
+    started_at: s.startedAt || rows[0].captured_at,
+    ended_at: new Date(endMs).toISOString(),
+    duration_sec: Math.max(0, Math.round((endMs - startMs) / 1000)),
+    avg_ccv,
+    max_ccv,
+    chat_count,
+    er_best_rank,
+    source: 'collected',
+    updated_at: new Date().toISOString(),
+  }
+  const { error } = await supabase.from('broadcast_analytics').upsert(row, { onConflict: 'broadcast_id' })
+  if (error) console.error('❌ 방송 집계 upsert 실패:', error.message)
+  else console.log(`📊 [${new Date().toISOString()}] 방송 종료 집계: ${row.title ?? '-'} · 평균 ${avg_ccv ?? '-'} · 최대 ${max_ccv ?? '-'} · 채팅 ${chat_count}`)
+}
+
 // ── 20초(방송 중)/60초(종료): 시청자·순위·채팅수 집계 스냅샷 ──
 async function flush() {
   const live = await getLive()
   liveNow = !!live // 다음 수집 주기 결정에 사용
   currentLiveId = live?.liveId ?? null // 메시지 flush가 쓸 라이브ID 갱신
+
+  // ── 세션 추적: 방송 시작/전환 감지
+  if (live) {
+    if (!sess || sess.liveId !== live.liveId) {
+      sess = {
+        liveId: live.liveId,
+        startedAt: live.openDate ? new Date(live.openDate.replace(' ', 'T') + '+09:00').toISOString() : new Date().toISOString(),
+        title: live.liveTitle ?? null,
+        category: live.liveCategoryValue ?? null,
+      }
+    } else {
+      if (live.liveTitle) sess.title = live.liveTitle
+      if (live.liveCategoryValue) sess.category = live.liveCategoryValue
+    }
+  }
+  // ── 방송 종료 감지(직전=방송중, 현재=꺼짐) → Wave-1 집계 1행 적재
+  if (wasLive && !live && sess) {
+    const ended = sess; sess = null
+    finalizeBroadcast(ended).catch((e) => console.error('방송 집계 실패:', e.message))
+  }
+  wasLive = liveNow
 
   if (!live) {
     resetBucket()
