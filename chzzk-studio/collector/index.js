@@ -55,6 +55,20 @@ function recordMessage(type, ev, donationAmount) {
   })
 }
 
+// ── 썸네일 이미지 영구 보관 (다시보기·클립은 삭제되므로 이미지째 저장) ──
+const archivedThumbs = new Set()
+async function archiveThumb(key, url) {
+  if (!url || archivedThumbs.has(key)) return
+  try {
+    const img = await fetch(url, { headers: { 'User-Agent': UA } })
+    if (!img.ok) return
+    const buf = Buffer.from(await img.arrayBuffer())
+    const { error } = await supabase.storage.from('thumbs').upload(key, buf, { contentType: 'image/jpeg', upsert: false })
+    // 성공했거나 이미 있으면 "보관됨"으로 표시 (재다운로드 방지)
+    if (!error || /exist|dupl|already/i.test(error.message || '')) archivedThumbs.add(key)
+  } catch { /* 조용히 스킵 */ }
+}
+
 // ── 라이브 상태 조회 ────────────────────────────────────────
 async function getLive() {
   try {
@@ -161,6 +175,9 @@ async function pollVideos() {
     const { error } = await supabase.from('video_snapshots').insert(rows)
     if (error) console.error('❌ VOD 저장 실패:', error.message)
     else console.log(`🎬 [${new Date().toISOString()}] 다시보기 ${rows.length}개 저장`)
+
+    // 썸네일 이미지 영구 보관 (아직 안 받은 것만)
+    for (const v of list) await archiveThumb(`vod_${v.videoNo}.jpg`, v.thumbnailImageUrl)
   } catch (e) {
     console.warn('⚠️ VOD 조회 실패:', e.message)
   }
@@ -184,6 +201,9 @@ async function pollClips() {
     const { error } = await supabase.from('clip_snapshots').insert(rows)
     if (error) console.error('❌ 클립 저장 실패:', error.message)
     else console.log(`✂️ [${new Date().toISOString()}] 클립 ${rows.length}개 저장`)
+
+    // 클립 썸네일 이미지 영구 보관
+    for (const c of list) await archiveThumb(`clip_${c.clipUID}.jpg`, c.thumbnailImageUrl)
   } catch (e) {
     console.warn('⚠️ 클립 조회 실패:', e.message)
   }
