@@ -68,9 +68,15 @@ async function loadData(supabase) {
   } catch (e) { console.warn('snaps:', e.message) }
 
   try {
-    const { data: msgs } = await supabase.from('chat_messages').select('nickname,message,emojis,is_subscriber,sub_months,is_follower').order('id', { ascending: false }).limit(3000)
+    // 실시간 채팅(chat_messages) + 과거 다시보기 채팅(vod_chat_messages) 둘 다 집계
+    const [{ data: msgs }, { data: vmsgs }] = await Promise.all([
+      supabase.from('chat_messages').select('nickname,message,emojis,is_subscriber,sub_months,is_follower').order('id', { ascending: false }).limit(3000),
+      supabase.from('vod_chat_messages').select('nickname,message,emojis').order('id', { ascending: false }).limit(8000),
+    ])
+    const all = [...(msgs || []), ...(vmsgs || [])]
+    d.chatMsgTotal = all.length
     const byUser = new Map(), byEmo = new Map()
-    for (const m of msgs || []) {
+    for (const m of all) {
       if (m.nickname) {
         const u = byUser.get(m.nickname) || { count: 0, sub: false, months: null, follower: false }
         u.count++; if (m.is_subscriber) { u.sub = true; u.months = m.sub_months }; if (m.is_follower) u.follower = true
@@ -149,16 +155,16 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 @media(max-width:480px){.main{padding:14px 12px}.card{padding:14px}.card .v{font-size:22px}.top h1{font-size:17px}.ba{grid-template-columns:1fr;gap:8px}.emos{gap:6px}}
 </style></head><body><div class="app">
 <aside class="side"><div class="brand"><span class="dot"></span> 치지직 통계</div>
-<nav class="navi"><a class="on">Overview</a><a>시청자</a><a>채팅</a><a>순위</a><a>다시보기</a><a>데뷔 비교</a></nav></aside>
+<nav class="navi"><a href="#top" class="on">Overview</a><a href="#viewers">시청자·순위</a><a href="#compare">데뷔 비교</a><a href="#chat">채팅·이모티콘</a></nav></aside>
 <main class="main">
-<div class="top"><div><h1>SoundVoltex1</h1><div class="sub">이터널 리턴 · 실데이터</div></div></div>
+<div class="top" id="top"><div><h1>SoundVoltex1</h1><div class="sub">이터널 리턴 · 실데이터 (과거 방송 포함)</div></div></div>
 <div class="cards">
 ${statCard('평균 동시 시청자', num(d.avgViewers), '명', d.peakViewers != null ? `최고 ${num(d.peakViewers)}명` : '', 'flat')}
 ${statCard('팔로워', num(d.followers), '', d.followerDelta != null ? `${d.followerDelta >= 0 ? '▲ +' : '▼ '}${d.followerDelta} (7일)` : '', d.followerDelta >= 0 ? 'up' : 'down')}
 ${statCard('이터널리턴 최고순위', d.bestRank != null ? num(d.bestRank) : '-', '위', '', 'flat')}
 ${statCard('최근 방송 채팅', num(d.recentChat), '', '', 'flat')}
 </div>
-<div class="row3">
+<div class="row3" id="viewers">
 <div class="card"><div class="panel-h"><span class="t">최근 방송 — 시청자 & 채팅</span></div>
 ${lineSVG([{ data: d.viewerSeries || [], color: '#0070f3' }, { data: d.chatSeries || [], color: '#f5a623' }])}
 <div class="legend"><span><i class="dotc" style="background:#0070f3"></i> 시청자</span><span><i class="dotc" style="background:#f5a623"></i> 분당 채팅</span></div></div>
@@ -168,13 +174,13 @@ ${lineSVG([{ data: d.rankSeries || [], color: '#7c3aed' }], { W: 400, invert: tr
 </div>
 <div class="card"><div class="panel-h"><span class="t">팔로워 성장</span></div>
 ${lineSVG([{ data: d.followerSeries || [], color: '#16a34a' }], { H: 140 })}</div>
-<div class="card" style="margin-top:16px"><div class="panel-h"><span class="t">데뷔 전 vs 후 비교</span><span class="badge">핵심</span></div>
+<div class="card" id="compare" style="margin-top:16px"><div class="panel-h"><span class="t">데뷔 전 vs 후 비교</span><span class="badge">핵심</span></div>
 <div class="muted">데뷔일: <b>${d.debut ? esc(d.debut) : '미설정'}</b> — ${d.debut ? '이 날짜 기준 자동 분리' : '설정하면 before/after 자동 비교'}</div>
 <div class="ba"><div class="bcell"><div class="l">데뷔 전 평균 시청자</div><div class="n" style="color:var(--blue)">${num(d.avgViewers)}</div></div>
 <div style="text-align:center;color:var(--dim2)">→</div>
 <div class="bcell"><div class="l">데뷔 후 평균 시청자</div><div class="n" style="color:var(--purple)">8월~</div></div></div></div>
-<div class="row2" style="margin-top:16px">
-<div class="card"><div class="panel-h"><span class="t">최다 채팅 시청자</span><span class="muted">최근</span></div><div class="lst">${chatters}</div></div>
+<div class="row2" id="chat" style="margin-top:16px">
+<div class="card"><div class="panel-h"><span class="t">최다 채팅 시청자</span><span class="muted">최근+과거 방송</span></div><div class="lst">${chatters}</div></div>
 <div class="card"><div class="panel-h"><span class="t">자주 쓰는 이모티콘</span></div><div class="emos">${emotes}</div>
 <div class="panel-h" style="margin-top:16px"><span class="t">최근 다시보기</span></div><div class="lst">${vods}</div></div>
 </div>
