@@ -1,10 +1,13 @@
 import { getAdminClient, MISSING_KEY_MSG } from "@/lib/supabaseAdmin";
+import { rateLimit } from "@/lib/apiGuard";
 import { checkAdminPassword } from "@/lib/auth";
 
 // 서버 전용 클라이언트 (service_role — 브라우저 노출 안 됨)
 
 // 메쉬 그룹/숨김 설정을 세션에 저장 → 모두에게 공유 반영
 export async function POST(request: Request) {
+  const _rl = rateLimit(request);
+  if (_rl) return _rl;
   let body: { sessionId?: string; config?: unknown; password?: string };
   try {
     body = await request.json();

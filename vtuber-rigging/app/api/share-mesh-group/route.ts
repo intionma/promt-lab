@@ -1,4 +1,5 @@
 import { getAdminClient, MISSING_KEY_MSG } from "@/lib/supabaseAdmin";
+import { rateLimit } from "@/lib/apiGuard";
 import { checkAdminPassword } from "@/lib/auth";
 
 type Group = { id: string; name: string; ids: string[]; shared?: boolean; sharedIds?: string[] };
@@ -6,6 +7,8 @@ type Cfg = { groups?: Group[]; hidden?: string[] };
 
 // 폴더(그룹) 하나를 같은 모델의 모든 버전에 이름 기준으로 공유(생성/갱신)
 export async function POST(request: Request) {
+  const _rl = rateLimit(request);
+  if (_rl) return _rl;
   let body: { sessionId?: string; group?: { name?: string; ids?: string[] }; password?: string };
   try { body = await request.json(); } catch { return Response.json({ error: "잘못된 요청" }, { status: 400 }); }
 

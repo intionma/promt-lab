@@ -1,4 +1,5 @@
 import { getAdminClient, MISSING_KEY_MSG } from "@/lib/supabaseAdmin";
+import { rateLimit } from "@/lib/apiGuard";
 import { checkAdminPassword } from "@/lib/auth";
 
 
@@ -39,6 +40,8 @@ async function listAll(sb: NonNullable<ReturnType<typeof getAdminClient>>, prefi
 
 // 드라이브 폴더를 모델 갤러리(세션)로 발행
 export async function POST(request: Request) {
+  const _rl = rateLimit(request);
+  if (_rl) return _rl;
   let body: { folder?: string; title?: string; password?: string };
   try { body = await request.json(); } catch { return Response.json({ error: "잘못된 요청" }, { status: 400 }); }
 

@@ -1,9 +1,12 @@
 import { getAdminClient, MISSING_KEY_MSG } from "@/lib/supabaseAdmin";
+import { rateLimit } from "@/lib/apiGuard";
 import { checkAdminPassword } from "@/lib/auth";
 
 
 // 세션(버전)을 다른 모델로 이동 — model_name 변경
 export async function POST(request: Request) {
+  const _rl = rateLimit(request);
+  if (_rl) return _rl;
   let body: { sessionId?: string; modelName?: string; password?: string };
   try {
     body = await request.json();

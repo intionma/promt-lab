@@ -1,9 +1,12 @@
 import { getAdminClient, MISSING_KEY_MSG } from "@/lib/supabaseAdmin";
+import { rateLimit } from "@/lib/apiGuard";
 import { checkAdminPassword } from "@/lib/auth";
 
 
 // 이름 수정 — scope="model"(그룹의 여러 세션 model_name 일괄) / "version"(단일 세션 title[+description])
 export async function POST(request: Request) {
+  const _rl = rateLimit(request);
+  if (_rl) return _rl;
   let body: { scope?: string; ids?: string[]; sessionId?: string; newName?: string; description?: string | null; password?: string };
   try { body = await request.json(); } catch { return Response.json({ error: "잘못된 요청" }, { status: 400 }); }
 

@@ -1,4 +1,5 @@
 import { getAdminClient, MISSING_KEY_MSG } from "@/lib/supabaseAdmin";
+import { rateLimit } from "@/lib/apiGuard";
 import { checkAdminPassword } from "@/lib/auth";
 
 // 서버 전용 클라이언트 (service_role 키는 RLS를 우회 — 브라우저에 절대 노출 안 됨)
@@ -23,6 +24,8 @@ async function listAll(
 }
 
 export async function POST(request: Request) {
+  const _rl = rateLimit(request);
+  if (_rl) return _rl;
   let body: { sessionId?: string; password?: string };
   try {
     body = await request.json();

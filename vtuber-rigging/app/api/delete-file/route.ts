@@ -1,10 +1,13 @@
 import { getAdminClient, MISSING_KEY_MSG } from "@/lib/supabaseAdmin";
+import { rateLimit } from "@/lib/apiGuard";
 import { checkAdminPassword } from "@/lib/auth";
 
 // 서버 전용 클라이언트 (service_role — 브라우저 노출 안 됨)
 
 // 드라이브(백업) 파일 삭제 — drive/ 경로만 허용
 export async function POST(request: Request) {
+  const _rl = rateLimit(request);
+  if (_rl) return _rl;
   let body: { path?: string; password?: string };
   try {
     body = await request.json();

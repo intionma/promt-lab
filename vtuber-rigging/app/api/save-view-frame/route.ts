@@ -1,9 +1,12 @@
 import { getAdminClient, MISSING_KEY_MSG } from "@/lib/supabaseAdmin";
+import { rateLimit } from "@/lib/apiGuard";
 import { checkAdminPassword } from "@/lib/auth";
 
 // 전신/상반신 카메라 프레이밍 보정을 같은 모델(model_name)의 모든 버전에 공유 저장.
 // mesh_config.viewFrame 에 얹어 저장(groups/hidden 은 그대로 보존).
 export async function POST(request: Request) {
+  const _rl = rateLimit(request);
+  if (_rl) return _rl;
   let body: { modelName?: string | null; sessionId?: string; frame?: unknown; password?: string };
   try { body = await request.json(); } catch { return Response.json({ error: "잘못된 요청" }, { status: 400 }); }
 

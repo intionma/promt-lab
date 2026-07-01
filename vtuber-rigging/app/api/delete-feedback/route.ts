@@ -1,9 +1,12 @@
 import { getAdminClient, MISSING_KEY_MSG } from "@/lib/supabaseAdmin";
+import { rateLimit } from "@/lib/apiGuard";
 import { checkAdminPassword } from "@/lib/auth";
 
 
 // 코멘트(피드백) 삭제 — 비밀번호 보호
 export async function POST(request: Request) {
+  const _rl = rateLimit(request);
+  if (_rl) return _rl;
   let body: { feedbackId?: string; password?: string };
   try {
     body = await request.json();

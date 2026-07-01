@@ -1,4 +1,5 @@
 import { getAdminClient, MISSING_KEY_MSG } from "@/lib/supabaseAdmin";
+import { rateLimit } from "@/lib/apiGuard";
 import { checkAdminPassword } from "@/lib/auth";
 
 
@@ -6,6 +7,8 @@ type Update = { id: string; model_name: string; sort_order: number };
 
 // 버전 정렬/이동 일괄 반영 — model_name(그룹) + sort_order(순서)
 export async function POST(request: Request) {
+  const _rl = rateLimit(request);
+  if (_rl) return _rl;
   let body: { updates?: Update[]; password?: string };
   try { body = await request.json(); } catch { return Response.json({ error: "잘못된 요청" }, { status: 400 }); }
 
