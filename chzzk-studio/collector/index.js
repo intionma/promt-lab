@@ -75,9 +75,25 @@ async function archiveThumb(key, url) {
 // 핑이 멈추면 그 서비스가 "수집 멈춤"을 이메일로 알려줌. (설정 안 하면 아무 동작 안 함)
 async function heartbeat() {
   try {
-    const { data } = await supabase.from('collector_config').select('value').eq('key', 'healthcheck_url').maybeSingle()
-    const url = data?.value
-    if (url) await fetch(url).catch(() => {})
+    const { data: cfg } = await supabase.from('collector_config').select('value').eq('key', 'healthcheck_url').maybeSingle()
+    const url = cfg?.value
+    if (!url) return
+
+    // pg_cron(시청자·팔로워 수집)도 살아있는지 = 팔로워가 최근 15분 내 기록됐나
+    const { data: fresh } = await supabase
+      .from('follower_snapshots')
+      .select('captured_at')
+      .order('captured_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    const freshMs = fresh?.captured_at ? Date.now() - new Date(fresh.captured_at).getTime() : Infinity
+
+    if (freshMs < 15 * 60 * 1000) {
+      await fetch(url).catch(() => {}) // 수집기 + pg_cron 둘 다 정상일 때만 핑
+    } else {
+      // 핑을 안 보내면 healthchecks가 지연을 감지해 알림 → pg_cron 멈춤도 잡힘
+      console.warn(`⚠️ 팔로워 데이터 지연(${Number.isFinite(freshMs) ? Math.round(freshMs / 60000) + '분' : '없음'}) → 핑 보류`)
+    }
   } catch { /* 조용히 스킵 */ }
 }
 
