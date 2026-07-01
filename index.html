@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.3 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.4 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.3 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.4 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1942,7 +1942,16 @@
         const CHANGELOG = [
             // ── 2026-07-01 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.3', date: '2026-07-01', time: '최신',
+                version: 'v9.10.4', date: '2026-07-01', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[추천] 태그를 추가/삭제하면 추천이 즉시 갱신되도록 수정 (이전엔 추천 영역을 직접 눌러야 반영됐음)',
+                    '[추천] 엉뚱한 추천 정리 — 계층을 알 수 없거나(번역 안 되는) 문맥에 안 맞는 태그("노인", "3인" 등) 제외, 흔한 태그로만 빈 계층 보완',
+                    '[추천] 실내/실외 상충 억제 — 예: 옥상·별밤 같은 야외 장면에 "실내·의자" 추천이 뜨지 않도록',
+                ]
+            },
+            {
+                version: 'v9.10.3', date: '2026-07-01', time: '오후',
                 tag: 'feat',
                 items: [
                     '[태그 사전] 내장 사전 목표 도달 — 총 2,503개 (세션 시작 1,074 → +1,429). 넥라인·소매·신발·가방·모자·패턴 등 의상 세부, 자연·식물·탈것·장소, 손·표정 동작, 조명까지 폭넓게 보강',
@@ -6190,6 +6199,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function saveTabsAndStates() {
             safeSetStorage(TABS_KEY, contextTabs);
             safeSetStorage(STATES_KEY, contextStates);
+            // 에디터 내용이 바뀌면 추천도 최신화 (변화 없으면 내부에서 생략)
+            try { if (typeof renderRecommendArea === 'function') renderRecommendArea(); } catch (e) {}
         }
         let currentViewMode = 'visual';
         let activeTagsMap = {};
@@ -6369,6 +6380,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return empty;
         }
         // 어울리는 태그 추천 (동시출현 + 빈 계층 가중치)
+        // 빈 계층 보완용 "안전한 흔한 태그" (사전 순회 대신 사용 — 엉뚱한 태그 방지)
+        const _REC_COMMON = {
+            2: ['solo', 'upper body', 'cowboy shot', 'portrait', 'from side'],
+            3: ['long hair', 'smile', 'blush', 'black hair', 'brown hair', 'blue eyes'],
+            4: ['school uniform', 'dress', 'jacket', 'skirt', 'thighhighs', 'ribbon'],
+            5: ['standing', 'sitting', 'looking at viewer', 'arms behind back', 'hand on hip'],
+            6: ['outdoors', 'indoors', 'sky', 'cherry blossoms', 'cityscape', 'classroom'],
+            7: ['soft lighting', 'cinematic lighting', 'sunlight', 'rim lighting', 'bloom'],
+        };
+        // 실내/실외 상충 판단 (한쪽이 있으면 반대쪽 추천 억제)
+        const _REC_OUTDOOR = new Set(['outdoors', 'beach', 'ocean', 'forest', 'park', 'garden', 'sky', 'cityscape', 'street', 'mountain', 'field', 'rooftop', 'cherry blossoms', 'night sky', 'starry sky', 'sunset', 'sunrise', 'city lights', 'flower field', 'snowscape', 'meadow', 'desert']);
+        const _REC_INDOOR = new Set(['indoors', 'classroom', 'bedroom', 'kitchen', 'bathroom', 'cafe', 'library', 'office', 'chair', 'bed', 'sofa', 'desk', 'restaurant', 'bar', 'living room']);
         function _recSuggest(limit) {
             limit = limit || 8;
             const active = _recActive();
@@ -6377,29 +6400,38 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // ① 동시출현: 활성 태그의 어울림 목록 합산
             active.forEach(t => { (TAG_AFFINITY[t] || []).forEach((rel, i) => bump(rel, 1.0 - i * 0.05)); });
             const empty = new Set(_recEmptyLayers(active));
-            // ② 빈 계층 보완: 후보에 빈 계층 태그면 가중치, 후보가 적으면 사전에서 채움
+            // ② 빈 계층 보완: 후보에 빈 계층 태그면 가중치, 후보가 적으면 흔한 태그로 채움
             Object.keys(scores).forEach(t => { const l = _recLayerOf(t); if (l && empty.has(l)) scores[t] += 0.6; });
-            // 후보가 부족하면 빈 계층의 대표 사전 태그로 보강
             if (Object.keys(scores).length < limit) {
-                empty.forEach(L => {
-                    const pool = (_dictByLayer()[L] || []);
-                    for (let i = 0; i < pool.length && Object.keys(scores).length < limit * 2; i += Math.max(1, Math.floor(pool.length / 12))) {
-                        bump(pool[i].t, 0.3);
-                    }
-                });
+                empty.forEach(L => (_REC_COMMON[L] || []).forEach((t, i) => bump(t, 0.3 - i * 0.02)));
             }
-            return Object.entries(scores).sort((a, b) => b[1] - a[1]).slice(0, limit)
+            // ③ 실내/실외 상충 억제 (예: 옥상+별밤에 "indoors/chair" 안 나오게)
+            const hasOutdoor = [...active].some(t => _REC_OUTDOOR.has(t));
+            const hasIndoor = [...active].some(t => _REC_INDOOR.has(t));
+            Object.keys(scores).forEach(t => {
+                if (hasOutdoor && _REC_INDOOR.has(t)) scores[t] -= 2.0;
+                if (hasIndoor && _REC_OUTDOOR.has(t)) scores[t] -= 2.0;
+            });
+            // ④ 계층을 알 수 없는(사전/DB에 없는) 태그는 제외 → 번역·계층 배치 불가한 것 방지
+            return Object.entries(scores)
+                .filter(([t, s]) => s > 0 && _recLayerOf(t) != null)
+                .sort((a, b) => b[1] - a[1]).slice(0, limit)
                 .map(([t]) => ({ t, kor: _recKor(t), layer: _recLayerOf(t) }));
         }
 
-        function renderRecommendArea() {
+        let _recLastSig = null;
+        function renderRecommendArea(force) {
           try {
             const area = document.getElementById('rec-combo-area');
             if (!area) return;
             _recUpdateBtn();
-            if (!_recommendOn) { area.style.display = 'none'; area.innerHTML = ''; return; }
-            area.style.cssText = 'display:block; background:var(--bg-surface); border:1px solid rgba(168,85,247,0.28); border-radius:12px; padding:12px; margin-bottom:14px;';
+            if (!_recommendOn) { area.style.display = 'none'; area.innerHTML = ''; _recLastSig = null; return; }
             const active = _recActive();
+            // 활성 태그 변화가 없으면 재렌더 생략 (레시피가 매번 섞이는 것 방지 + 성능)
+            const sig = [...active].sort().join(',') + '|' + active.size;
+            if (!force && sig === _recLastSig && area.children.length) return;
+            _recLastSig = sig;
+            area.style.cssText = 'display:block; background:var(--bg-surface); border:1px solid rgba(168,85,247,0.28); border-radius:12px; padding:12px; margin-bottom:14px;';
             const head = (title, hint) => `<div style="display:flex; align-items:center; gap:8px; margin-bottom:9px;">
                 <span style="font-size:13px; font-weight:800; color:#a855f7; font-family:var(--font-heading);"><i class="fa-solid fa-bolt"></i> ${title}</span>
                 <span style="font-size:10px; color:var(--text-dim);">${hint}</span>
@@ -6455,7 +6487,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }
             }
             const rb = document.getElementById('rec-refresh-btn');
-            if (rb) rb.onclick = () => renderRecommendArea();
+            if (rb) rb.onclick = () => renderRecommendArea(true);
           } catch (e) { console.warn('추천 렌더 실패(무시):', e); }
         }
         let recents = [];
