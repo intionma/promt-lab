@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "updated": "2026-07-01",
+  "packs": [
+    {
+      "id": "expressions-plus",
+      "name": "표정·감정 확장",
+      "description": "세밀한 표정·감정 태그 모음 (얼굴 계층)",
+      "file": "expressions-plus.json",
+      "count": 40,
+      "nsfw": false
+    },
+    {
+      "id": "fantasy-plus",
+      "name": "판타지 확장",
+      "description": "종족·마법·판타지 배경/소품 태그",
+      "file": "fantasy-plus.json",
+      "count": 45,
+      "nsfw": false
+    }
+  ]
+}

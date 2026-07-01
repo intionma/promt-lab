@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.9.99 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.99 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.0 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1229,6 +1229,7 @@
             <button class="gt-menu-item" data-tool="audit" style="--gc:#ec4899;" onclick="closeGtMenu();openDBAuditModal()"><i class="fa-solid fa-clipboard-check"></i><span>DB 검사</span><small>계층 검증 · 중복 감지</small></button>
             <button class="gt-menu-item" data-tool="translate" style="--gc:#f97316;" onclick="closeGtMenu();openTranslationSessionModal()"><i class="fa-solid fa-language"></i><span>번역 세션</span><small>미번역 태그 일괄 번역</small></button>
             <button class="gt-menu-item" data-tool="dbmanager" style="--gc:var(--accent-blue);" onclick="closeGtMenu();openDBManager()"><i class="fa-solid fa-database"></i><span>DB 관리</span><small>표 편집 · 코드 편집 통합</small></button>
+            <button class="gt-menu-item" data-tool="catalog" style="--gc:#a855f7;" onclick="closeGtMenu();openTagCatalog()"><i class="fa-solid fa-box-open"></i><span>태그 카탈로그</span><small>확장 팩 설치 — 사전 넓히기 (오프라인 유지)</small></button>
 
             <div class="gt-menu-sec">에디터</div>
             <button class="gt-menu-item" data-tool="reorganize" style="--gc:#22c55e;" onclick="closeGtMenu();reorganizeTagsByDB()"><i class="fa-solid fa-shuffle"></i><span>레이어 재배치</span></button>
@@ -1941,7 +1942,16 @@
         const CHANGELOG = [
             // ── 2026-07-01 ──────────────────────────────────────────────────
             {
-                version: 'v9.9.99', date: '2026-07-01', time: '최신',
+                version: 'v9.10.0', date: '2026-07-01', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[태그 카탈로그] 확장 팩 시스템 추가 (메뉴 → 태그 카탈로그) — 원하는 팩만 설치해 사전을 넓힘. 설치한 팩은 기기에 저장되어 오프라인에서도 계속 적용',
+                    '[태그 카탈로그] 온라인(사이트)에선 팩 목록을 자동으로 받아 설치, 로컬 파일로 열었을 땐 "파일에서 불러오기"로 수동 설치 — 서버·비용 없이 동작',
+                    '[태그 카탈로그] 기본 팩 제공: 표정·감정 확장, 판타지 확장. 설치하면 자동 분류·번역·추천에 바로 반영',
+                ]
+            },
+            {
+                version: 'v9.9.99', date: '2026-07-01', time: '오후',
                 tag: 'feat',
                 items: [
                     '[추천] 추천 조합을 전면 개편 — 랜덤 태그 나열 대신 "지금 조합에 어울리는 태그"를 추천. 예: 교복을 넣으면 교실·창가·앉은 자세·세일러복 등 어울리는 태그가 뜸',
@@ -9066,6 +9076,185 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
             return null;
         }
+
+        // ══════════════════════════════════════════════════════════════
+        //  태그 카탈로그 팩 (Phase 3) — GitHub Pages fetch + IndexedDB 캐시
+        //   설치된 팩은 매 부팅 시 TAG_DICT에 병합(오프라인에서도 유지).
+        //   로컬(file://)에선 fetch 대신 "파일에서 불러오기"로 수동 설치.
+        // ══════════════════════════════════════════════════════════════
+        const CATALOG_DB = 'pl_catalog', CATALOG_STORE = 'packs';
+        const CATALOG_INDEX_URL = './data/catalog-index.json';
+        const CATALOG_PACK_DIR = './data/packs/';
+        function _idbOpen() {
+            return new Promise((resolve, reject) => {
+                let req;
+                try { req = indexedDB.open(CATALOG_DB, 1); } catch (e) { return reject(e); }
+                req.onupgradeneeded = () => { const db = req.result; if (!db.objectStoreNames.contains(CATALOG_STORE)) db.createObjectStore(CATALOG_STORE, { keyPath: 'id' }); };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+        function _idbAll() {
+            return _idbOpen().then(db => new Promise((res, rej) => {
+                const r = db.transaction(CATALOG_STORE, 'readonly').objectStore(CATALOG_STORE).getAll();
+                r.onsuccess = () => res(r.result || []); r.onerror = () => rej(r.error);
+            })).catch(() => []);
+        }
+        function _idbPut(pack) {
+            return _idbOpen().then(db => new Promise((res, rej) => {
+                const r = db.transaction(CATALOG_STORE, 'readwrite').objectStore(CATALOG_STORE).put(pack);
+                r.onsuccess = () => res(true); r.onerror = () => rej(r.error);
+            }));
+        }
+        function _idbDel(id) {
+            return _idbOpen().then(db => new Promise((res, rej) => {
+                const r = db.transaction(CATALOG_STORE, 'readwrite').objectStore(CATALOG_STORE).delete(id);
+                r.onsuccess = () => res(true); r.onerror = () => rej(r.error);
+            }));
+        }
+        // 팩 검증 + 정규화 (안전: l은 1~7, k/l 필수, 개수 상한)
+        function _catalogNormalizePack(raw) {
+            if (!raw || typeof raw !== 'object') throw new Error('잘못된 팩 형식');
+            const id = String(raw.id || raw.name || '').trim();
+            if (!id) throw new Error('팩 id가 없습니다');
+            const tagsIn = raw.tags || {};
+            const tags = {};
+            let n = 0;
+            for (const k in tagsIn) {
+                if (n >= 200000) break;
+                const v = tagsIn[k]; if (!v) continue;
+                const l = parseInt(v.l); if (!(l >= 1 && l <= 7)) continue;
+                const key = String(k).trim().toLowerCase(); if (!key) continue;
+                tags[key] = { k: String(v.k || key).trim(), l };
+                if (v.n) tags[key].n = 1;
+                n++;
+            }
+            return { id, name: String(raw.name || id).trim(), description: String(raw.description || '').trim(), version: raw.version || 1, count: Object.keys(tags).length, tags };
+        }
+        function _catalogMerge(pack) {
+            const added = _dictMerge(pack.tags || {});
+            _dictByLayerCache = null; _dictFlatCache = null; // 캐시 무효화 → 다음 사용 시 재빌드
+            return added;
+        }
+        // 부팅 시: 설치된 팩 전부 병합
+        let _catalogInstalledIds = new Set();
+        function _catalogApplyInstalled() {
+            return _idbAll().then(packs => {
+                packs.forEach(p => { try { _catalogMerge(p); _catalogInstalledIds.add(p.id); } catch (e) {} });
+                if (packs.length) { try { if (window.refreshAllTagBtnDisplays) refreshAllTagBtnDisplays(); } catch (e) {} }
+                return packs.length;
+            });
+        }
+        function installPack(raw) {
+            let pack; try { pack = _catalogNormalizePack(raw); } catch (e) { showToast('팩 설치 실패: ' + e.message, 'error'); return Promise.reject(e); }
+            if (!pack.count) { showToast('유효한 태그가 없는 팩입니다.', 'warning'); return Promise.reject(new Error('empty')); }
+            return _idbPut(pack).then(() => {
+                const added = _catalogMerge(pack); _catalogInstalledIds.add(pack.id);
+                showToast(`'${pack.name}' 설치됨 — 새 태그 ${added}개`, 'success', 2600);
+                if (document.getElementById('tag-catalog-overlay')) renderTagCatalog();
+                return pack;
+            });
+        }
+        function installPackFromUrl(file) {
+            return fetch(CATALOG_PACK_DIR + file).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(installPack)
+                .catch(e => { showToast('팩을 받지 못했습니다 (오프라인이면 "파일에서 불러오기" 사용): ' + e.message, 'error', 4000); throw e; });
+        }
+        function uninstallPack(id) {
+            return _idbDel(id).then(() => {
+                _catalogInstalledIds.delete(id);
+                showToast('팩을 제거했습니다. 새로고침하면 완전히 반영됩니다.', 'info', 3000);
+                if (document.getElementById('tag-catalog-overlay')) renderTagCatalog();
+            });
+        }
+        function _catalogImportFromFile() {
+            const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json';
+            inp.onchange = () => { const f = inp.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { try { installPack(JSON.parse(rd.result)); } catch (e) { showToast('JSON 파싱 실패: ' + e.message, 'error'); } }; rd.readAsText(f); };
+            inp.click();
+        }
+
+        function openTagCatalog() { renderTagCatalog(true); }
+        function closeTagCatalog() { const o = document.getElementById('tag-catalog-overlay'); if (o) o.remove(); }
+        function renderTagCatalog(create) {
+            let overlay = document.getElementById('tag-catalog-overlay');
+            if (!overlay && !create) return;
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'tag-catalog-overlay';
+                overlay.style.cssText = 'position:fixed;inset:0;z-index:10002;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;';
+                overlay.onclick = (e) => { if (e.target === overlay) closeTagCatalog(); };
+                document.body.appendChild(overlay);
+            }
+            overlay.innerHTML = '';
+            const box = document.createElement('div');
+            box.className = 'modal-content';
+            box.style.cssText = 'width:min(680px,96vw);max-height:88vh;padding:22px;border-radius:20px;display:flex;flex-direction:column;gap:14px;overflow:hidden;';
+            box.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+                <h3 style="margin:0;font-size:17px;font-family:var(--font-heading);"><i class="fa-solid fa-box-open" style="color:#a855f7;margin-right:7px;"></i>태그 카탈로그</h3>
+                <span style="font-size:11px;color:var(--text-dim);">확장 팩으로 사전을 넓히세요 · 설치하면 오프라인에서도 유지</span>
+                <button id="tcat-close" style="margin-left:auto;background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer;">&times;</button>
+            </div>`;
+            const body = document.createElement('div');
+            body.style.cssText = 'overflow-y:auto;display:flex;flex-direction:column;gap:16px;';
+            box.appendChild(body);
+            overlay.appendChild(box);
+            document.getElementById('tcat-close').onclick = closeTagCatalog;
+
+            // 설치된 팩
+            _idbAll().then(installed => {
+                const instSec = document.createElement('div');
+                let ih = `<div style="font-size:12px;font-weight:800;color:var(--text-dim);margin-bottom:8px;">설치된 팩 (${installed.length})</div>`;
+                if (!installed.length) ih += `<div style="font-size:12px;color:var(--text-dim);">아직 설치된 팩이 없습니다.</div>`;
+                instSec.innerHTML = ih;
+                installed.forEach(p => {
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border-dim);border-radius:10px;margin-bottom:7px;background:var(--bg-surface);';
+                    row.innerHTML = `<span style="flex:1;min-width:0;"><span style="font-weight:700;font-size:13px;">${_esc(p.name)}</span> <span style="font-size:11px;color:var(--text-dim);">· ${p.count}개</span><br><span style="font-size:11px;color:var(--text-dim);">${_esc(p.description || '')}</span></span>`;
+                    const del = document.createElement('button');
+                    del.textContent = '제거'; del.style.cssText = 'flex-shrink:0;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#f87171;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;';
+                    del.onclick = () => uninstallPack(p.id);
+                    row.appendChild(del); instSec.appendChild(row);
+                });
+                body.appendChild(instSec);
+
+                // 받을 수 있는 팩 (catalog-index.json)
+                const availSec = document.createElement('div');
+                availSec.innerHTML = `<div style="font-size:12px;font-weight:800;color:var(--text-dim);margin-bottom:8px;">받을 수 있는 팩</div><div style="font-size:12px;color:var(--text-dim);">목록을 불러오는 중…</div>`;
+                body.appendChild(availSec);
+                fetch(CATALOG_INDEX_URL).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(idx => {
+                    const packs = (idx && idx.packs) || [];
+                    let ah = `<div style="font-size:12px;font-weight:800;color:var(--text-dim);margin-bottom:8px;">받을 수 있는 팩 (${packs.length})</div>`;
+                    availSec.innerHTML = ah;
+                    if (!packs.length) availSec.innerHTML += `<div style="font-size:12px;color:var(--text-dim);">등록된 팩이 없습니다.</div>`;
+                    packs.forEach(meta => {
+                        const isIn = installed.some(p => p.id === meta.id);
+                        const row = document.createElement('div');
+                        row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border-dim);border-radius:10px;margin-bottom:7px;';
+                        row.innerHTML = `<span style="flex:1;min-width:0;"><span style="font-weight:700;font-size:13px;">${_esc(meta.name || meta.id)}</span>${meta.nsfw ? ' <span style="font-size:9px;background:#ef4444;color:#fff;border-radius:4px;padding:1px 5px;">NSFW</span>' : ''} <span style="font-size:11px;color:var(--text-dim);">· ${meta.count || '?'}개</span><br><span style="font-size:11px;color:var(--text-dim);">${_esc(meta.description || '')}</span></span>`;
+                        const btn = document.createElement('button');
+                        btn.textContent = isIn ? '설치됨' : '설치';
+                        btn.disabled = isIn;
+                        btn.style.cssText = `flex-shrink:0;border-radius:8px;padding:6px 14px;font-size:12px;cursor:${isIn ? 'default' : 'pointer'};border:1px solid ${isIn ? 'var(--border-dim)' : '#a855f7'};background:${isIn ? 'transparent' : '#a855f7'};color:${isIn ? 'var(--text-dim)' : '#fff'};font-weight:700;`;
+                        if (!isIn) btn.onclick = () => { btn.textContent = '설치 중…'; btn.disabled = true; installPackFromUrl(meta.file).catch(() => { btn.textContent = '설치'; btn.disabled = false; }); };
+                        row.appendChild(btn); availSec.appendChild(row);
+                    });
+                }).catch(() => {
+                    availSec.innerHTML = `<div style="font-size:12px;font-weight:800;color:var(--text-dim);margin-bottom:8px;">받을 수 있는 팩</div><div style="font-size:12px;color:var(--text-dim);line-height:1.6;">목록을 불러올 수 없습니다. (오프라인/로컬 파일 실행 시 정상 — 아래 "파일에서 불러오기"로 설치하세요)</div>`;
+                });
+            });
+
+            // 하단: 파일 수동 설치
+            const foot = document.createElement('div');
+            foot.style.cssText = 'flex-shrink:0;border-top:1px solid var(--border-dim);padding-top:12px;display:flex;gap:8px;align-items:center;';
+            foot.innerHTML = `<span style="font-size:11px;color:var(--text-dim);flex:1;">팩 JSON 파일이 있다면 직접 설치할 수 있어요</span>`;
+            const imp = document.createElement('button');
+            imp.innerHTML = '<i class="fa-solid fa-file-import"></i> 파일에서 불러오기';
+            imp.style.cssText = 'background:var(--bg-surface);border:1px solid var(--border-dim);color:var(--text-main);border-radius:9px;padding:8px 14px;font-size:12px;cursor:pointer;font-weight:700;';
+            imp.onclick = _catalogImportFromFile;
+            foot.appendChild(imp); box.appendChild(foot);
+        }
+        // 부팅 시 설치된 팩 적용
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(_catalogApplyInstalled, 200));
+        else setTimeout(_catalogApplyInstalled, 200);
 
         // 바이그램(2글자 쌍) 집합 생성
         function _bigrams(str) {
