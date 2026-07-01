@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.15 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.16 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.15 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.16 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1953,7 +1953,14 @@
         const CHANGELOG = [
             // ── 2026-07-01 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.15', date: '2026-07-01', time: '최신',
+                version: 'v9.10.16', date: '2026-07-01', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[확인창] 중복 정리·갤러리 비우기 등 확인 창이 화면 구석에 토스트로 뜨던 문제 개선 — 이제 화면 중앙에 모달로 떠서 작업과 확실히 연결됨(바깥 클릭·ESC로 취소, Enter로 확인)',
+                ]
+            },
+            {
+                version: 'v9.10.15', date: '2026-07-01', time: '이전',
                 tag: 'fix',
                 items: [
                     '[번역] 시나리오 태그 중 번역이 비던 항목 보완 — "jewelry(장신구)", "melancholic(우수 어린 표정)"이 이제 계층 분류·한글 번역까지 정상 처리',
@@ -2589,38 +2596,46 @@
             setTimeout(() => dismissToast(toast), duration);
         }
 
-        function showConfirm(msg, onConfirm) {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = 'toast warning';
-            toast.style.flexDirection = 'column';
-            toast.style.alignItems = 'flex-start';
-            toast.style.gap = '10px';
-            toast.style.pointerEvents = 'all';
+        function showConfirm(msg, onConfirm, opts) {
+            opts = opts || {};
+            const overlay = document.createElement('div');
+            overlay.className = 'confirm-overlay';
+            overlay.style.cssText = 'position:fixed; inset:0; z-index:100000; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.55); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); opacity:0; transition:opacity 0.15s;';
 
-            const msgSpan = document.createElement('span');
-            msgSpan.textContent = '⚠️ ' + msg;
+            const box = document.createElement('div');
+            box.style.cssText = 'max-width:min(420px, calc(100vw - 40px)); width:auto; background:var(--bg-surface); border:1px solid var(--glass-border); border-left:4px solid var(--accent-danger); border-radius:12px; padding:20px 22px; box-shadow:0 20px 60px rgba(0,0,0,0.5); transform:translateY(8px) scale(0.98); transition:transform 0.15s;';
+
+            const msgP = document.createElement('p');
+            msgP.style.cssText = 'margin:0 0 18px; font-size:14px; line-height:1.55; color:var(--text-main); font-family:var(--font-ui); word-break:keep-all;';
+            msgP.textContent = '⚠️ ' + msg;
 
             const btnRow = document.createElement('div');
-            btnRow.style.cssText = 'display:flex; gap:8px;';
-
-            const confirmBtn = document.createElement('button');
-            confirmBtn.textContent = '삭제';
-            confirmBtn.style.cssText = 'background:var(--accent-danger); color:#fff; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-weight:700; font-family:var(--font-ui); font-size:13px;';
-            confirmBtn.addEventListener('click', () => { toast.remove(); onConfirm(); });
+            btnRow.style.cssText = 'display:flex; gap:8px; justify-content:flex-end;';
 
             const cancelBtn = document.createElement('button');
-            cancelBtn.textContent = '취소';
-            cancelBtn.style.cssText = 'background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-dim); padding:6px 14px; border-radius:6px; cursor:pointer; font-weight:700; font-family:var(--font-ui); font-size:13px;';
-            cancelBtn.addEventListener('click', () => toast.remove());
+            cancelBtn.textContent = opts.cancelText || '취소';
+            cancelBtn.style.cssText = 'background:var(--bg-elevated, var(--bg-surface)); color:var(--text-main); border:1px solid var(--border-dim); padding:8px 18px; border-radius:8px; cursor:pointer; font-weight:700; font-family:var(--font-ui); font-size:13px;';
 
-            btnRow.appendChild(confirmBtn);
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = opts.confirmText || '삭제';
+            confirmBtn.style.cssText = 'background:var(--accent-danger); color:#fff; border:none; padding:8px 18px; border-radius:8px; cursor:pointer; font-weight:700; font-family:var(--font-ui); font-size:13px;';
+
+            const close = () => { overlay.style.opacity = '0'; box.style.transform = 'translateY(8px) scale(0.98)'; setTimeout(() => overlay.remove(), 160); document.removeEventListener('keydown', onKey); };
+            const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); close(); } else if (e.key === 'Enter') { e.preventDefault(); close(); onConfirm(); } };
+
+            confirmBtn.addEventListener('click', () => { close(); onConfirm(); });
+            cancelBtn.addEventListener('click', close);
+            overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+            document.addEventListener('keydown', onKey);
+
             btnRow.appendChild(cancelBtn);
-            toast.appendChild(msgSpan);
-            toast.appendChild(btnRow);
-
-            container.appendChild(toast);
-            requestAnimationFrame(() => { requestAnimationFrame(() => toast.classList.add('show')); });
+            btnRow.appendChild(confirmBtn);
+            box.appendChild(msgP);
+            box.appendChild(btnRow);
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+            requestAnimationFrame(() => { overlay.style.opacity = '1'; box.style.transform = 'translateY(0) scale(1)'; });
+            confirmBtn.focus();
         }
 
         // 💡 기능 3: 테마 토글 로직
