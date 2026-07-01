@@ -52,6 +52,7 @@ function recordMessage(type, ev, donationAmount) {
     donation_amount: donationAmount ?? null,
     os_type: ev?.extras?.osType ?? null,
     emoji_count: emojis && typeof emojis === 'object' ? Object.keys(emojis).length : 0,
+    emojis: emojis && typeof emojis === 'object' && Object.keys(emojis).length ? emojis : null,
   })
 }
 

@@ -62,6 +62,9 @@ async function backfillVod(v) {
       const rows = chats.map((e) => {
         let p = {}
         try { p = JSON.parse(e.profile) || {} } catch {}
+        let ex = {}
+        try { ex = (typeof e.extras === 'string' ? JSON.parse(e.extras) : e.extras) || {} } catch {}
+        const emojis = ex.emojis && typeof ex.emojis === 'object' && Object.keys(ex.emojis).length ? ex.emojis : null
         return {
           video_no: no,
           player_message_time: e.playerMessageTime ?? null,
@@ -70,6 +73,7 @@ async function backfillVod(v) {
           nickname: p.nickname ?? null,
           message: e.content ?? null,
           user_role: p.userRoleCode ?? null,
+          emojis,
         }
       })
       const { error } = await supabase.from('vod_chat_messages').insert(rows)
