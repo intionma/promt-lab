@@ -17,6 +17,7 @@ type Opts = {
 export function usePaneMesh({ sessionId, meta, viewerRef, isPC, sharePassword, onPicked }: Opts) {
   const [groups, setGroups] = useState<MeshGroup[]>([]);
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  const [lockedIds, setLockedIds] = useState<Set<string>>(new Set());
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [selectedMesh, setSelectedMesh] = useState<number | null>(null);
   const [meshSelectMode, setMeshSelectMode] = useState(false);
@@ -43,8 +44,9 @@ export function usePaneMesh({ sessionId, meta, viewerRef, isPC, sharePassword, o
 
   // 세션 변경 → mesh_config + 형제 mesh_ids 로드 (창 초기화)
   useEffect(() => {
-    setGroups([]); setHiddenIds(new Set()); setEditingGroupId(null); setSelectedMesh(null);
+    setGroups([]); setHiddenIds(new Set()); setLockedIds(new Set()); setEditingGroupId(null); setSelectedMesh(null);
     setSiblingMeshes([]); setDiff(null); pendingCfg.current = null; meshIdsSaved.current = false; pcApplied.current = false;
+    viewerRef.current?.clearLockedMeshes();
     if (!sessionId) { sessionRef.current = null; return; }
     let cancelled = false;
     (async () => {
@@ -103,6 +105,12 @@ export function usePaneMesh({ sessionId, meta, viewerRef, isPC, sharePassword, o
     setHiddenIds((prev) => { const n = new Set(prev); if (hide) n.add(meshId); else n.delete(meshId); return n; });
   }
   function toggleMesh(meshId: string, hide: boolean) { setHiddenById(meshId, hide); }
+  // 메쉬 잠금 토글 — 보이는 채로 클릭 선택에서만 제외(겹친 뒤 메쉬 선택용). 저장 안 함(창 세션 한정).
+  function toggleLock(meshId: string, lock: boolean) {
+    const idx = idxOf(meshId);
+    if (idx >= 0) viewerRef.current?.setMeshLocked(idx, lock);
+    setLockedIds((prev) => { const n = new Set(prev); if (lock) n.add(meshId); else n.delete(meshId); return n; });
+  }
   function showAllMeshes() { viewerRef.current?.showAllMeshes(); setHiddenIds(new Set()); }
   function toggleGroup(g: MeshGroup) {
     const allHidden = g.ids.length > 0 && g.ids.every((id) => hiddenIds.has(id));
@@ -149,8 +157,8 @@ export function usePaneMesh({ sessionId, meta, viewerRef, isPC, sharePassword, o
   }
 
   return {
-    groups, hiddenIds, editingGroupId, selectedMesh, meshSelectMode, sharingGroupId, diff,
-    setEditingGroupId, toggleMesh, showAllMeshes, toggleGroup, createGroup, deleteGroup,
+    groups, hiddenIds, lockedIds, editingGroupId, selectedMesh, meshSelectMode, sharingGroupId, diff,
+    setEditingGroupId, toggleMesh, toggleLock, showAllMeshes, toggleGroup, createGroup, deleteGroup,
     toggleMembership, toggleMeshSelectMode, handleMeshPicked, shareGroup,
   };
 }

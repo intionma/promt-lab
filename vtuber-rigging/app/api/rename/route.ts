@@ -2,12 +2,12 @@ import { getAdminClient, MISSING_KEY_MSG } from "@/lib/supabaseAdmin";
 import { checkAdminPassword } from "@/lib/auth";
 
 
-// 이름 수정 — scope="model"(그룹의 여러 세션 model_name 일괄) / "version"(단일 세션 title)
+// 이름 수정 — scope="model"(그룹의 여러 세션 model_name 일괄) / "version"(단일 세션 title[+description])
 export async function POST(request: Request) {
-  let body: { scope?: string; ids?: string[]; sessionId?: string; newName?: string; password?: string };
+  let body: { scope?: string; ids?: string[]; sessionId?: string; newName?: string; description?: string | null; password?: string };
   try { body = await request.json(); } catch { return Response.json({ error: "잘못된 요청" }, { status: 400 }); }
 
-  const { scope, ids, sessionId, newName, password } = body;
+  const { scope, ids, sessionId, newName, description, password } = body;
   if (!checkAdminPassword(password)) return Response.json({ error: "비밀번호가 틀렸어요" }, { status: 403 });
   const name = (newName ?? "").trim();
   if (!name) return Response.json({ error: "이름이 비었어요" }, { status: 400 });
@@ -21,7 +21,10 @@ export async function POST(request: Request) {
       if (error) throw error;
     } else if (scope === "version") {
       if (!sessionId) return Response.json({ error: "세션 ID가 없어요" }, { status: 400 });
-      const { error } = await sb.from("sessions").update({ title: name }).eq("id", sessionId);
+      // description 이 요청에 포함되면 함께 갱신 (제목·설명 동시 편집)
+      const update: { title: string; description?: string | null } = { title: name };
+      if (description !== undefined) update.description = (description ?? "").trim() || null;
+      const { error } = await sb.from("sessions").update(update).eq("id", sessionId);
       if (error) throw error;
     } else {
       return Response.json({ error: "scope 오류" }, { status: 400 });

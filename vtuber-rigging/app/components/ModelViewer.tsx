@@ -40,6 +40,9 @@ export interface ViewerHandle {
   screenshot: () => void;
   setMeshHidden: (index: number, hidden: boolean) => void;
   showAllMeshes: () => void;
+  // 메쉬 잠금: 보이는 상태는 유지하되 클릭 선택 대상에서 제외 (뒤에 겹친 메쉬 선택용)
+  setMeshLocked: (index: number, locked: boolean) => void;
+  clearLockedMeshes: () => void;
   flashMesh: (index: number) => void;
   setMeshSelectMode: (on: boolean) => void;
   setParamSweep: (on: boolean) => void;
@@ -173,6 +176,8 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
 
   // 숨긴 ArtMesh(drawable) 인덱스 + 원본 opacity 배열 참조
   const hiddenMeshesRef = useRef<Set<number>>(new Set());
+  // 잠근 ArtMesh 인덱스 — 화면엔 그대로 보이지만 클릭 선택(pickMeshAt)에서 제외
+  const lockedMeshesRef = useRef<Set<number>>(new Set());
   // 깜빡임(찾기): index → 경과시간(ms). 렌더 루프에서 부드럽게 페이드.
   const flashMeshesRef  = useRef<Map<number, number>>(new Map());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -333,6 +338,12 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
         else hiddenMeshesRef.current.delete(index);
       },
       showAllMeshes: () => { hiddenMeshesRef.current.clear(); },
+      setMeshLocked: (index, locked) => {
+        if (locked) lockedMeshesRef.current.add(index);
+        else lockedMeshesRef.current.delete(index);
+        lastPickRef.current = null; // 잠금 변경 시 순환 캐시 초기화
+      },
+      clearLockedMeshes: () => { lockedMeshesRef.current.clear(); lastPickRef.current = null; },
       setMeshSelectMode: (on) => { meshSelectRef.current = on; setMeshSelect(on); lastPickRef.current = null; },
       setParamSweep: (on) => {
         if (on) {
@@ -738,6 +749,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
           const bboxHits: number[] = [];   // 삼각형엔 안 맞아도 바운딩박스 안 (폴백)
           for (let i = 0; i < dd.count; i++) {
             if (hiddenMeshesRef.current.has(i)) continue;
+            if (lockedMeshesRef.current.has(i)) continue; // 잠긴 메쉬는 클릭으로 안 잡힘(뒤 메쉬 선택)
             if ((dd.opacities?.[i] ?? 1) <= 0.02) continue;
             // 라이브러리와 동일 좌표계의 변환된 정점 사용
             // (x*pixelsPerUnit + W/2, -y*pixelsPerUnit + H/2) — toModelPosition 과 매칭

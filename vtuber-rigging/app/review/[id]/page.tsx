@@ -11,6 +11,7 @@ import FeedbackPanel from "@/app/components/FeedbackPanel";
 import ParamPanel from "@/app/components/ParamPanel";
 import ProductionPanel from "@/app/components/ProductionPanel";
 import MeshPanel from "@/app/components/MeshPanel";
+import FolderHotToggles from "@/app/components/FolderHotToggles";
 import { usePaneMesh } from "@/app/components/usePaneMesh";
 import type { Param, ViewerHandle, ModelMeta, ViewerState } from "@/app/components/ModelViewer";
 
@@ -316,7 +317,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
           {/* Pane A */}
           <div
             onPointerDownCapture={() => compareOn && setActivePane("A")}
-            className={`flex-1 min-h-0 overflow-hidden rounded-xl transition-colors ${compareOn ? (activePane === "A" ? "border-2 border-[var(--purple)]" : "border-2 border-white/10") : ""}`}
+            className={`flex-1 min-h-0 overflow-hidden rounded-xl relative transition-colors ${compareOn ? (activePane === "A" ? "border-2 border-[var(--purple)]" : "border-2 border-white/10") : ""}`}
           >
             {session && (
               <ModelViewer
@@ -328,6 +329,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                 onGaze={gazeToB}
               />
             )}
+            <FolderHotToggles groups={meshA.groups} hiddenIds={meshA.hiddenIds} onToggle={meshA.toggleGroup} />
           </div>
           {/* Pane B (비교) */}
           {compareOn && (
@@ -345,6 +347,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                 onMeshPicked={meshB.handleMeshPicked}
                 onGaze={gazeToA}
               />
+              <FolderHotToggles groups={meshB.groups} hiddenIds={meshB.hiddenIds} onToggle={meshB.toggleGroup} />
             </div>
           )}
         </div>
@@ -460,12 +463,14 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
             <MeshPanel
               meshes={activeMeta?.meshes ?? []}
               hiddenIds={activeMesh.hiddenIds}
+              lockedIds={activeMesh.lockedIds}
               groups={activeMesh.groups}
               editingGroupId={activeMesh.editingGroupId}
               selected={activeMesh.selectedMesh}
               selectMode={activeMesh.meshSelectMode}
               sharingGroupId={activeMesh.sharingGroupId}
               onToggleMesh={activeMesh.toggleMesh}
+              onToggleLock={activeMesh.toggleLock}
               onToggleGroup={activeMesh.toggleGroup}
               onShowAll={activeMesh.showAllMeshes}
               onFlash={(i) => activeViewer().current?.flashMesh(i)}

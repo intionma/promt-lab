@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { ExternalLink, Trash2, Calendar, Layers, Boxes, Loader2, HardDrive, FileText, Download, GripVertical, Split, AlertTriangle, Pencil, Lock } from "lucide-react";
+import { ExternalLink, Trash2, Calendar, Layers, Boxes, Loader2, HardDrive, FileText, Download, GripVertical, Split, AlertTriangle, Pencil, Lock, Check, X } from "lucide-react";
 import {
   DndContext, DragOverlay, PointerSensor, KeyboardSensor, useSensor, useSensors,
   closestCorners, useDroppable, type DragStartEvent, type DragOverEvent, type DragEndEvent,
@@ -55,6 +55,14 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
   // 버전별 파일 목록 펼치기
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [fileCache, setFileCache] = useState<Record<string, { path: string; size: number }[] | "loading">>({});
+
+  // 인라인 편집(팝업 대신 그 자리에서 수정) — 버전 제목+설명 / 모델 이름
+  const [editingVer, setEditingVer] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [expandedDesc, setExpandedDesc] = useState<string | null>(null); // 긴 설명 펼침
+  const [editingModel, setEditingModel] = useState<string | null>(null);
+  const [editModelName, setEditModelName] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -255,7 +263,9 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
 
   // 이름 수정 — 낙관적(호출부에서 화면 먼저 반영), 실패 시 snap 롤백
   async function apiRename(
-    payload: { scope: "model"; ids: string[]; newName: string } | { scope: "version"; sessionId: string; newName: string },
+    payload:
+      | { scope: "model"; ids: string[]; newName: string }
+      | { scope: "version"; sessionId: string; newName: string; description?: string | null },
     snap: ReturnType<typeof snapshot>
   ) {
     if (!adminPin) return;
@@ -268,10 +278,12 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
       if (!res.ok) { restore(snap); const j = await res.json().catch(() => ({})); alert(res.status === 403 ? "관리자 인증이 만료됐어요." : (j.error || "이름 수정 실패 — 되돌렸어요")); }
     } catch { restore(snap); alert("이름 수정 중 오류 — 되돌렸어요"); }
   }
-  function renameModel(name: string) {
-    const nn = window.prompt("새 모델 이름", name);
-    if (!nn?.trim() || nn.trim() === name) return;
-    const target = nn.trim();
+  // 모델 이름 인라인 편집 시작/저장
+  function startEditModel(name: string) { setEditingModel(name); setEditModelName(name); }
+  function saveEditModel(name: string) {
+    const target = editModelName.trim();
+    setEditingModel(null);
+    if (!target || target === name) return;
     const ids = items[name] ?? [];
     const snap = snapshot();
     const merge = containers.includes(target);
@@ -290,13 +302,18 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
     });
     apiRename({ scope: "model", ids, newName: target }, snap);
   }
-  function renameVersion(v: VersionItem) {
-    const nn = window.prompt("새 버전 제목", v.title);
-    if (!nn?.trim() || nn.trim() === v.title) return;
-    const target = nn.trim();
+
+  // 버전 제목+설명 인라인 편집 시작/저장 (제목 수정 시 설명도 함께)
+  function startEditVer(v: VersionItem) { setEditingVer(v.id); setEditTitle(v.title); setEditDesc(v.description ?? ""); }
+  function saveEditVer(v: VersionItem) {
+    const target = editTitle.trim();
+    const desc = editDesc.trim();
+    setEditingVer(null);
+    if (!target) return; // 제목은 비울 수 없음
+    if (target === v.title && desc === (v.description ?? "")) return; // 변경 없음
     const snap = snapshot();
-    setVmap((prev) => ({ ...prev, [v.id]: { ...prev[v.id], title: target } }));
-    apiRename({ scope: "version", sessionId: v.id, newName: target }, snap);
+    setVmap((prev) => ({ ...prev, [v.id]: { ...prev[v.id], title: target, description: desc || null } }));
+    apiRename({ scope: "version", sessionId: v.id, newName: target, description: desc || null }, snap);
   }
 
   // 삭제 — 낙관적(즉시 목록에서 제거) + 백그라운드 처리, 실패 시 롤백
@@ -394,7 +411,12 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
                 dragging={!!activeId}
                 admin={admin}
                 problem={(items[name] ?? []).some((id) => (vmap[id]?.size ?? 0) === 0)}
-                onRename={() => renameModel(name)}
+                editing={editingModel === name}
+                editValue={editModelName}
+                onEditChange={setEditModelName}
+                onStartEdit={() => startEditModel(name)}
+                onSaveEdit={() => saveEditModel(name)}
+                onCancelEdit={() => setEditingModel(null)}
               >
                 <SortableContext items={items[name] ?? []} strategy={verticalListSortingStrategy}>
                   <div className="space-y-1.5">
@@ -411,7 +433,16 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
                           onToggleFiles={() => toggleFiles(id)}
                           onDelete={() => setConfirmTarget(v)}
                           onSplit={() => splitToNewModel(v)}
-                          onRename={() => renameVersion(v)}
+                          editing={editingVer === id}
+                          editTitle={editTitle}
+                          editDesc={editDesc}
+                          onEditTitle={setEditTitle}
+                          onEditDesc={setEditDesc}
+                          onStartEdit={() => startEditVer(v)}
+                          onSaveEdit={() => saveEditVer(v)}
+                          onCancelEdit={() => setEditingVer(null)}
+                          descExpanded={expandedDesc === id}
+                          onToggleDesc={() => setExpandedDesc((p) => (p === id ? null : id))}
                         />
                       );
                     })}
@@ -471,7 +502,14 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
 }
 
 // ── 드롭 가능한 그룹(모델) ──────────────────────────────────────────────
-function DroppableGroup({ name, count, dragging, admin, problem, onRename, children }: { name: string; count: number; dragging: boolean; admin: boolean; problem: boolean; onRename: () => void; children: React.ReactNode }) {
+function DroppableGroup({
+  name, count, dragging, admin, problem, editing, editValue, onEditChange, onStartEdit, onSaveEdit, onCancelEdit, children,
+}: {
+  name: string; count: number; dragging: boolean; admin: boolean; problem: boolean;
+  editing: boolean; editValue: string;
+  onEditChange: (v: string) => void; onStartEdit: () => void; onSaveEdit: () => void; onCancelEdit: () => void;
+  children: React.ReactNode;
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: name });
   return (
     <div
@@ -479,10 +517,25 @@ function DroppableGroup({ name, count, dragging, admin, problem, onRename, child
       className={`space-y-2 fade-up rounded-xl p-1 -m-1 transition-all ${isOver ? "ring-2 ring-[var(--purple)] bg-[var(--purple)]/5" : ""}`}
     >
       <div className="flex items-center gap-2 px-1">
-        <Boxes className="w-4 h-4 text-[var(--purple)]" />
-        <span className="text-sm font-bold text-[var(--fg)] truncate">{name}</span>
-        {admin && (
-          <button onClick={onRename} title="모델 이름 수정" className="p-1 rounded-md text-[var(--muted)] hover:text-[var(--purple)] hover:bg-white/5 shrink-0">
+        <Boxes className="w-4 h-4 text-[var(--purple)] shrink-0" />
+        {editing ? (
+          <input
+            autoFocus
+            value={editValue}
+            onChange={(e) => onEditChange(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") onSaveEdit(); else if (e.key === "Escape") onCancelEdit(); }}
+            onBlur={onSaveEdit}
+            className="flex-1 min-w-0 text-sm font-bold bg-transparent border-b border-[var(--purple)]/60 outline-none text-[var(--fg)] px-0.5"
+          />
+        ) : (
+          <span
+            onClick={admin ? onStartEdit : undefined}
+            className={`text-sm font-bold text-[var(--fg)] truncate ${admin ? "cursor-text hover:text-[var(--purple)]" : ""}`}
+            title={admin ? "클릭해서 모델 이름 수정" : name}
+          >{name}</span>
+        )}
+        {admin && !editing && (
+          <button onClick={onStartEdit} title="모델 이름 수정" className="p-1 rounded-md text-[var(--muted)] hover:text-[var(--purple)] hover:bg-white/5 shrink-0">
             <Pencil className="w-3 h-3" />
           </button>
         )}
@@ -501,7 +554,9 @@ function DroppableGroup({ name, count, dragging, admin, problem, onRename, child
 
 // ── 정렬 가능한 버전 행 ──────────────────────────────────────────────────
 function SortableVersionRow({
-  v, admin, open, files, onToggleFiles, onDelete, onSplit, onRename,
+  v, admin, open, files, onToggleFiles, onDelete, onSplit,
+  editing, editTitle, editDesc, onEditTitle, onEditDesc, onStartEdit, onSaveEdit, onCancelEdit,
+  descExpanded, onToggleDesc,
 }: {
   v: VersionItem;
   admin: boolean;
@@ -510,7 +565,16 @@ function SortableVersionRow({
   onToggleFiles: () => void;
   onDelete: () => void;
   onSplit: () => void;
-  onRename: () => void;
+  editing: boolean;
+  editTitle: string;
+  editDesc: string;
+  onEditTitle: (v: string) => void;
+  onEditDesc: (v: string) => void;
+  onStartEdit: () => void;
+  onSaveEdit: () => void;
+  onCancelEdit: () => void;
+  descExpanded: boolean;
+  onToggleDesc: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: v.id, disabled: !admin });
   const style: React.CSSProperties = {
@@ -519,16 +583,17 @@ function SortableVersionRow({
     opacity: isDragging ? 0.4 : 1,
   };
 
+  const hasDesc = !!(v.description && v.description.trim());
   return (
     <div ref={setNodeRef} style={style} className="glass rounded-xl overflow-hidden">
-      <div className="glass-hover p-3 flex items-center gap-2">
-        {admin && (
+      <div className="glass-hover p-3 flex items-start gap-2">
+        {admin && !editing && (
           <button
             {...attributes}
             {...listeners}
             aria-label="드래그해서 이동/정렬"
             title="끌어서 순서 변경 · 다른 모델로 이동"
-            className="touch-none cursor-grab active:cursor-grabbing text-[var(--muted)]/60 hover:text-[var(--purple)] p-1 -ml-1 shrink-0"
+            className="touch-none cursor-grab active:cursor-grabbing text-[var(--muted)]/60 hover:text-[var(--purple)] p-1 -ml-1 shrink-0 mt-0.5"
             style={{ touchAction: "none" }}
           >
             <GripVertical className="w-4 h-4" />
@@ -539,37 +604,81 @@ function SortableVersionRow({
           <span className="text-xs font-bold text-[var(--purple)]">v{v.versionNo}</span>
         </div>
 
-        <div className="flex-1 min-w-0">
-          <p className="text-sm text-[var(--fg)] truncate flex items-center gap-1.5">
-            {v.size === 0 && <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" aria-label="업로드 실패 가능성" />}
-            <span className="truncate">{v.title}</span>
-          </p>
-          <div className="flex items-center gap-2 text-[10px] text-[var(--muted)]">
-            <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {formatDate(v.created_at)}</span>
-            <span className="opacity-40">·</span>
-            <span className={v.size === 0 ? "text-amber-400" : ""}>{v.size === 0 ? "파일 없음 (업로드 실패)" : formatBytes(v.size)}</span>
+        {editing ? (
+          // 인라인 편집 — 제목 + 설명 동시 수정
+          <div className="flex-1 min-w-0 space-y-1.5">
+            <input
+              autoFocus
+              value={editTitle}
+              onChange={(e) => onEditTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") onSaveEdit(); else if (e.key === "Escape") onCancelEdit(); }}
+              placeholder="버전 제목"
+              className="w-full text-sm text-[var(--fg)] bg-transparent border-b border-[var(--purple)]/60 outline-none px-0.5 py-0.5"
+            />
+            <textarea
+              value={editDesc}
+              onChange={(e) => onEditDesc(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Escape") onCancelEdit(); }}
+              placeholder="설명 (선택)"
+              rows={2}
+              className="w-full text-[11px] text-[var(--muted)] bg-black/20 rounded-lg border border-white/10 outline-none focus:border-[var(--purple)]/50 px-2 py-1.5 resize-none"
+            />
           </div>
-        </div>
-
-        {admin && (
-          <button onClick={onToggleFiles} className={`glass glass-hover p-2 rounded-lg ${open ? "text-[var(--purple)]" : "text-[var(--muted)] hover:text-[var(--purple)]"}`} title="파일 목록 · 다운로드 (관리자)">
-            <FileText className="w-3.5 h-3.5" />
-          </button>
+        ) : (
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-[var(--fg)] truncate flex items-center gap-1.5">
+              {v.size === 0 && <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" aria-label="업로드 실패 가능성" />}
+              <span className="truncate">{v.title}</span>
+            </p>
+            {hasDesc && (
+              <p
+                onClick={onToggleDesc}
+                className={`text-[11px] text-[var(--muted)] mt-0.5 cursor-pointer hover:text-[var(--fg)]/80 ${descExpanded ? "whitespace-pre-wrap break-words" : "truncate"}`}
+                title={descExpanded ? "접기" : "펼쳐 보기"}
+              >
+                {v.description}
+              </p>
+            )}
+            <div className="flex items-center gap-2 text-[10px] text-[var(--muted)] mt-0.5">
+              <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {formatDate(v.created_at)}</span>
+              <span className="opacity-40">·</span>
+              <span className={v.size === 0 ? "text-amber-400" : ""}>{v.size === 0 ? "파일 없음 (업로드 실패)" : formatBytes(v.size)}</span>
+            </div>
+          </div>
         )}
-        <Link href={`/review/${v.id}`} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="열기">
-          <ExternalLink className="w-3.5 h-3.5" />
-        </Link>
-        {admin && (
+
+        {editing ? (
+          <div className="flex items-center gap-1 shrink-0">
+            <button onClick={onSaveEdit} className="glass glass-hover p-2 rounded-lg text-green-400 hover:text-green-300" title="저장">
+              <Check className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={onCancelEdit} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-red-400" title="취소">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
           <>
-            <button onClick={onRename} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="버전 제목 수정">
-              <Pencil className="w-3.5 h-3.5" />
-            </button>
-            <button onClick={onSplit} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="새 모델 이름으로 분리">
-              <Split className="w-3.5 h-3.5" />
-            </button>
-            <button onClick={onDelete} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-red-400" title="삭제">
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+            {admin && (
+              <button onClick={onToggleFiles} className={`glass glass-hover p-2 rounded-lg shrink-0 ${open ? "text-[var(--purple)]" : "text-[var(--muted)] hover:text-[var(--purple)]"}`} title="파일 목록 · 다운로드 (관리자)">
+                <FileText className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <Link href={`/review/${v.id}`} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)] shrink-0" title="열기">
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
+            {admin && (
+              <>
+                <button onClick={onStartEdit} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)] shrink-0" title="제목·설명 수정">
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={onSplit} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)] shrink-0" title="새 모델 이름으로 분리">
+                  <Split className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={onDelete} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-red-400 shrink-0" title="삭제">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </>
+            )}
           </>
         )}
       </div>

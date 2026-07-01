@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Eye, EyeOff, Search, Layers, MousePointerClick, Plus, Pencil, Trash2, Check, FolderPlus, AlertTriangle, Share2, Link2, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Search, Layers, MousePointerClick, Plus, Pencil, Trash2, Check, FolderPlus, AlertTriangle, Share2, Link2, Loader2, Lock, LockOpen } from "lucide-react";
 
 export type MeshDiff = { onlyHere: string[]; missingHere: string[]; versions: number };
 
@@ -17,12 +17,14 @@ function sameIds(a: string[], b: string[]) {
 type Props = {
   meshes: Mesh[];
   hiddenIds: Set<string>;
+  lockedIds: Set<string>;
   groups: Group[];
   editingGroupId: string | null;
   selected: number | null;
   selectMode: boolean;
   sharingGroupId: string | null;
   onToggleMesh: (id: string, hide: boolean) => void;
+  onToggleLock: (id: string, lock: boolean) => void;
   onToggleGroup: (g: Group) => void;
   onShowAll: () => void;
   onFlash: (index: number) => void;
@@ -38,8 +40,8 @@ type Props = {
 const COLORS = ["#a855f7", "#ec4899", "#3b82f6", "#22c55e", "#f59e0b", "#06b6d4", "#ef4444", "#8b5cf6"];
 
 export default function MeshPanel({
-  meshes, hiddenIds, groups, editingGroupId, selected, selectMode, sharingGroupId,
-  onToggleMesh, onToggleGroup, onShowAll, onFlash, onToggleSelectMode,
+  meshes, hiddenIds, lockedIds, groups, editingGroupId, selected, selectMode, sharingGroupId,
+  onToggleMesh, onToggleLock, onToggleGroup, onShowAll, onFlash, onToggleSelectMode,
   onCreateGroup, onDeleteGroup, onSetEditingGroup, onToggleMembership, onShareGroup, diff,
 }: Props) {
   const [query, setQuery] = useState("");
@@ -71,6 +73,7 @@ export default function MeshPanel({
         <p className="text-xs font-semibold text-[var(--fg)] flex items-center gap-1.5">
           ArtMesh<span className="text-[10px] text-[var(--muted)]">{meshes.length}</span>
           {hiddenIds.size > 0 && <span className="text-[10px] text-pink-400">· {hiddenIds.size} 숨김</span>}
+          {lockedIds.size > 0 && <span className="text-[10px] text-amber-400">· {lockedIds.size} 잠금</span>}
           {diff && (
             <button
               onClick={() => setShowDiff((v) => !v)}
@@ -82,6 +85,9 @@ export default function MeshPanel({
           )}
         </p>
         <div className="flex items-center gap-1">
+          {lockedIds.size > 0 && (
+            <button onClick={() => lockedIds.forEach((id) => onToggleLock(id, false))} className="px-2 py-0.5 rounded-md text-[10px] glass glass-hover text-amber-400" title="모든 잠금 해제">잠금해제</button>
+          )}
           {hiddenIds.size > 0 && (
             <button onClick={onShowAll} className="px-2 py-0.5 rounded-md text-[10px] glass glass-hover text-[var(--muted)]">전체표시</button>
           )}
@@ -191,13 +197,17 @@ export default function MeshPanel({
       <div ref={listRef} className="flex-1 overflow-y-auto chat-scroll p-2.5 space-y-1 mt-1">
         {list.map((m) => {
           const isHidden = hiddenIds.has(m.id);
+          const isLocked = lockedIds.has(m.id);
           const isSel = selected === m.index;
           const inEditGroup = editingGroup?.ids.includes(m.id);
           return (
             <div key={m.index} data-mesh={m.index}
-              className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg glass ${isSel ? "ring-1 ring-[var(--purple)] bg-[var(--purple)]/10" : ""} ${isHidden ? "text-[var(--muted)]/50" : "text-[var(--fg)]"}`}>
+              className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg glass ${isSel ? "ring-1 ring-[var(--purple)] bg-[var(--purple)]/10" : ""} ${isLocked ? "ring-1 ring-amber-400/40" : ""} ${isHidden ? "text-[var(--muted)]/50" : "text-[var(--fg)]"}`}>
               <button onClick={() => onToggleMesh(m.id, !isHidden)} className="flex-shrink-0 p-0.5 glass-hover rounded" title={isHidden ? "표시" : "숨김"}>
                 {isHidden ? <EyeOff className="w-3.5 h-3.5 text-[var(--muted)]/50" /> : <Eye className="w-3.5 h-3.5 text-[var(--purple)]" />}
+              </button>
+              <button onClick={() => onToggleLock(m.id, !isLocked)} className="flex-shrink-0 p-0.5 glass-hover rounded" title={isLocked ? "잠금 해제 (클릭 선택 가능)" : "잠금 — 보이지만 클릭 선택에서 제외(뒤 메쉬 선택용)"}>
+                {isLocked ? <Lock className="w-3.5 h-3.5 text-amber-400" /> : <LockOpen className="w-3.5 h-3.5 text-[var(--muted)]/40" />}
               </button>
               <button
                 onClick={() => { if (editingGroupId) onToggleMembership(editingGroupId, m.id); else onFlash(m.index); }}

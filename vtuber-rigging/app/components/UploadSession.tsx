@@ -136,6 +136,9 @@ export default function UploadSession() {
   const [title, setTitle] = useState("");
   const [titleEdited, setTitleEdited] = useState(false);
   const [description, setDescription] = useState("");
+  const [descEdited, setDescEdited] = useState(false);
+  // 같은 이름 모델의 다음 버전 번호 (v1, v2 …) — 추가 시점에 고정
+  const [nextVer, setNextVer] = useState(1);
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<UploadedFile[]>([]);
@@ -154,12 +157,28 @@ export default function UploadSession() {
   const parseError = missingFiles.includes("__PARSE_ERROR__");
   const realMissing = missingFiles.filter((m) => m !== "__PARSE_ERROR__");
 
-  // 모델 파일이 선택되면 세션 이름을 모델 파일명으로 자동 설정 (사용자가 직접 수정하기 전까지)
+  // 모델 파일이 선택되면 같은 이름 모델의 기존 버전을 확인해서
+  //  · 버전 이름(title) = v1, v2 …  (기존 최대 번호 + 1, 추가 시점에 고정 → 재정렬해도 안 바뀜)
+  //  · 설명(description) = 파일명   (사용자가 직접 수정하기 전까지)
   useEffect(() => {
-    if (titleEdited) return;
     const name = extractModelName(files);
-    if (name) setTitle(name);
-  }, [files, titleEdited]);
+    if (!name) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("sessions").select("title").eq("model_name", name);
+      if (cancelled) return;
+      let max = 0;
+      for (const s of data ?? []) {
+        const mt = /^v(\d+)$/i.exec(String((s as { title?: string }).title ?? "").trim());
+        if (mt) max = Math.max(max, parseInt(mt[1], 10));
+      }
+      const nv = max + 1;
+      setNextVer(nv);
+      if (!titleEdited) setTitle(`v${nv}`);
+      if (!descEdited) setDescription(name);
+    })();
+    return () => { cancelled = true; };
+  }, [files, titleEdited, descEdited]);
 
   // 파일이 바뀔 때마다 model3.json이 참조하는 파일이 다 있는지 검사
   useEffect(() => {
@@ -201,15 +220,15 @@ export default function UploadSession() {
     setProgress(files.map((f) => ({ name: getStoragePath(f), done: false })));
 
     const modelName = extractModelName(files);
-    const finalTitle =
-      title.trim() || modelName || `리깅 리뷰 ${new Date().toLocaleDateString("ko-KR")}`;
+    const finalTitle = title.trim() || `v${nextVer}`;
+    const finalDescription = description.trim() || modelName || null;
 
     try {
       const { data: session, error: sessionErr } = await supabase
         .from("sessions")
         .insert({
           title: finalTitle,
-          description: description.trim() || null,
+          description: finalDescription,
           model_name: modelName,
         })
         .select()
@@ -301,6 +320,8 @@ export default function UploadSession() {
             setTitle("");
             setTitleEdited(false);
             setDescription("");
+            setDescEdited(false);
+            setNextVer(1);
             setProgress([]);
             setSkippedCount(0);
           }}
@@ -317,20 +338,21 @@ export default function UploadSession() {
   return (
     <div className="flex flex-col h-full overflow-y-auto chat-scroll p-4 gap-3.5">
       <div className="space-y-1.5">
-        <label className="text-xs text-[var(--muted)] px-1">세션 이름</label>
+        <label className="text-xs text-[var(--muted)] px-1">버전 이름</label>
         <input
           value={title}
           onChange={(e) => { setTitle(e.target.value); setTitleEdited(true); }}
-          placeholder="모델 파일을 올리면 자동으로 채워져요"
+          placeholder="모델을 올리면 v1, v2 … 로 자동 설정돼요"
           className="w-full glass rounded-xl px-4 py-3 text-sm placeholder-[var(--muted)]/60 outline-none focus:border-[var(--purple)]/50 transition-colors"
         />
+        <p className="text-[10px] text-[var(--muted)]/70 px-1">같은 이름 모델을 다시 올리면 다음 버전(v{nextVer})으로 묶여요</p>
       </div>
 
       <div className="space-y-1.5">
         <label className="text-xs text-[var(--muted)] px-1">설명 (선택)</label>
         <textarea
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => { setDescription(e.target.value); setDescEdited(true); }}
           placeholder="친구들에게 확인 요청할 내용..."
           rows={2}
           className="w-full glass rounded-xl px-4 py-3 text-sm placeholder-[var(--muted)]/60 outline-none resize-none focus:border-[var(--purple)]/50 transition-colors"
