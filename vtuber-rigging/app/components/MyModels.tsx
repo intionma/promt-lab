@@ -122,7 +122,17 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
     const nextItems: Record<string, string[]> = {};
     const nextVmap: Record<string, VersionItem> = {};
     const groupList = Array.from(groupMap.entries());
+    // 그룹 표시 순위 — group_order(모두에게 공유)가 있으면 그것으로, 없으면 최신순
+    const grank = (sessions: Session[]): number | null => {
+      const vals = sessions.map((v) => v.group_order).filter((v): v is number => typeof v === "number");
+      return vals.length ? Math.min(...vals) : null;
+    };
+    const anyDbOrder = groupList.some(([, s]) => grank(s) !== null);
     groupList.sort((a, b) => {
+      const ra = grank(a[1]), rb = grank(b[1]);
+      if (ra !== null && rb !== null) return ra - rb;
+      if (ra !== null) return -1;
+      if (rb !== null) return 1;
       const al = Math.max(...a[1].map((v) => new Date(v.created_at).getTime()));
       const bl = Math.max(...b[1].map((v) => new Date(v.created_at).getTime()));
       return bl - al;
@@ -136,7 +146,8 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
         nextVmap[s.id] = { ...s, versionNo: n - idx, size: sizeMap.get(s.id) || 0 };
       });
     }
-    setContainers(applySavedModelOrder(nextContainers));
+    // DB 공유 순서가 있으면 그것을 그대로, 없으면 브라우저에 저장된 개인 순서로 폴백
+    setContainers(anyDbOrder ? nextContainers : applySavedModelOrder(nextContainers));
     setItems(nextItems);
     setVmap(nextVmap);
     setLoading(false);
@@ -192,7 +203,7 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
     setDragType(null);
     if (!overId) return;
 
-    // 모델(그룹) 순서 변경 — 브라우저에 저장
+    // 모델(그룹) 순서 변경 — DB에 저장(모두에게 공유), 브라우저에도 폴백 저장
     if (type === "group") {
       const overContainer = findContainer(overId); // over 가 그룹명이든 버전 id든 컨테이너로 환산
       const fromIdx = containers.indexOf(aId);
@@ -200,7 +211,8 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
       if (fromIdx >= 0 && toIdx >= 0 && fromIdx !== toIdx) {
         const next = arrayMove(containers, fromIdx, toIdx);
         setContainers(next);
-        saveModelOrder(next);
+        saveModelOrder(next);          // 개인 폴백(비관리자·컬럼 미존재 대비)
+        persistGroupOrder(next);       // 모두에게 공유(관리자 전용)
       }
       return;
     }
@@ -231,6 +243,28 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
   }
   function restore(s: { containers: string[]; items: Record<string, string[]>; vmap: Record<string, VersionItem>; usage: number }) {
     setContainers(s.containers); setItems(s.items); setVmap(s.vmap); setTotalUsage(s.usage);
+  }
+
+  // 모델(그룹) 순서를 모두에게 공유 저장 — 관리자 전용. 각 그룹의 세션 id 묶음을 표시 순서대로 전송.
+  async function persistGroupOrder(order: string[]) {
+    if (!adminPin) return; // 비관리자는 개인(localStorage) 순서만 유지
+    const groups = order
+      .map((name, idx) => ({ ids: items[name] ?? [], group_order: idx }))
+      .filter((g) => g.ids.length > 0);
+    if (!groups.length) return;
+    try {
+      const res = await fetch("/api/reorder-groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groups, password: adminPin }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        toast(res.status === 403 ? "관리자 인증이 만료됐어요. 관리자 모드를 다시 켜주세요." : (j.error || "순서 공유 저장 실패 — 이 브라우저에만 저장됐어요 (group_order 컬럼 필요)"), "error");
+      } else {
+        toast("모델 순서를 모두에게 공유 저장했어요", "success");
+      }
+    } catch { toast("순서 저장 중 오류 — 이 브라우저에만 저장됐어요", "error"); }
   }
 
   async function persistOrder(itemsState: Record<string, string[]>, affected: Set<string>) {
