@@ -152,6 +152,7 @@ async function loadData(supabase) {
         chatTotal: rows.reduce((a, r) => a + (r.chat_count || 0), 0),
         cpm: rows.length ? Math.round((rows.slice(-5).reduce((a, r) => a + (r.chat_count || 0), 0) / Math.min(5, rows.length)) * 10) / 10 : null,
         elapsed: fmtDur(elapsedMs),
+        startMs: start,
         viewerSeries: sample(rows.map((r) => r.concurrent_users), 40),
         chatSeries: sample(rows.map((r) => r.chat_count), 40),
       }
@@ -290,6 +291,8 @@ function renderLive(d) {
   const feed = feedArr.length ? feedArr.map((f) => `<div><span class="n ${f.cls}">${f.badge ? f.badge + ' ' : ''}${esc(f.nm)}</span> ${renderMsg(f.t, f.emojis)}</div>`).join('') : '<div class="muted">채팅 수집 대기 중…</div>'
   const rankLb = rankArr.length ? rankArr.map((r, i) => `<div class="li"><span class="rk">${['🥇', '🥈', '🥉'][i] || (i + 1)}</span><div class="nm">${esc(r.nm)}<div class="bar" style="width:${r.w}%"></div></div><span class="ct" style="font-weight:700">${r.c}</span></div>`).join('') : '<div class="muted">-</div>'
   const rankDelta = rankStart != null && rank != null ? `▲ 시작 ${rankStart}위` : '실시간'
+  // 경과 시간: 방송 시작 epoch를 심어두고 클라이언트가 매초 카운트(느낌만). mock은 가짜 시작점.
+  const startMs = real ? live.startMs : Date.now() - (2 * 3600 + 14 * 60 + 37) * 1000
   const tlNote = real ? '↑ 방송 시작부터 지금까지 상위 4명의 분당 채팅량' : '↑ 예시: 시청자별 채팅 활동 추이 (실제 방송 데이터로 대체됨)'
 
   return `<div class="v-live">
@@ -297,7 +300,7 @@ function renderLive(d) {
 <div class="card hi"><div class="k"><span class="livedot"><i></i>LIVE</span> 현재 시청자</div><div class="v">${num(viewers)}<small> 명</small></div><div class="delta up">${real ? '실시간' : '▲ 방금 +6'}</div></div>
 ${statCard('이터널리턴 순위', rank != null ? rank : '50+', '위', rankDelta, 'up')}
 ${statCard('이번 방송 채팅', num(chat), '', cpm != null ? `분당 ${cpm}개` : '', 'flat')}
-${statCard('경과 시간', elapsed, '', real ? '실데이터' : '가상', 'flat')}
+<div class="card"><div class="k">경과 시간</div><div class="v" id="elapsed" data-start="${startMs}">${esc(elapsed)}</div><div class="delta flat">${real ? '실시간 카운트' : '가상'}</div></div>
 </div>
 <div class="card"><div class="panel-h"><span class="t">시청자별 채팅 활동</span><span class="muted">방송 시작 → 지금 · 상위 4명</span></div>
 <svg viewBox="0 0 900 170" width="100%" height="170" preserveAspectRatio="none"><line x1="0" y1="158" x2="900" y2="158" stroke="#eee"/>${tl || `<text x="450" y="90" fill="#bbb" font-size="12" text-anchor="middle">채팅 수집 대기 중</text>`}</svg>
@@ -370,7 +373,10 @@ ${renderOffline(d)}
 ${renderLive(d)}
 <div class="foot">OFFLINE=실데이터 · LIVE=${hasLive ? '실시간 실데이터(60초 자동 새로고침)' : '가상 예시(방송 켜지면 실제값)'} · 갱신 ${esc(d.updated)} (UTC)</div>
 </main></div>
-<script>function sw(l){document.body.classList.toggle('live',!!l);document.querySelectorAll('.tg button').forEach(b=>b.classList.remove('act'));document.querySelector(l?'.tg .l':'.tg .o').classList.add('act')}</script>
+<script>
+function sw(l){document.body.classList.toggle('live',!!l);document.querySelectorAll('.tg button').forEach(b=>b.classList.remove('act'));document.querySelector(l?'.tg .l':'.tg .o').classList.add('act')}
+(function(){var el=document.getElementById('elapsed');if(!el)return;var st=+el.dataset.start;function p(n){return String(n).padStart(2,'0')}function f(){var s=Math.max(0,Math.floor((Date.now()-st)/1000));el.textContent=Math.floor(s/3600)+':'+p(Math.floor(s%3600/60))+':'+p(s%60)}f();setInterval(f,1000)})();
+</script>
 </body></html>`
 }
 
