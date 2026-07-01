@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.9.98 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.9.99 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.98 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.99 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1941,7 +1941,16 @@
         const CHANGELOG = [
             // ── 2026-07-01 ──────────────────────────────────────────────────
             {
-                version: 'v9.9.98', date: '2026-07-01', time: '최신',
+                version: 'v9.9.99', date: '2026-07-01', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[추천] 추천 조합을 전면 개편 — 랜덤 태그 나열 대신 "지금 조합에 어울리는 태그"를 추천. 예: 교복을 넣으면 교실·창가·앉은 자세·세일러복 등 어울리는 태그가 뜸',
+                    '[추천] 에디터가 비었을 땐 "테마로 시작"(교실·카페·벚꽃·판타지·해변·사이버펑크 등) 레시피를 보여주고, 고르면 어울리는 조합을 한 번에 채움',
+                    '[추천] 비어있는 계층을 알려주고 그 계층 태그를 우선 추천 — 프롬프트를 자연스럽게 완성',
+                ]
+            },
+            {
+                version: 'v9.9.98', date: '2026-07-01', time: '오후',
                 tag: 'feat',
                 items: [
                     '[태그 사전] 내장 사전 확장 — 1,074 → 1,394개 (+320). 헤어·표정·의상·포즈·배경·조명 등 자주 쓰는 태그를 정확한 계층 + 자연스러운 한글로 대량 보강. 자동 분류·번역·추천이 더 정확해짐',
@@ -6252,46 +6261,169 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return combos;
         }
 
+        // ══════════════════════════════════════════════════════════════
+        //  추천 엔진 (Phase 2) — 랜덤 대신 "어울리는 조합" 유도
+        //  ① 큐레이션 레시피(테마 시작)  ② 동시출현 어울림  ③ 빈 계층 완성
+        // ══════════════════════════════════════════════════════════════
+        const TAG_RECIPES = [
+            { n: '교실 일상', e: '🏫', tags: ['1girl', 'school uniform', 'classroom', 'sitting', 'looking at viewer', 'window', 'sunlight'] },
+            { n: '카페 오후', e: '☕', tags: ['1girl', 'sweater', 'cafe', 'sitting', 'holding cup', 'warm colors', 'smile'] },
+            { n: '벚꽃 산책', e: '🌸', tags: ['1girl', 'sundress', 'cherry blossoms', 'outdoors', 'walking', 'petals falling', 'soft lighting'] },
+            { n: '판타지 전사', e: '⚔️', tags: ['1girl', 'armor', 'fantasy background', 'holding weapon', 'dramatic lighting', 'serious'] },
+            { n: '고딕', e: '🖤', tags: ['1girl', 'gothic lolita', 'castle', 'red eyes', 'moody atmosphere', 'night'] },
+            { n: '해변 여름', e: '🏖️', tags: ['1girl', 'bikini', 'beach', 'ocean', 'standing', 'blue sky', 'sunlight'] },
+            { n: '사이버펑크', e: '🌃', tags: ['1girl', 'jacket', 'cyberpunk city', 'neon lights', 'night', 'rain', 'reflection'] },
+            { n: '마법소녀', e: '✨', tags: ['1girl', 'idol costume', 'magic circle', 'sparkle', 'dynamic pose', 'colorful'] },
+            { n: '겨울', e: '❄️', tags: ['1girl', 'coat', 'scarf', 'snow', 'falling snow', 'cool colors'] },
+            { n: '우아한 드레스', e: '👗', tags: ['1girl', 'evening gown', 'indoors', 'long hair', 'spotlight', 'elegant'] },
+            { n: '밤하늘 별', e: '🌌', tags: ['1girl', 'casual', 'rooftop', 'starry sky', 'sitting', 'moonlight'] },
+            { n: '운동 후', e: '💪', tags: ['1girl', 'gym uniform', 'gymnasium', 'ponytail', 'athletic'] },
+        ];
+        // 동시출현(어울림) 맵: 앵커 태그 → 함께 잘 쓰이는 태그들
+        const TAG_AFFINITY = {
+            'school uniform': ['classroom', 'serafuku', 'school bag', 'indoors', 'sitting', 'window', 'blush', 'looking at viewer'],
+            'serafuku': ['classroom', 'school', 'pleated skirt', 'thighhighs', 'sitting', 'sunlight'],
+            'classroom': ['school uniform', 'desk', 'window', 'sitting', 'sunlight', 'indoors'],
+            'bikini': ['beach', 'ocean', 'blue sky', 'wet', 'standing', 'sunlight', 'navel'],
+            'beach': ['bikini', 'ocean', 'blue sky', 'sand', 'sunlight', 'sun hat'],
+            'armor': ['fantasy background', 'holding weapon', 'cape', 'dramatic lighting', 'serious', 'ruins'],
+            'cyberpunk city': ['neon lights', 'night', 'rain', 'jacket', 'reflection', 'city lights'],
+            'neon lights': ['cyberpunk city', 'night', 'reflection', 'colorful', 'city lights'],
+            'kimono': ['cherry blossoms', 'shrine', 'hair flower', 'traditional', 'outdoors'],
+            'gothic lolita': ['castle', 'moody atmosphere', 'red eyes', 'frills', 'night', 'ribbon'],
+            'coat': ['scarf', 'snow', 'winter', 'city', 'cool colors', 'gloves'],
+            'evening gown': ['indoors', 'spotlight', 'jewelry', 'long hair', 'elegant', 'chandelier'],
+            'maid': ['apron', 'indoors', 'frills', 'holding', 'ribbon'],
+            'cherry blossoms': ['petals falling', 'spring', 'outdoors', 'soft lighting', 'sundress'],
+            'rain': ['umbrella', 'wet', 'reflection', 'puddle', 'cloudy sky', 'melancholic'],
+            'snow': ['coat', 'scarf', 'winter', 'falling snow', 'cold', 'breath'],
+            'sunset': ['golden hour', 'warm colors', 'silhouette', 'ocean', 'clouds'],
+            'night': ['starry sky', 'moonlight', 'neon lights', 'city lights', 'dark'],
+            'ponytail': ['gym uniform', 'athletic', 'smile', 'looking at viewer'],
+            'long hair': ['floating hair', 'wind', 'hair between eyes', 'sidelocks'],
+            'holding weapon': ['armor', 'fighting stance', 'serious', 'dramatic lighting'],
+            'sitting': ['looking at viewer', 'crossed legs', 'indoors', 'chair'],
+            'wings': ['halo', 'feathers', 'sky', 'glowing', 'ethereal'],
+            'cat ears': ['cat tail', 'animal ears', 'paw pose', 'collar', 'cute'],
+            'idol costume': ['stage', 'spotlight', 'sparkle', 'dynamic pose', 'smile', 'microphone'],
+        };
+        function _recKor(t) {
+            const lc = (t || '').toLowerCase();
+            if (activeTagsMap[t] && activeTagsMap[t].kor) return activeTagsMap[t].kor;
+            if (activeTagsMap[lc] && activeTagsMap[lc].kor) return activeTagsMap[lc].kor;
+            const d = (typeof _tagDictLookup === 'function') ? _tagDictLookup(lc) : null;
+            if (d && d.k) return d.k;
+            return t;
+        }
+        function _recLayerOf(t) {
+            const lc = (t || '').toLowerCase();
+            if (activeTagsMap[lc]) return activeTagsMap[lc].layer;
+            const d = (typeof _tagDictLookup === 'function') ? _tagDictLookup(lc) : null;
+            return d ? d.l : null;
+        }
+        // 현재 에디터의 활성 태그 (소문자)
+        function _recActive() {
+            const set = new Set();
+            try { (contextStates[currentContext] || []).forEach(s => (s || '').split(',').map(x => x.trim().toLowerCase().replace(/^\(+|\)+$/g, '').replace(/:\d*\.?\d+$/, '').trim()).filter(Boolean).forEach(x => set.add(x))); } catch (e) {}
+            return set;
+        }
+        // 빈 계층 목록 (2~7 중 태그 없는 계층)
+        function _recEmptyLayers(active) {
+            const filled = new Set();
+            active.forEach(t => { const l = _recLayerOf(t); if (l) filled.add(l); });
+            const empty = [];
+            for (let L = 2; L <= 7; L++) if (!filled.has(L)) empty.push(L);
+            return empty;
+        }
+        // 어울리는 태그 추천 (동시출현 + 빈 계층 가중치)
+        function _recSuggest(limit) {
+            limit = limit || 8;
+            const active = _recActive();
+            const scores = {}; // tag -> score
+            const bump = (t, s) => { const lc = (t || '').toLowerCase(); if (!lc || active.has(lc)) return; scores[lc] = (scores[lc] || 0) + s; };
+            // ① 동시출현: 활성 태그의 어울림 목록 합산
+            active.forEach(t => { (TAG_AFFINITY[t] || []).forEach((rel, i) => bump(rel, 1.0 - i * 0.05)); });
+            const empty = new Set(_recEmptyLayers(active));
+            // ② 빈 계층 보완: 후보에 빈 계층 태그면 가중치, 후보가 적으면 사전에서 채움
+            Object.keys(scores).forEach(t => { const l = _recLayerOf(t); if (l && empty.has(l)) scores[t] += 0.6; });
+            // 후보가 부족하면 빈 계층의 대표 사전 태그로 보강
+            if (Object.keys(scores).length < limit) {
+                empty.forEach(L => {
+                    const pool = (_dictByLayer()[L] || []);
+                    for (let i = 0; i < pool.length && Object.keys(scores).length < limit * 2; i += Math.max(1, Math.floor(pool.length / 12))) {
+                        bump(pool[i].t, 0.3);
+                    }
+                });
+            }
+            return Object.entries(scores).sort((a, b) => b[1] - a[1]).slice(0, limit)
+                .map(([t]) => ({ t, kor: _recKor(t), layer: _recLayerOf(t) }));
+        }
+
         function renderRecommendArea() {
           try {
             const area = document.getElementById('rec-combo-area');
             if (!area) return;
             _recUpdateBtn();
             if (!_recommendOn) { area.style.display = 'none'; area.innerHTML = ''; return; }
-            const combos = _recBuildCombos(3);
             area.style.cssText = 'display:block; background:var(--bg-surface); border:1px solid rgba(168,85,247,0.28); border-radius:12px; padding:12px; margin-bottom:14px;';
-            let html = `<div style="display:flex; align-items:center; gap:8px; margin-bottom:9px;">
-                <span style="font-size:13px; font-weight:800; color:#a855f7; font-family:var(--font-heading);"><i class="fa-solid fa-bolt"></i> 추천 조합</span>
-                <span style="font-size:10px; color:var(--text-dim);">탭하면 에디터에 추가</span>
-                <button onclick="renderRecommendArea()" title="다른 조합" style="margin-left:auto; background:rgba(168,85,247,0.12); border:1px solid rgba(168,85,247,0.4); color:#a855f7; border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer;"><i class="fa-solid fa-rotate"></i> 새로고침</button>
+            const active = _recActive();
+            const head = (title, hint) => `<div style="display:flex; align-items:center; gap:8px; margin-bottom:9px;">
+                <span style="font-size:13px; font-weight:800; color:#a855f7; font-family:var(--font-heading);"><i class="fa-solid fa-bolt"></i> ${title}</span>
+                <span style="font-size:10px; color:var(--text-dim);">${hint}</span>
+                <button id="rec-refresh-btn" title="새로고침" style="margin-left:auto; background:rgba(168,85,247,0.12); border:1px solid rgba(168,85,247,0.4); color:#a855f7; border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer;"><i class="fa-solid fa-rotate"></i></button>
             </div>`;
-            if (!combos.length) {
-                html += `<div style="font-size:12px; color:var(--text-dim); padding:6px 0;">추천할 조합이 부족합니다. DB에 태그를 더 추가해 보세요.</div>`;
+
+            if (active.size === 0) {
+                // ── Cold start: 테마 레시피로 시작 ──
+                const shuffled = TAG_RECIPES.slice().sort(() => Math.random() - 0.5).slice(0, 6);
+                let html = head('테마로 시작', '하나 고르면 어울리는 조합이 채워져요');
+                html += `<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px;">`;
+                shuffled.forEach((r, idx) => {
+                    html += `<button class="rec-recipe" data-idx="${idx}" style="text-align:left; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.3); border-radius:10px; padding:10px; cursor:pointer;">
+                        <span style="font-size:18px;">${r.e}</span>
+                        <span style="display:block; font-size:12px; font-weight:700; color:var(--text-main); margin-top:3px;">${_esc(r.n)}</span>
+                        <span style="display:block; font-size:9px; color:var(--text-dim); margin-top:2px;">${r.tags.length}개 태그</span>
+                    </button>`;
+                });
+                html += `</div>`;
                 area.innerHTML = html;
-                return;
+                area._recipes = shuffled;
+                area.querySelectorAll('.rec-recipe').forEach(btn => btn.onclick = () => {
+                    const r = area._recipes[parseInt(btn.dataset.idx)]; if (!r) return;
+                    importPromptToEditor(r.tags, 'append');
+                    showToast(`'${r.n}' 조합을 담았어요`, 'success', 1600);
+                    renderRecommendArea();
+                });
+            } else {
+                // ── 이어서: 어울리는 태그 추천 ──
+                const sugg = _recSuggest(8);
+                const empty = _recEmptyLayers(active);
+                const layerName = (L) => (layerMeta.find(m => m.id === L)?.title || '').replace(/^\d+\.\s*/, '');
+                let html = head('어울리는 태그', '지금 조합에 맞춰 추천');
+                if (!sugg.length) {
+                    html += `<div style="font-size:12px; color:var(--text-dim); padding:6px 0;">추천할 태그가 부족합니다. 태그를 더 추가하거나 DB를 채워보세요.</div>`;
+                    area.innerHTML = html;
+                } else {
+                    if (empty.length) html += `<div style="font-size:10px; color:var(--text-dim); margin-bottom:7px;">💡 비어있는 계층: ${empty.map(layerName).join(' · ')}</div>`;
+                    html += `<div style="display:flex; flex-wrap:wrap; gap:7px;">`;
+                    sugg.forEach((s, idx) => {
+                        html += `<button class="rec-tag" data-idx="${idx}" style="background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.35); border-radius:16px; padding:6px 12px; cursor:pointer; font-size:12px; color:var(--text-main);">
+                            <i class="fa-solid fa-plus" style="font-size:9px; color:#a855f7; margin-right:5px;"></i>${_esc(s.kor)}
+                        </button>`;
+                    });
+                    html += `</div>`;
+                    area.innerHTML = html;
+                    area._sugg = sugg;
+                    area.querySelectorAll('.rec-tag').forEach(btn => btn.onclick = () => {
+                        const s = area._sugg[parseInt(btn.dataset.idx)]; if (!s) return;
+                        importPromptToEditor([s.t], 'append');
+                        renderRecommendArea();
+                    });
+                }
             }
-            html += `<div style="display:flex; flex-direction:column; gap:8px;">`;
-            combos.forEach((c, idx) => {
-                html += `<button class="rec-combo-card" data-idx="${idx}" style="text-align:left; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.3); border-radius:10px; padding:10px 12px; cursor:pointer; display:flex; align-items:center; gap:10px;">
-                    <span style="flex:1; min-width:0;">
-                        <span style="font-size:13px; color:var(--text-main); font-weight:600; display:block; line-height:1.4;">${c.kors.join(' · ').replace(/</g, '&lt;')}</span>
-                        <span style="font-size:10px; color:var(--text-dim);">${c.tags.length}개 태그</span>
-                    </span>
-                    <span style="flex-shrink:0; background:#a855f7; color:#fff; border-radius:8px; padding:5px 11px; font-size:12px; font-weight:700;"><i class="fa-solid fa-plus"></i></span>
-                </button>`;
-            });
-            html += `</div>`;
-            area.innerHTML = html;
-            area.querySelectorAll('.rec-combo-card').forEach(btn => {
-                btn.onclick = () => {
-                    const c = combos[parseInt(btn.dataset.idx)];
-                    if (!c) return;
-                    importPromptToEditor(c.tags, 'append');
-                    showToast('추천 조합을 추가했어요', 'success', 1600);
-                    renderRecommendArea(); // 추가분 반영해 새 추천
-                };
-            });
-          } catch (e) { console.warn('추천 조합 렌더 실패(무시):', e); }
+            const rb = document.getElementById('rec-refresh-btn');
+            if (rb) rb.onclick = () => renderRecommendArea();
+          } catch (e) { console.warn('추천 렌더 실패(무시):', e); }
         }
         let recents = [];
 
