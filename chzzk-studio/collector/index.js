@@ -70,6 +70,17 @@ async function archiveThumb(key, url) {
   } catch { /* 조용히 스킵 */ }
 }
 
+// ── 하트비트: 수집기가 살아있다는 신호를 주기적으로 핑 ──────
+// collector_config의 healthcheck_url(예: healthchecks.io)로 5분마다 핑.
+// 핑이 멈추면 그 서비스가 "수집 멈춤"을 이메일로 알려줌. (설정 안 하면 아무 동작 안 함)
+async function heartbeat() {
+  try {
+    const { data } = await supabase.from('collector_config').select('value').eq('key', 'healthcheck_url').maybeSingle()
+    const url = data?.value
+    if (url) await fetch(url).catch(() => {})
+  } catch { /* 조용히 스킵 */ }
+}
+
 // ── 라이브 상태 조회 ────────────────────────────────────────
 async function getLive() {
   try {
@@ -128,10 +139,16 @@ async function flush() {
   if (messageBuffer.length) {
     const batch = messageBuffer.splice(0, messageBuffer.length)
     const liveId = live?.liveId ?? null
-    for (const m of batch) m.live_id = liveId
+    for (const m of batch) if (m.live_id == null) m.live_id = liveId
     const { error } = await supabase.from('chat_messages').insert(batch)
-    if (error) console.error('❌ 메시지 저장 실패:', error.message)
-    else console.log(`📝 [${new Date().toISOString()}] 세부 채팅 ${batch.length}건 저장`)
+    if (error) {
+      // 일시적 실패 시 손실 방지: 되돌려서 다음 분에 재시도 (과다 시 최신 5만건만 유지)
+      console.error('❌ 메시지 저장 실패(다음 분 재시도):', error.message)
+      messageBuffer = batch.concat(messageBuffer)
+      if (messageBuffer.length > 50000) messageBuffer = messageBuffer.slice(-50000)
+    } else {
+      console.log(`📝 [${new Date().toISOString()}] 세부 채팅 ${batch.length}건 저장`)
+    }
   }
 
   // (2) 분당 집계 (방송 중일 때만)
@@ -228,6 +245,8 @@ async function main() {
   setInterval(pollVideos, 60 * 60 * 1000)
   pollClips()
   setInterval(pollClips, 60 * 60 * 1000)
+  heartbeat()
+  setInterval(heartbeat, 5 * 60 * 1000)
 }
 
 main().catch((e) => {
