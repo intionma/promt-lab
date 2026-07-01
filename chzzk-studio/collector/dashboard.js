@@ -161,6 +161,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .emos{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.emo{display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:8px;padding:5px 9px;font-size:12px}
 .emo .ei{width:20px;height:20px;border-radius:4px;background:linear-gradient(135deg,#ffd1dc,#c9e4ff)}
 .foot{color:var(--dim2);font-size:11.5px;margin-top:18px;border-top:1px solid var(--border);padding-top:12px}
+/* 반응형: 태블릿 */
+@media(max-width:900px){.app{grid-template-columns:1fr}.side{display:none}.main{padding:18px 16px;max-width:100%}.cards{grid-template-columns:repeat(2,1fr)}.row3,.row2{grid-template-columns:1fr}}
+/* 반응형: 모바일 */
+@media(max-width:480px){.main{padding:14px 12px}.card{padding:14px}.card .v{font-size:22px}.top h1{font-size:17px}.ba{grid-template-columns:1fr;gap:8px}.emos{gap:6px}}
 </style></head><body><div class="app">
 <aside class="side"><div class="brand"><span class="dot"></span> 치지직 통계</div>
 <nav class="navi"><a class="on">Overview</a><a>시청자</a><a>채팅</a><a>순위</a><a>다시보기</a><a>데뷔 비교</a></nav></aside>
