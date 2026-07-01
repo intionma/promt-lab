@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ExternalLink, Trash2, Calendar, Layers, Boxes, Loader2, HardDrive, FileText, Download, GripVertical, Split, AlertTriangle, Pencil, Lock, Check, X } from "lucide-react";
 import {
   DndContext, DragOverlay, PointerSensor, KeyboardSensor, useSensor, useSensors,
-  closestCorners, useDroppable, type DragStartEvent, type DragOverEvent, type DragEndEvent,
+  closestCorners, type DragStartEvent, type DragOverEvent, type DragEndEvent,
 } from "@dnd-kit/core";
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -37,6 +37,24 @@ function orderCmp(a: Session, b: Session) {
   return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
 }
 
+// 모델(그룹) 표시 순서 — 브라우저에 저장(개인 표시 설정)
+const MODEL_ORDER_KEY = "vrr_model_order";
+function getSavedModelOrder(): string[] {
+  if (typeof window === "undefined") return [];
+  try { const r = localStorage.getItem(MODEL_ORDER_KEY); return r ? (JSON.parse(r) as string[]) : []; } catch { return []; }
+}
+function saveModelOrder(names: string[]) {
+  try { localStorage.setItem(MODEL_ORDER_KEY, JSON.stringify(names)); } catch { /* noop */ }
+}
+// 저장된 순서를 우선 적용하고, 저장에 없는(새) 모델은 기존 순서(최신순)로 뒤에 붙임
+function applySavedModelOrder(names: string[]): string[] {
+  const saved = getSavedModelOrder();
+  if (!saved.length) return names;
+  const present = new Set(names);
+  const savedSet = new Set(saved);
+  return [...saved.filter((n) => present.has(n)), ...names.filter((n) => !savedSet.has(n))];
+}
+
 export default function MyModels({ adminPin }: { adminPin: string | null }) {
   const admin = !!adminPin;
   const [loading, setLoading] = useState(true);
@@ -48,6 +66,7 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
   const [vmap, setVmap] = useState<Record<string, VersionItem>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dragSource, setDragSource] = useState<string | null>(null);
+  const [dragType, setDragType] = useState<"group" | "version" | null>(null);
   const [mounted, setMounted] = useState(false);
 
   const [confirmTarget, setConfirmTarget] = useState<Session | null>(null);
@@ -116,7 +135,7 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
         nextVmap[s.id] = { ...s, versionNo: n - idx, size: sizeMap.get(s.id) || 0 };
       });
     }
-    setContainers(nextContainers);
+    setContainers(applySavedModelOrder(nextContainers));
     setItems(nextItems);
     setVmap(nextVmap);
     setLoading(false);
@@ -135,11 +154,14 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
 
   function handleDragStart(e: DragStartEvent) {
     const id = String(e.active.id);
+    const type = (e.active.data.current?.type as "group" | "version") ?? "version";
     setActiveId(id);
-    setDragSource(findContainer(id) ?? null);
+    setDragType(type);
+    setDragSource(type === "version" ? (findContainer(id) ?? null) : null);
   }
 
   function handleDragOver(e: DragOverEvent) {
+    if (e.active.data.current?.type === "group") return; // 그룹 드래그는 순서만 — 버전 이동 로직 skip
     const activeId = String(e.active.id);
     const overId = e.over ? String(e.over.id) : null;
     if (!overId) return;
@@ -160,12 +182,27 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
   }
 
   function handleDragEnd(e: DragEndEvent) {
+    const type = e.active.data.current?.type;
     const aId = String(e.active.id);
     const overId = e.over ? String(e.over.id) : null;
     const source = dragSource;
     setActiveId(null);
     setDragSource(null);
+    setDragType(null);
     if (!overId) return;
+
+    // 모델(그룹) 순서 변경 — 브라우저에 저장
+    if (type === "group") {
+      const overContainer = findContainer(overId); // over 가 그룹명이든 버전 id든 컨테이너로 환산
+      const fromIdx = containers.indexOf(aId);
+      const toIdx = overContainer ? containers.indexOf(overContainer) : -1;
+      if (fromIdx >= 0 && toIdx >= 0 && fromIdx !== toIdx) {
+        const next = arrayMove(containers, fromIdx, toIdx);
+        setContainers(next);
+        saveModelOrder(next);
+      }
+      return;
+    }
 
     const to = findContainer(overId);
     if (!to) return;
@@ -405,8 +442,9 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
-            onDragCancel={() => { setActiveId(null); setDragSource(null); }}
+            onDragCancel={() => { setActiveId(null); setDragSource(null); setDragType(null); }}
           >
+            <SortableContext items={containers} strategy={verticalListSortingStrategy}>
             {containers.map((name) => (
               <DroppableGroup
                 key={name}
@@ -454,6 +492,7 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
                 </SortableContext>
               </DroppableGroup>
             ))}
+            </SortableContext>
 
             {mounted && createPortal(
               <DragOverlay>
@@ -465,6 +504,13 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
                     </div>
                     <span className="text-sm text-[var(--fg)] truncate max-w-[160px]">{activeV.title}</span>
                   </div>
+                ) : dragType === "group" && activeId ? (
+                  <div className="glass-strong rounded-xl px-3 py-2.5 flex items-center gap-2 shadow-2xl ring-2 ring-[var(--purple)]/50">
+                    <GripVertical className="w-4 h-4 text-[var(--purple)]" />
+                    <Boxes className="w-4 h-4 text-[var(--purple)]" />
+                    <span className="text-sm font-bold text-[var(--fg)] truncate max-w-[200px]">{activeId}</span>
+                    <span className="text-[10px] text-[var(--muted)] bg-white/5 px-2 py-0.5 rounded-full">{items[activeId]?.length ?? 0}개</span>
+                  </div>
                 ) : null}
               </DragOverlay>,
               document.body
@@ -473,7 +519,7 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
 
           <div className="flex items-center gap-2 text-[10px] text-[var(--muted)] px-1 pt-1">
             {admin ? (
-              <><Layers className="w-3 h-3" /> 왼쪽 손잡이(⋮⋮)를 끌어 순서를 바꾸거나 다른 모델로 옮기세요</>
+              <><Layers className="w-3 h-3" /> 손잡이(⋮⋮)를 끌어 모델·버전 순서를 바꾸거나 버전을 다른 모델로 옮기세요</>
             ) : (
               <><Lock className="w-3 h-3" /> 삭제·이동·이름수정은 상단 &lsquo;관리자&rsquo; 버튼으로 관리자 모드를 켜면 가능해요</>
             )}
@@ -514,14 +560,30 @@ function DroppableGroup({
   onEditChange: (v: string) => void; onStartEdit: () => void; onSaveEdit: () => void; onCancelEdit: () => void;
   children: React.ReactNode;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: name });
+  // 모델(그룹) 자체를 드래그해 순서 변경 + 버전을 여기로 떨어뜨리는 드롭 대상 (둘 다 sortable 이 처리)
+  const { setNodeRef, attributes, listeners, transform, transition, isOver, isDragging } = useSortable({ id: name, data: { type: "group" }, disabled: !admin });
+  const style: React.CSSProperties = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
   return (
     <div
       ref={setNodeRef}
+      style={style}
       className={`space-y-2 fade-up rounded-xl p-1 -m-1 transition-all ${isOver ? "ring-2 ring-[var(--purple)] bg-[var(--purple)]/5" : ""}`}
     >
       <div className="flex items-center gap-2 px-1">
-        <Boxes className="w-4 h-4 text-[var(--purple)] shrink-0" />
+        {admin && !editing ? (
+          <button
+            {...attributes}
+            {...listeners}
+            aria-label="드래그해서 모델 순서 변경"
+            title="끌어서 모델 순서 변경"
+            className="touch-none cursor-grab active:cursor-grabbing text-[var(--muted)]/60 hover:text-[var(--purple)] shrink-0 -ml-0.5"
+            style={{ touchAction: "none" }}
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+        ) : (
+          <Boxes className="w-4 h-4 text-[var(--purple)] shrink-0" />
+        )}
         {editing ? (
           <input
             autoFocus
