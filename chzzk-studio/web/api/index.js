@@ -476,25 +476,34 @@ td{padding:8px;border-bottom:1px solid #f4f4f4}td.tt{max-width:200px;overflow:hi
 body.live .v-off{display:none}body:not(.live) .v-live{display:none}
 .foot{color:var(--dim2);font-size:11.5px;margin-top:18px;border-top:1px solid var(--border);padding-top:12px}
 /* ── 태블릿 (≤1024px): 사이드바 → 상단 가로 메뉴, 2열 카드 ── */
+/* ── 태블릿 (≤1024px): 사이드바 → 상단 가로 메뉴, 큰 패널 세로 스택 ── */
 @media(max-width:1024px){
   .app{grid-template-columns:1fr}.side{display:none}.topnav{display:flex}
   .main{padding:16px 18px;max-width:100%}
   .cards{grid-template-columns:repeat(2,1fr)}
   .row3,.row2{grid-template-columns:1fr}
-  #overview,#history,#viewers,#chat,#ranking{scroll-margin-top:60px}
 }
-/* ── 모바일 (≤600px): 여백 축소, 히트맵 12칸, 큰 숫자 축소 ── */
+/* ── 모바일 (≤600px): 여백·폰트 축소, 히트맵 12칸, 그래프/모달/피드 최적화 ── */
 @media(max-width:600px){
   .main{padding:12px 12px}
   .cards{gap:10px}
   .card{padding:13px}
-  .top{margin-bottom:14px}.top h1{font-size:17px}
-  .tg button{padding:6px 11px}
+  .top{margin-bottom:12px}.top h1{font-size:17px}.top .sub{font-size:11.5px}
+  .tg button{padding:6px 10px;font-size:12px}
   .grass{grid-template-columns:repeat(12,1fr)}
-  .feed{height:180px}
+  .feed{height:210px}
+  .tlbar{gap:8px}.tlbar input[type=range]{max-width:none}.tlbar #tlrange{font-size:11px}
+  .modal{padding:14px 10px}.modal-box{max-height:92vh}
+  .idcard{display:none} /* 사이드바 대신 상단 헤더에 요약 노출 */
+  .pie{gap:12px}.donut{width:88px;height:88px}.donut i{width:50px;height:50px;margin:19px}
+  table{min-width:460px}
 }
-/* ── 초소형 (≤380px): 카드 1열 ── */
-@media(max-width:380px){.cards{grid-template-columns:1fr}}
+/* ── 초소형 (≤380px): 2열 유지, 여백 최소 ── */
+@media(max-width:380px){
+  .cards{grid-template-columns:1fr 1fr;gap:8px}
+  .main{padding:10px 10px}.card{padding:11px}
+  .top h1{font-size:16px}.topnav a{padding:6px 11px;font-size:12px}
+}
 </style></head><body class="${hasLive ? 'live' : ''}"><div class="app">
 <aside class="side">
 <div class="idcard"><div class="avatar"></div><div><div class="chname">SoundVoltex1</div><div class="chsub">사볼 · 이터널 리턴</div>
@@ -520,7 +529,7 @@ body.live .v-off{display:none}body:not(.live) .v-live{display:none}
 <a class="navlink" data-view="chat" onclick="return nav(this,'chat')">채팅 분석</a>
 <a class="navlink" data-view="ranking" onclick="return nav(this,'ranking')">랭킹</a>
 <a class="navlink" data-view="vods" onclick="return nav(this,'vods')">다시보기</a></nav>
-<div class="top"><div><h1>SoundVoltex1 ${hasLive ? '<span class="livedot" style="margin-left:6px"><i></i>LIVE</span>' : ''}</h1><div class="sub">이터널 리턴 · ${hasLive ? '지금 방송 중 — 실시간 실데이터' : '실데이터(과거 방송 포함) · 방송 중엔 실시간'}</div></div>
+<div class="top"><div><h1>SoundVoltex1 ${hasLive ? '<span class="livedot" style="margin-left:6px"><i></i>LIVE</span>' : ''}</h1><div class="sub">이터널 리턴 · 팔로워 ${num(d.followers)}${d.followerDelta != null ? ` (${d.followerDelta >= 0 ? '▲+' + d.followerDelta : '▼' + d.followerDelta})` : ''} · ${hasLive ? '지금 방송 중 — 실시간 실데이터' : '실데이터(과거 방송 포함)'}</div></div>
 ${debug ? `<div class="tg"><button class="o ${hasLive ? '' : 'act'}" onclick="sw(0)">⚫ 방송 종료</button><button class="l ${hasLive ? 'act' : ''}" onclick="sw(1)">🔴 방송 중</button></div>` : ''}</div>
 <div class="views">
 <section class="view active" data-view="dashboard">
