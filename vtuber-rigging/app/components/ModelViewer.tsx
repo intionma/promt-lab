@@ -166,8 +166,8 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
 
   // 숨긴 ArtMesh(drawable) 인덱스 + 원본 opacity 배열 참조
   const hiddenMeshesRef = useRef<Set<number>>(new Set());
-  // 깜빡임(찾기)용 임시 숨김 세트
-  const flashMeshesRef  = useRef<Set<number>>(new Set());
+  // 깜빡임(찾기): index → 경과시간(ms). 렌더 루프에서 부드럽게 페이드.
+  const flashMeshesRef  = useRef<Map<number, number>>(new Map());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const drawOpacitiesRef = useRef<any>(null);
   // 실루엣 모드(회사 등에서 캐릭터 아트 대신 단색 형체만 보이게)
@@ -347,16 +347,9 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
         applySilhouette();
       },
       flashMesh: (index) => {
-        // 해당 메쉬를 잠깐 깜빡여 어떤 부위인지 눈으로 찾게 함
-        const fset = flashMeshesRef.current;
-        let n = 0;
-        const tick = () => {
-          if (fset.has(index)) fset.delete(index); else fset.add(index);
-          n += 1;
-          if (n >= 6) { fset.delete(index); return; }
-          setTimeout(tick, 160);
-        };
-        tick();
+        // 해당 메쉬를 부드럽게 페이드(밝→어둠→밝) 반복해 어떤 부위인지 눈에 띄게 함.
+        // 경과시간을 0 으로 (재)시작 — 실제 페이드 애니메이션은 렌더 루프가 처리.
+        flashMeshesRef.current.set(index, 0);
       },
       getState: () => ({
         overrides: Object.fromEntries(overridesRef.current),
@@ -676,7 +669,17 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
           const op = drawOpacitiesRef.current;
           if (!op) return;
           if (hiddenMeshesRef.current.size) hiddenMeshesRef.current.forEach((i) => { op[i] = 0; });
-          if (flashMeshesRef.current.size)  flashMeshesRef.current.forEach((i) => { op[i] = 0; });
+          // 깜빡임: 하드 블링크 대신 부드러운 페이드(밝→어둠→밝)를 몇 번 반복 후 종료
+          if (flashMeshesRef.current.size) {
+            const FL_PERIOD = 560, FL_DUR = 2240; // 주기 0.56s, 총 2.24s(약 4번), 예전보다 살짝 느림
+            flashMeshesRef.current.forEach((t, i) => {
+              const nt = t + dt;
+              if (nt >= FL_DUR) { flashMeshesRef.current.delete(i); return; }
+              flashMeshesRef.current.set(i, nt);
+              const mult = 0.5 + 0.5 * Math.cos((2 * Math.PI * nt) / FL_PERIOD); // 1→0→1 부드럽게
+              op[i] = (op[i] ?? 1) * mult;
+            });
+          }
         };
 
         // 얼굴 추적: 라이브러리 내장 focusController 사용(올바른 타이밍·스무딩 내장)

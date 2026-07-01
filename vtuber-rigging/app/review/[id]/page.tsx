@@ -106,10 +106,17 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     if (editingGroupId === gid) setEditingGroupId(null);
   }
   function toggleMembership(gid: string, meshId: string) {
-    setMeshGroups((p) => p.map((g) =>
-      g.id === gid
-        ? { ...g, ids: g.ids.includes(meshId) ? g.ids.filter((x) => x !== meshId) : [...g.ids, meshId] }
-        : g
+    const g = meshGroups.find((x) => x.id === gid);
+    const adding = g ? !g.ids.includes(meshId) : false;
+    // 그룹이 '눈 꺼짐'(기존 멤버 전부 숨김) 상태에서 메쉬를 추가하면, 그 메쉬도 즉시 숨김
+    // (예전엔 그룹 눈을 껐다 켜야 반영됐음)
+    if (adding && g && g.ids.length > 0 && g.ids.every((id) => hiddenIds.has(id))) {
+      setHiddenById(meshId, true);
+    }
+    setMeshGroups((p) => p.map((x) =>
+      x.id === gid
+        ? { ...x, ids: x.ids.includes(meshId) ? x.ids.filter((y) => y !== meshId) : [...x.ids, meshId] }
+        : x
     ));
   }
   function toggleMeshSelectMode(on: boolean) {
