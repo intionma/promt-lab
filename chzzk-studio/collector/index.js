@@ -156,12 +156,36 @@ async function pollVideos() {
       category: v.videoCategoryValue ?? null,
       video_type: v.videoType ?? null,
       thumbnail_url: v.thumbnailImageUrl ?? null,
+      live_pv: v.livePv ?? null, // 생방송 당시 시청수
     }))
     const { error } = await supabase.from('video_snapshots').insert(rows)
     if (error) console.error('❌ VOD 저장 실패:', error.message)
     else console.log(`🎬 [${new Date().toISOString()}] 다시보기 ${rows.length}개 저장`)
   } catch (e) {
     console.warn('⚠️ VOD 조회 실패:', e.message)
+  }
+}
+
+// ── 1시간마다: 클립 조회수 수집 (바이럴/외부유입 지표) ──────
+async function pollClips() {
+  try {
+    const res = await fetch(`https://api.chzzk.naver.com/service/v1/channels/${CHANNEL_ID}/clips?size=50&orderType=RECENT&filterType=ALL`, { headers: { 'User-Agent': UA } })
+    const list = (await res.json())?.content?.data || []
+    if (!list.length) return
+    const rows = list.map((c) => ({
+      clip_uid: c.clipUID ?? null,
+      title: c.clipTitle ?? null,
+      read_count: c.readCount ?? null,
+      duration: c.duration ?? null,
+      category: c.clipCategoryValue ?? c.clipCategory ?? null,
+      created_date: c.createdDate ?? null,
+      thumbnail_url: c.thumbnailImageUrl ?? null,
+    }))
+    const { error } = await supabase.from('clip_snapshots').insert(rows)
+    if (error) console.error('❌ 클립 저장 실패:', error.message)
+    else console.log(`✂️ [${new Date().toISOString()}] 클립 ${rows.length}개 저장`)
+  } catch (e) {
+    console.warn('⚠️ 클립 조회 실패:', e.message)
   }
 }
 
@@ -181,6 +205,8 @@ async function main() {
   scheduleFlush()
   pollVideos()
   setInterval(pollVideos, 60 * 60 * 1000)
+  pollClips()
+  setInterval(pollClips, 60 * 60 * 1000)
 }
 
 main().catch((e) => {
