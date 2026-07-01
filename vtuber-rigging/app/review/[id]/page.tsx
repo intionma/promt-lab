@@ -6,6 +6,7 @@ import { ArrowLeft, MessageSquare, Sliders, Clapperboard, Layers, EyeOff, Eye } 
 import Link from "next/link";
 import { supabase, type Session, type MeshGroup, type MeshConfig } from "@/lib/supabase";
 import { getSilhouettePref, setSilhouettePref, DEFAULT_SILHOUETTE_COLOR } from "@/lib/prefs";
+import { useAdmin } from "@/lib/admin";
 import FeedbackPanel from "@/app/components/FeedbackPanel";
 import ParamPanel from "@/app/components/ParamPanel";
 import ProductionPanel from "@/app/components/ProductionPanel";
@@ -73,6 +74,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [selectedMesh, setSelectedMesh] = useState<number | null>(null);
   const [meshSaving, setMeshSaving] = useState(false);
   const pendingMeshConfig = useRef<MeshConfig | null>(null);
+  const admin = useAdmin(); // 관리자 모드면 폴더 공유 저장 시 비번 자동
 
   function idxOf(meshId: string): number {
     return meta?.meshes.find((m) => m.id === meshId)?.index ?? -1;
@@ -139,7 +141,8 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     setHiddenIds(new Set());
   }
   async function saveMeshConfig() {
-    const pw = window.prompt("모두에게 저장 — 비밀번호를 입력하세요");
+    // 관리자 모드면 PIN 자동, 아니면 비번 입력
+    const pw = admin.active ? admin.pin : window.prompt("폴더를 이 모델의 모든 버전에 공유 저장 — 비밀번호를 입력하세요");
     if (!pw) return;
     setMeshSaving(true);
     try {
@@ -155,7 +158,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
         alert("저장 실패: " + (j.error || "") + "\n(Supabase 에 mesh_config 컬럼이 필요할 수 있어요)");
         return;
       }
-      alert("저장됐어요 — 이제 이 모델을 여는 모두에게 반영됩니다");
+      alert("폴더를 저장했어요 — 같은 모델의 모든 버전(앞으로 올릴 버전 포함)에 폴더가 공유됩니다");
     } finally {
       setMeshSaving(false);
     }
@@ -278,7 +281,23 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
           .single();
         if (data) {
           setSession(data);
-          pendingMeshConfig.current = (data.mesh_config as MeshConfig | null) ?? null;
+          const own = (data.mesh_config as MeshConfig | null) ?? null;
+          let groups = own?.groups ?? [];
+          const hidden = own?.hidden ?? [];
+          // 폴더(그룹)는 모델 단위 공유 — 이 버전에 폴더가 없으면 같은 모델의 다른 버전에서 가져옴
+          // (버전별 아트메쉬 이름이 동일하므로 그대로 적용됨. 숨김 상태는 버전별로 유지)
+          if (groups.length === 0 && data.model_name) {
+            const { data: sibs } = await supabase
+              .from("sessions")
+              .select("mesh_config")
+              .eq("model_name", data.model_name)
+              .neq("id", id);
+            for (const s of sibs ?? []) {
+              const g = ((s as { mesh_config: MeshConfig | null }).mesh_config)?.groups;
+              if (g && g.length) { groups = g; break; }
+            }
+          }
+          pendingMeshConfig.current = { groups, hidden };
         } else setNotFound(true);
       } catch {
         // 네트워크 오류 등 — 무한 로딩 대신 안내 표시
