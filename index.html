@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.12 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.13 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.12 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.13 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1953,7 +1953,15 @@
         const CHANGELOG = [
             // ── 2026-07-01 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.12', date: '2026-07-01', time: '최신',
+                version: 'v9.10.13', date: '2026-07-01', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[추천] 테마 시나리오 대폭 확대 — 12 → 52종 (학교·계절·판타지·SF·도시·우아·무대·직업·감성·자연 등). 빈 화면에서 한 번에 9개씩 보여주고 새로고침으로 계속 바뀜',
+                    '[추천] "어울리는 태그"가 훨씬 문맥에 맞음 — 예: 비키니→해변·바다·배꼽, 기모노→신사·벚꽃·머리 꽃 장식, 사이버펑크→네온·반사·밤 (레시피 기반 동시출현 대폭 강화)',
+                ]
+            },
+            {
+                version: 'v9.10.12', date: '2026-07-01', time: '오후',
                 tag: 'feat',
                 items: [
                     '[한글 번역] 문장이 훨씬 자연스러워짐 — 날씨·계절을 하나로 병합("눈, 내리는 눈, 겨울" → "눈 내리는 겨울"), 머리 속성도 자연 병합("긴 머리, 흩날리는 머리…" → "흩날리는 긴 머리, 눈가를 가린 앞머리와 옆으로 흘러내린 머리")',
@@ -6439,18 +6447,69 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         //  ① 큐레이션 레시피(테마 시작)  ② 동시출현 어울림  ③ 빈 계층 완성
         // ══════════════════════════════════════════════════════════════
         const TAG_RECIPES = [
+            // ── 학교·일상 ──
             { n: '교실 일상', e: '🏫', tags: ['1girl', 'school uniform', 'classroom', 'sitting', 'looking at viewer', 'window', 'sunlight'] },
+            { n: '방과 후 복도', e: '🎒', tags: ['1girl', 'serafuku', 'school hallway', 'standing', 'looking at viewer', 'afternoon', 'soft lighting'] },
+            { n: '도서관', e: '📚', tags: ['1girl', 'cardigan', 'library', 'reading', 'glasses', 'indoors', 'soft lighting'] },
+            { n: '옥상 점심', e: '🍱', tags: ['1girl', 'school uniform', 'school rooftop', 'sitting', 'eating', 'blue sky', 'wind'] },
             { n: '카페 오후', e: '☕', tags: ['1girl', 'sweater', 'cafe', 'sitting', 'holding cup', 'warm colors', 'smile'] },
-            { n: '벚꽃 산책', e: '🌸', tags: ['1girl', 'sundress', 'cherry blossoms', 'outdoors', 'walking', 'petals falling', 'soft lighting'] },
-            { n: '판타지 전사', e: '⚔️', tags: ['1girl', 'armor', 'fantasy background', 'holding weapon', 'dramatic lighting', 'serious'] },
-            { n: '고딕', e: '🖤', tags: ['1girl', 'gothic lolita', 'castle', 'red eyes', 'moody atmosphere', 'night'] },
-            { n: '해변 여름', e: '🏖️', tags: ['1girl', 'bikini', 'beach', 'ocean', 'standing', 'blue sky', 'sunlight'] },
+            { n: '집콕 파자마', e: '🛌', tags: ['1girl', 'pajamas', 'bedroom', 'bed', 'lying', 'messy hair', 'soft lighting'] },
+            { n: '등굣길', e: '🌅', tags: ['1girl', 'school uniform', 'street', 'walking', 'morning', 'bag', 'warm colors'] },
+            // ── 계절 ──
+            { n: '벚꽃 봄', e: '🌸', tags: ['1girl', 'sundress', 'cherry blossoms', 'outdoors', 'walking', 'petals falling', 'soft lighting'] },
+            { n: '여름 해변', e: '🏖️', tags: ['1girl', 'bikini', 'beach', 'ocean', 'standing', 'blue sky', 'sunlight'] },
+            { n: '여름 축제', e: '🎆', tags: ['1girl', 'yukata', 'summer festival', 'fireworks', 'night', 'hair flower', 'holding hand fan'] },
+            { n: '가을 단풍', e: '🍁', tags: ['1girl', 'coat', 'autumn leaves', 'park', 'walking', 'warm colors', 'wind'] },
+            { n: '겨울 눈', e: '❄️', tags: ['1girl', 'coat', 'scarf', 'snow', 'falling snow', 'winter', 'cool colors'] },
+            { n: '크리스마스', e: '🎄', tags: ['1girl', 'santa costume', 'indoors', 'snow', 'smile', 'warm colors', 'bokeh'] },
+            { n: '신년 기모노', e: '🎍', tags: ['1girl', 'kimono', 'shrine', 'hair flower', 'standing', 'winter', 'soft lighting'] },
+            // ── 판타지 ──
+            { n: '판타지 전사', e: '⚔️', tags: ['1girl', 'armor', 'fantasy background', 'holding sword', 'fighting stance', 'dramatic lighting', 'serious'] },
+            { n: '마법사', e: '🪄', tags: ['1girl', 'wizard hat', 'wizard robe', 'holding staff', 'magic circle', 'glowing runes', 'fantasy background'] },
+            { n: '엘프', e: '🧝', tags: ['1girl', 'elf', 'elf ears', 'long hair', 'enchanted forest', 'dappled sunlight', 'soft lighting'] },
+            { n: '공주', e: '👑', tags: ['1girl', 'evening gown', 'tiara', 'castle', 'long hair', 'elegant', 'spotlight'] },
+            { n: '무녀', e: '⛩️', tags: ['1girl', 'miko', 'shrine', 'long hair', 'standing', 'soft lighting', 'petals falling'] },
+            { n: '천사', e: '😇', tags: ['1girl', 'angel wings', 'halo', 'white dress', 'divine light', 'floating', 'ethereal'] },
+            { n: '악마', e: '😈', tags: ['1girl', 'demon horns', 'demon wings', 'red eyes', 'dark', 'moody atmosphere', 'smirk'] },
+            { n: '고딕 로리타', e: '🖤', tags: ['1girl', 'gothic lolita', 'castle', 'red eyes', 'moody atmosphere', 'night', 'frills'] },
+            // ── SF·미래 ──
             { n: '사이버펑크', e: '🌃', tags: ['1girl', 'jacket', 'cyberpunk city', 'neon lights', 'night', 'rain', 'reflection'] },
-            { n: '마법소녀', e: '✨', tags: ['1girl', 'idol costume', 'magic circle', 'sparkle', 'dynamic pose', 'colorful'] },
-            { n: '겨울', e: '❄️', tags: ['1girl', 'coat', 'scarf', 'snow', 'falling snow', 'cool colors'] },
-            { n: '우아한 드레스', e: '👗', tags: ['1girl', 'evening gown', 'indoors', 'long hair', 'spotlight', 'elegant'] },
+            { n: '우주', e: '🚀', tags: ['1girl', 'spacesuit', 'space', 'starry sky', 'floating', 'glowing', 'cinematic lighting'] },
+            { n: '메카 파일럿', e: '🤖', tags: ['1girl', 'pilot suit', 'spaceship interior', 'sitting', 'serious', 'screen glow', 'cool colors'] },
+            // ── 도시·야경 ──
+            { n: '네온 거리', e: '🌆', tags: ['1girl', 'jacket', 'neon alley', 'neon lights', 'night', 'reflection', 'cyberpunk outfit'] },
+            { n: '비 오는 거리', e: '🌧️', tags: ['1girl', 'coat', 'rainy city', 'holding umbrella (rain)', 'rain', 'reflection', 'melancholic'] },
+            { n: '옥상 야경', e: '🌉', tags: ['1girl', 'casual', 'rooftop at night', 'city lights', 'sitting', 'wind', 'bokeh'] },
             { n: '밤하늘 별', e: '🌌', tags: ['1girl', 'casual', 'rooftop', 'starry sky', 'sitting', 'moonlight'] },
-            { n: '운동 후', e: '💪', tags: ['1girl', 'gym uniform', 'gymnasium', 'ponytail', 'athletic'] },
+            // ── 우아·격식 ──
+            { n: '이브닝 드레스', e: '👗', tags: ['1girl', 'evening gown', 'indoors', 'long hair', 'spotlight', 'elegant', 'jewelry'] },
+            { n: '웨딩', e: '💍', tags: ['1girl', 'wedding dress', 'veil', 'indoors', 'soft lighting', 'elegant', 'bouquet'] },
+            { n: '무도회', e: '🩰', tags: ['1girl', 'ball gown', 'chandelier', 'dancing', 'elegant', 'warm colors', 'indoors'] },
+            // ── 활동·무대 ──
+            { n: '아이돌 무대', e: '🎤', tags: ['1girl', 'idol costume', 'stage', 'spotlight', 'dynamic pose', 'sparkle', 'smile'] },
+            { n: '밴드 공연', e: '🎸', tags: ['1girl', 'casual', 'playing guitar', 'stage', 'dynamic pose', 'colored lighting', 'sweat'] },
+            { n: '운동 후', e: '💪', tags: ['1girl', 'gym uniform', 'gymnasium', 'ponytail', 'athletic', 'sweat'] },
+            { n: '수영장', e: '🏊', tags: ['1girl', 'swimsuit', 'pool', 'wet', 'standing', 'water drops', 'sunlight'] },
+            { n: '발레', e: '🩰', tags: ['1girl', 'leotard', 'dance studio', 'ballet slippers', 'standing', 'soft lighting', 'elegant'] },
+            // ── 캐주얼·데이트 ──
+            { n: '스트릿 패션', e: '🧢', tags: ['1girl', 'hoodie', 'cargo pants', 'sneakers', 'city', 'standing', 'cool colors'] },
+            { n: '데이트룩', e: '💕', tags: ['1girl', 'dress', 'cardigan', 'cafe', 'smile', 'blush', 'warm colors'] },
+            { n: '피크닉', e: '🧺', tags: ['1girl', 'sundress', 'flower field', 'sitting', 'picnic basket', 'sunlight', 'soft lighting'] },
+            // ── 직업·코스튬 ──
+            { n: '메이드', e: '🧹', tags: ['1girl', 'maid', 'apron', 'indoors', 'holding tray', 'frills', 'soft lighting'] },
+            { n: '간호사', e: '💉', tags: ['1girl', 'nurse', 'nurse cap', 'hospital room', 'smile', 'indoors', 'soft lighting'] },
+            { n: '치어리더', e: '📣', tags: ['1girl', 'cheerleader', 'gymnasium', 'dynamic pose', 'twintails', 'smile', 'colorful'] },
+            { n: '마녀', e: '🧙', tags: ['1girl', 'witch hat', 'witch costume', 'night', 'holding staff (magic)', 'moody atmosphere', 'sparkle'] },
+            { n: '할로윈', e: '🎃', tags: ['1girl', 'witch costume', 'night', 'moody atmosphere', 'orange theme', 'sparkle', 'smirk'] },
+            // ── 분위기·감성 ──
+            { n: '몽환적', e: '🌫️', tags: ['1girl', 'white dress', 'misty forest', 'floating', 'ethereal', 'dreamy atmosphere', 'soft lighting'] },
+            { n: '느와르', e: '🎞️', tags: ['1girl', 'business suit', 'city', 'night', 'monochrome', 'moody atmosphere', 'cinematic lighting'] },
+            { n: '빈티지 필름', e: '📷', tags: ['1girl', 'casual', 'street', 'analog photo', 'film grain', 'warm colors', 'soft lighting'] },
+            { n: '골든아워', e: '🌇', tags: ['1girl', 'sundress', 'field', 'golden hour', 'backlighting', 'warm colors', 'wind'] },
+            // ── 자연 ──
+            { n: '꽃밭', e: '🌷', tags: ['1girl', 'sundress', 'flower field', 'standing', 'petals falling', 'soft lighting', 'smile'] },
+            { n: '숲속', e: '🌲', tags: ['1girl', 'dress', 'forest', 'dappled sunlight', 'standing', 'soft lighting', 'nature'] },
+            { n: '별 보는 밤', e: '✨', tags: ['1girl', 'casual', 'field', 'starry sky', 'lying', 'moonlight', 'night'] },
         ];
         // 동시출현(어울림) 맵: 앵커 태그 → 함께 잘 쓰이는 태그들
         const TAG_AFFINITY = {
@@ -6604,7 +6663,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
             if (active.size === 0) {
                 // ── Cold start: 테마 레시피로 시작 ──
-                const shuffled = TAG_RECIPES.slice().sort(() => Math.random() - 0.5).slice(0, 6);
+                const shuffled = TAG_RECIPES.slice().sort(() => Math.random() - 0.5).slice(0, 9);
                 let html = head('테마로 시작', '하나 고르면 어울리는 조합이 채워져요');
                 html += `<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px;">`;
                 shuffled.forEach((r, idx) => {
