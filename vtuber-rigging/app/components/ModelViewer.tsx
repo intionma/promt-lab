@@ -49,6 +49,14 @@ export interface ViewerHandle {
   setSilhouette: (on: boolean, color?: number) => void;
   // 두 모델 비교: 다른 창의 시선을 그대로 적용 (focusController 값 gx,gy)
   gazeTo: (gx: number, gy: number, instant: boolean) => void;
+  // ── 시점 동기화(체인) 제어 — 부모가 통합 시점 바에서 호출 ──
+  setViewMode: (mode: ViewMode) => void;
+  setCamera: (free: { offsetX: number; offsetY: number; zoom: number }) => void;
+  setFaceTrack: (on: boolean) => void;
+  setCamLock: (on: boolean) => void;
+  resetFreeView: () => void;
+  centerGaze: () => void;
+  resize: () => void;
 }
 
 type Props = {
@@ -59,6 +67,12 @@ type Props = {
   controlRef?: { current: ViewerHandle | null };
   // 두 모델 비교: 이 창의 시선(focusController 값)이 바뀌면 알림 → 다른 창에 전달
   onGaze?: (gx: number, gy: number, instant: boolean) => void;
+  // 시점 바를 부모(통합 바)에서 그릴 때 내부 시점 바를 숨김
+  showViewBar?: boolean;
+  // 시점 상태(전신/상반신/자유·얼굴반응·카메라잠금)가 바뀌면 부모에 알림 → 통합 바 표시
+  onViewState?: (s: { viewMode: ViewMode; faceTrack: boolean; camLock: boolean }) => void;
+  // 자유 시점 카메라(팬·줌)가 사용자 조작으로 바뀌면 알림 → 체인 연결 시 다른 창에 전달
+  onCameraChange?: (free: { offsetX: number; offsetY: number; zoom: number }) => void;
 };
 
 // 배경 옵션 (캔버스 컨테이너 CSS 배경 + 스크린샷 합성용 draw)
@@ -141,10 +155,14 @@ const VIEW_LABELS: Record<ViewMode, string> = {
   free: "자유 시점",
 };
 
-export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, onMeshPicked, controlRef, onGaze }: Props) {
-  // 최신 onGaze 를 ref 로 (init 클로저에서 안전하게 참조)
+export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, onMeshPicked, controlRef, onGaze, showViewBar = true, onViewState, onCameraChange }: Props) {
+  // 최신 콜백들을 ref 로 (init 클로저에서 안전하게 참조)
   const onGazeRef = useRef(onGaze);
   onGazeRef.current = onGaze;
+  const onCameraChangeRef = useRef(onCameraChange);
+  onCameraChangeRef.current = onCameraChange;
+  const onViewStateRef = useRef(onViewState);
+  onViewStateRef.current = onViewState;
   const canvasRef   = useRef<HTMLCanvasElement>(null);
   const gazeDotRef  = useRef<HTMLDivElement>(null);
   const appRef      = useRef<unknown>(null);
@@ -366,6 +384,29 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
       },
       // 다른 창의 시선을 그대로 적용 (자기 pointer 이벤트가 아니라 외부 값 → onGaze 재발행 안 함)
       gazeTo: (gx, gy, instant) => { focusFnRef.current?.(gx, gy, instant); },
+      // ── 시점 동기화 제어 ──
+      setViewMode: (mode) => { switchView(mode); },
+      setCamera: (free) => {
+        // 다른 창에서 온 카메라 값 그대로 적용 (사용자 조작 아님 → onCameraChange 재발행 안 함)
+        freeRef.current = { ...free };
+        if (viewModeRef.current === "free") applyView("free");
+      },
+      setFaceTrack: (on) => {
+        faceTrackRef.current = on;
+        setFaceTrack(on);
+        if (!on) focusFnRef.current?.(0, 0, false);
+      },
+      setCamLock: (on) => { camLockRef.current = on; setCamLock(on); },
+      resetFreeView: () => { resetFreeView(); },
+      centerGaze: () => { focusFnRef.current?.(0, 0, false); },
+      resize: () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const app = appRef.current as any;
+        const parent = canvasRef.current?.parentElement;
+        if (!app || !parent) return;
+        const w = parent.clientWidth, h = parent.clientHeight;
+        if (w > 0 && h > 0) { app.renderer.resize(w, h); recomputeBase(); applyView(viewModeRef.current); applySilhouette(); }
+      },
       flashMesh: (index) => {
         // 해당 메쉬를 부드럽게 페이드(밝→어둠→밝) 반복해 어떤 부위인지 눈에 띄게 함.
         // 경과시간을 0 으로 (재)시작 — 실제 페이드 애니메이션은 렌더 루프가 처리.
@@ -382,21 +423,31 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
     return () => { if (controlRef) controlRef.current = null; };
   }, [controlRef]);
 
+  // 시점 상태가 바뀌면 부모(통합 시점 바)에 알림
+  useEffect(() => {
+    onViewStateRef.current?.({ viewMode, faceTrack, camLock });
+  }, [viewMode, faceTrack, camLock]);
+
   // 현재 viewport 기준으로 전신 transform(baseRef) 재계산 (로드·리사이즈 시)
   // 실루엣 모드: 모델의 모든 픽셀 RGB를 단색으로 치환(알파=형태 유지) → 평면 실루엣
   function applySilhouette() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const model = modelRef.current as any;
     const PIXI = pixiRef.current;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = appRef.current as any;
     if (!model || !PIXI) return;
     const { on, color } = silhouetteRef.current;
-    if (!on) { model.filters = null; return; }
+    if (!on) { model.filters = null; model.filterArea = null; return; }
     const r = ((color >> 16) & 255) / 255;
     const g = ((color >> 8) & 255) / 255;
     const b = (color & 255) / 255;
     const f = new PIXI.ColorMatrixFilter();
     f.matrix = [0, 0, 0, 0, r,  0, 0, 0, 0, g,  0, 0, 0, 0, b,  0, 0, 0, 1, 0];
     model.filters = [f];
+    // 필터 영역을 화면 전체로 고정 — Live2D 모델의 bounds 가 잘못 잡혀(특히 비교 모드에서
+    // 렌더러 크기 변화 후) 필터 렌더텍스처가 비어 모델이 통째로 사라지는 문제 방지.
+    if (app?.renderer) model.filterArea = new PIXI.Rectangle(0, 0, app.renderer.width, app.renderer.height);
   }
 
   function recomputeBase() {
@@ -493,6 +544,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
     free.offsetX = px * (1 - zRatio) + free.offsetX * zRatio;
     free.offsetY = py * (1 - zRatio) + free.offsetY * zRatio;
     free.zoom    = newZoom;
+    onCameraChangeRef.current?.({ ...free }); // 체인 연결 시 다른 창에 동일 적용
   }
 
   // ── useEffect ──────────────────────────────────────────────────────────────
@@ -841,6 +893,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
               freeRef.current.offsetX += e.clientX - lastPtrRef.current.x;
               freeRef.current.offsetY += e.clientY - lastPtrRef.current.y;
               lastPtrRef.current = { x: e.clientX, y: e.clientY };
+              onCameraChangeRef.current?.({ ...freeRef.current }); // 체인 연결 시 다른 창에 동일 적용
             }
           }
         }
@@ -888,10 +941,14 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
         let ro: ResizeObserver | null = null;
         if (parentEl && typeof ResizeObserver !== "undefined") {
           ro = new ResizeObserver(() => {
-            if (parentEl.clientWidth > 0 && parentEl.clientHeight > 0) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (app as any).resize();
-            }
+            const w = parentEl.clientWidth, h = parentEl.clientHeight;
+            if (w <= 0 || h <= 0) return;
+            // resizeTo 는 window resize 에만 반응 → 컨테이너 크기 변화(비교 모드 토글 등)엔
+            // 직접 렌더러를 재설정하고, 'resize' 이벤트에 의존하지 않고 즉시 재정렬 + 실루엣 재적용.
+            app.renderer.resize(w, h);
+            recomputeBase();
+            applyView(viewModeRef.current);
+            applySilhouette();
           });
           ro.observe(parentEl);
         }
@@ -981,7 +1038,8 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
   return (
     <div className="flex flex-col h-full gap-2">
 
-      {/* 시점 버튼 */}
+      {/* 시점 버튼 (비교 모드에선 부모의 통합 바가 대신 표시) */}
+      {showViewBar && (
       <div className="flex items-center gap-1.5 px-3 pt-3 flex-shrink-0">
         <span className="text-[10px] text-[var(--muted)] mr-0.5">시점</span>
         {(["fullbody", "upperbody", "free"] as ViewMode[]).map((mode) => (
@@ -1044,6 +1102,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
           </div>
         )}
       </div>
+      )}
 
       {/* 캔버스 */}
       <div className="flex flex-1 min-h-0 px-3 pb-3">

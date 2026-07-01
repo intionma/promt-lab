@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { ChevronDown, ChevronRight, Search, Zap, Crosshair, X, Plus } from "lucide-react";
 import type { Param } from "./ModelViewer";
 
@@ -108,6 +108,10 @@ function ComboPad({
   );
 }
 
+// 스냅 지점(끝값·중앙0)에 머무르거나 우클릭하면 그 값으로 이동 — Cubism 처럼.
+const SNAP_FRAC = 0.05; // 근처 판정: 범위의 5%
+const HOLD_MS = 1000;   // 모바일: 잡은 채 1초 유지하면 스냅
+
 function Slider({
   p, isFixed, onChange, onRelease,
 }: {
@@ -116,7 +120,60 @@ function Slider({
   onChange: (id: string, value: number) => void;
   onRelease: (id: string) => void;
 }) {
-  const pct = ((p.value - p.min) / (p.max - p.min)) * 100;
+  const range = p.max - p.min || 1;
+  const pct = ((p.value - p.min) / range) * 100;
+
+  // 끝값(min·max) + 범위에 0이 들어오면 중앙(0)
+  const snaps = useMemo(() => {
+    const arr: { v: number; pos: number; label: string }[] = [
+      { v: p.min, pos: 0, label: "최소" },
+      { v: p.max, pos: 100, label: "최대" },
+    ];
+    if (p.min < 0 && p.max > 0) arr.push({ v: 0, pos: ((0 - p.min) / range) * 100, label: "중앙(0)" });
+    return arr;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p.min, p.max]);
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const holdTimer = useRef<number | null>(null);
+  const holdTarget = useRef<number | null>(null);
+  const locked = useRef(false); // 스냅 후 손 뗄 때까지 true → 값이 손가락을 안 따라감(터치 놓임)
+
+  function clearHold() {
+    if (holdTimer.current != null) { clearTimeout(holdTimer.current); holdTimer.current = null; }
+    holdTarget.current = null;
+  }
+  function endHold() { clearHold(); locked.current = false; }
+
+  function handleValue(v: number) {
+    if (locked.current) return; // 스냅 잠금 중엔 무시
+    onChange(p.id, v);
+    // 모바일: 스냅 근처에 1초 이상 머무르면 그 값으로 고정
+    const near = snaps.find((s) => Math.abs(v - s.v) <= range * SNAP_FRAC);
+    if (near) {
+      if (holdTarget.current !== near.v) {
+        clearHold();
+        holdTarget.current = near.v;
+        holdTimer.current = window.setTimeout(() => {
+          onChange(p.id, near.v);       // 정확히 그 값으로
+          locked.current = true;         // 이동 완료 → 터치 놓임
+          clearHold();
+          inputRef.current?.blur();
+        }, HOLD_MS);
+      }
+    } else {
+      clearHold();
+    }
+  }
+
+  // PC: 트랙에서 우클릭 → 가까운 스냅 지점 값으로 이동
+  function onContextMenu(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+    const near = snaps.find((s) => Math.abs(xPct - s.pos) <= 8);
+    if (near) { e.preventDefault(); onChange(p.id, near.v); }
+  }
+
   return (
     <div className="space-y-0.5">
       <div className="flex justify-between items-center">
@@ -130,17 +187,34 @@ function Slider({
         </button>
         <span className="text-[10px] text-[var(--purple)] font-mono">{p.value.toFixed(2)}</span>
       </div>
-      <div className="relative h-6 flex items-center">
+      <div className="relative h-6 flex items-center" onContextMenu={onContextMenu}>
         <div className="absolute inset-x-0 h-1.5 bg-white/10 rounded-full overflow-hidden">
           <div className="h-full bg-gradient-to-r from-purple-600 to-pink-500 rounded-full" style={{ width: `${pct}%` }} />
         </div>
+        {/* 스냅 점 (끝값·중앙0) — PC는 우클릭, 모바일은 근처 1초 유지 */}
+        {snaps.map((s) => {
+          const active = Math.abs(p.value - s.v) <= range * SNAP_FRAC;
+          return (
+            <span
+              key={s.label}
+              title={`${s.label} — 우클릭 또는 이 값 근처에서 1초 유지하면 이동`}
+              className={`absolute w-2.5 h-2.5 rounded-full border pointer-events-none transition-colors ${active ? "bg-[var(--purple)] border-white" : "bg-[var(--bg-soft)] border-white/50"}`}
+              style={{ left: `${s.pos}%`, marginLeft: "-5px" }}
+            />
+          );
+        })}
         <input
+          ref={inputRef}
           type="range"
           min={p.min}
           max={p.max}
-          step={(p.max - p.min) / 200}
+          step={range / 200}
           value={p.value}
-          onChange={(e) => onChange(p.id, parseFloat(e.target.value))}
+          onChange={(e) => handleValue(parseFloat(e.target.value))}
+          onPointerDown={() => { locked.current = false; }}
+          onPointerUp={endHold}
+          onPointerCancel={endHold}
+          onLostPointerCapture={endHold}
           className="param-slider absolute inset-0"
         />
       </div>

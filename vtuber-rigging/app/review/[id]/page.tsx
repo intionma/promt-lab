@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, use } from "react";
 import dynamic from "next/dynamic";
-import { ArrowLeft, MessageSquare, Sliders, Clapperboard, Layers, EyeOff, Eye, Columns2, X, Boxes, Loader2 } from "lucide-react";
+import { ArrowLeft, MessageSquare, Sliders, Clapperboard, Layers, EyeOff, Eye, Columns2, X, Boxes, Loader2, Link2, Unlink, Crosshair, RotateCcw, Move } from "lucide-react";
 import Link from "next/link";
 import { supabase, type Session } from "@/lib/supabase";
 import { getSilhouettePref, setSilhouettePref, DEFAULT_SILHOUETTE_COLOR } from "@/lib/prefs";
@@ -13,7 +13,9 @@ import ProductionPanel from "@/app/components/ProductionPanel";
 import MeshPanel from "@/app/components/MeshPanel";
 import FolderHotToggles from "@/app/components/FolderHotToggles";
 import { usePaneMesh } from "@/app/components/usePaneMesh";
-import type { Param, ViewerHandle, ModelMeta, ViewerState } from "@/app/components/ModelViewer";
+import type { Param, ViewerHandle, ModelMeta, ViewerState, ViewMode } from "@/app/components/ModelViewer";
+
+const VIEW_LABELS: Record<ViewMode, string> = { fullbody: "전신", upperbody: "상반신", free: "자유 시점" };
 
 const ModelViewer = dynamic(() => import("@/app/components/ModelViewer"), {
   ssr: false,
@@ -97,6 +99,59 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   // 시선 동기화(한 창 → 다른 창)
   function gazeToB(gx: number, gy: number, instant: boolean) { if (compareId) viewerControlB.current?.gazeTo(gx, gy, instant); }
   function gazeToA(gx: number, gy: number, instant: boolean) { if (compareId) viewerControl.current?.gazeTo(gx, gy, instant); }
+
+  // ── 시점 체인(동시 조작) ─────────────────────────────────────────────────
+  // 기본값: 묶임(chain=true) → 두 창의 시점 전환·자유시점 카메라가 함께 움직임.
+  // 풀면 선택된(활성) 창의 시점만 따로 바뀜(메쉬 편집과 동일한 방식).
+  const [chain, setChain] = useState(true);
+  type VState = { viewMode: ViewMode; faceTrack: boolean; camLock: boolean };
+  const [viewStateA, setViewStateA] = useState<VState>({ viewMode: "fullbody", faceTrack: true, camLock: false });
+  const [viewStateB, setViewStateB] = useState<VState>({ viewMode: "fullbody", faceTrack: true, camLock: false });
+  const activeViewState = activePane === "B" ? viewStateB : viewStateA;
+
+  // 자유 시점 카메라 팬·줌 동기화 (체인 연결 시)
+  function cameraToB(free: { offsetX: number; offsetY: number; zoom: number }) { if (compareId && chain) viewerControlB.current?.setCamera(free); }
+  function cameraToA(free: { offsetX: number; offsetY: number; zoom: number }) { if (compareId && chain) viewerControl.current?.setCamera(free); }
+
+  // 통합 시점 바 조작 — 체인이면 두 창 모두, 아니면 활성 창만
+  function applyViewMode(mode: ViewMode) {
+    if (chain) { viewerControl.current?.setViewMode(mode); viewerControlB.current?.setViewMode(mode); }
+    else activeViewer().current?.setViewMode(mode);
+  }
+  function applyFaceTrack(on: boolean) {
+    if (chain) { viewerControl.current?.setFaceTrack(on); viewerControlB.current?.setFaceTrack(on); }
+    else activeViewer().current?.setFaceTrack(on);
+  }
+  function applyCamLock(on: boolean) {
+    if (chain) { viewerControl.current?.setCamLock(on); viewerControlB.current?.setCamLock(on); }
+    else activeViewer().current?.setCamLock(on);
+  }
+  function applyCenterFace() {
+    if (chain) { viewerControl.current?.centerGaze(); viewerControlB.current?.centerGaze(); }
+    else activeViewer().current?.centerGaze();
+  }
+  function applyResetFree() {
+    if (chain) { viewerControl.current?.resetFreeView(); viewerControlB.current?.resetFreeView(); }
+    else activeViewer().current?.resetFreeView();
+  }
+  // A의 현재 시점·카메라를 B에 그대로 맞춤 (비교 시작·체인 재연결 시)
+  function syncBFromA() {
+    const st = viewerControl.current?.getState();
+    if (!st) return;
+    viewerControlB.current?.setViewMode(st.viewMode);
+    viewerControlB.current?.setFaceTrack(st.faceTrack);
+    viewerControlB.current?.setCamLock(viewStateA.camLock);
+    viewerControlB.current?.setCamera(st.free);
+  }
+  function toggleChain() {
+    const next = !chain;
+    setChain(next);
+    if (next && compareId) syncBFromA(); // 다시 묶으면 B를 A에 맞춤
+  }
+  function handleMetaB(m: ModelMeta) {
+    setMetaB(m);
+    if (chain) requestAnimationFrame(() => syncBFromA()); // B 준비되면 A에 맞춤
+  }
 
   function toggleSweep(on: boolean) {
     setParamSweep(on);
@@ -255,6 +310,17 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     if (pc) setIsPC(true); // 창별 '모델 클릭 선택' 기본 ON 은 usePaneMesh 가 처리
   }, []);
 
+  // 비교 모드 토글 시 두 뷰어의 렌더러 크기를 레이아웃 확정 후 재설정
+  // (PIXI resizeTo 는 window resize 에만 반응 → 컨테이너 크기 변화를 직접 반영해야 모델이 안 사라짐)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raf = requestAnimationFrame(() => requestAnimationFrame(() => {
+      viewerControl.current?.resize();
+      viewerControlB.current?.resize();
+    }));
+    return () => cancelAnimationFrame(raf);
+  }, [compareOn]);
+
   if (notFound) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4">
@@ -313,43 +379,119 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
       {/* Content — 모바일: 세로 스택 / PC: 좌우 분할 */}
       <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden gap-2 sm:gap-3 min-h-0">
         {/* Model Viewer(s) — 단일 또는 분할 비교 */}
-        <div className="flex-1 min-h-[60vh] md:min-h-0 overflow-hidden flex flex-col md:flex-row gap-2">
-          {/* Pane A */}
-          <div
-            onPointerDownCapture={() => compareOn && setActivePane("A")}
-            className={`flex-1 min-h-0 overflow-hidden rounded-xl relative transition-colors ${compareOn ? (activePane === "A" ? "border-2 border-[var(--purple)]" : "border-2 border-white/10") : ""}`}
-          >
-            {session && (
-              <ModelViewer
-                sessionId={id}
-                controlRef={viewerControl}
-                onParamsLoaded={handleParamsLoaded}
-                onModelMeta={handleModelMeta}
-                onMeshPicked={meshA.handleMeshPicked}
-                onGaze={gazeToB}
-              />
-            )}
-            <FolderHotToggles groups={meshA.groups} hiddenIds={meshA.hiddenIds} onToggle={meshA.toggleGroup} />
-          </div>
-          {/* Pane B (비교) */}
+        <div className="flex-1 min-h-[60vh] md:min-h-0 overflow-hidden flex flex-col gap-2">
+          {/* 통합 시점 바 (비교 모드 전용) — 두 창의 시점을 함께/따로 조작 */}
           {compareOn && (
-            <div
-              onPointerDownCapture={() => setActivePane("B")}
-              className={`flex-1 min-h-0 overflow-hidden rounded-xl relative transition-colors ${activePane === "B" ? "border-2 border-[var(--purple)]" : "border-2 border-white/10"}`}
-            >
-              <button onClick={closeCompare} title="비교 닫기" className="absolute top-2 right-2 z-20 glass-strong p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--fg)]">
-                <X className="w-4 h-4" />
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 glass rounded-xl flex-shrink-0 flex-wrap">
+              <span className="text-[10px] text-[var(--muted)] mr-0.5">시점</span>
+              {(["fullbody", "upperbody", "free"] as ViewMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => applyViewMode(mode)}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                    activeViewState.viewMode === mode
+                      ? "bg-gradient-to-br from-[var(--purple-deep)] to-[#9333ea] text-white shadow-md"
+                      : "glass glass-hover text-[var(--muted)]"
+                  }`}
+                >
+                  {VIEW_LABELS[mode]}
+                </button>
+              ))}
+              {/* 체인(동시 조작) 토글 */}
+              <button
+                onClick={toggleChain}
+                title={chain ? "두 창을 함께 조작 중 — 누르면 따로 조작" : "각 창을 따로 조작 중 — 누르면 함께 조작"}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1 ${
+                  chain ? "bg-[var(--purple)] text-white shadow-lg shadow-[var(--purple)]/30" : "glass glass-hover text-[var(--muted)]"
+                }`}
+              >
+                {chain ? <Link2 className="w-3.5 h-3.5" /> : <Unlink className="w-3.5 h-3.5" />}
+                {chain ? "동시" : "따로"}
               </button>
-              <ModelViewer
-                sessionId={compareId!}
-                controlRef={viewerControlB}
-                onModelMeta={setMetaB}
-                onMeshPicked={meshB.handleMeshPicked}
-                onGaze={gazeToA}
-              />
-              <FolderHotToggles groups={meshB.groups} hiddenIds={meshB.hiddenIds} onToggle={meshB.toggleGroup} />
+
+              {/* 시점별 보조 버튼 */}
+              {activeViewState.viewMode === "free" ? (
+                <>
+                  <button
+                    onClick={() => applyCamLock(!activeViewState.camLock)}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 ${activeViewState.camLock ? "bg-[var(--purple)]/20 text-[var(--purple)]" : "glass glass-hover text-[var(--muted)]"}`}
+                    title="켜면 드래그로 카메라 대신 시선·고개를 돌립니다"
+                  >
+                    <Move className="w-3 h-3" /> 카메라 잠금 {activeViewState.camLock ? "ON" : "OFF"}
+                  </button>
+                  <button onClick={applyResetFree} className="px-2 py-1 rounded-lg text-[10px] glass glass-hover text-[var(--muted)] flex items-center gap-1">
+                    <RotateCcw className="w-3 h-3" /> 초기화
+                  </button>
+                </>
+              ) : (
+                <>
+                  {activeViewState.faceTrack && (
+                    <button onClick={applyCenterFace} className="px-2.5 py-1 rounded-lg text-[10px] glass glass-hover text-[var(--muted)] flex items-center gap-1">
+                      <Crosshair className="w-3 h-3" /> 정면
+                    </button>
+                  )}
+                  <button
+                    onClick={() => applyFaceTrack(!activeViewState.faceTrack)}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 ${activeViewState.faceTrack ? "bg-[var(--purple)]/20 text-[var(--purple)]" : "glass glass-hover text-[var(--muted)]"}`}
+                    title="터치·마우스에 얼굴이 반응하는 기능"
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${activeViewState.faceTrack ? "bg-[var(--purple)]" : "bg-[var(--muted)]/40"}`} />
+                    얼굴 반응 {activeViewState.faceTrack ? "ON" : "OFF"}
+                  </button>
+                </>
+              )}
+              {!chain && (
+                <span className="ml-auto text-[10px] text-[var(--purple)] font-semibold">
+                  {activePane} 창만 조작 중
+                </span>
+              )}
             </div>
           )}
+
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col md:flex-row gap-2">
+            {/* Pane A */}
+            <div
+              onPointerDownCapture={() => compareOn && setActivePane("A")}
+              className={`flex-1 min-h-0 overflow-hidden rounded-xl relative transition-colors ${compareOn ? (activePane === "A" ? "border-2 border-[var(--purple)]" : "border-2 border-white/10") : ""}`}
+            >
+              {session && (
+                <ModelViewer
+                  sessionId={id}
+                  controlRef={viewerControl}
+                  onParamsLoaded={handleParamsLoaded}
+                  onModelMeta={handleModelMeta}
+                  onMeshPicked={meshA.handleMeshPicked}
+                  onGaze={gazeToB}
+                  showViewBar={!compareOn}
+                  onViewState={setViewStateA}
+                  onCameraChange={cameraToB}
+                />
+              )}
+              <FolderHotToggles groups={meshA.groups} hiddenIds={meshA.hiddenIds} onToggle={meshA.toggleGroup} />
+            </div>
+            {/* Pane B (비교) */}
+            {compareOn && (
+              <div
+                onPointerDownCapture={() => setActivePane("B")}
+                className={`flex-1 min-h-0 overflow-hidden rounded-xl relative transition-colors ${activePane === "B" ? "border-2 border-[var(--purple)]" : "border-2 border-white/10"}`}
+              >
+                <button onClick={closeCompare} title="비교 닫기" className="absolute top-2 right-2 z-30 glass-strong p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--fg)]">
+                  <X className="w-4 h-4" />
+                </button>
+                <ModelViewer
+                  sessionId={compareId!}
+                  controlRef={viewerControlB}
+                  onModelMeta={handleMetaB}
+                  onMeshPicked={meshB.handleMeshPicked}
+                  onGaze={gazeToA}
+                  showViewBar={false}
+                  onViewState={setViewStateB}
+                  onCameraChange={cameraToA}
+                />
+                <FolderHotToggles groups={meshB.groups} hiddenIds={meshB.hiddenIds} onToggle={meshB.toggleGroup} />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 우측 패널: 코멘트 / 파라미터 탭 */}
