@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, ChevronRight, Search, Zap } from "lucide-react";
+import { useState, useRef } from "react";
+import { ChevronDown, ChevronRight, Search, Zap, Crosshair, X, Plus } from "lucide-react";
 import type { Param } from "./ModelViewer";
 
 type Props = {
@@ -14,8 +14,6 @@ type Props = {
   onToggleSweep: (on: boolean) => void;
 };
 
-// 기본(주요) 파라미터 — VTube Studio / Cubism 표준 얼굴·몸 파라미터.
-// 나머지(커스텀·VBridger·물리·ArtMesh 등)는 전부 '고급 설정'으로 분리.
 const PRIMARY_IDS = new Set([
   "ParamAngleX", "ParamAngleY", "ParamAngleZ",
   "ParamEyeBallX", "ParamEyeBallY",
@@ -27,6 +25,88 @@ const PRIMARY_IDS = new Set([
   "ParamBodyAngleX", "ParamBodyAngleY", "ParamBodyAngleZ",
   "ParamBreath",
 ]);
+
+// Cubism 표준 결합(2D) 프리셋 — 두 파라미터가 모두 있으면 버튼 노출
+const COMBO_PRESETS = [
+  { label: "얼굴 각도 XY", xId: "ParamAngleX", yId: "ParamAngleY" },
+  { label: "눈알 XY", xId: "ParamEyeBallX", yId: "ParamEyeBallY" },
+  { label: "몸 각도 XY", xId: "ParamBodyAngleX", yId: "ParamBodyAngleY" },
+];
+
+const short = (id: string) => id.replace("Param", "");
+const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+
+type Combo = { id: string; xId: string; yId: string; label: string };
+
+// ── 2D 결합 패드 ──────────────────────────────────────────────────────────
+function ComboPad({
+  combo, xP, yP, onChange, onRemove,
+}: {
+  combo: Combo;
+  xP: Param;
+  yP: Param;
+  onChange: (id: string, value: number) => void;
+  onRemove: () => void;
+}) {
+  const padRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+
+  const nx = clamp01((xP.value - xP.min) / (xP.max - xP.min || 1));   // 0..1 (좌→우)
+  const ny = clamp01((yP.value - yP.min) / (yP.max - yP.min || 1));   // 0..1 (아래→위)
+
+  function setFromPointer(clientX: number, clientY: number) {
+    const rect = padRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const px = clamp01((clientX - rect.left) / rect.width);
+    const py = clamp01((clientY - rect.top) / rect.height);
+    onChange(xP.id, xP.min + px * (xP.max - xP.min));
+    onChange(yP.id, yP.min + (1 - py) * (yP.max - yP.min)); // 위=최대(Cubism 관례)
+  }
+
+  return (
+    <div className="glass rounded-xl p-2.5 space-y-2">
+      <div className="flex items-center gap-1.5">
+        <Crosshair className="w-3.5 h-3.5 text-[var(--purple)] shrink-0" />
+        <span className="text-[11px] font-semibold text-[var(--fg)] truncate">{combo.label}</span>
+        <button onClick={onRemove} title="결합 해제" className="ml-auto p-1 rounded-md text-[var(--muted)] hover:text-red-400 hover:bg-white/5 shrink-0">
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      <div className="flex gap-2">
+        {/* 세로축(Y) 라벨 */}
+        <div className="flex flex-col justify-between items-center py-1">
+          <span className="text-[8px] text-[var(--muted)] rotate-180" style={{ writingMode: "vertical-rl" }}>{short(yP.id)}</span>
+        </div>
+
+        <div
+          ref={padRef}
+          onPointerDown={(e) => { dragging.current = true; e.currentTarget.setPointerCapture(e.pointerId); setFromPointer(e.clientX, e.clientY); }}
+          onPointerMove={(e) => { if (dragging.current) setFromPointer(e.clientX, e.clientY); }}
+          onPointerUp={(e) => { dragging.current = false; try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* noop */ } }}
+          onPointerCancel={() => { dragging.current = false; }}
+          className="relative flex-1 aspect-square rounded-lg bg-black/25 border border-white/10 cursor-crosshair touch-none overflow-hidden"
+          style={{ touchAction: "none" }}
+        >
+          {/* 격자·중심선 */}
+          <div className="absolute inset-x-0 top-1/2 h-px bg-white/10" />
+          <div className="absolute inset-y-0 left-1/2 w-px bg-white/10" />
+          {/* 이동 점 */}
+          <div
+            className="absolute w-4 h-4 -ml-2 -mt-2 rounded-full bg-[var(--purple)] border-2 border-white shadow-lg shadow-[var(--purple)]/40 pointer-events-none"
+            style={{ left: `${nx * 100}%`, top: `${(1 - ny) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      {/* 가로축(X) 라벨 + 값 */}
+      <div className="flex items-center justify-between text-[9px] text-[var(--muted)] pl-5">
+        <span>{short(xP.id)}: <span className="text-[var(--purple)] font-mono">{xP.value.toFixed(2)}</span></span>
+        <span>{short(yP.id)}: <span className="text-[var(--purple)] font-mono">{yP.value.toFixed(2)}</span></span>
+      </div>
+    </div>
+  );
+}
 
 function Slider({
   p, isFixed, onChange, onRelease,
@@ -46,16 +126,13 @@ function Slider({
           title={isFixed ? `${p.id} — 클릭하면 고정 해제` : p.id}
         >
           {isFixed && <span className="w-1.5 h-1.5 rounded-full bg-pink-400 flex-shrink-0" />}
-          {p.id.replace("Param", "")}
+          {short(p.id)}
         </button>
         <span className="text-[10px] text-[var(--purple)] font-mono">{p.value.toFixed(2)}</span>
       </div>
       <div className="relative h-6 flex items-center">
         <div className="absolute inset-x-0 h-1.5 bg-white/10 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-purple-600 to-pink-500 rounded-full"
-            style={{ width: `${pct}%` }}
-          />
+          <div className="h-full bg-gradient-to-r from-purple-600 to-pink-500 rounded-full" style={{ width: `${pct}%` }} />
         </div>
         <input
           type="range"
@@ -82,6 +159,10 @@ export default function ParamPanel({
 }: Props) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [query, setQuery] = useState("");
+  const [combos, setCombos] = useState<Combo[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickX, setPickX] = useState("");
+  const [pickY, setPickY] = useState("");
 
   if (params.length === 0) {
     return (
@@ -92,14 +173,30 @@ export default function ParamPanel({
     );
   }
 
-  const hasPrimary = params.some((p) => PRIMARY_IDS.has(p.id));
-  const primary  = hasPrimary ? params.filter((p) => PRIMARY_IDS.has(p.id)) : params;
-  const advanced = hasPrimary ? params.filter((p) => !PRIMARY_IDS.has(p.id)) : [];
+  const byId = new Map(params.map((p) => [p.id, p]));
+  const combinedIds = new Set(combos.flatMap((c) => [c.xId, c.yId]));
+
+  function addCombo(xId: string, yId: string, label: string) {
+    if (!byId.has(xId) || !byId.has(yId) || xId === yId) return;
+    if (combinedIds.has(xId) || combinedIds.has(yId)) return;
+    setCombos((prev) => [...prev, { id: `${xId}__${yId}`, xId, yId, label }]);
+  }
+  function removeCombo(id: string) {
+    setCombos((prev) => prev.filter((c) => c.id !== id));
+  }
+
+  // 결합에 안 들어간 파라미터만 슬라이더로
+  const freeParams = params.filter((p) => !combinedIds.has(p.id));
+  const hasPrimary = freeParams.some((p) => PRIMARY_IDS.has(p.id));
+  const primary  = hasPrimary ? freeParams.filter((p) => PRIMARY_IDS.has(p.id)) : freeParams;
+  const advanced = hasPrimary ? freeParams.filter((p) => !PRIMARY_IDS.has(p.id)) : [];
 
   const q = query.trim().toLowerCase();
-  const advFiltered = q
-    ? advanced.filter((p) => p.id.toLowerCase().includes(q))
-    : advanced;
+  const advFiltered = q ? advanced.filter((p) => p.id.toLowerCase().includes(q)) : advanced;
+
+  const availablePresets = COMBO_PRESETS.filter(
+    (pr) => byId.has(pr.xId) && byId.has(pr.yId) && !combinedIds.has(pr.xId) && !combinedIds.has(pr.yId)
+  );
 
   return (
     <div className="flex flex-col h-full">
@@ -129,18 +226,73 @@ export default function ParamPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto chat-scroll p-2.5 space-y-2.5">
+        {/* 결합(2D) */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5">
+            <Crosshair className="w-3.5 h-3.5 text-[var(--purple)]" />
+            <span className="text-[11px] font-semibold text-[var(--fg)]">결합 (2D)</span>
+            <button
+              onClick={() => setPickerOpen((v) => !v)}
+              className="ml-auto px-2 py-0.5 rounded-md text-[10px] glass glass-hover text-[var(--muted)] flex items-center gap-1"
+              title="두 파라미터를 2D 패드로 결합"
+            >
+              <Plus className="w-2.5 h-2.5" /> 결합 추가
+            </button>
+          </div>
+
+          {/* 결합된 패드들 */}
+          {combos.map((c) => {
+            const xP = byId.get(c.xId), yP = byId.get(c.yId);
+            if (!xP || !yP) return null;
+            return <ComboPad key={c.id} combo={c} xP={xP} yP={yP} onChange={onChange} onRemove={() => removeCombo(c.id)} />;
+          })}
+
+          {/* 추가 UI */}
+          {pickerOpen && (
+            <div className="glass rounded-xl p-2.5 space-y-2">
+              {availablePresets.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {availablePresets.map((pr) => (
+                    <button
+                      key={pr.label}
+                      onClick={() => { addCombo(pr.xId, pr.yId, pr.label); }}
+                      className="px-2 py-1 rounded-lg text-[10px] bg-[var(--purple)]/15 text-[var(--purple)] hover:bg-[var(--purple)]/25"
+                    >
+                      + {pr.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* 직접 결합 */}
+              <div className="flex items-center gap-1.5">
+                <select value={pickX} onChange={(e) => setPickX(e.target.value)} className="flex-1 min-w-0 glass rounded-md px-2 py-1 text-[10px] outline-none">
+                  <option value="">X 축…</option>
+                  {params.filter((p) => !combinedIds.has(p.id) && p.id !== pickY).map((p) => <option key={p.id} value={p.id}>{short(p.id)}</option>)}
+                </select>
+                <span className="text-[10px] text-[var(--muted)]">×</span>
+                <select value={pickY} onChange={(e) => setPickY(e.target.value)} className="flex-1 min-w-0 glass rounded-md px-2 py-1 text-[10px] outline-none">
+                  <option value="">Y 축…</option>
+                  {params.filter((p) => !combinedIds.has(p.id) && p.id !== pickX).map((p) => <option key={p.id} value={p.id}>{short(p.id)}</option>)}
+                </select>
+                <button
+                  onClick={() => { if (pickX && pickY) { addCombo(pickX, pickY, `${short(pickX)} × ${short(pickY)}`); setPickX(""); setPickY(""); } }}
+                  disabled={!pickX || !pickY}
+                  className="px-2 py-1 rounded-md text-[10px] bg-[var(--purple)] text-white disabled:opacity-40 shrink-0"
+                >결합</button>
+              </div>
+              <p className="text-[9px] text-[var(--muted)]/70">패드의 점을 끌면 두 값이 함께 움직여요. X 최소→최대는 좌→우, Y는 아래→위.</p>
+            </div>
+          )}
+        </div>
+
+        {(combos.length > 0 || pickerOpen) && <div className="h-px bg-white/5" />}
+
         {/* 기본(주요) 파라미터 */}
         {primary.map((p) => (
-          <Slider
-            key={p.id}
-            p={p}
-            isFixed={overrideIds.has(p.id)}
-            onChange={onChange}
-            onRelease={onRelease}
-          />
+          <Slider key={p.id} p={p} isFixed={overrideIds.has(p.id)} onChange={onChange} onRelease={onRelease} />
         ))}
 
-        {/* 고급 설정 — 나머지 전체 파라미터 */}
+        {/* 고급 설정 */}
         {advanced.length > 0 && (
           <div className="pt-1">
             <button
@@ -167,13 +319,7 @@ export default function ParamPanel({
                   <p className="text-[10px] text-[var(--muted)] text-center py-2">검색 결과가 없어요</p>
                 ) : (
                   advFiltered.map((p) => (
-                    <Slider
-                      key={p.id}
-                      p={p}
-                      isFixed={overrideIds.has(p.id)}
-                      onChange={onChange}
-                      onRelease={onRelease}
-                    />
+                    <Slider key={p.id} p={p} isFixed={overrideIds.has(p.id)} onChange={onChange} onRelease={onRelease} />
                   ))
                 )}
               </div>
