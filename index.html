@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.7 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.8 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.7 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.8 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1942,7 +1942,15 @@
         const CHANGELOG = [
             // ── 2026-07-01 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.7', date: '2026-07-01', time: '최신',
+                version: 'v9.10.8', date: '2026-07-01', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[추천] "어울리는 태그"가 더 똑똑해짐 — 테마 레시피 겹침을 반영하고 흔한 태그 자동 보완으로, 이제 어떤 조합에서도 추천이 비지 않음("추천할 태그가 부족합니다" 거의 사라짐)',
+                    '[추천] 자주 쓰는 태그(드레스·후드·안경·검·유카타 등) 어울림 데이터 대폭 보강 — 문맥에 맞는 추천 정확도 향상',
+                ]
+            },
+            {
+                version: 'v9.10.7', date: '2026-07-01', time: '오후',
                 tag: 'feat',
                 items: [
                     '[기본 태그] Pony Realism 정석에 맞게 보강 — 품질 score를 6단 체인(score_9~score_4_up)으로, "소스 & 레이팅" 폴더 신설(source_pony/anime/furry/cartoon + rating_safe/questionable/explicit)',
@@ -6410,8 +6418,27 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             'holding weapon': ['armor', 'fighting stance', 'serious', 'dramatic lighting'],
             'sitting': ['looking at viewer', 'crossed legs', 'indoors', 'chair'],
             'wings': ['halo', 'feathers', 'sky', 'glowing', 'ethereal'],
-            'cat ears': ['cat tail', 'animal ears', 'paw pose', 'collar', 'cute'],
+            'cat ears': ['cat tail', 'animal ears', 'collar', 'blush', 'looking at viewer'],
             'idol costume': ['stage', 'spotlight', 'sparkle', 'dynamic pose', 'smile', 'microphone'],
+            // ── 흔한 앵커 보강 ──
+            'dress': ['long hair', 'jewelry', 'indoors', 'elegant', 'high heels', 'smile'],
+            'hoodie': ['casual', 'shorts', 'sneakers', 'city', 'smile', 'looking at viewer'],
+            'jacket': ['shirt', 'jeans', 'city', 'standing', 'cool colors'],
+            'thighhighs': ['skirt', 'pleated skirt', 'sitting', 'school uniform', 'zettai ryouiki'],
+            'twintails': ['school uniform', 'blush', 'smile', 'looking at viewer', 'ribbon'],
+            'glasses': ['shirt', 'looking at viewer', 'indoors', 'serious', 'office'],
+            'ocean': ['beach', 'bikini', 'blue sky', 'wind', 'sunlight'],
+            'forest': ['nature', 'sunlight', 'dappled sunlight', 'dress', 'soft lighting'],
+            'city': ['street', 'jacket', 'night', 'city lights', 'cloudy sky'],
+            'sword': ['holding weapon', 'fighting stance', 'armor', 'serious', 'dramatic lighting'],
+            'smile': ['looking at viewer', 'blush', 'closed eyes', 'happy'],
+            'blush': ['smile', 'looking at viewer', 'shy', 'embarrassed'],
+            'wedding dress': ['veil', 'bouquet', 'long hair', 'indoors', 'soft lighting', 'elegant'],
+            'sundress': ['cherry blossoms', 'outdoors', 'sun hat', 'summer', 'soft lighting'],
+            'gym uniform': ['ponytail', 'athletic', 'gymnasium', 'sweat', 'sneakers'],
+            'nurse': ['indoors', 'nurse cap', 'hospital room', 'smile', 'holding'],
+            'yukata': ['festival', 'summer festival', 'hair flower', 'fireworks', 'outdoors'],
+            'sitting on chair': ['indoors', 'crossed legs', 'looking at viewer', 'desk'],
         };
         function _recKor(t) {
             const lc = (t || '').toLowerCase();
@@ -6459,25 +6486,41 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const active = _recActive();
             const scores = {}; // tag -> score
             const bump = (t, s) => { const lc = (t || '').toLowerCase(); if (!lc || active.has(lc)) return; scores[lc] = (scores[lc] || 0) + s; };
-            // ① 동시출현: 활성 태그의 어울림 목록 합산
-            active.forEach(t => { (TAG_AFFINITY[t] || []).forEach((rel, i) => bump(rel, 1.0 - i * 0.05)); });
             const empty = new Set(_recEmptyLayers(active));
-            // ② 빈 계층 보완: 후보에 빈 계층 태그면 가중치, 후보가 적으면 흔한 태그로 채움
-            Object.keys(scores).forEach(t => { const l = _recLayerOf(t); if (l && empty.has(l)) scores[t] += 0.6; });
-            if (Object.keys(scores).length < limit) {
-                empty.forEach(L => (_REC_COMMON[L] || []).forEach((t, i) => bump(t, 0.3 - i * 0.02)));
-            }
-            // ③ 실내/실외 상충 억제 (예: 옥상+별밤에 "indoors/chair" 안 나오게)
             const hasOutdoor = [...active].some(t => _REC_OUTDOOR.has(t));
             const hasIndoor = [...active].some(t => _REC_INDOOR.has(t));
-            Object.keys(scores).forEach(t => {
-                if (hasOutdoor && _REC_INDOOR.has(t)) scores[t] -= 2.0;
-                if (hasIndoor && _REC_OUTDOOR.has(t)) scores[t] -= 2.0;
+
+            // ① 동시출현(affinity): 활성 태그의 어울림 목록
+            active.forEach(t => { (TAG_AFFINITY[t] || []).forEach((rel, i) => bump(rel, 1.0 - i * 0.05)); });
+            // ② 레시피 겹침: 활성 태그가 포함된 테마 레시피의 나머지 태그 (강력한 커버리지)
+            TAG_RECIPES.forEach(r => {
+                const rset = r.tags.map(x => x.toLowerCase());
+                const overlap = [...active].filter(a => rset.includes(a)).length;
+                if (overlap > 0) { const w = overlap / rset.length; r.tags.forEach(t => bump(t, 0.5 * w + 0.25 * overlap)); }
             });
-            // ④ 계층을 알 수 없는(사전/DB에 없는) 태그는 제외 → 번역·계층 배치 불가한 것 방지
-            return Object.entries(scores)
-                .filter(([t, s]) => s > 0 && _recLayerOf(t) != null)
-                .sort((a, b) => b[1] - a[1]).slice(0, limit)
+            // ③ 빈 계층 후보 가중치
+            Object.keys(scores).forEach(t => { const l = _recLayerOf(t); if (l && empty.has(l)) scores[t] += 0.6; });
+            // ④ 실내/실외 상충 억제
+            Object.keys(scores).forEach(t => {
+                if (hasOutdoor && _REC_INDOOR.has(t)) scores[t] -= 3.0;
+                if (hasIndoor && _REC_OUTDOOR.has(t)) scores[t] -= 3.0;
+            });
+            // 유효 후보(계층 판정 가능 + 양수 점수)만
+            const valid = () => Object.entries(scores).filter(([t, s]) => s > 0 && _recLayerOf(t) != null);
+            // ⑤ 보장 채움: 부족하면 빈 계층 → 나머지 계층 순으로 흔한 태그로 채운다 (상충/중복/활성 제외)
+            const layerOrder = [...empty, ...[3, 4, 5, 6, 7, 2, 1].filter(L => !empty.has(L))];
+            for (const L of layerOrder) {
+                if (valid().length >= limit) break;
+                (_REC_COMMON[L] || []).forEach((t, i) => {
+                    const lc = t.toLowerCase();
+                    if (active.has(lc) || scores[lc] > 0) return;
+                    if (hasOutdoor && _REC_INDOOR.has(lc)) return;
+                    if (hasIndoor && _REC_OUTDOOR.has(lc)) return;
+                    if (_recLayerOf(lc) == null) return;
+                    bump(t, 0.25 - i * 0.01);
+                });
+            }
+            return valid().sort((a, b) => b[1] - a[1]).slice(0, limit)
                 .map(([t]) => ({ t, kor: _recKor(t), layer: _recLayerOf(t) }));
         }
 
