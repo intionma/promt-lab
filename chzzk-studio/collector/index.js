@@ -107,6 +107,35 @@ async function flush() {
   }
 }
 
+// ── 다시보기(VOD) 조회수 수집 (1시간마다, 방송 여부 무관) ──
+async function pollVideos() {
+  try {
+    const res = await fetch(
+      `https://api.chzzk.naver.com/service/v1/channels/${CHANNEL_ID}/videos?size=30&sortType=LATEST`,
+      { headers: { 'User-Agent': UA } }
+    )
+    const json = await res.json()
+    const list = json?.content?.data || []
+    if (!list.length) return
+
+    const rows = list.map((v) => ({
+      video_no: v.videoNo ?? null,
+      title: v.videoTitle ?? null,
+      read_count: v.readCount ?? null,
+      publish_date: v.publishDate ? v.publishDate.replace(' ', 'T') + '+09:00' : null,
+      duration: v.duration ?? null,
+      category: v.videoCategoryValue ?? null,
+      video_type: v.videoType ?? null,
+    }))
+
+    const { error } = await supabase.from('video_snapshots').insert(rows)
+    if (error) console.error('❌ VOD 저장 실패:', error.message)
+    else console.log(`🎬 [${new Date().toISOString()}] 다시보기 ${rows.length}개 조회수 저장`)
+  } catch (e) {
+    console.warn('⚠️ VOD 조회 실패:', e.message)
+  }
+}
+
 // 정각(:00초)에 맞춰 1분 간격 실행
 function scheduleFlush() {
   const now = new Date()
@@ -122,6 +151,8 @@ async function main() {
   console.log(`🚀 치지직 채팅 수집기 시작 — 채널 ${CHANNEL_ID}`)
   await chat.connect()
   scheduleFlush()
+  pollVideos()                              // 시작 시 1회
+  setInterval(pollVideos, 60 * 60 * 1000)   // 1시간마다 다시보기 조회수 수집
 }
 
 main().catch((e) => {
