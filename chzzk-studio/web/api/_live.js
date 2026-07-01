@@ -10,6 +10,13 @@ export const renderMsg = (message, emojis) => {
   const map = emojis || {}
   return esc(message).replace(/\{:([^:}]+):\}/g, (whole, code) => (map[code] ? `<img src="${esc(map[code])}" class="emoji" alt=":${esc(code)}:" loading="lazy">` : whole))
 }
+// 시청자별 고정 색상 — 닉네임 해시(djb2)로 팔레트 선택(같은 닉=항상 같은 색). 방송인은 노랑 고정.
+const PALETTE = ['#e5484d', '#ec4899', '#d6409f', '#a855f7', '#7c3aed', '#6366f1', '#2563eb', '#0284c7', '#0891b2', '#0d9488', '#16a34a', '#65a30d', '#ea580c', '#db2777', '#9333ea', '#0369a1']
+export const colorFor = (nick) => {
+  if (nick === 'SoundVoltex1') return '#f5a623'
+  let h = 5381; for (let i = 0; i < nick.length; i++) h = ((h << 5) + h + nick.charCodeAt(i)) >>> 0
+  return PALETTE[h % PALETTE.length]
+}
 
 export async function loadLive(supabase) {
   const { data: lastSnap } = await supabase.from('chat_snapshots').select('captured_at,concurrent_users,category_rank,chat_count,live_id,live_thumbnail_url').order('captured_at', { ascending: false }).limit(1).maybeSingle()
@@ -38,11 +45,10 @@ export async function loadLive(supabase) {
   const { data: lm } = await supabase.from('chat_messages').select('nickname,message,emojis,msg_type,msg_time,is_subscriber,is_follower,user_role').eq('live_id', liveId).order('id', { ascending: false }).limit(4000)
   const msgs = (lm || []).filter((m) => m.nickname)
   const isStreamer = (r) => r === 'streamer' || r === 'streaming_channel_owner'
-  // 피드: 완성된 HTML 문자열 배열(서버·클라이언트 공용)
-  L.feed = msgs.filter((m) => m.msg_type === 'chat' && m.message).slice(0, 14).reverse().map((m) => {
-    const cls = isStreamer(m.user_role) ? 'streamer' : m.is_subscriber ? 'sub' : m.is_follower ? 'fol' : ''
+  // 피드: 완성된 HTML 문자열 배열(서버·클라이언트 공용) · 최신 80개 · 시청자별 고정색
+  L.feed = msgs.filter((m) => m.msg_type === 'chat' && m.message).slice(0, 80).reverse().map((m) => {
     const badge = isStreamer(m.user_role) ? '👑 ' : /manager/.test(m.user_role || '') ? '🛡 ' : ''
-    return `<div><span class="n ${cls}">${badge}${esc(m.nickname)}</span> ${renderMsg(m.message, m.emojis)}</div>`
+    return `<div><span class="n" style="color:${colorFor(m.nickname)}">${badge}${esc(m.nickname)}</span> ${renderMsg(m.message, m.emojis)}</div>`
   })
   const cnt = new Map()
   for (const m of msgs) cnt.set(m.nickname, (cnt.get(m.nickname) || 0) + 1)

@@ -7,7 +7,7 @@
 //   환경변수: SUPABASE_URL, SUPABASE_SERVICE_KEY
 // ============================================================
 import { createClient } from '@supabase/supabase-js'
-import { loadLive } from './_live.js'
+import { loadLive, colorFor } from './_live.js'
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 const num = (n) => (n == null ? '-' : Number(n).toLocaleString())
@@ -238,7 +238,7 @@ function renderLive(d) {
   const series = (real ? live.tlSeries : MOCK.tlSeries) || []
   const tlStart = real ? live.tlStart : Date.now() - MOCK.tlN * 60000
   const tlStep = real ? (live.tlStep || 60000) : 60000
-  const feedRows = real ? (live.feed || []) : MOCK.feed.map((f) => `<div><span class="n ${f.cls}">${esc(f.nm)}</span> ${renderMsg(f.t)}</div>`)
+  const feedRows = real ? (live.feed || []) : MOCK.feed.map((f) => `<div><span class="n" style="color:${colorFor(f.nm)}">${esc(f.nm)}</span> ${renderMsg(f.t)}</div>`)
   const rankArr = real ? (live.leaderboard || []) : MOCK.rank5
 
   const legend = series.map((s) => `<span><i class="dotc" style="background:${s.color};width:14px;height:3px;border-radius:2px"></i> ${esc(s.nm)} (${num(s.total)})</span>`).join('')
@@ -265,14 +265,14 @@ function renderLive(d) {
 <div class="muted" style="margin-top:6px">${tlNote} · 확대 바를 늘리면 시간축이 커지고, 아래 미니맵을 끌면 구간 이동·양끝을 잡으면 구간 조절</div>
 <script>window.__TL=${tlJSON}</script></div>
 <div class="row2" style="margin-top:16px">
-<div class="card"><div class="panel-h"><span class="t">실시간 채팅</span><span class="muted">● 흐르는 중</span></div><div class="feed" id="lv-feed">${feed}</div></div>
+<div class="card feedcard"><div class="panel-h"><span class="t">실시간 채팅</span><span class="muted">● 흐르는 중</span></div><div class="feed" id="lv-feed">${feed}</div><button class="newmsg" id="lv-newmsg" onclick="lvFeedBottom()">↓ 새 채팅 <span id="lv-newn">0</span></button></div>
 <div class="card"><div class="panel-h"><span class="t">채팅 랭킹 🏆</span><span class="muted">이번 방송</span></div><div class="lst rankbars" id="lv-rank5">${rankLb}</div></div>
 </div>
 ${real ? '' : '<div class="muted" style="margin-top:12px">※ 지금은 방송 감지 전이라 <b>가상(mock)</b> 예시입니다. 실제 방송이 켜지면(수집기 가동 중) 이 화면이 실시간 실데이터로 자동 전환됩니다.</div>'}
 </div>`
 }
 
-function renderHTML(d) {
+function renderHTML(d, debug) {
   const hasLive = !!d.live?.isLive // 실시간 감지: 방송 중이면 LIVE 뷰로 시작
   return `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 ${hasLive ? '<meta http-equiv="refresh" content="90">' : ''}<title>치지직 통계 — SoundVoltex1</title>
@@ -339,8 +339,13 @@ td{padding:8px;border-bottom:1px solid #f4f4f4}td.tt{max-width:200px;overflow:hi
 .axis{display:flex;justify-content:space-between;color:var(--dim);font-size:10px;margin-top:6px}
 .pie{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.donut{width:104px;height:104px;border-radius:50%;background:conic-gradient(#7c3aed 0 92%,#0070f3 92% 97%,#f5a623 97% 100%);flex-shrink:0}.donut i{display:block;width:60px;height:60px;border-radius:50%;background:var(--panel);margin:22px}
 .leg{font-size:12.5px}.leg div{display:flex;align-items:center;gap:8px;margin:5px 0}.leg s{width:10px;height:10px;border-radius:2px;display:inline-block;flex-shrink:0}
-.feed{height:210px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;font-size:12.5px}.feed .n{font-weight:600}.feed .sub{color:#c026d3}.feed .fol{color:#0284c7}.feed .streamer{color:#f5a623}
+.feedcard{position:relative}
+.feed{height:260px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:7px;font-size:12.5px;scrollbar-width:thin;scrollbar-color:#d9d9d9 transparent}
+.feed::-webkit-scrollbar{width:7px}.feed::-webkit-scrollbar-thumb{background:#d9d9d9;border-radius:4px}.feed::-webkit-scrollbar-track{background:transparent}
+.feed>div{flex:0 0 auto}.feed .n{font-weight:600}
 .feed img.emoji{width:22px;height:22px;vertical-align:-5px;border-radius:3px;margin:0 1px;display:inline-block}
+.newmsg{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:none;background:var(--text);color:#fff;border:0;border-radius:999px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px #0003;z-index:5}
+.newmsg.show{display:block}
 .livedot{display:inline-flex;align-items:center;gap:6px;color:var(--red);font-weight:650;font-size:12px}.livedot i{width:8px;height:8px;border-radius:50%;background:var(--red);animation:bk 1.2s infinite}@keyframes bk{50%{opacity:.3}}
 body.live .v-off{display:none}body:not(.live) .v-live{display:none}
 .foot{color:var(--dim2);font-size:11.5px;margin-top:18px;border-top:1px solid var(--border);padding-top:12px}
@@ -367,20 +372,20 @@ body.live .v-off{display:none}body:not(.live) .v-live{display:none}
 </style></head><body class="${hasLive ? 'live' : ''}"><div class="app">
 <aside class="side"><div class="brand"><span class="dot"></span> 치지직 통계</div>
 <nav class="navi">
-<a class="navlink on" data-sec="overview" href="#overview" onclick="return go('overview')">개요</a>
+<a class="navlink on" data-sec="overview" href="#overview" onclick="return go('overview')">대시보드</a>
 <a class="navlink" data-sec="history" href="#history" onclick="return go('history')">방송 이력</a>
 <a class="navlink" data-sec="viewers" href="#viewers" onclick="return go('viewers')">시청자·순위</a>
 <a class="navlink" data-sec="chat" href="#chat" onclick="return go('chat')">채팅 분석</a>
 <a class="navlink" data-sec="ranking" href="#ranking" onclick="return go('ranking')">랭킹</a></nav></aside>
 <main class="main">
 <nav class="topnav">
-<a class="navlink on" data-sec="overview" href="#overview" onclick="return go('overview')">개요</a>
+<a class="navlink on" data-sec="overview" href="#overview" onclick="return go('overview')">대시보드</a>
 <a class="navlink" data-sec="history" href="#history" onclick="return go('history')">방송 이력</a>
 <a class="navlink" data-sec="viewers" href="#viewers" onclick="return go('viewers')">시청자·순위</a>
 <a class="navlink" data-sec="chat" href="#chat" onclick="return go('chat')">채팅 분석</a>
 <a class="navlink" data-sec="ranking" href="#ranking" onclick="return go('ranking')">랭킹</a></nav>
 <div class="top"><div><h1>SoundVoltex1 ${hasLive ? '<span class="livedot" style="margin-left:6px"><i></i>LIVE</span>' : ''}</h1><div class="sub">이터널 리턴 · ${hasLive ? '지금 방송 중 — 실시간 실데이터' : '실데이터(과거 방송 포함) · 방송 중엔 실시간'}</div></div>
-<div class="tg"><button class="o ${hasLive ? '' : 'act'}" onclick="sw(0)">⚫ 방송 종료</button><button class="l ${hasLive ? 'act' : ''}" onclick="sw(1)">🔴 방송 중</button></div></div>
+${debug ? `<div class="tg"><button class="o ${hasLive ? '' : 'act'}" onclick="sw(0)">⚫ 방송 종료</button><button class="l ${hasLive ? 'act' : ''}" onclick="sw(1)">🔴 방송 중</button></div>` : ''}</div>
 ${renderOffline(d)}
 ${renderLive(d)}
 <div class="foot">OFFLINE=실데이터 · LIVE=${hasLive ? '실시간 실데이터(채팅 4초 갱신 · 시청자/순위 20초)' : '가상 예시(방송 켜지면 실제값)'} · 갱신 ${esc(d.updated)} (UTC)</div>
@@ -504,9 +509,13 @@ try{var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isI
 })();
 // ── 실시간 채팅 빠른 갱신: /api/live 를 4초마다 폴링해 채팅/랭킹/카운트만 갱신(페이지 리로드 없이) ──
 (function(){
-  var POLL=4000;
+  var POLL=4000, lvNew=0;
   function e(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
   function T(id){return document.getElementById(id)}
+  window.lvFeedBottom=function(){var f=T('lv-feed');if(f)f.scrollTop=f.scrollHeight;hideNew();};
+  function bumpNew(a){lvNew+=a;var b=T('lv-newmsg'),n=T('lv-newn');if(b&&n){n.textContent=lvNew;b.classList.add('show');}}
+  function hideNew(){lvNew=0;var b=T('lv-newmsg');if(b)b.classList.remove('show');}
+  (function(){var f=T('lv-feed');if(f)f.scrollTop=f.scrollHeight;})(); // 최초 로드 시 맨 아래로
   function apply(L){
     if(!L)return;
     var v=T('lv-viewers');if(v&&L.viewers!=null)v.textContent=Number(L.viewers).toLocaleString();
@@ -514,7 +523,15 @@ try{var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isI
     var rd=T('lv-rankd');if(rd)rd.textContent=(L.rankStart!=null&&L.rank!=null)?('▲ 시작 '+L.rankStart+'위'):'실시간';
     var c=T('lv-chat');if(c&&L.chatTotal!=null)c.textContent=Number(L.chatTotal).toLocaleString();
     var cp=T('lv-cpm');if(cp&&L.cpm!=null)cp.textContent='분당 '+L.cpm+'개';
-    var f=T('lv-feed');if(f&&L.feed&&L.feed.length)f.innerHTML=L.feed.join('');
+    var f=T('lv-feed');
+    if(f&&L.feed&&L.feed.length){
+      var atB=f.scrollHeight-f.scrollTop-f.clientHeight<40, distB=f.scrollHeight-f.scrollTop, nc=0;
+      if(window.__lvLast){var idx=L.feed.lastIndexOf(window.__lvLast);nc=idx>=0?(L.feed.length-1-idx):L.feed.length;}
+      window.__lvLast=L.feed[L.feed.length-1];
+      f.innerHTML=L.feed.join('');
+      if(atB){f.scrollTop=f.scrollHeight;hideNew();}
+      else if(nc>0){f.scrollTop=f.scrollHeight-distB;bumpNew(nc);}
+    }
     var lb=T('lv-rank5');if(lb&&L.leaderboard)lb.innerHTML=L.leaderboard.map(function(x,i){var md=['🥇','🥈','🥉'][i]||(i+1);return '<div class="li"><span class="rk">'+md+'</span><div class="nm">'+e(x.nm)+'<div class="bar" style="width:'+x.w+'%"></div></div><span class="ct" style="font-weight:700">'+x.c+'</span></div>'}).join('');
     var el=T('elapsed');if(el&&L.startMs)el.dataset.start=L.startMs;
     if(window.__TLset&&L.tlSeries)window.__TLset({start:L.tlStart,step:L.tlStep,series:L.tlSeries.map(function(s){return{nm:s.nm,color:s.color,vals:s.vals}})});
@@ -535,10 +552,11 @@ export default async function handler(req, res) {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } })
     const d = await loadData(supabase)
+    const debug = /[?&]debug=1(?:&|$)/.test(req.url || '') || req.query?.debug === '1'
     res.setHeader('content-type', 'text/html; charset=utf-8')
     // 방송 중이면 캐시 짧게(빠른 갱신), 종료 상태면 길게
     res.setHeader('cache-control', d.live?.isLive ? 's-maxage=10, stale-while-revalidate=20' : 's-maxage=60, stale-while-revalidate=120')
-    return res.status(200).send(renderHTML(d))
+    return res.status(200).send(renderHTML(d, debug))
   } catch (e) {
     res.setHeader('content-type', 'text/html; charset=utf-8')
     return res.status(500).send(`<h3>대시보드 오류</h3><pre>${esc(e.message)}</pre>`)
