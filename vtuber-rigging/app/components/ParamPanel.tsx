@@ -173,14 +173,13 @@ const SNAP_FRAC = 0.05; // 근처 판정: 범위의 5%
 const HOLD_MS = 1000;   // 모바일: 잡은 채 1초 유지하면 스냅
 
 function Slider({
-  p, isFixed, onChange, onRelease, combineActive, isCombineSource, onCombine,
+  p, isFixed, onChange, onRelease, canCombine, onCombine,
 }: {
   p: Param;
   isFixed: boolean;
   onChange: (id: string, value: number) => void;
   onRelease: (id: string) => void;
-  combineActive: boolean;      // 결합 대기 중(다른 파라미터 선택 대기)
-  isCombineSource: boolean;    // 내가 결합 시작한 파라미터
+  canCombine: boolean;   // 바로 아래에 결합할 파라미터가 있으면 결합 버튼 노출
   onCombine: () => void;
 }) {
   const range = p.max - p.min || 1;
@@ -242,18 +241,16 @@ function Slider({
     <div className="space-y-0.5">
       <div className="flex justify-between items-center gap-1">
         <div className="flex items-center gap-1 min-w-0">
-          {/* 결합 버튼 (이름 왼쪽) — 큐비즘처럼 다른 파라미터와 2D 결합 */}
-          <button
-            onClick={onCombine}
-            title={isCombineSource ? "결합 취소" : combineActive ? "이 파라미터와 결합" : "결합 시작 — 누른 뒤 결합할 다른 파라미터를 고르세요"}
-            className={`shrink-0 w-4 h-4 rounded flex items-center justify-center transition-colors ${
-              isCombineSource ? "bg-[var(--purple)] text-white"
-              : combineActive ? "bg-[var(--purple)]/20 text-[var(--purple)] animate-pulse"
-              : "text-[var(--muted)]/50 hover:text-[var(--purple)] hover:bg-white/5"
-            }`}
-          >
-            <Crosshair className="w-3 h-3" />
-          </button>
+          {/* 결합 버튼 (이름 왼쪽) — 큐비즘처럼 바로 아래 파라미터와 즉시 2D 결합 */}
+          {canCombine && (
+            <button
+              onClick={onCombine}
+              title="바로 아래 파라미터와 결합 (2D)"
+              className="shrink-0 w-4 h-4 rounded flex items-center justify-center transition-colors text-[var(--muted)]/50 hover:text-[var(--purple)] hover:bg-white/5"
+            >
+              <Crosshair className="w-3 h-3" />
+            </button>
+          )}
           <button
             onClick={() => isFixed && onRelease(p.id)}
             className="text-[11px] text-[var(--muted)] truncate flex items-center gap-1 text-left min-w-0"
@@ -312,7 +309,6 @@ export default function ParamPanel({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [query, setQuery] = useState("");
   const [combos, setCombos] = useState<Combo[]>([]);
-  const [combineSource, setCombineSource] = useState<string | null>(null); // 결합 대기 중인 첫 파라미터
 
   if (params.length === 0) {
     return (
@@ -340,23 +336,26 @@ export default function ParamPanel({
   function removeCombo(id: string) {
     setCombos((prev) => prev.filter((c) => c.id !== id));
   }
-  // 결합 버튼: 첫 클릭 → 대기, 다른 파라미터 클릭 → 결합, 같은 것 다시 → 취소
-  function onCombineClick(pid: string) {
-    if (!combineSource) { setCombineSource(pid); return; }
-    if (combineSource === pid) { setCombineSource(null); return; }
-    addCombo(combineSource, pid, comboLabel(combineSource, pid)); // source=X, 대상=Y
-    setCombineSource(null);
-  }
-
   // 결합에 안 들어간 파라미터만 슬라이더로
   const freeParams = params.filter((p) => !combinedIds.has(p.id));
   const hasPrimary = freeParams.some((p) => PRIMARY_IDS.has(p.id));
   const primary  = hasPrimary ? freeParams.filter((p) => PRIMARY_IDS.has(p.id)) : freeParams;
   const advanced = hasPrimary ? freeParams.filter((p) => !PRIMARY_IDS.has(p.id)) : [];
 
+  // 큐비즘 방식: 결합 버튼을 누르면 '바로 아래' 파라미터와 즉시 결합(클릭=X, 아래=Y).
+  // 각 그룹(기본/고급)에서 마지막 파라미터는 아래가 없으므로 결합 버튼을 숨김.
+  const belowOf = new Map<string, string>();
+  for (const g of [primary, advanced]) {
+    for (let i = 0; i < g.length - 1; i++) belowOf.set(g[i].id, g[i + 1].id);
+  }
+  function onCombineClick(pid: string) {
+    const belowId = belowOf.get(pid);
+    if (!belowId) return;
+    addCombo(pid, belowId, comboLabel(pid, belowId));
+  }
+
   const q = query.trim().toLowerCase();
   const advFiltered = q ? advanced.filter((p) => p.id.toLowerCase().includes(q)) : advanced;
-  const combineActive = combineSource !== null;
 
   return (
     <div className="flex flex-col h-full">
@@ -386,14 +385,6 @@ export default function ParamPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto chat-scroll p-2.5 space-y-2.5">
-        {/* 결합 대기 안내 */}
-        {combineActive && (
-          <div className="rounded-lg bg-[var(--purple)]/12 border border-[var(--purple)]/30 px-2.5 py-1.5 text-[10px] text-[var(--purple)] flex items-center justify-between gap-2">
-            <span className="flex items-center gap-1.5"><Crosshair className="w-3.5 h-3.5" /> <b>{short(combineSource!)}</b> 와 결합할 파라미터의 <Crosshair className="w-3 h-3 inline" /> 버튼을 누르세요</span>
-            <button onClick={() => setCombineSource(null)} className="px-1.5 py-0.5 rounded bg-[var(--purple)]/25 font-medium shrink-0">취소</button>
-          </div>
-        )}
-
         {/* 결합된 2D 패드 (두 파라미터가 병합된 슬라이더) */}
         {combos.map((c) => {
           const xP = byId.get(c.xId), yP = byId.get(c.yId);
@@ -404,7 +395,7 @@ export default function ParamPanel({
         {/* 기본(주요) 파라미터 */}
         {primary.map((p) => (
           <Slider key={p.id} p={p} isFixed={overrideIds.has(p.id)} onChange={onChange} onRelease={onRelease}
-            combineActive={combineActive} isCombineSource={combineSource === p.id} onCombine={() => onCombineClick(p.id)} />
+            canCombine={belowOf.has(p.id)} onCombine={() => onCombineClick(p.id)} />
         ))}
 
         {/* 고급 설정 */}
@@ -435,7 +426,7 @@ export default function ParamPanel({
                 ) : (
                   advFiltered.map((p) => (
                     <Slider key={p.id} p={p} isFixed={overrideIds.has(p.id)} onChange={onChange} onRelease={onRelease}
-                      combineActive={combineActive} isCombineSource={combineSource === p.id} onCombine={() => onCombineClick(p.id)} />
+                      canCombine={belowOf.has(p.id)} onCombine={() => onCombineClick(p.id)} />
                   ))
                 )}
               </div>
