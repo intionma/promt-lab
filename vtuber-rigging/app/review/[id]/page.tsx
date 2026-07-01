@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, use } from "react";
 import dynamic from "next/dynamic";
-import { ArrowLeft, MessageSquare, Sliders, Clapperboard, Layers, EyeOff, Eye } from "lucide-react";
+import { ArrowLeft, MessageSquare, Sliders, Clapperboard, Layers, EyeOff, Eye, Columns2, X, Boxes, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { supabase, type Session, type MeshGroup, type MeshConfig } from "@/lib/supabase";
 import { getSilhouettePref, setSilhouettePref, DEFAULT_SILHOUETTE_COLOR } from "@/lib/prefs";
@@ -49,14 +49,63 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [paramSweep, setParamSweep] = useState(false);
   const [panelTab, setPanelTab] = useState<PanelTab>("comments");
 
+  // ── 두 모델 비교(분할) ──────────────────────────────────────────────────
+  const viewerControlB = useRef<ViewerHandle | null>(null);
+  const [compareId, setCompareId] = useState<string | null>(null);
+  const [compareSession, setCompareSession] = useState<Session | null>(null);
+  const [metaB, setMetaB] = useState<ModelMeta | null>(null);
+  const [activePane, setActivePane] = useState<"A" | "B">("A");
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerModels, setPickerModels] = useState<{ name: string; versions: Session[] }[]>([]);
+  const compareOn = !!compareId;
+  const activeSessionId = activePane === "B" && compareId ? compareId : id;
+  const activeViewer = () => (activePane === "B" ? viewerControlB : viewerControl);
+
+  // 비교 대상 목록 로드(같은 모델 버전 먼저, 그다음 다른 모델)
+  async function openPicker() {
+    setShowPicker(true);
+    const { data } = await supabase.from("sessions").select("*").order("created_at", { ascending: false });
+    if (!data) return;
+    const map = new Map<string, Session[]>();
+    for (const s of data as Session[]) {
+      if (s.id === id) continue; // 자기 자신 제외
+      const key = s.model_name || s.title;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(s);
+    }
+    const own = session?.model_name || session?.title;
+    const list = Array.from(map.entries()).map(([name, versions]) => ({ name, versions }));
+    // 같은 모델을 맨 위로
+    list.sort((a, b) => (a.name === own ? -1 : b.name === own ? 1 : 0));
+    setPickerModels(list);
+  }
+  function pickCompare(s: Session) {
+    setCompareId(s.id);
+    setCompareSession(s);
+    setMetaB(null);
+    setActivePane("A");
+    setShowPicker(false);
+  }
+  function closeCompare() {
+    setCompareId(null);
+    setCompareSession(null);
+    setMetaB(null);
+    setActivePane("A");
+  }
+  // 시선 동기화(한 창 → 다른 창)
+  function gazeToB(gx: number, gy: number, instant: boolean) { if (compareId) viewerControlB.current?.gazeTo(gx, gy, instant); }
+  function gazeToA(gx: number, gy: number, instant: boolean) { if (compareId) viewerControl.current?.gazeTo(gx, gy, instant); }
+
   function toggleSweep(on: boolean) {
     setParamSweep(on);
     viewerControl.current?.setParamSweep(on);
+    if (compareId) viewerControlB.current?.setParamSweep(on);
     if (!on) { setOverrideIds(new Set()); setParamList(defaultParams.current.map((p) => ({ ...p }))); }
   }
 
   // 연출(모션/표정/배경/아이들) 상태
   const [meta, setMeta] = useState<ModelMeta | null>(null);
+  const activeMeta = activePane === "B" ? metaB : meta; // 비교 시 하단 패널이 대상으로 하는 창의 메타
   const [autoIdle, setAutoIdle] = useState(true);
   const [bgKey, setBgKey] = useState("transparent");
   // 실루엣 모드(회사 등에서 캐릭터 아트 대신 단색 형체만)
@@ -233,11 +282,13 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   function toggleSilhouette(on: boolean) {
     setSilhouette(on);
     viewerControl.current?.setSilhouette(on, silhouetteColor);
+    if (compareId) viewerControlB.current?.setSilhouette(on, silhouetteColor);
     setSilhouettePref(on, silhouetteColor);
   }
   function changeSilhouetteColor(color: number) {
     setSilhouetteColor(color);
     viewerControl.current?.setSilhouette(silhouette, color);
+    if (compareId) viewerControlB.current?.setSilhouette(silhouette, color);
     setSilhouettePref(silhouette, color);
   }
 
@@ -259,12 +310,14 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
 
   function handleSetParam(pid: string, value: number) {
     viewerControl.current?.setParam(pid, value);
+    if (compareId) viewerControlB.current?.setParam(pid, value); // 두 모델 동일 적용
     setParamList((prev) => prev.map((p) => (p.id === pid ? { ...p, value } : p)));
     setOverrideIds((prev) => (prev.has(pid) ? prev : new Set(prev).add(pid)));
     setCurrentParam({ id: pid, value });
   }
   function handleRelease(pid: string) {
     viewerControl.current?.releaseParam(pid);
+    if (compareId) viewerControlB.current?.releaseParam(pid);
     setOverrideIds((prev) => {
       if (!prev.has(pid)) return prev;
       const next = new Set(prev);
@@ -274,6 +327,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   }
   function handleResetAll() {
     viewerControl.current?.resetAll();
+    if (compareId) viewerControlB.current?.resetAll();
     setOverrideIds(new Set());
     setParamList(defaultParams.current.map((p) => ({ ...p })));
   }
@@ -410,6 +464,17 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
             <p className="text-[11px] text-[var(--muted)] truncate">{session.description}</p>
           )}
         </div>
+        {/* 두 모델 비교 */}
+        <button
+          onClick={openPicker}
+          title="다른 모델을 옆에 띄워 나란히 비교"
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold shrink-0 transition-all ${
+            compareOn ? "bg-[var(--purple)] text-white shadow-lg shadow-[var(--purple)]/30" : "glass glass-hover text-[var(--muted)]"
+          }`}
+        >
+          <Columns2 className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">{compareOn ? "비교 중" : "비교"}</span>
+        </button>
         {/* 항상 보이는 실루엣 빠른 토글 — 옆에서 누가 오면 한 번에 가리기 */}
         <button
           onClick={() => toggleSilhouette(!silhouette)}
@@ -430,21 +495,56 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
 
       {/* Content — 모바일: 세로 스택 / PC: 좌우 분할 */}
       <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden gap-2 sm:gap-3 min-h-0">
-        {/* Model Viewer */}
-        <div className="flex-1 min-h-[60vh] md:min-h-0 overflow-hidden">
-          {session && (
-            <ModelViewer
-              sessionId={id}
-              controlRef={viewerControl}
-              onParamsLoaded={handleParamsLoaded}
-              onModelMeta={handleModelMeta}
-              onMeshPicked={handleMeshPicked}
-            />
+        {/* Model Viewer(s) — 단일 또는 분할 비교 */}
+        <div className="flex-1 min-h-[60vh] md:min-h-0 overflow-hidden flex flex-col md:flex-row gap-2">
+          {/* Pane A */}
+          <div
+            onPointerDownCapture={() => compareOn && setActivePane("A")}
+            className={`flex-1 min-h-0 overflow-hidden rounded-xl transition-all ${compareOn ? (activePane === "A" ? "ring-2 ring-[var(--purple)]" : "ring-1 ring-white/10 opacity-90") : ""}`}
+          >
+            {session && (
+              <ModelViewer
+                sessionId={id}
+                controlRef={viewerControl}
+                onParamsLoaded={handleParamsLoaded}
+                onModelMeta={handleModelMeta}
+                onMeshPicked={handleMeshPicked}
+                onGaze={gazeToB}
+              />
+            )}
+          </div>
+          {/* Pane B (비교) */}
+          {compareOn && (
+            <div
+              onPointerDownCapture={() => setActivePane("B")}
+              className={`flex-1 min-h-0 overflow-hidden rounded-xl relative transition-all ${activePane === "B" ? "ring-2 ring-[var(--purple)]" : "ring-1 ring-white/10 opacity-90"}`}
+            >
+              <button onClick={closeCompare} title="비교 닫기" className="absolute top-2 right-2 z-20 glass-strong p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--fg)]">
+                <X className="w-4 h-4" />
+              </button>
+              <ModelViewer
+                sessionId={compareId!}
+                controlRef={viewerControlB}
+                onModelMeta={setMetaB}
+                onGaze={gazeToA}
+              />
+            </div>
           )}
         </div>
 
         {/* 우측 패널: 코멘트 / 파라미터 탭 */}
         <div className="w-full md:w-72 h-80 md:h-auto glass rounded-xl overflow-hidden flex-shrink-0 flex flex-col">
+          {/* 비교 중: 아래 패널이 어느 모델을 대상으로 하는지(A/B) 선택 */}
+          {compareOn && (
+            <div className="flex gap-1 p-1 border-b border-white/5 flex-shrink-0 text-[10px]">
+              <button onClick={() => setActivePane("A")} className={`flex-1 truncate px-2 py-1 rounded-md font-medium ${activePane === "A" ? "bg-[var(--purple)]/25 text-[var(--purple)]" : "text-[var(--muted)] hover:bg-white/5"}`} title={session?.title}>
+                A · {session?.title ?? "왼쪽"}
+              </button>
+              <button onClick={() => setActivePane("B")} className={`flex-1 truncate px-2 py-1 rounded-md font-medium ${activePane === "B" ? "bg-[var(--purple)]/25 text-[var(--purple)]" : "text-[var(--muted)] hover:bg-white/5"}`} title={compareSession?.title}>
+                B · {compareSession?.title ?? "오른쪽"}
+              </button>
+            </div>
+          )}
           {/* 탭 헤더 */}
           <div className="flex gap-1 p-1 border-b border-white/5 flex-shrink-0">
             <button
@@ -496,9 +596,10 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
           {/* 탭 내용 (display 토글로 모두 마운트 유지 → 상태 보존) */}
           <div className={`flex-1 min-h-0 ${panelTab === "comments" ? "flex flex-col" : "hidden"}`}>
             <FeedbackPanel
-              sessionId={id}
+              key={activeSessionId}
+              sessionId={activeSessionId}
               currentParam={currentParam}
-              captureState={() => viewerControl.current?.getState() ?? null}
+              captureState={() => activeViewer().current?.getState() ?? null}
               onRestoreState={restoreState}
             />
           </div>
@@ -515,30 +616,33 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
           </div>
           <div className={`flex-1 min-h-0 ${panelTab === "production" ? "flex flex-col" : "hidden"}`}>
             <ProductionPanel
-              meta={meta}
+              meta={activeMeta}
               autoIdle={autoIdle}
               bgKey={bgKey}
               silhouette={silhouette}
               silhouetteColor={silhouetteColor}
               onToggleSilhouette={toggleSilhouette}
               onSetSilhouetteColor={changeSilhouetteColor}
-              onPlayMotion={(g, i) => viewerControl.current?.playMotion(g, i)}
-              onPlayExpression={(n) => viewerControl.current?.playExpression(n)}
-              onStop={() => viewerControl.current?.stopMotion()}
-              onToggleIdle={(on) => { setAutoIdle(on); viewerControl.current?.setAutoIdle(on); }}
-              onSetBg={(k) => { setBgKey(k); viewerControl.current?.setBackground(k); }}
+              onPlayMotion={(g, i) => activeViewer().current?.playMotion(g, i)}
+              onPlayExpression={(n) => activeViewer().current?.playExpression(n)}
+              onStop={() => activeViewer().current?.stopMotion()}
+              onToggleIdle={(on) => { setAutoIdle(on); activeViewer().current?.setAutoIdle(on); }}
+              onSetBg={(k) => { setBgKey(k); activeViewer().current?.setBackground(k); }}
               onSetBgImage={(file) => {
                 const url = URL.createObjectURL(file);
                 setBgKey("__image__");
-                viewerControl.current?.setBackgroundImage(url);
+                activeViewer().current?.setBackgroundImage(url);
               }}
               onCopyStateLink={copyStateLink}
-              onScreenshot={() => viewerControl.current?.screenshot()}
+              onScreenshot={() => activeViewer().current?.screenshot()}
               onFreeze={handleFreeze}
               onReset={handleResetProduction}
             />
           </div>
           <div className={`flex-1 min-h-0 ${panelTab === "mesh" ? "flex flex-col" : "hidden"}`}>
+            {compareOn && (
+              <p className="text-[9px] text-amber-400/90 bg-amber-400/10 px-3 py-1.5 flex-shrink-0">메쉬 편집은 A(왼쪽) 모델 기준이에요. 오른쪽 모델의 메쉬는 단독으로 열어서 편집해 주세요.</p>
+            )}
             <MeshPanel
               meshes={meta?.meshes ?? []}
               hiddenIds={hiddenIds}
@@ -562,6 +666,39 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
           </div>
         </div>
       </div>
+
+      {/* 비교할 모델 선택 */}
+      {showPicker && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowPicker(false)}>
+          <div className="glass-strong rounded-2xl p-4 w-full max-w-sm max-h-[80vh] flex flex-col fade-up" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Columns2 className="w-4 h-4 text-[var(--purple)]" />
+                <span className="text-sm font-semibold">옆에 띄워 비교할 모델</span>
+              </div>
+              <button onClick={() => setShowPicker(false)} className="text-[var(--muted)] hover:text-[var(--fg)]"><X className="w-4 h-4" /></button>
+            </div>
+            <p className="text-[10px] text-[var(--muted)] mb-2">같은 모델의 다른 버전이 위에 나와요. 파라미터·시선은 함께 움직입니다.</p>
+            <div className="flex-1 overflow-y-auto chat-scroll space-y-2 pr-1">
+              {pickerModels.length === 0 ? (
+                <div className="flex items-center justify-center py-8 text-[var(--muted)]"><Loader2 className="w-5 h-5 animate-spin" /></div>
+              ) : pickerModels.map((m) => (
+                <div key={m.name} className="space-y-1">
+                  <p className="text-[10px] font-semibold text-[var(--muted)] flex items-center gap-1"><Boxes className="w-3 h-3 text-[var(--purple)]" /> {m.name}</p>
+                  <div className="space-y-1">
+                    {m.versions.map((v) => (
+                      <button key={v.id} onClick={() => pickCompare(v)} className="w-full text-left glass glass-hover rounded-lg px-3 py-2 text-xs text-[var(--fg)] flex items-center gap-2">
+                        <span className="truncate flex-1">{v.title}</span>
+                        <span className="text-[9px] text-[var(--muted)]">선택</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
