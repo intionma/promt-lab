@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.10 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.11 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.10 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.11 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1953,7 +1953,15 @@
         const CHANGELOG = [
             // ── 2026-07-01 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.10', date: '2026-07-01', time: '최신',
+                version: 'v9.10.11', date: '2026-07-01', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[한글 번역] 문장 자연스러움 개선 — 한 문장에 "~채"가 두 번 겹치던 문제 수정, 어색한 직역 교정("눈 사이 머리"→"눈가를 가린 앞머리", "옆머리"→"옆으로 흘러내린 머리")',
+                    '[한글 번역] 중복 표현 정리 — "눈 내리는 날씨"→"눈" 등 장황한 날씨 표현 간결화, 의미가 포함되는 중복 항목 자동 제거',
+                ]
+            },
+            {
+                version: 'v9.10.10', date: '2026-07-01', time: '오후',
                 tag: 'feat',
                 items: [
                     '[한글 번역] 번역이 내장 사전(2,500+)까지 사용 — 이전엔 내 DB에 없는 태그가 영어로 남았는데, 이제 대부분 한글로 표시(예: blonde hair→금발, school uniform→교복)',
@@ -6134,8 +6142,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
               {"t":"night, starry_sky","n":"day","k":"별이 빛나는 밤","c":"weather"},
               {"t":"sunset","n":"day","k":"노을 지는 황혼","c":"weather"},
               {"t":"golden_hour","n":"","k":"황금빛 시간대","c":"weather"},
-              {"t":"rain","n":"clear_sky","k":"비 내리는 날씨","c":"weather"},
-              {"t":"snow","n":"clear_sky","k":"눈 내리는 날씨","c":"weather"}
+              {"t":"rain","n":"clear_sky","k":"비","c":"weather"},
+              {"t":"snow","n":"clear_sky","k":"눈","c":"weather"}
             ]
           },
           7: {
@@ -6199,6 +6207,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     ];
                     changed = true;
                 }
+                // 3) 장황한 기본 날씨 번역 정리 (rain/snow) — 중복 표현 방지
+                const wFix = { snow: '눈', rain: '비' };
+                for (let L = 1; L <= 7; L++) { const layer = promptDB[L]; if (!layer) continue; for (const fk in layer) (layer[fk] || []).forEach(e => { if (e && wFix[e.t] && /내리는 날씨$/.test(e.k || '')) { e.k = wFix[e.t]; changed = true; } }); }
                 if (changed) { try { localStorage.setItem('pro_prompt_db_v7_0', JSON.stringify(promptDB)); } catch (e) {} }
             } catch (e) {}
         })();
@@ -9561,6 +9572,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const fixK = {
                 "looking at viewer": "정면 응시", "looking away": "시선 돌림",
                 "ship": "배(선박)", "midriff": "드러난 배(복부)", "watch": "손목시계", "clock": "벽시계",
+                "hair between eyes": "눈가를 가린 앞머리", "sidelocks": "옆으로 흘러내린 머리",
                 "cgi": "3D CG", "hdr": "HDR", "uhd": "UHD 초고화질", "2.5d": "2.5D", "8k uhd": "8K UHD",
             };
             for (const k in fixK) { if (TAG_DICT[k]) TAG_DICT[k].k = fixK[k]; }
@@ -12297,6 +12309,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (arr.length <= 1) return arr.join(' ');
                 return arr.map((p,i) => i < arr.length-1 ? p.replace(/\s*(머리|머릿결|헤어)$/,'') : p).join(' ');
             };
+            // 서로 포함관계인 한글 항목 제거 (예: "눈"⊂"내리는 눈" → "눈" 삭제, 의미 중복 정리)
+            const _dedupContained = arr => {
+                arr = arr.filter(Boolean);
+                return arr.filter((x, i) => !arr.some((y, j) => j !== i && y.length > x.length && y.indexOf(x) !== -1));
+            };
 
             // 자연스러운 나열 (생략 없음)
             function andJoin(arr) {
@@ -12350,8 +12367,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 절들을 연결어미로 잇고 마지막에 한 번만 맺는다 (소설체).
             // ══════════════════════════════════════════
             {
-                const place = andJoin([...G.inOut, ...G.bgType, ...G.bgPlace, ...G.furniture]);
-                const sett  = andJoin([...G.time, ...G.weather]);
+                const place = andJoin(_dedupContained([...G.inOut, ...G.bgType, ...G.bgPlace, ...G.furniture]));
+                const sett  = andJoin(_dedupContained([...G.time, ...G.weather]));
                 const envNP = (sett && place) ? `${sett}의 ${place}` : (sett || place);
                 const fxNP  = [andJoin(G.lighting), andJoin(G.camera)].filter(Boolean).join(', ');
                 const ptcl  = andJoin(G.particles);
@@ -12385,7 +12402,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const cls = [];
 
                 // 외형: 헤어·눈·얼굴
-                const hairNP  = joinHair([andJoin(G.hairColor), andJoin(G.hairLen), andJoin(G.hairStyle)]);
+                const hairNP  = joinHair([andJoin(G.hairColor), andJoin(G.hairLen), andJoin(_dedupContained(G.hairStyle).slice(0, 2))]);
                 const lookNPs = [hairNP, andJoin(G.eyeColor), andJoin(G.faceDetail)].filter(Boolean);
                 if (lookNPs.length) cls.push(clause(lookNPs, [
                     w => `${w}${ip(L(w))} 시선을 끌고`,
@@ -12396,7 +12413,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 // 표정·시선
                 const moodNP = andJoin([...G.exp, ...G.gaze]);
                 if (moodNP) cls.push(pick(
-                    `${moodNP}${op(L(moodNP))} 머금은 채`,
+                    `${moodNP}${op(L(moodNP))} 머금고`,
                     `${moodNP}${rp(L(moodNP))} 분위기를 더하며`
                 ));
 
@@ -12420,8 +12437,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 // 악세서리·메이크업
                 const accNP  = andJoin([...G.accessory, ...G.jewelry]);
                 const mkupNP = andJoin(G.makeup);
-                if (accNP)  cls.push(`${accNP}${rp(L(accNP))} 포인트를 더한 채`);
-                if (mkupNP) cls.push(`${mkupNP}${rp(L(mkupNP))} 멋을 낸 채`);
+                if (accNP)  cls.push(`${accNP}${rp(L(accNP))} 포인트를 주고`);
+                if (mkupNP) cls.push(`${mkupNP}${rp(L(mkupNP))} 멋을 내고`);
 
                 // 포즈·제스처
                 const poseNP = andJoin([...G.pose, ...G.gesture]);
