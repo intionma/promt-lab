@@ -551,9 +551,11 @@ function SortableVersionRow({
           </div>
         </div>
 
-        <button onClick={onToggleFiles} className={`glass glass-hover p-2 rounded-lg ${open ? "text-[var(--purple)]" : "text-[var(--muted)] hover:text-[var(--purple)]"}`} title="파일 목록">
-          <FileText className="w-3.5 h-3.5" />
-        </button>
+        {admin && (
+          <button onClick={onToggleFiles} className={`glass glass-hover p-2 rounded-lg ${open ? "text-[var(--purple)]" : "text-[var(--muted)] hover:text-[var(--purple)]"}`} title="파일 목록 · 다운로드 (관리자)">
+            <FileText className="w-3.5 h-3.5" />
+          </button>
+        )}
         <Link href={`/review/${v.id}`} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="열기">
           <ExternalLink className="w-3.5 h-3.5" />
         </Link>
@@ -572,7 +574,7 @@ function SortableVersionRow({
         )}
       </div>
 
-      {open && (
+      {admin && open && (
         <div className="border-t border-white/5 p-2.5 space-y-1 bg-black/10">
           {files === "loading" || !files ? (
             <div className="flex items-center gap-2 text-[10px] text-[var(--muted)] px-1 py-1">

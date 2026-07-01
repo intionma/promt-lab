@@ -47,9 +47,17 @@ export default function Home() {
   const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const [mounted, setMounted] = useState(false);
   const moreBtnRef = useRef<HTMLButtonElement>(null);
-  const moreActive = MORE_TABS.find((t) => t.id === activeTab);
+  // 관리자 모드 (10분) — 삭제·이동·이름수정 잠금 해제 + 드라이브 접근
+  const admin = useAdmin();
+  // 드라이브는 관리자일 때만 메뉴에 노출
+  const visibleMoreTabs = admin.active ? MORE_TABS : MORE_TABS.filter((t) => t.id !== "drive");
+  const moreActive = visibleMoreTabs.find((t) => t.id === activeTab);
   const MoreIcon = moreActive?.icon ?? Menu;
   useEffect(() => { setMounted(true); }, []);
+  // 관리자 모드가 꺼지면 드라이브 탭에서 자동으로 빠져나옴
+  useEffect(() => {
+    if (!admin.active && activeTab === "drive") setActiveTab("models");
+  }, [admin.active, activeTab]);
   function toggleMore() {
     if (!moreOpen && moreBtnRef.current) {
       const r = moreBtnRef.current.getBoundingClientRect();
@@ -66,8 +74,6 @@ export default function Home() {
     setSilhouettePref(next, getSilhouettePref().color);
   }
 
-  // 관리자 모드 (10분) — 삭제·이동·이름수정 잠금 해제
-  const admin = useAdmin();
   const [adminModal, setAdminModal] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
@@ -202,7 +208,7 @@ export default function Home() {
               className="fixed z-[100] w-44 rounded-xl p-1 border border-white/10 shadow-2xl"
               style={{ top: menuPos.top, right: menuPos.right, backgroundColor: "var(--bg-soft)" }}
             >
-              {MORE_TABS.map((tab) => {
+              {visibleMoreTabs.map((tab) => {
                 const Icon = tab.icon;
                 const active = activeTab === tab.id;
                 return (
@@ -229,7 +235,7 @@ export default function Home() {
             <UploadSession />
           </div>
           {activeTab === "models" && <MyModels adminPin={admin.active ? admin.pin : null} />}
-          {activeTab === "drive" && <DriveTab />}
+          {activeTab === "drive" && admin.active && <DriveTab />}
           {activeTab === "params" && <ParamCalculator />}
           {activeTab === "deformer" && <DeformerTree />}
         </main>
