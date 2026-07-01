@@ -172,23 +172,43 @@ MOCK.tlSeries = (() => {
 function statCard(k, v, unit, delta, deltaClass) {
   return `<div class="card"><div class="k">${esc(k)}</div><div class="v">${v}${unit ? `<small> ${esc(unit)}</small>` : ''}</div>${delta ? `<div class="delta ${deltaClass}">${esc(delta)}</div>` : ''}</div>`
 }
+// ── 재사용 패널 조각 (대시보드 + 개별 뷰 공용) ──
+const htChatters = (d) => (d.topChatters || []).map((u, i) => {
+  const md = ['🥇', '🥈', '🥉'][i] || (i + 1)
+  const badge = u.sub ? `<span class="tagbadge">구독 ${u.months ?? ''}개월</span>` : u.follower ? `<span class="tagbadge">팔로워</span>` : ''
+  return `<div class="li"><span class="rk">${md}</span><span class="nm">${esc(u.nm)} ${badge}</span><span class="ct">${num(u.count)}</span></div>`
+}).join('') || '<div class="muted">아직 데이터 없음 (방송 시 채워짐)</div>'
+const htChatBars = (d) => { // 랭킹(막대) 형태
+  const mx = (d.topChatters || [])[0]?.count || 1
+  return (d.topChatters || []).map((u, i) => `<div class="li"><span class="rk">${['🥇', '🥈', '🥉'][i] || (i + 1)}</span><div class="nm">${esc(u.nm)}<div class="bar" style="width:${Math.round((u.count / mx) * 100)}%"></div></div><span class="ct" style="font-weight:700">${num(u.count)}</span></div>`).join('') || '<div class="muted">아직 데이터 없음</div>'
+}
+const htEmotes = (d) => (d.topEmotes || []).map((e) => {
+  const img = e.url ? `<img src="${esc(e.url)}" width="22" height="22" style="border-radius:4px" loading="lazy"/>` : `<span class="ei"></span>`
+  return `<div class="emo">${img} ×${num(e.count)}</div>`
+}).join('') || '<div class="muted">아직 데이터 없음</div>'
+const htVods = (d) => (d.vods || []).map((v) => `<div class="li"><span class="nm">${esc(v.title)}</span><span class="ct">조회 ${num(v.read_count)}</span></div>`).join('') || '<div class="muted">아직 데이터 없음</div>'
+const htBcRows = (d) => (d.recentBc || []).map((b) => `<tr><td>${esc(b.date)}</td><td class="tt">${esc(b.title)}</td><td class="num">${num(b.plays)}</td><td class="num">${num(b.avg)}</td><td class="num">${num(b.peak)}</td><td class="num">${b.ret != null ? b.ret + '%' : '-'}</td><td class="num">${b.chat != null ? b.chat + '%' : '-'}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">방송 종료 후 집계됩니다 (broadcast_analytics)</td></tr>'
+const htHeat = (d) => (d.hourHeat || []).length ? d.hourHeat.map((c, h) => {
+  const mx = Math.max(...d.hourHeat, 1); const lv = c === 0 ? 0 : Math.ceil((c / mx) * 4)
+  return `<div class="g g${lv}" title="${h}시 · ${c}회"></div>`
+}).join('') : ''
+const cardViewerTrend = (d) => `<div class="card"><div class="panel-h"><span class="t">방송별 시청자 추이</span><span class="muted">평균 · 최대 (전 기간)</span></div>
+${lineSVG([{ data: d.bcPeakSeries || [], color: '#c9d6ff' }, { data: d.bcAvgSeries || [], color: '#0070f3' }], { H: 190 })}
+<div class="legend"><span><i class="dotc" style="background:#0070f3"></i> 평균 동접</span><span><i class="dotc" style="background:#c9d6ff"></i> 최대 동접</span></div></div>`
+const cardTimeHeat = (d) => { const heat = htHeat(d); return `<div class="card"><div class="panel-h"><span class="t">방송 시간대</span><span class="muted">주로 오전~낮</span></div>
+${heat ? `<div class="grass">${heat}</div><div class="axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>23시</span></div>` : '<div class="muted">방송 종료 후 집계</div>'}
+<div class="panel-h" style="margin-top:16px"><span class="t">플레이 카테고리</span></div>
+<div class="pie"><div class="donut"><i></i></div><div class="leg"><div><s style="background:#7c3aed"></s>이터널 리턴 92%</div><div><s style="background:#0070f3"></s>토크 5%</div><div><s style="background:#f5a623"></s>기타 3%</div></div></div></div>` }
+const cardHistory = (d) => `<div class="card"><div class="panel-h"><span class="t">방송 이력</span><span class="muted">최근 8회 · 공식/수집</span></div>
+<div class="tablewrap"><table><thead><tr><th>날짜</th><th>제목</th><th class="num">재생</th><th class="num">평균</th><th class="num">최대</th><th class="num">지속률</th><th class="num">채팅%</th></tr></thead><tbody>${htBcRows(d)}</tbody></table></div></div>`
+const cardFollower = (d) => `<div class="card"><div class="panel-h"><span class="t">팔로워 성장</span></div>${lineSVG([{ data: d.followerSeries || [], color: '#16a34a' }], { H: 150 })}</div>`
 
 function renderOffline(d) {
-  const chatters = (d.topChatters || []).map((u, i) => {
-    const md = ['🥇', '🥈', '🥉'][i] || (i + 1)
-    const badge = u.sub ? `<span class="tagbadge">구독 ${u.months ?? ''}개월</span>` : u.follower ? `<span class="tagbadge">팔로워</span>` : ''
-    return `<div class="li"><span class="rk">${md}</span><span class="nm">${esc(u.nm)} ${badge}</span><span class="ct">${num(u.count)}</span></div>`
-  }).join('') || '<div class="muted">아직 데이터 없음 (방송 시 채워짐)</div>'
-  const emotes = (d.topEmotes || []).map((e) => {
-    const img = e.url ? `<img src="${esc(e.url)}" width="22" height="22" style="border-radius:4px" loading="lazy"/>` : `<span class="ei"></span>`
-    return `<div class="emo">${img} ×${num(e.count)}</div>`
-  }).join('') || '<div class="muted">아직 데이터 없음</div>'
-  const vods = (d.vods || []).map((v) => `<div class="li"><span class="nm">${esc(v.title)}</span><span class="ct">조회 ${num(v.read_count)}</span></div>`).join('') || '<div class="muted">-</div>'
-  const bcRows = (d.recentBc || []).map((b) => `<tr><td>${esc(b.date)}</td><td class="tt">${esc(b.title)}</td><td class="num">${num(b.plays)}</td><td class="num">${num(b.avg)}</td><td class="num">${num(b.peak)}</td><td class="num">${b.ret != null ? b.ret + '%' : '-'}</td><td class="num">${b.chat != null ? b.chat + '%' : '-'}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">broadcast_analytics 테이블을 만들면 실제 방송 이력이 표시됩니다.</td></tr>'
-  const heat = (d.hourHeat || []).length ? d.hourHeat.map((c, h) => {
-    const mx = Math.max(...d.hourHeat, 1); const lv = c === 0 ? 0 : Math.ceil((c / mx) * 4)
-    return `<div class="g g${lv}" title="${h}시 · ${c}회"></div>`
-  }).join('') : ''
+  const chatters = htChatters(d)
+  const emotes = htEmotes(d)
+  const vods = htVods(d)
+  const bcRows = htBcRows(d)
+  const heat = htHeat(d)
 
   return `<div class="v-off">
 <div class="cards" id="overview">
@@ -343,12 +363,12 @@ td{padding:8px;border-bottom:1px solid #f4f4f4}td.tt{max-width:200px;overflow:hi
 .pie{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.donut{width:104px;height:104px;border-radius:50%;background:conic-gradient(#7c3aed 0 92%,#0070f3 92% 97%,#f5a623 97% 100%);flex-shrink:0}.donut i{display:block;width:60px;height:60px;border-radius:50%;background:var(--panel);margin:22px}
 .leg{font-size:12.5px}.leg div{display:flex;align-items:center;gap:8px;margin:5px 0}.leg s{width:10px;height:10px;border-radius:2px;display:inline-block;flex-shrink:0}
 .feedcard{position:relative}
-.feed{height:260px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:7px;font-size:12.5px;scrollbar-width:thin;scrollbar-color:#d9d9d9 transparent}
-.feed::-webkit-scrollbar{width:7px}.feed::-webkit-scrollbar-thumb{background:#d9d9d9;border-radius:4px}.feed::-webkit-scrollbar-track{background:transparent}
-.feed>div{flex:0 0 auto}.feed .n{font-weight:600}
+.feed{height:260px;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:7px;font-size:12.5px;padding-right:6px;scrollbar-width:thin;scrollbar-color:#d9d9d9 transparent;scroll-behavior:smooth;overscroll-behavior:contain}
+.feed::-webkit-scrollbar{width:7px}.feed::-webkit-scrollbar-thumb{background:#d9d9d9;border-radius:4px}.feed::-webkit-scrollbar-thumb:hover{background:#c2c2c2}.feed::-webkit-scrollbar-track{background:transparent}
+.feed>div{flex:0 0 auto}.feed>div:first-child{margin-top:auto}.feed .n{font-weight:600}
 .feed img.emoji{width:22px;height:22px;vertical-align:-5px;border-radius:3px;margin:0 1px;display:inline-block}
-.newmsg{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:none;background:var(--text);color:#fff;border:0;border-radius:999px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px #0003;z-index:5}
-.newmsg.show{display:block}
+.newmsg{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:#16a34a;color:#fff;border:0;border-radius:20px;padding:6px 13px;font-size:11.5px;font-weight:600;cursor:pointer;box-shadow:0 3px 10px #16a34a55;opacity:0;pointer-events:none;transition:opacity .18s;z-index:5}
+.newmsg.show{opacity:1;pointer-events:auto}
 .livedot{display:inline-flex;align-items:center;gap:6px;color:var(--red);font-weight:650;font-size:12px}.livedot i{width:8px;height:8px;border-radius:50%;background:var(--red);animation:bk 1.2s infinite}@keyframes bk{50%{opacity:.3}}
 body.live .v-off{display:none}body:not(.live) .v-live{display:none}
 .foot{color:var(--dim2);font-size:11.5px;margin-top:18px;border-top:1px solid var(--border);padding-top:12px}
@@ -518,7 +538,7 @@ try{var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isI
   window.lvFeedBottom=function(){var f=T('lv-feed');if(f)f.scrollTop=f.scrollHeight;hideNew();};
   function bumpNew(a){lvNew+=a;var b=T('lv-newmsg'),n=T('lv-newn');if(b&&n){n.textContent=lvNew;b.classList.add('show');}}
   function hideNew(){lvNew=0;var b=T('lv-newmsg');if(b)b.classList.remove('show');}
-  (function(){var f=T('lv-feed');if(f)f.scrollTop=f.scrollHeight;})(); // 최초 로드 시 맨 아래로
+  (function(){var f=T('lv-feed');if(f){f.scrollTop=f.scrollHeight;f.addEventListener('scroll',function(){if(f.scrollHeight-f.scrollTop-f.clientHeight<40)hideNew();});}})(); // 최초 맨 아래 + 바닥 복귀 시 배지 숨김
   function apply(L){
     if(!L)return;
     var v=T('lv-viewers');if(v&&L.viewers!=null)v.textContent=Number(L.viewers).toLocaleString();
