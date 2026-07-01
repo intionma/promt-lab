@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.5 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.6 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.5 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.6 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1942,7 +1942,14 @@
         const CHANGELOG = [
             // ── 2026-07-01 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.5', date: '2026-07-01', time: '최신',
+                version: 'v9.10.6', date: '2026-07-01', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[태그 사전] 2차 정밀 점검 — 계층 추가 교정(볼류메트릭→이펙트, 머리 날림→외형), 한글 띄어쓰기 정리("앉아있는"→"앉아 있는" 등)',
+                ]
+            },
+            {
+                version: 'v9.10.5', date: '2026-07-01', time: '오후',
                 tag: 'fix',
                 items: [
                     '[태그 사전] 사전 전수 점검 후 정리 — 계층이 잘못 배정된 태그 교정(피사계 심도→구도, 갸루/보이시/중성적→외형, 머리 장식→악세서리, 레이트레이싱→화질 등)',
@@ -9435,8 +9442,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 "sleeping": 5,         // 동작(L3→L5)
                 "hair flower": 4,      // 머리 장식 = 악세서리(L3→L4)
                 "ray tracing": 1,      // 렌더링 기법(L7→L1)
+                "volumetric": 7,       // 볼류메트릭 조명 = 이펙트(L1→L7)
+                "hair blowing": 3,     // 머리 날림 = 외형(L5→L3, floating hair와 통일)
             };
             for (const k in fixL) { if (TAG_DICT[k]) TAG_DICT[k].l = fixL[k]; }
+            // 한글 띄어쓰기 교정 (~있는)
+            const fixSpace = { "날고있는": "날고 있는", "누워있는": "누워 있는", "들고있는": "들고 있는", "서있는": "서 있는", "자고있는": "자고 있는", "앉아있는": "앉아 있는", "떠있는": "떠 있는", "굴곡있는 몸매": "굴곡 있는 몸매", "탄력있는 가슴": "탄력 있는 가슴" };
+            for (const k in TAG_DICT) { const kor = TAG_DICT[k].k; if (kor && fixSpace[kor]) TAG_DICT[k].k = fixSpace[kor]; }
             _dictByLayerCache = null; _dictFlatCache = null; // 캐시 무효화
         })();
 
