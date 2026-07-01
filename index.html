@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.0 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.1 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1942,7 +1942,15 @@
         const CHANGELOG = [
             // ── 2026-07-01 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.0', date: '2026-07-01', time: '최신',
+                version: 'v9.10.1', date: '2026-07-01', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[태그 사전] 내장 사전 대량 확장 — 1,394 → 1,789개. 의상(제복·수영복·레그웨어·신발·장신구)·헤어(색/스타일)·동물 특징·포즈·장소·조명 등을 정확한 계층 + 자연스러운 한글로 대폭 보강',
+                    '[태그 사전] 자동 분류·번역·추천 커버리지가 함께 넓어짐 (표기 변형·유사도 매칭과 시너지)',
+                ]
+            },
+            {
+                version: 'v9.10.0', date: '2026-07-01', time: '오후',
                 tag: 'feat',
                 items: [
                     '[태그 카탈로그] 확장 팩 시스템 추가 (메뉴 → 태그 카탈로그) — 원하는 팩만 설치해 사전을 넓힘. 설치한 팩은 기기에 저장되어 오프라인에서도 계속 적용',
@@ -8994,6 +9002,150 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             "energy effect":{"k":"에너지 이펙트","l":7},"lightning":{"k":"번개","l":7},"fire effect":{"k":"화염 효과","l":7},"water reflection":{"k":"수면 반사","l":7},
             "mirror reflection":{"k":"거울 반사","l":7},"heat haze":{"k":"아지랑이","l":7},"cinematic color grading":{"k":"시네마틱 컬러 그레이딩","l":7},"teal and orange":{"k":"틸&오렌지 톤","l":7},
             "dreamy atmosphere":{"k":"몽환적 분위기","l":7},"moody atmosphere":{"k":"무거운 분위기","l":7},"ethereal":{"k":"신비로운 분위기","l":7},"nostalgic":{"k":"노스탤직한 분위기","l":7},
+        });
+        // ═══ 대량 배치 3 (물량 확장) ═══
+        _dictMerge({
+            // ─ L4 상의 ─
+            "off-shoulder shirt":{"k":"오프숄더 셔츠","l":4},"crop top hoodie":{"k":"크롭 후드","l":4},"tube top":{"k":"튜브탑","l":4},"halter top":{"k":"홀터탑","l":4},
+            "sports bra":{"k":"스포츠 브라","l":4},"tank top (ribbed)":{"k":"골지 탱크톱","l":4},"polo shirt":{"k":"폴로 셔츠","l":4},"henley shirt":{"k":"헨리넥 셔츠","l":4},
+            "flannel shirt":{"k":"플란넬 셔츠","l":4},"button-up shirt":{"k":"버튼업 셔츠","l":4},"collared shirt":{"k":"카라 셔츠","l":4},"sailor collar":{"k":"세일러 카라","l":4},
+            "sweater vest":{"k":"스웨터 조끼","l":4},"knit sweater":{"k":"니트 스웨터","l":4},"oversized sweater":{"k":"오버사이즈 스웨터","l":4},"off-shoulder sweater":{"k":"오프숄더 스웨터","l":4},
+            "bomber jacket":{"k":"봄버 재킷","l":4},"denim jacket":{"k":"청재킷","l":4},"leather jacket":{"k":"가죽 재킷","l":4},"varsity jacket":{"k":"바시티 재킷","l":4},
+            "windbreaker":{"k":"바람막이","l":4},"puffer jacket":{"k":"패딩 점퍼","l":4},"peacoat":{"k":"피코트","l":4},"duffle coat":{"k":"더플코트","l":4},
+            "raincoat":{"k":"우비","l":4},"poncho":{"k":"판초","l":4},"kimono jacket":{"k":"하오리","l":4},"bolero":{"k":"볼레로","l":4},
+            "waistcoat":{"k":"웨이스트코트","l":4},"tuxedo":{"k":"턱시도","l":4},"lab coat":{"k":"실험복","l":4},"apron dress":{"k":"에이프런 드레스","l":4},
+            // ─ L4 하의 ─
+            "cargo pants":{"k":"카고 바지","l":4},"sweatpants":{"k":"트레이닝 바지","l":4},"chino pants":{"k":"치노 팬츠","l":4},"slacks":{"k":"슬랙스","l":4},
+            "hot pants":{"k":"핫팬츠","l":4},"denim shorts":{"k":"청반바지","l":4},"bike shorts":{"k":"자전거 반바지","l":4},"bloomers":{"k":"블루머","l":4},
+            "cargo shorts":{"k":"카고 반바지","l":4},"culottes":{"k":"큐롯","l":4},"a-line skirt":{"k":"A라인 스커트","l":4},"circle skirt":{"k":"플레어 스커트","l":4},
+            "high-waist skirt":{"k":"하이웨스트 스커트","l":4},"denim skirt":{"k":"청치마","l":4},"tennis skirt":{"k":"테니스 스커트","l":4},"tutu":{"k":"튀튀","l":4},
+            "sarong":{"k":"사롱","l":4},"wrap skirt":{"k":"랩 스커트","l":4},"hakama":{"k":"하카마","l":4},"pettiskirt":{"k":"페티스커트","l":4},
+            // ─ L4 원피스/세트 ─
+            "maxi dress":{"k":"맥시 드레스","l":4},"wedding dress":{"k":"웨딩드레스","l":4},"qipao":{"k":"치파오","l":4},"party dress":{"k":"파티 드레스","l":4},
+            "shirt dress":{"k":"셔츠 원피스","l":4},"knit dress":{"k":"니트 원피스","l":4},"pinafore dress":{"k":"점퍼스커트","l":4},"halter dress":{"k":"홀터 드레스","l":4},
+            "bodycon dress":{"k":"보디콘 드레스","l":4},"babydoll":{"k":"베이비돌","l":4},"negligee":{"k":"네글리제","l":4},"nightgown":{"k":"잠옷 원피스","l":4},
+            "romper":{"k":"롬퍼","l":4},"overall shorts":{"k":"멜빵 반바지","l":4},"tracksuit":{"k":"트레이닝복","l":4},"onesie":{"k":"원지","l":4},
+            // ─ L4 제복/코스튬 ─
+            "police uniform":{"k":"경찰복","l":4},"waitress uniform":{"k":"웨이트리스복","l":4},"cheerleader":{"k":"치어리더복","l":4},"flight attendant":{"k":"승무원복","l":4},
+            "office lady":{"k":"OL 정장","l":4},"chef uniform":{"k":"요리사복","l":4},"military jacket":{"k":"밀리터리 재킷","l":4},"santa costume":{"k":"산타 의상","l":4},
+            "bunny suit":{"k":"바니걸 의상","l":4},"witch costume":{"k":"마녀 의상","l":4},"vampire costume":{"k":"뱀파이어 의상","l":4},"kunoichi":{"k":"쿠노이치 의상","l":4},
+            "miko":{"k":"무녀복","l":4},"nun habit":{"k":"수녀복","l":4},"track uniform":{"k":"육상복","l":4},"basketball uniform":{"k":"농구 유니폼","l":4},
+            // ─ L4 수영/속옷/이너 ─
+            "micro bikini":{"k":"마이크로 비키니","l":4},"string bikini":{"k":"끈 비키니","l":4},"sport bikini":{"k":"스포츠 비키니","l":4},"tankini":{"k":"탱키니","l":4},
+            "competition swimsuit":{"k":"경기용 수영복","l":4},"rash guard":{"k":"래시가드","l":4},"wetsuit":{"k":"잠수복","l":4},"bikini top":{"k":"비키니 상의","l":4},
+            "camisole top":{"k":"캐미솔 상의","l":4},"chemise":{"k":"슈미즈","l":4},"bodystocking":{"k":"보디 스타킹","l":4},"leotard":{"k":"레오타드","l":4},
+            // ─ L4 레그웨어/신발 ─
+            "over-knee socks":{"k":"오버니 삭스","l":4},"ankle socks":{"k":"발목 양말","l":4},"loose socks":{"k":"루즈삭스","l":4},"fishnets":{"k":"망사 스타킹","l":4},
+            "striped thighhighs":{"k":"줄무늬 니삭스","l":4},"lace-up boots":{"k":"레이스업 부츠","l":4},"combat boots":{"k":"군화","l":4},"rain boots":{"k":"장화","l":4},
+            "platform heels":{"k":"플랫폼 힐","l":4},"stiletto heels":{"k":"스틸레토 힐","l":4},"ballet flats":{"k":"발레 플랫","l":4},"slippers":{"k":"슬리퍼","l":4},
+            "geta":{"k":"게타(나막신)","l":4},"zouri":{"k":"조리","l":4},"crocs":{"k":"크록스","l":4},"cleats":{"k":"축구화","l":4},
+            // ─ L4 모자/헤어장식 ─
+            "baseball cap":{"k":"야구모자","l":4},"bucket hat":{"k":"버킷햇","l":4},"fedora":{"k":"페도라","l":4},"top hat":{"k":"실크햇","l":4},
+            "cowboy hat":{"k":"카우보이 모자","l":4},"straw hat":{"k":"밀짚모자","l":4},"nurse cap":{"k":"간호사 모자","l":4},"party hat":{"k":"고깔모자","l":4},
+            "flower crown":{"k":"화관","l":4},"hair scrunchie":{"k":"곱창밴드","l":4},"hairpin":{"k":"헤어핀","l":4},"kanzashi":{"k":"칸자시","l":4},
+            "maid headdress":{"k":"메이드 머리장식","l":4},"cat ear headphones":{"k":"고양이 귀 헤드폰","l":4},"headdress":{"k":"머리장식","l":4},"bandana":{"k":"반다나","l":4},
+            // ─ L4 장신구/소품 착용 ─
+            "pearl necklace":{"k":"진주 목걸이","l":4},"pendant necklace":{"k":"펜던트 목걸이","l":4},"heart necklace":{"k":"하트 목걸이","l":4},"dog tags":{"k":"군번줄","l":4},
+            "hoop earrings":{"k":"링 귀걸이","l":4},"stud earrings":{"k":"스터드 귀걸이","l":4},"nose ring":{"k":"코걸이","l":4},"navel piercing":{"k":"배꼽 피어싱","l":4},
+            "wristwatch":{"k":"손목시계","l":4},"bangle":{"k":"뱅글","l":4},"arm strap":{"k":"암 스트랩","l":4},"thigh strap":{"k":"허벅지 스트랩","l":4},
+            "shoulder bag":{"k":"숄더백","l":4},"tote bag":{"k":"토트백","l":4},"school satchel":{"k":"란도셀","l":4},"fanny pack":{"k":"허리 색","l":4},
+            "suspenders belt":{"k":"멜빵 벨트","l":4},"utility belt":{"k":"유틸리티 벨트","l":4},"obi":{"k":"오비(허리띠)","l":4},"sash":{"k":"장식띠","l":4},
+            // ─ L3 헤어 스타일 추가 ─
+            "shoulder-length hair":{"k":"어깨 길이 머리","l":3},"waist-length hair":{"k":"허리 길이 머리","l":3},"floor-length hair":{"k":"바닥까지 오는 머리","l":3},"pixie cut":{"k":"픽시컷","l":3},
+            "hair up":{"k":"올린 머리","l":3},"hair down":{"k":"내린 머리","l":3},"low ponytail":{"k":"낮은 포니테일","l":3},"folded ponytail":{"k":"접은 포니테일","l":3},
+            "crown braid":{"k":"크라운 브레이드","l":3},"fishtail braid":{"k":"피시테일 브레이드","l":3},"cornrows":{"k":"콘로우","l":3},"dreadlocks":{"k":"드레드락","l":3},
+            "afro":{"k":"아프로","l":3},"mohawk":{"k":"모히칸","l":3},"bowl cut":{"k":"바가지 머리","l":3},"side-swept bangs":{"k":"사이드 앞머리","l":3},
+            "asymmetrical hair":{"k":"비대칭 머리","l":3},"one side up":{"k":"한쪽만 묶은 머리","l":3},"hair rings":{"k":"머리 고리","l":3},"cone hair bun":{"k":"만두머리","l":3},
+            "wet messy hair":{"k":"젖어 헝클어진 머리","l":3},"windblown hair":{"k":"바람에 날린 머리","l":3},"glowing hair":{"k":"빛나는 머리","l":3},"very short hair":{"k":"아주 짧은 머리","l":3},
+            // ─ L3 눈/눈동자 ─
+            "gradient eyes":{"k":"그라데이션 눈","l":3},"ringed eyes":{"k":"고리 무늬 눈","l":3},"button eyes":{"k":"단추 눈","l":3},"no pupils":{"k":"동공 없는 눈","l":3},
+            "cross-shaped pupils":{"k":"십자 동공","l":3},"flower-shaped pupils":{"k":"꽃 모양 동공","l":3},"glowing eyes (bright)":{"k":"환히 빛나는 눈","l":3},"jitome":{"k":"게슴츠레한 눈매","l":3},
+            "upturned eyes":{"k":"올라간 눈","l":3},"downturned eyes":{"k":"처진 눈","l":3},"aegyo sal":{"k":"애교살","l":3},"eye reflection":{"k":"눈동자 반사","l":3},
+            // ─ L3 얼굴/피부/신체 ─
+            "sharp features":{"k":"또렷한 이목구비","l":3},"round face":{"k":"둥근 얼굴","l":3},"baby face":{"k":"동안","l":3},"high cheekbones":{"k":"도드라진 광대","l":3},
+            "beauty spot":{"k":"애교점","l":3},"facial scar":{"k":"얼굴 상처","l":3},"war paint":{"k":"페이스 페인팅","l":3},"whisker markings":{"k":"수염 자국","l":3},
+            "olive skin":{"k":"올리브빛 피부","l":3},"porcelain skin":{"k":"백자 같은 피부","l":3},"sun-kissed skin":{"k":"햇볕에 그을린 피부","l":3},"freckled shoulders":{"k":"어깨 주근깨","l":3},
+            "toned stomach":{"k":"탄탄한 배","l":3},"hourglass figure":{"k":"모래시계 몸매","l":3},"broad shoulders":{"k":"넓은 어깨","l":3},"slender fingers":{"k":"가느다란 손가락","l":3},
+            "long neck":{"k":"긴 목","l":3},"defined collarbone":{"k":"뚜렷한 쇄골","l":3},"back muscles":{"k":"등 근육","l":3},"toned legs":{"k":"탄탄한 다리","l":3},
+            // ─ L5 포즈/동작 추가 ─
+            "sitting cross-legged":{"k":"양반다리","l":5},"kneeling on both knees":{"k":"두 무릎 꿇기","l":5},"lying on back":{"k":"등 대고 눕기","l":5},"lying on stomach":{"k":"엎드려 눕기","l":5},
+            "leaning on table":{"k":"탁자에 기대기","l":5},"leaning on railing":{"k":"난간에 기대기","l":5},"sitting on desk":{"k":"책상에 걸터앉기","l":5},"sitting on windowsill":{"k":"창틀에 앉기","l":5},
+            "hugging knees":{"k":"무릎 껴안기","l":5},"arms crossed under chest":{"k":"가슴 아래 팔짱","l":5},"hand on chest":{"k":"가슴에 손","l":5},"hand behind head":{"k":"머리 뒤 손","l":5},
+            "both hands up":{"k":"양손 들기","l":5},"reaching out":{"k":"손 뻗기","l":5},"pointing at viewer":{"k":"정면 손가락질","l":5},"finger heart":{"k":"손가락 하트","l":5},
+            "covering one eye":{"k":"한쪽 눈 가리기","l":5},"hand on glasses":{"k":"안경에 손","l":5},"fixing hair":{"k":"머리 매만지기","l":5},"blowing a kiss":{"k":"손키스 날리기","l":5},
+            "twirling":{"k":"빙그르르 도는","l":5},"mid-jump":{"k":"점프 순간","l":5},"falling":{"k":"떨어지는","l":5},"floating pose":{"k":"공중에 뜬 포즈","l":5},
+            "action pose":{"k":"액션 포즈","l":5},"combat pose":{"k":"전투 포즈","l":5},"victory pose":{"k":"승리 포즈","l":5},"idol pose":{"k":"아이돌 포즈","l":5},
+            "holding book open":{"k":"책 펼쳐 들기","l":5},"holding cup with two hands":{"k":"컵 두 손으로 들기","l":5},"holding stuffed animal":{"k":"인형 안기","l":5},"holding balloon":{"k":"풍선 들기","l":5},
+            // ─ L6 장소/배경 추가 ─
+            "japanese classroom":{"k":"일본식 교실","l":6},"school gymnasium":{"k":"학교 체육관","l":6},"school pool":{"k":"학교 수영장","l":6},"nurse's office":{"k":"양호실","l":6},
+            "music room":{"k":"음악실","l":6},"art room":{"k":"미술실","l":6},"student council room":{"k":"학생회실","l":6},"dormitory":{"k":"기숙사","l":6},
+            "japanese house":{"k":"일본식 가옥","l":6},"tatami room":{"k":"다다미 방","l":6},"onsen":{"k":"온천","l":6},"public bath":{"k":"목욕탕","l":6},
+            "shopping district":{"k":"상점가","l":6},"night market":{"k":"야시장","l":6},"festival":{"k":"축제(마츠리)","l":6},"fireworks festival":{"k":"불꽃놀이 축제","l":6},
+            "amusement park at night":{"k":"밤의 놀이공원","l":6},"ferris wheel":{"k":"대관람차","l":6},"aquarium":{"k":"아쿠아리움","l":6},"planetarium":{"k":"플라네타리움","l":6},
+            "subway":{"k":"지하철","l":6},"airport":{"k":"공항","l":6},"gas station":{"k":"주유소","l":6},"parking lot":{"k":"주차장","l":6},
+            "rooftop at sunset":{"k":"노을 진 옥상","l":6},"back alley":{"k":"뒷골목","l":6},"neon alley":{"k":"네온 골목","l":6},"flower garden":{"k":"꽃 정원","l":6},
+            "wheat field":{"k":"밀밭","l":6},"sunflower field":{"k":"해바라기 밭","l":6},"lavender field":{"k":"라벤더 밭","l":6},"pine forest":{"k":"침엽수림","l":6},
+            "autumn forest":{"k":"가을 숲","l":6},"snowy mountain":{"k":"설산","l":6},"cliff":{"k":"절벽","l":6},"coastline":{"k":"해안선","l":6},
+            "tropical island":{"k":"열대 섬","l":6},"coral reef":{"k":"산호초","l":6},"deep sea":{"k":"심해","l":6},"outer space":{"k":"우주 공간","l":6},
+            "space station":{"k":"우주 정거장","l":6},"alien planet":{"k":"외계 행성","l":6},"medieval town":{"k":"중세 마을","l":6},"marketplace":{"k":"시장통","l":6},
+            "cathedral":{"k":"대성당","l":6},"library interior":{"k":"도서관 내부","l":6},"laboratory":{"k":"실험실","l":6},"spaceship interior":{"k":"우주선 내부","l":6},
+            // ─ L1/L2/L7 보강 ─
+            "highly detailed background":{"k":"정교한 배경","l":1},"soft focus background":{"k":"부드러운 배경","l":1},"painterly":{"k":"회화적","l":1},"airbrush":{"k":"에어브러시","l":1},
+            "cel-shaded":{"k":"셀셰이드","l":1},"matte painting":{"k":"매트 페인팅","l":1},"storybook illustration":{"k":"동화책 삽화","l":1},"comic book style":{"k":"미국 코믹 스타일","l":1},
+            "dramatic angle":{"k":"드라마틱 앵글","l":2},"foreshortening":{"k":"단축법 구도","l":2},"looking at another":{"k":"서로 마주봄","l":2},"facing viewer":{"k":"정면을 향함","l":2},
+            "facing away":{"k":"뒤돌아섬","l":2},"upside-down":{"k":"거꾸로 구도","l":2},"close to viewer":{"k":"화면 앞으로","l":2},"distant":{"k":"멀리 있는 구도","l":2},
+            "warm backlight":{"k":"따뜻한 역광","l":7},"cold lighting":{"k":"차가운 조명","l":7},"colored shadows":{"k":"컬러 그림자","l":7},"strong rim light":{"k":"강한 림라이트","l":7},
+            "glowing particles":{"k":"빛나는 입자","l":7},"falling petals":{"k":"떨어지는 꽃잎","l":7},"floating bubbles":{"k":"떠다니는 거품","l":7},"ash falling":{"k":"떨어지는 재","l":7},
+            "light rays":{"k":"빛줄기","l":7},"sun flare":{"k":"태양 플레어","l":7},"magical glow":{"k":"마법의 빛","l":7},"soft bloom":{"k":"은은한 블룸","l":7},
+        });
+        // ═══ 대량 배치 4 (물량 확장) ═══
+        _dictMerge({
+            // ─ L3 헤어 색조합/디테일 ─
+            "light brown hair":{"k":"밝은 갈색 머리","l":3},"dark brown hair":{"k":"짙은 갈색 머리","l":3},"ash blonde hair":{"k":"애쉬 블론드","l":3},"platinum blonde hair":{"k":"플래티넘 블론드","l":3},
+            "strawberry blonde hair":{"k":"스트로베리 블론드","l":3},"auburn hair":{"k":"적갈색 머리","l":3},"burgundy hair":{"k":"버건디 머리","l":3},"teal hair":{"k":"청록 머리","l":3},
+            "mint hair":{"k":"민트 머리","l":3},"lavender hair":{"k":"라벤더 머리","l":3},"peach hair":{"k":"피치 머리","l":3},"rainbow hair":{"k":"무지개 머리","l":3},
+            "highlights":{"k":"하이라이트 염색","l":3},"ombre hair":{"k":"옴브레 머리","l":3},"roots (hair)":{"k":"뿌리 염색","l":3},"split-color hair":{"k":"반반 염색","l":3},
+            "hair flaps":{"k":"펄럭이는 머리","l":3},"cowlick":{"k":"솟은 가마","l":3},"single hair bun":{"k":"한쪽 만두머리","l":3},"quad tails":{"k":"네 갈래 머리","l":3},
+            // ─ L3 동물 특징 ─
+            "wolf ears":{"k":"늑대 귀","l":3},"wolf tail":{"k":"늑대 꼬리","l":3},"cat tail":{"k":"고양이 꼬리","l":3},"fox tail":{"k":"여우 꼬리","l":3},
+            "rabbit tail":{"k":"토끼 꼬리","l":3},"dog tail":{"k":"강아지 꼬리","l":3},"horse ears":{"k":"말 귀","l":3},"cow horns":{"k":"소 뿔","l":3},
+            "sheep horns":{"k":"양 뿔","l":3},"deer antlers":{"k":"사슴 뿔","l":3},"bat wings":{"k":"박쥐 날개","l":3},"bird wings":{"k":"새 날개","l":3},
+            "feathered wings":{"k":"깃털 날개","l":3},"scales":{"k":"비늘","l":3},"claws":{"k":"발톱","l":3},"slit eyes":{"k":"파충류 눈","l":3},
+            "whiskers":{"k":"수염","l":3},"animal nose":{"k":"동물 코","l":3},"paw pads":{"k":"젤리(발바닥)","l":3},"colored skin":{"k":"컬러 피부","l":3},
+            // ─ L4 색상×의상 (대표) ─
+            "white dress":{"k":"흰 드레스","l":4},"black dress":{"k":"검은 드레스","l":4},"red dress":{"k":"빨간 드레스","l":4},"blue dress":{"k":"파란 드레스","l":4},
+            "white shirt":{"k":"흰 셔츠","l":4},"black shirt":{"k":"검은 셔츠","l":4},"striped shirt":{"k":"줄무늬 셔츠","l":4},"white skirt":{"k":"흰 치마","l":4},
+            "black skirt":{"k":"검은 치마","l":4},"pleated black skirt":{"k":"검은 주름치마","l":4},"black thighhighs":{"k":"검은 니삭스","l":4},"white thighhighs":{"k":"흰 니삭스","l":4},
+            "black pantyhose":{"k":"검은 팬티스타킹","l":4},"white gloves":{"k":"흰 장갑","l":4},"black gloves":{"k":"검은 장갑","l":4},"red scarf":{"k":"빨간 목도리","l":4},
+            "red ribbon":{"k":"빨간 리본","l":4},"black ribbon":{"k":"검은 리본","l":4},"black choker":{"k":"검은 초커","l":4},"red bowtie":{"k":"빨간 나비넥타이","l":4},
+            // ─ L4 의상 상태/디테일 ─
+            "open shirt":{"k":"풀어헤친 셔츠","l":4},"unbuttoned":{"k":"단추 푼","l":4},"untucked shirt":{"k":"빼입은 셔츠","l":4},"rolled-up sleeves":{"k":"걷어올린 소매","l":4},
+            "tied shirt":{"k":"묶은 셔츠","l":4},"crop top tied":{"k":"묶은 크롭탑","l":4},"one shoulder":{"k":"한쪽 어깨","l":4},"clothing cutout":{"k":"의상 컷아웃","l":4},
+            "torn clothes":{"k":"찢어진 옷","l":4},"wet clothes":{"k":"젖은 옷","l":4},"see-through":{"k":"비치는 옷","l":4},"loose clothes":{"k":"헐렁한 옷","l":4},
+            "tight clothes":{"k":"딱 붙는 옷","l":4},"layered clothes":{"k":"레이어드 룩","l":4},"mismatched socks":{"k":"짝짝이 양말","l":4},"pinned-up":{"k":"핀으로 고정","l":4},
+            // ─ L5 소품 활용/행동 ─
+            "holding fan":{"k":"부채 들기","l":5},"holding parasol":{"k":"양산 들기","l":5},"holding lantern":{"k":"등불 들기","l":5},"holding microphone":{"k":"마이크 들기","l":5},
+            "holding camera":{"k":"카메라 들기","l":5},"holding gift":{"k":"선물 들기","l":5},"holding map":{"k":"지도 들기","l":5},"holding letter":{"k":"편지 들기","l":5},
+            "holding pen":{"k":"펜 들기","l":5},"holding paintbrush":{"k":"붓 들기","l":5},"holding cat":{"k":"고양이 안기","l":5},"holding balloon string":{"k":"풍선 줄 잡기","l":5},
+            "playing guitar":{"k":"기타 연주","l":5},"playing piano":{"k":"피아노 연주","l":5},"playing violin":{"k":"바이올린 연주","l":5},"singing":{"k":"노래하는","l":5},
+            "cooking":{"k":"요리하는","l":5},"cleaning":{"k":"청소하는","l":5},"shopping":{"k":"쇼핑하는","l":5},"studying":{"k":"공부하는","l":5},
+            "typing":{"k":"타이핑","l":5},"phone call":{"k":"통화 중","l":5},"taking selfie":{"k":"셀카 찍기","l":5},"drawing":{"k":"그림 그리는","l":5},
+            "yawning":{"k":"하품","l":5},"stretching pose":{"k":"기지개 켜기","l":5},"balancing":{"k":"균형 잡기","l":5},"spinning":{"k":"회전하는","l":5},
+            // ─ L6 소품/배경 요소 ─
+            "cherry blossom tree":{"k":"벚나무","l":6},"maple tree":{"k":"단풍나무","l":6},"palm tree":{"k":"야자수","l":6},"willow tree":{"k":"버드나무","l":6},
+            "street lamp":{"k":"가로등","l":6},"traffic light":{"k":"신호등","l":6},"vending machine":{"k":"자판기","l":6},"telephone pole":{"k":"전봇대","l":6},
+            "torii":{"k":"토리이(신사 문)","l":6},"stone lantern":{"k":"석등","l":6},"paper lantern":{"k":"종이 등불","l":6},"wind chime":{"k":"풍경(후린)","l":6},
+            "fireworks":{"k":"불꽃놀이","l":6},"hot air balloon":{"k":"열기구","l":6},"lighthouse beam":{"k":"등대 불빛","l":6},"rainbow":{"k":"무지개","l":6},
+            "shooting star":{"k":"별똥별","l":6},"full moon":{"k":"보름달","l":6},"crescent moon":{"k":"초승달","l":6},"clouds":{"k":"구름","l":6},
+            "storm clouds":{"k":"먹구름","l":6},"snow-covered":{"k":"눈 덮인","l":6},"fallen leaves":{"k":"낙엽","l":6},"puddle reflection":{"k":"물웅덩이 반사","l":6},
+            "bookshelf background":{"k":"책장 배경","l":6},"cityscape at night":{"k":"도시 야경","l":6},"mountains in distance":{"k":"멀리 보이는 산","l":6},"rice paddy":{"k":"논","l":6},
+            // ─ L7 조명/효과 보강 ─
+            "warm sunlight":{"k":"따스한 햇빛","l":7},"harsh sunlight":{"k":"강한 햇빛","l":7},"window light":{"k":"창문 빛","l":7},"lamplight":{"k":"램프 불빛","l":7},
+            "screen glow":{"k":"화면 발광","l":7},"underlighting":{"k":"아래에서 비추는 빛","l":7},"top light":{"k":"위에서 비추는 빛","l":7},"split lighting":{"k":"측면 분할광","l":7},
+            "rembrandt lighting":{"k":"렘브란트 조명","l":7},"butterfly lighting":{"k":"버터플라이 조명","l":7},"colored rim":{"k":"컬러 림라이트","l":7},"glinting":{"k":"반짝 광택","l":7},
+            "lens dirt":{"k":"렌즈 얼룩","l":7},"anamorphic flare":{"k":"아나모픽 플레어","l":7},"prism light":{"k":"프리즘 빛","l":7},"stained glass light":{"k":"스테인드글라스 빛","l":7},
+            "dust motes":{"k":"떠다니는 먼지","l":7},"snow drift":{"k":"흩날리는 눈","l":7},"floating leaves":{"k":"떠다니는 잎","l":7},"embers rising":{"k":"피어오르는 불티","l":7},
+            "cinematic bars":{"k":"시네마 레터박스","l":7},"soft vignette":{"k":"부드러운 비네팅","l":7},"cross processing":{"k":"크로스 프로세싱","l":7},"faded colors":{"k":"바랜 색감","l":7},
         });
         // 기존 사전의 어색한 번역만 선별 교정 (force overwrite)
         (function () {
