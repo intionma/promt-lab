@@ -307,16 +307,16 @@ ${heat ? `<div class="grass">${heat}</div><div class="axis"><span>00</span><span
 <div class="pie"><div class="donut"><i></i></div><div class="leg"><div><s style="background:#7c3aed"></s>이터널 리턴 92%</div><div><s style="background:#0070f3"></s>토크 5%</div><div><s style="background:#f5a623"></s>기타 3%</div></div></div></div>
 </div>
 
-<div class="card" id="history"><div class="panel-h"><span class="t">방송 이력</span><span class="muted">최근 8회 · 공식 분석</span></div>
+<div class="card" id="history"><div class="panel-h"><span class="t">방송 이력</span><span class="muted">최근 8회 · 공식 분석</span><a class="more" onclick="return nav(null,'history')">전체 이력 →</a></div>
 <div class="tablewrap"><table><thead><tr><th>날짜</th><th>제목</th><th class="num">재생</th><th class="num">평균</th><th class="num">최대</th><th class="num">지속률</th><th class="num">채팅%</th></tr></thead><tbody>${bcRows}</tbody></table></div></div>
 
 <div class="card" style="margin-top:16px"><div class="panel-h"><span class="t">팔로워 성장</span></div>
 ${lineSVG([{ data: d.followerSeries || [], color: '#16a34a' }], { H: 130 })}</div>
 
 <div class="row2" id="chat" style="margin-top:16px">
-<div class="card" id="ranking"><div class="panel-h"><span class="t">최다 채팅 시청자</span><span class="muted">전 기간(실시간+다시보기)</span></div><div class="lst">${chatters}</div></div>
-<div class="card"><div class="panel-h"><span class="t">자주 쓰는 이모티콘</span></div><div class="emos">${emotes}</div>
-<div class="panel-h" style="margin-top:16px"><span class="t">최근 다시보기</span></div><div class="lst">${vods}</div></div>
+<div class="card" id="ranking"><div class="panel-h"><span class="t">최다 채팅 시청자</span><span class="muted">전 기간</span><a class="more" onclick="return nav(null,'ranking')">랭킹 전체 →</a></div><div class="lst">${chatters}</div></div>
+<div class="card"><div class="panel-h"><span class="t">자주 쓰는 이모티콘</span><a class="more" onclick="return nav(null,'chat')">채팅 분석 →</a></div><div class="emos">${emotes}</div>
+<div class="panel-h" style="margin-top:16px"><span class="t">최근 다시보기</span><a class="more" onclick="return nav(null,'vods')">다시보기 성과 →</a></div><div class="lst">${htVods(d, 4)}</div></div>
 </div>
 </div>`
 }
@@ -427,6 +427,7 @@ body.live .tg .l.act{color:var(--red)}
 .delta{font-size:12px;font-weight:500;margin-top:6px}.delta.up{color:var(--green)}.delta.down{color:var(--red)}.delta.flat{color:var(--dim2)}
 .row3{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;margin-bottom:16px}.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
 .panel-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap}.panel-h .t{font-weight:600}
+.more{margin-left:auto;font-size:11.5px;color:var(--blue);cursor:pointer;text-decoration:none;font-weight:500}.more:hover{text-decoration:underline}
 .muted{color:var(--dim);font-size:12px}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--dim);margin-top:8px;flex-wrap:wrap}.legend span{display:inline-flex;align-items:center;gap:6px}.dotc{width:9px;height:9px;border-radius:3px;display:inline-block;flex-shrink:0}
 .tlbar{display:flex;align-items:center;gap:10px;margin:6px 0 8px;font-size:12px}.tlbar input[type=range]{flex:1;max-width:280px;accent-color:var(--blue)}
@@ -544,17 +545,19 @@ function openErRank(){var m=document.getElementById('ermodal'),L=document.getEle
   fetch('/api/errank',{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){var items=(j&&j.items)||[];if(!items.length){L.innerHTML='<div class="muted" style="padding:24px;text-align:center">목록을 불러오지 못했어요<br>(진행 중인 이터널 리턴 방송이 없거나 일시 오류)</div>';return;}
     L.innerHTML=items.map(function(it){return '<div class="er-row'+(it.isSabol?' sabol':'')+'"><span class="er-rank">'+it.rank+'</span><span class="er-ch">'+ee(it.ch)+(it.isSabol?' · 사볼 👑':'')+'<div class="er-title">'+ee(it.title)+'</div></span><span class="er-v">'+(it.viewers!=null?Number(it.viewers).toLocaleString()+'명':'-')+'</span></div>';}).join('');}).catch(function(){L.innerHTML='<div class="muted" style="padding:24px;text-align:center">불러오기 실패</div>';});}
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeEr()});
-// 사이드바/상단 메뉴 = 뷰 전환(선택 섹션만 표시). 실시간 항목은 대시보드로 전환 후 해당 패널로 스크롤.
-function nav(el,v,scrollId){
+// 사이드바/상단 메뉴 = 뷰 전환(선택 섹션만 표시). data-view로 양쪽 네비 하이라이트 + hash 유지.
+function nav(el,v){
   if(el&&el.classList.contains('disabled'))return false;
+  if(!document.querySelector('.view[data-view="'+v+'"]'))return false;
   document.querySelectorAll('.view').forEach(function(s){s.classList.toggle('active',s.dataset.view===v)});
-  document.querySelectorAll('.navlink').forEach(function(a){a.classList.remove('on')});
-  if(el)el.classList.add('on');
+  document.querySelectorAll('.navlink').forEach(function(a){a.classList.toggle('on',a.getAttribute('data-view')===v)});
+  try{history.replaceState(null,'','#'+v)}catch(e){}
   window.scrollTo({top:0});
   if(v==='dashboard'&&window.__TLinit)requestAnimationFrame(window.__TLinit);
-  if(scrollId){var t=document.getElementById(scrollId);if(t)setTimeout(function(){t.scrollIntoView({behavior:'smooth',block:'start'})},70)}
   return false;
 }
+// 새로고침(90초)·직접 접근 시 URL hash로 활성 탭 복원 (대시보드로 튕기지 않게)
+(function(){var h=(location.hash||'').replace(/^#/,'');if(h&&document.querySelector('.view[data-view="'+h+'"]'))nav(document.querySelector('.navlink[data-view="'+h+'"]'),h);})();
 // 경과 시간 초 단위 카운트
 (function(){var el=document.getElementById('elapsed');if(!el)return;var st=+el.dataset.start;function p(n){return String(n).padStart(2,'0')}function f(){var s=Math.max(0,Math.floor((Date.now()-st)/1000));el.textContent=Math.floor(s/3600)+':'+p(Math.floor(s%3600/60))+':'+p(s%60)}f();setInterval(f,1000)})();
 // ── 시청자별 채팅 활동: 전체 방송 가로 스크롤 + 확대 바 + 미니맵 브러시 ──
