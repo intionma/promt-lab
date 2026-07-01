@@ -235,7 +235,7 @@ function renderOffline(d) {
   }).join('') : ''
 
   return `<div class="v-off">
-<div class="cards">
+<div class="cards" id="overview">
 ${statCard('평균 동시 시청자', num(d.avgViewers), '명', d.peakViewers != null ? `최고 ${num(d.peakViewers)}명` : '', 'flat')}
 ${statCard('누적 방송', num(d.bcCount), '회', d.bcHours != null ? `약 ${num(d.bcHours)}시간` : '', 'flat')}
 ${statCard('평균 지속률', d.avgRetention != null ? d.avgRetention : '-', '%', '공식 분석', 'flat')}
@@ -248,7 +248,7 @@ ${statCard('최고 동접 방송', d.peakBc ? num(d.peakBc.peak) + '명' : '-', 
 ${statCard('수집 채팅', num(d.chatMsgTotal), '건', '실시간+다시보기', 'flat')}
 </div>
 
-<div class="row3">
+<div class="row3" id="viewers">
 <div class="card"><div class="panel-h"><span class="t">방송별 시청자 추이</span><span class="muted">평균 · 최대 (전 기간)</span></div>
 ${lineSVG([{ data: d.bcPeakSeries || [], color: '#c9d6ff' }, { data: d.bcAvgSeries || [], color: '#0070f3' }], { H: 190 })}
 <div class="legend"><span><i class="dotc" style="background:#0070f3"></i> 평균 동접</span><span><i class="dotc" style="background:#c9d6ff"></i> 최대 동접</span></div></div>
@@ -258,14 +258,14 @@ ${heat ? `<div class="grass">${heat}</div><div class="axis"><span>00</span><span
 <div class="pie"><div class="donut"><i></i></div><div class="leg"><div><s style="background:#7c3aed"></s>이터널 리턴 92%</div><div><s style="background:#0070f3"></s>토크 5%</div><div><s style="background:#f5a623"></s>기타 3%</div></div></div></div>
 </div>
 
-<div class="card"><div class="panel-h"><span class="t">방송 이력</span><span class="muted">최근 8회 · 공식 분석</span></div>
+<div class="card" id="history"><div class="panel-h"><span class="t">방송 이력</span><span class="muted">최근 8회 · 공식 분석</span></div>
 <div class="tablewrap"><table><thead><tr><th>날짜</th><th>제목</th><th class="num">재생</th><th class="num">평균</th><th class="num">최대</th><th class="num">지속률</th><th class="num">채팅%</th></tr></thead><tbody>${bcRows}</tbody></table></div></div>
 
 <div class="card" style="margin-top:16px"><div class="panel-h"><span class="t">팔로워 성장</span></div>
 ${lineSVG([{ data: d.followerSeries || [], color: '#16a34a' }], { H: 130 })}</div>
 
-<div class="row2" style="margin-top:16px">
-<div class="card"><div class="panel-h"><span class="t">최다 채팅 시청자</span><span class="muted">전 기간(실시간+다시보기)</span></div><div class="lst">${chatters}</div></div>
+<div class="row2" id="chat" style="margin-top:16px">
+<div class="card" id="ranking"><div class="panel-h"><span class="t">최다 채팅 시청자</span><span class="muted">전 기간(실시간+다시보기)</span></div><div class="lst">${chatters}</div></div>
 <div class="card"><div class="panel-h"><span class="t">자주 쓰는 이모티콘</span></div><div class="emos">${emotes}</div>
 <div class="panel-h" style="margin-top:16px"><span class="t">최근 다시보기</span></div><div class="lst">${vods}</div></div>
 </div>
@@ -321,12 +321,17 @@ ${hasLive ? '<meta http-equiv="refresh" content="60">' : ''}<title>치지직 통
 <style>
 :root{--bg:#fafafa;--panel:#fff;--border:#ebebeb;--text:#171717;--dim:#666;--dim2:#8f8f8f;--green:#16a34a;--red:#e5484d;--blue:#0070f3;--amber:#f5a623;--purple:#7c3aed;--radius:12px}
 *{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
 .app{display:grid;grid-template-columns:200px 1fr;min-height:100vh}
 .side{border-right:1px solid var(--border);background:var(--panel);padding:16px 10px}
 .brand{display:flex;align-items:center;gap:9px;padding:6px 8px 16px;font-weight:600}
 .brand .dot{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#ec4899)}
 .navi{display:flex;flex-direction:column;gap:2px}.navi a{padding:7px 10px;border-radius:7px;color:var(--dim);cursor:pointer;text-decoration:none}.navi a.on{background:#f2f2f2;color:var(--text);font-weight:500}
+.topnav{display:none;position:sticky;top:0;z-index:30;gap:6px;padding:10px 0;margin-bottom:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;background:var(--bg);border-bottom:1px solid var(--border)}
+.topnav::-webkit-scrollbar{display:none}.topnav{scrollbar-width:none}
+.topnav a{white-space:nowrap;padding:7px 13px;border-radius:999px;color:var(--dim);font-size:13px;font-weight:500;background:#f0f0f0;flex-shrink:0;text-decoration:none}.topnav a.on{background:var(--text);color:#fff}
+#overview,#history,#viewers,#chat,#ranking{scroll-margin-top:16px}
 .main{padding:22px 26px;max-width:1120px}
 .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap}
 .top h1{font-size:19px;font-weight:600}.top .sub{color:var(--dim);font-size:13px;margin-top:2px}
@@ -360,13 +365,41 @@ td{padding:8px;border-bottom:1px solid #f4f4f4}td.tt{max-width:200px;overflow:hi
 .livedot{display:inline-flex;align-items:center;gap:6px;color:var(--red);font-weight:650;font-size:12px}.livedot i{width:8px;height:8px;border-radius:50%;background:var(--red);animation:bk 1.2s infinite}@keyframes bk{50%{opacity:.3}}
 body.live .v-off{display:none}body:not(.live) .v-live{display:none}
 .foot{color:var(--dim2);font-size:11.5px;margin-top:18px;border-top:1px solid var(--border);padding-top:12px}
-@media(max-width:900px){.app{grid-template-columns:1fr}.side{display:none}.main{padding:18px 16px;max-width:100%}.cards{grid-template-columns:repeat(2,1fr)}.row3,.row2{grid-template-columns:1fr}}
-@media(max-width:560px){.grass{grid-template-columns:repeat(12,1fr)}}
-@media(max-width:420px){.main{padding:14px 12px}.cards{grid-template-columns:1fr 1fr;gap:10px}.card{padding:13px}.top h1{font-size:17px}.tg button{padding:6px 10px}}
+/* ── 태블릿 (≤1024px): 사이드바 → 상단 가로 메뉴, 2열 카드 ── */
+@media(max-width:1024px){
+  .app{grid-template-columns:1fr}.side{display:none}.topnav{display:flex}
+  .main{padding:16px 18px;max-width:100%}
+  .cards{grid-template-columns:repeat(2,1fr)}
+  .row3,.row2{grid-template-columns:1fr}
+  #overview,#history,#viewers,#chat,#ranking{scroll-margin-top:60px}
+}
+/* ── 모바일 (≤600px): 여백 축소, 히트맵 12칸, 큰 숫자 축소 ── */
+@media(max-width:600px){
+  .main{padding:12px 12px}
+  .cards{gap:10px}
+  .card{padding:13px}
+  .top{margin-bottom:14px}.top h1{font-size:17px}
+  .tg button{padding:6px 11px}
+  .grass{grid-template-columns:repeat(12,1fr)}
+  .feed{height:180px}
+}
+/* ── 초소형 (≤380px): 카드 1열 ── */
+@media(max-width:380px){.cards{grid-template-columns:1fr}}
 </style></head><body class="${hasLive ? 'live' : ''}"><div class="app">
 <aside class="side"><div class="brand"><span class="dot"></span> 치지직 통계</div>
-<nav class="navi"><a class="on">개요</a><a>방송 이력</a><a>시청자·순위</a><a>채팅 분석</a><a>랭킹</a></nav></aside>
+<nav class="navi">
+<a class="navlink on" data-sec="overview" href="#overview" onclick="return go('overview')">개요</a>
+<a class="navlink" data-sec="history" href="#history" onclick="return go('history')">방송 이력</a>
+<a class="navlink" data-sec="viewers" href="#viewers" onclick="return go('viewers')">시청자·순위</a>
+<a class="navlink" data-sec="chat" href="#chat" onclick="return go('chat')">채팅 분석</a>
+<a class="navlink" data-sec="ranking" href="#ranking" onclick="return go('ranking')">랭킹</a></nav></aside>
 <main class="main">
+<nav class="topnav">
+<a class="navlink on" data-sec="overview" href="#overview" onclick="return go('overview')">개요</a>
+<a class="navlink" data-sec="history" href="#history" onclick="return go('history')">방송 이력</a>
+<a class="navlink" data-sec="viewers" href="#viewers" onclick="return go('viewers')">시청자·순위</a>
+<a class="navlink" data-sec="chat" href="#chat" onclick="return go('chat')">채팅 분석</a>
+<a class="navlink" data-sec="ranking" href="#ranking" onclick="return go('ranking')">랭킹</a></nav>
 <div class="top"><div><h1>SoundVoltex1 ${hasLive ? '<span class="livedot" style="margin-left:6px"><i></i>LIVE</span>' : ''}</h1><div class="sub">이터널 리턴 · ${hasLive ? '지금 방송 중 — 실시간 실데이터' : '실데이터(과거 방송 포함) · 방송 중엔 실시간'}</div></div>
 <div class="tg"><button class="o ${hasLive ? '' : 'act'}" onclick="sw(0)">⚫ 방송 종료</button><button class="l ${hasLive ? 'act' : ''}" onclick="sw(1)">🔴 방송 중</button></div></div>
 ${renderOffline(d)}
@@ -375,6 +408,13 @@ ${renderLive(d)}
 </main></div>
 <script>
 function sw(l){document.body.classList.toggle('live',!!l);document.querySelectorAll('.tg button').forEach(b=>b.classList.remove('act'));document.querySelector(l?'.tg .l':'.tg .o').classList.add('act')}
+// 사이드바/상단 메뉴 클릭 → 해당 섹션으로 이동(오프라인 뷰 전환 후 스크롤) + 활성 표시
+var SECS=['overview','history','viewers','chat','ranking'];
+function setActive(id){document.querySelectorAll('.navlink').forEach(function(a){a.classList.toggle('on',a.dataset.sec===id)})}
+function go(id){sw(0);var t=document.getElementById(id);if(t){setActive(id);setTimeout(function(){t.scrollIntoView({behavior:'smooth',block:'start'})},30)}return false}
+// 스크롤 위치에 따라 현재 섹션 자동 하이라이트
+try{var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)setActive(e.target.id)})},{rootMargin:'-25% 0px -70% 0px'});SECS.forEach(function(id){var el=document.getElementById(id);if(el)io.observe(el)})}catch(e){}
+// 경과 시간 초 단위 카운트
 (function(){var el=document.getElementById('elapsed');if(!el)return;var st=+el.dataset.start;function p(n){return String(n).padStart(2,'0')}function f(){var s=Math.max(0,Math.floor((Date.now()-st)/1000));el.textContent=Math.floor(s/3600)+':'+p(Math.floor(s%3600/60))+':'+p(s%60)}f();setInterval(f,1000)})();
 </script>
 </body></html>`
