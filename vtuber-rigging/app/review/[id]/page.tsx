@@ -4,13 +4,14 @@ import { useEffect, useState, useRef, use } from "react";
 import dynamic from "next/dynamic";
 import { ArrowLeft, MessageSquare, Sliders, Clapperboard, Layers, EyeOff, Eye, Columns2, X, Boxes, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { supabase, type Session, type MeshGroup, type MeshConfig } from "@/lib/supabase";
+import { supabase, type Session } from "@/lib/supabase";
 import { getSilhouettePref, setSilhouettePref, DEFAULT_SILHOUETTE_COLOR } from "@/lib/prefs";
 import { useAdmin } from "@/lib/admin";
 import FeedbackPanel from "@/app/components/FeedbackPanel";
 import ParamPanel from "@/app/components/ParamPanel";
 import ProductionPanel from "@/app/components/ProductionPanel";
-import MeshPanel, { type MeshDiff } from "@/app/components/MeshPanel";
+import MeshPanel from "@/app/components/MeshPanel";
+import { usePaneMesh } from "@/app/components/usePaneMesh";
 import type { Param, ViewerHandle, ModelMeta, ViewerState } from "@/app/components/ModelViewer";
 
 const ModelViewer = dynamic(() => import("@/app/components/ModelViewer"), {
@@ -113,130 +114,16 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [silhouette, setSilhouette] = useState(false);
   const [silhouetteColor, setSilhouetteColor] = useState(DEFAULT_SILHOUETTE_COLOR);
   // 메쉬 그룹/숨김 (id 기준, 모두에게 공유 저장)
-  const [meshGroups, setMeshGroups] = useState<MeshGroup[]>([]);
-  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
-  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
-  // PC(마우스 환경)면 '모델 클릭으로 선택' 기본 ON
-  // (useRef 로 마운트 시 1회 평가하면 SSR 값 false 에 고정되므로 useState + effect 로 감지)
+  // PC(마우스 환경) 감지 — 마운트 후 effect 에서 설정
   const [isPC, setIsPC] = useState(false);
-  const [meshSelectMode, setMeshSelectMode] = useState(false);
-  const [selectedMesh, setSelectedMesh] = useState<number | null>(null);
-  const [sharingGroupId, setSharingGroupId] = useState<string | null>(null);
-  // 버전 간 메쉬 차이 비교
-  const [siblingMeshes, setSiblingMeshes] = useState<{ id: string; meshIds: string[] }[]>([]);
-  const [meshDiff, setMeshDiff] = useState<MeshDiff | null>(null);
-  const meshIdsSaved = useRef(false);
-  const pendingMeshConfig = useRef<MeshConfig | null>(null);
-  const admin = useAdmin(); // 관리자 모드면 폴더 공유 저장 시 비번 자동
+  const admin = useAdmin(); // 관리자 모드면 폴더 공유 시 PIN 자동
+  const sharePw = admin.active ? admin.pin : null;
+  // 창별 메쉬 상태(폴더 포함) — A: 현재 모델, B: 비교 대상. 활성 창 것이 하단 패널에 보임.
+  const meshA = usePaneMesh({ sessionId: id, meta, viewerRef: viewerControl, isPC, sharePassword: sharePw, onPicked: () => { setActivePane("A"); setPanelTab("mesh"); } });
+  const meshB = usePaneMesh({ sessionId: compareId, meta: metaB, viewerRef: viewerControlB, isPC, sharePassword: sharePw, onPicked: () => { setActivePane("B"); setPanelTab("mesh"); } });
+  const activeMesh = activePane === "B" ? meshB : meshA;
 
-  function idxOf(meshId: string): number {
-    return meta?.meshes.find((m) => m.id === meshId)?.index ?? -1;
-  }
-  function setHiddenById(meshId: string, hide: boolean) {
-    const idx = idxOf(meshId);
-    if (idx >= 0) viewerControl.current?.setMeshHidden(idx, hide);
-    setHiddenIds((prev) => {
-      const n = new Set(prev);
-      if (hide) n.add(meshId); else n.delete(meshId);
-      return n;
-    });
-  }
-  function toggleGroup(g: MeshGroup) {
-    const allHidden = g.ids.length > 0 && g.ids.every((id) => hiddenIds.has(id));
-    const hide = !allHidden;
-    g.ids.forEach((id) => { const idx = idxOf(id); if (idx >= 0) viewerControl.current?.setMeshHidden(idx, hide); });
-    setHiddenIds((prev) => {
-      const n = new Set(prev);
-      g.ids.forEach((id) => { if (hide) n.add(id); else n.delete(id); });
-      return n;
-    });
-  }
-  function createGroup(name: string) {
-    const nm = name.trim() || "새 그룹";
-    // 같은 모델은 폴더가 이름 기준 공유되므로 같은 이름 폴더 금지
-    if (meshGroups.some((g) => g.name === nm)) { alert(`'${nm}' 폴더가 이미 있어요. (같은 모델에선 폴더 이름이 겹치면 안 돼요)`); return; }
-    const g: MeshGroup = { id: `g_${Date.now()}`, name: nm, ids: [] };
-    setMeshGroups((p) => [...p, g]);
-    setEditingGroupId(g.id);
-  }
-  function deleteGroup(gid: string) {
-    setMeshGroups((p) => p.filter((g) => g.id !== gid));
-    if (editingGroupId === gid) setEditingGroupId(null);
-  }
-  function toggleMembership(gid: string, meshId: string) {
-    const g = meshGroups.find((x) => x.id === gid);
-    const adding = g ? !g.ids.includes(meshId) : false;
-    // 그룹이 '눈 꺼짐'(기존 멤버 전부 숨김) 상태에서 메쉬를 추가하면, 그 메쉬도 즉시 숨김
-    // (예전엔 그룹 눈을 껐다 켜야 반영됐음)
-    if (adding && g && g.ids.length > 0 && g.ids.every((id) => hiddenIds.has(id))) {
-      setHiddenById(meshId, true);
-    }
-    setMeshGroups((p) => p.map((x) =>
-      x.id === gid
-        ? { ...x, ids: x.ids.includes(meshId) ? x.ids.filter((y) => y !== meshId) : [...x.ids, meshId] }
-        : x
-    ));
-  }
-  function toggleMeshSelectMode(on: boolean) {
-    setMeshSelectMode(on);
-    viewerControl.current?.setMeshSelectMode(on);
-  }
-  function handleMeshPicked(index: number) {
-    const m = meta?.meshes.find((x) => x.index === index);
-    viewerControl.current?.flashMesh(index);
-    setPanelTab("mesh");
-    if (m && editingGroupId) {
-      toggleMembership(editingGroupId, m.id); // 그룹 편집 중이면 멤버 토글
-    } else {
-      setSelectedMesh(index);
-    }
-  }
-  function toggleMesh(meshId: string, hide: boolean) { setHiddenById(meshId, hide); }
-  function showAllMeshes() {
-    viewerControl.current?.showAllMeshes();
-    setHiddenIds(new Set());
-  }
-  // 폴더 하나를 같은 모델의 모든 버전에 공유 (이름 기준)
-  async function shareGroup(g: MeshGroup) {
-    const pw = admin.active ? admin.pin : window.prompt(`'${g.name}' 폴더를 같은 모델의 모든 버전에 공유 — 비밀번호를 입력하세요`);
-    if (!pw) return;
-    setSharingGroupId(g.id);
-    try {
-      const res = await fetch("/api/share-mesh-group", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: id, group: { name: g.name, ids: g.ids }, password: pw }),
-      });
-      if (res.status === 403) { alert("비밀번호가 틀렸어요"); return; }
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        alert("공유 실패: " + (j.error || "") + "\n(mesh_config 컬럼이 필요할 수 있어요)");
-        return;
-      }
-      // 로컬 폴더를 '공유됨'으로 표시(수정 감지 기준점 갱신)
-      setMeshGroups((p) => p.map((x) => (x.id === g.id ? { ...x, shared: true, sharedIds: [...x.ids] } : x)));
-    } finally {
-      setSharingGroupId(null);
-    }
-  }
-
-  function applyMeshConfig(cfg: MeshConfig, m: ModelMeta) {
-    setMeshGroups(cfg.groups ?? []);
-    const hid = new Set(cfg.hidden ?? []);
-    setHiddenIds(hid);
-    hid.forEach((mid) => {
-      const idx = m.meshes.find((x) => x.id === mid)?.index ?? -1;
-      if (idx >= 0) viewerControl.current?.setMeshHidden(idx, true);
-    });
-  }
-  function handleModelMeta(m: ModelMeta) {
-    setMeta(m);
-    if (isPC) viewerControl.current?.setMeshSelectMode(true); // PC 기본 ON
-    if (pendingMeshConfig.current) {
-      applyMeshConfig(pendingMeshConfig.current, m);
-      pendingMeshConfig.current = null;
-    }
-  }
+  function handleModelMeta(m: ModelMeta) { setMeta(m); } // 메쉬 설정 적용은 usePaneMesh 가 처리
 
   // 딥링크: URL ?s= 의 공유 상태를 모델 로드 후 1회 적용
   const pendingState = useRef<ViewerState | null>(parseSharedState());
@@ -341,40 +228,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
           .eq("id", id)
           .single();
         if (data) {
-          setSession(data);
-          const own = (data.mesh_config as MeshConfig | null) ?? null;
-          let groups = own?.groups ?? [];
-          const hidden = own?.hidden ?? [];
-          // 폴더(그룹)는 모델 단위 공유 — 이 버전에 폴더가 없으면 같은 모델의 다른 버전에서 가져옴
-          // (버전별 아트메쉬 이름이 동일하므로 그대로 적용됨. 숨김 상태는 버전별로 유지)
-          if (groups.length === 0 && data.model_name) {
-            const { data: sibs } = await supabase
-              .from("sessions")
-              .select("mesh_config")
-              .eq("model_name", data.model_name)
-              .neq("id", id);
-            for (const s of sibs ?? []) {
-              const g = ((s as { mesh_config: MeshConfig | null }).mesh_config)?.groups;
-              if (g && g.length) { groups = g; break; }
-            }
-          }
-          pendingMeshConfig.current = { groups, hidden };
-
-          // 같은 모델의 다른 버전 아트메쉬 목록 — 메쉬 차이 비교용 (컬럼 없으면 조용히 스킵)
-          if (data.model_name) {
-            const { data: sm, error: smErr } = await supabase
-              .from("sessions")
-              .select("id, mesh_ids")
-              .eq("model_name", data.model_name)
-              .neq("id", id);
-            if (!smErr && sm) {
-              setSiblingMeshes(
-                sm
-                  .map((s) => ({ id: s.id as string, meshIds: ((s as { mesh_ids: string[] | null }).mesh_ids) ?? [] }))
-                  .filter((s) => s.meshIds.length > 0)
-              );
-            }
-          }
+          setSession(data); // 메쉬 설정/차이는 usePaneMesh 가 자체 로드
         } else setNotFound(true);
       } catch {
         // 네트워크 오류 등 — 무한 로딩 대신 안내 표시
@@ -396,47 +250,9 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   // (SSR 안전: useState/useRef 초기값은 서버에서 false 로 고정되므로 마운트 후 감지)
   useEffect(() => {
     const pc = typeof window !== "undefined" && !!window.matchMedia?.("(pointer: fine)").matches;
-    if (pc) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsPC(true);
-      setMeshSelectMode(true);
-      viewerControl.current?.setMeshSelectMode(true);
-    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (pc) setIsPC(true); // 창별 '모델 클릭 선택' 기본 ON 은 usePaneMesh 가 처리
   }, []);
-
-  // 모델 메타가 DB 응답보다 먼저 도착한 경우, 세션이 도착하면 저장된 mesh_config 적용
-  useEffect(() => {
-    if (meta && pendingMeshConfig.current) {
-      applyMeshConfig(pendingMeshConfig.current, meta);
-      pendingMeshConfig.current = null;
-    }
-  }, [meta, session]);
-
-  // 이 버전의 아트메쉬 목록 저장(1회) + 다른 버전과 차이 계산
-  useEffect(() => {
-    if (!meta) { setMeshDiff(null); return; }
-    const hereArr = meta.meshes.map((m) => m.id);
-    const here = new Set(hereArr);
-    if (!meshIdsSaved.current && session) {
-      const prev = session.mesh_ids ?? null;
-      const changed = !prev || prev.length !== hereArr.length || prev.some((x, i) => x !== hereArr[i]);
-      if (changed) {
-        meshIdsSaved.current = true;
-        fetch("/api/save-mesh-ids", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId: id, meshIds: hereArr }),
-        }).catch(() => { /* 컬럼 없거나 실패해도 무시 */ });
-      }
-    }
-    if (siblingMeshes.length === 0) { setMeshDiff(null); return; }
-    const union = new Set<string>();
-    siblingMeshes.forEach((s) => s.meshIds.forEach((x) => union.add(x)));
-    const onlyHere = hereArr.filter((x) => !union.has(x));
-    const missingHere = [...union].filter((x) => !here.has(x));
-    setMeshDiff(onlyHere.length || missingHere.length ? { onlyHere, missingHere, versions: siblingMeshes.length } : null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meta, siblingMeshes, session, id]);
 
   if (notFound) {
     return (
@@ -508,7 +324,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                 controlRef={viewerControl}
                 onParamsLoaded={handleParamsLoaded}
                 onModelMeta={handleModelMeta}
-                onMeshPicked={handleMeshPicked}
+                onMeshPicked={meshA.handleMeshPicked}
                 onGaze={gazeToB}
               />
             )}
@@ -526,6 +342,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                 sessionId={compareId!}
                 controlRef={viewerControlB}
                 onModelMeta={setMetaB}
+                onMeshPicked={meshB.handleMeshPicked}
                 onGaze={gazeToA}
               />
             </div>
@@ -640,28 +457,25 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
             />
           </div>
           <div className={`flex-1 min-h-0 ${panelTab === "mesh" ? "flex flex-col" : "hidden"}`}>
-            {compareOn && (
-              <p className="text-[9px] text-amber-400/90 bg-amber-400/10 px-3 py-1.5 flex-shrink-0">메쉬 편집은 A(왼쪽) 모델 기준이에요. 오른쪽 모델의 메쉬는 단독으로 열어서 편집해 주세요.</p>
-            )}
             <MeshPanel
-              meshes={meta?.meshes ?? []}
-              hiddenIds={hiddenIds}
-              groups={meshGroups}
-              editingGroupId={editingGroupId}
-              selected={selectedMesh}
-              selectMode={meshSelectMode}
-              sharingGroupId={sharingGroupId}
-              onToggleMesh={toggleMesh}
-              onToggleGroup={toggleGroup}
-              onShowAll={showAllMeshes}
-              onFlash={(i) => viewerControl.current?.flashMesh(i)}
-              onToggleSelectMode={toggleMeshSelectMode}
-              onCreateGroup={createGroup}
-              onDeleteGroup={deleteGroup}
-              onSetEditingGroup={setEditingGroupId}
-              onToggleMembership={toggleMembership}
-              onShareGroup={shareGroup}
-              diff={meshDiff}
+              meshes={activeMeta?.meshes ?? []}
+              hiddenIds={activeMesh.hiddenIds}
+              groups={activeMesh.groups}
+              editingGroupId={activeMesh.editingGroupId}
+              selected={activeMesh.selectedMesh}
+              selectMode={activeMesh.meshSelectMode}
+              sharingGroupId={activeMesh.sharingGroupId}
+              onToggleMesh={activeMesh.toggleMesh}
+              onToggleGroup={activeMesh.toggleGroup}
+              onShowAll={activeMesh.showAllMeshes}
+              onFlash={(i) => activeViewer().current?.flashMesh(i)}
+              onToggleSelectMode={activeMesh.toggleMeshSelectMode}
+              onCreateGroup={activeMesh.createGroup}
+              onDeleteGroup={activeMesh.deleteGroup}
+              onSetEditingGroup={activeMesh.setEditingGroupId}
+              onToggleMembership={activeMesh.toggleMembership}
+              onShareGroup={activeMesh.shareGroup}
+              diff={activeMesh.diff}
             />
           </div>
         </div>
