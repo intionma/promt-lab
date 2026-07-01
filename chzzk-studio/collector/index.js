@@ -27,6 +27,11 @@ let donationCount = 0
 let chatters = new Set()
 let messageBuffer = []
 let msgFailCount = 0 // 연속 저장 실패 횟수 (poison 행 감지용)
+let liveNow = false // 현재 방송 중인지 (수집 주기 결정용)
+
+// 수집 주기: 방송 중이면 빠르게(실시간 느낌), 꺼지면 느리게(API/DB 절약)
+const FLUSH_LIVE_MS = 20 * 1000
+const FLUSH_IDLE_MS = 60 * 1000
 
 function resetBucket() {
   chatCount = 0
@@ -152,6 +157,7 @@ chat.on('subscription', (ev) => {
 // ── 1분마다: 세부 메시지 배치 저장 + 집계/순위/썸네일 저장 ──
 async function flush() {
   const live = await getLive()
+  liveNow = !!live // 다음 수집 주기 결정에 사용
 
   // (1) 세부 메시지 배치 저장 (버퍼에 쌓인 것)
   if (messageBuffer.length) {
@@ -259,14 +265,12 @@ async function pollClips() {
   }
 }
 
-// 정각(:00초) 맞춰 1분 간격
-function scheduleFlush() {
-  const now = new Date()
-  const ms = (60 - now.getSeconds()) * 1000 - now.getMilliseconds()
-  setTimeout(() => {
-    flush()
-    setInterval(flush, 60 * 1000)
-  }, ms)
+// 수집 루프: 매 실행 후 방송 여부에 따라 다음 간격을 다시 정함
+//   방송 중  → 20초 (시청자·순위·채팅이 대시보드에 빠르게 반영)
+//   방송 종료 → 60초 (불필요한 폴링/기록 절약)
+async function runFlushLoop() {
+  try { await flush() } catch (e) { console.error('flush 오류:', e.message) }
+  setTimeout(runFlushLoop, liveNow ? FLUSH_LIVE_MS : FLUSH_IDLE_MS)
 }
 
 // 채팅 접속 (실패해도 나머지 수집은 계속 — 30초 후 재시도)
@@ -283,7 +287,7 @@ async function main() {
   console.log(`🚀 치지직 통계 수집기 v2 시작 — 채널 ${CHANNEL_ID}`)
   // 채팅 접속이 실패해도 VOD·클립·하트비트·집계는 계속 돌게 (접속은 백그라운드 재시도)
   connectChatWithRetry()
-  scheduleFlush()
+  runFlushLoop()
   pollVideos()
   setInterval(pollVideos, 60 * 60 * 1000)
   pollClips()
