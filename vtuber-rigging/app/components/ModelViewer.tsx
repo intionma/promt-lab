@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { supabase, listAllStorageFiles } from "@/lib/supabase";
+import { supabase, listAllStorageFiles, type ViewFrame } from "@/lib/supabase";
 import { getSilhouettePref } from "@/lib/prefs";
 import { installLive2DMultiContext, bindLive2DContext } from "@/lib/live2dMultiContext";
 
@@ -58,6 +58,11 @@ export interface ViewerHandle {
   resetFreeView: () => void;
   centerGaze: () => void;
   resize: () => void;
+  // 전신/상반신 고정 카메라 프레이밍 보정
+  setViewAdjustMode: (on: boolean) => void;   // 켜면 드래그=이동, 휠/핀치=줌
+  getViewFrame: () => ViewFrame;               // 현재 보정값(저장용)
+  setViewFrame: (vf: ViewFrame | null) => void; // 저장된 보정값 적용
+  resetViewFrame: (mode: "fullbody" | "upperbody") => void;
 }
 
 type Props = {
@@ -70,10 +75,14 @@ type Props = {
   onGaze?: (gx: number, gy: number, instant: boolean) => void;
   // 시점 바를 부모(통합 바)에서 그릴 때 내부 시점 바를 숨김
   showViewBar?: boolean;
-  // 시점 상태(전신/상반신/자유·얼굴반응·카메라잠금)가 바뀌면 부모에 알림 → 통합 바 표시
-  onViewState?: (s: { viewMode: ViewMode; faceTrack: boolean; camLock: boolean }) => void;
+  // 시점 상태(전신/상반신/자유·얼굴반응·카메라잠금·프레이밍 조정)가 바뀌면 부모에 알림 → 통합 바 표시
+  onViewState?: (s: { viewMode: ViewMode; faceTrack: boolean; camLock: boolean; adjustMode: boolean }) => void;
   // 자유 시점 카메라(팬·줌)가 사용자 조작으로 바뀌면 알림 → 체인 연결 시 다른 창에 전달
   onCameraChange?: (free: { offsetX: number; offsetY: number; zoom: number }) => void;
+  // 저장된 전신/상반신 프레이밍 보정 (모델별) — 로드 시 적용
+  initialViewFrame?: ViewFrame | null;
+  // 단일 모드 내부 바에서 '저장' 눌렀을 때 (부모가 DB 저장 처리)
+  onSaveFrame?: () => void;
 };
 
 // 배경 옵션 (캔버스 컨테이너 CSS 배경 + 스크린샷 합성용 draw)
@@ -156,7 +165,7 @@ const VIEW_LABELS: Record<ViewMode, string> = {
   free: "자유 시점",
 };
 
-export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, onMeshPicked, controlRef, onGaze, showViewBar = true, onViewState, onCameraChange }: Props) {
+export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, onMeshPicked, controlRef, onGaze, showViewBar = true, onViewState, onCameraChange, initialViewFrame, onSaveFrame }: Props) {
   // 최신 콜백들을 ref 로 (init 클로저에서 안전하게 참조)
   const onGazeRef = useRef(onGaze);
   onGazeRef.current = onGaze;
@@ -164,6 +173,16 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
   onCameraChangeRef.current = onCameraChange;
   const onViewStateRef = useRef(onViewState);
   onViewStateRef.current = onViewState;
+  const onSaveFrameRef = useRef(onSaveFrame);
+  onSaveFrameRef.current = onSaveFrame;
+  const initialFrameRef = useRef(initialViewFrame);
+  initialFrameRef.current = initialViewFrame;
+  // 전신/상반신 프레이밍 보정(모델별). dx·dy=이동, zoom=배율.
+  const viewAdjustRef = useRef<{ fullbody: { dx: number; dy: number; zoom: number }; upperbody: { dx: number; dy: number; zoom: number } }>({
+    fullbody: { dx: 0, dy: 0, zoom: 1 }, upperbody: { dx: 0, dy: 0, zoom: 1 },
+  });
+  const adjustModeRef = useRef(false);
+  const [adjustMode, setAdjustMode] = useState(false);
   const canvasRef   = useRef<HTMLCanvasElement>(null);
   const gazeDotRef  = useRef<HTMLDivElement>(null);
   const appRef      = useRef<unknown>(null);
@@ -241,6 +260,20 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
     const next = !camLockRef.current;
     camLockRef.current = next;
     setCamLock(next);
+  }
+  // 전신/상반신 '카메라 조정' 토글 + 현재 뷰 프레이밍 초기화 (단일 모드 내부 바용)
+  function toggleAdjustMode() {
+    const next = !adjustModeRef.current;
+    adjustModeRef.current = next;
+    setAdjustMode(next);
+    lastPickRef.current = null;
+  }
+  function resetCurrentFrame() {
+    const vm = viewModeRef.current;
+    if (vm === "fullbody" || vm === "upperbody") {
+      viewAdjustRef.current[vm] = { dx: 0, dy: 0, zoom: 1 };
+      applyView(vm);
+    }
   }
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState<string | null>(null);
@@ -408,6 +441,22 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
         const w = parent.clientWidth, h = parent.clientHeight;
         if (w > 0 && h > 0) { app.renderer.resize(w, h); recomputeBase(); applyView(viewModeRef.current); applySilhouette(); }
       },
+      // ── 전신/상반신 프레이밍 보정 ──
+      setViewAdjustMode: (on) => { adjustModeRef.current = on; setAdjustMode(on); lastPickRef.current = null; },
+      getViewFrame: () => ({
+        fullbody: { ...viewAdjustRef.current.fullbody },
+        upperbody: { ...viewAdjustRef.current.upperbody },
+      }),
+      setViewFrame: (vf) => {
+        const f = vf?.fullbody, u = vf?.upperbody;
+        viewAdjustRef.current.fullbody = { dx: f?.dx ?? 0, dy: f?.dy ?? 0, zoom: f?.zoom ?? 1 };
+        viewAdjustRef.current.upperbody = { dx: u?.dx ?? 0, dy: u?.dy ?? 0, zoom: u?.zoom ?? 1 };
+        applyView(viewModeRef.current);
+      },
+      resetViewFrame: (mode) => {
+        viewAdjustRef.current[mode] = { dx: 0, dy: 0, zoom: 1 };
+        if (viewModeRef.current === mode) applyView(mode);
+      },
       flashMesh: (index) => {
         // 해당 메쉬를 부드럽게 페이드(밝→어둠→밝) 반복해 어떤 부위인지 눈에 띄게 함.
         // 경과시간을 0 으로 (재)시작 — 실제 페이드 애니메이션은 렌더 루프가 처리.
@@ -426,8 +475,8 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
 
   // 시점 상태가 바뀌면 부모(통합 시점 바)에 알림
   useEffect(() => {
-    onViewStateRef.current?.({ viewMode, faceTrack, camLock });
-  }, [viewMode, faceTrack, camLock]);
+    onViewStateRef.current?.({ viewMode, faceTrack, camLock, adjustMode });
+  }, [viewMode, faceTrack, camLock, adjustMode]);
 
   // 현재 viewport 기준으로 전신 transform(baseRef) 재계산 (로드·리사이즈 시)
   // 실루엣 모드: 모델의 모든 픽셀 RGB를 단색으로 치환(알파=형태 유지) → 평면 실루엣
@@ -480,24 +529,34 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
     const origW = origWRef.current;
 
     if (mode === "upperbody") {
-      // 상반신: 머리~어깨가 화면 세로를 채우도록 확대한 바스트 샷.
+      // 상반신: 머리~어깨가 화면 세로를 채우도록 확대한 바스트 샷. + 저장된 프레이밍 보정.
       const H       = app.renderer.height;
       const W       = app.renderer.width;
       const origH   = origHRef.current || (H / base.scale);
       const SHOW    = 0.32;                          // 본문 상단 32%(얼굴+어깨)
       const upScale = (H * 0.96) / (origH * SHOW);
-      mdl.scale.set(upScale);
-      mdl.x = (W - origW * upScale) / 2;
-      mdl.y = H * 0.05;
+      const a = viewAdjustRef.current.upperbody;
+      mdl.scale.set(upScale * a.zoom);
+      mdl.x = (W - origW * upScale * a.zoom) / 2 + a.dx;
+      mdl.y = H * 0.05 + a.dy;
     } else if (mode === "free") {
       mdl.scale.set(base.scale * freeRef.current.zoom);
       mdl.x = base.x + freeRef.current.offsetX;
       mdl.y = base.y + freeRef.current.offsetY;
     } else {
-      mdl.scale.set(base.scale);
-      mdl.x = base.x;
-      mdl.y = base.y;
+      // 전신 + 저장된 프레이밍 보정
+      const a = viewAdjustRef.current.fullbody;
+      mdl.scale.set(base.scale * a.zoom);
+      mdl.x = (app.renderer.width - origW * base.scale * a.zoom) / 2 + a.dx;
+      mdl.y = base.y + a.dy;
     }
+  }
+
+  // 전신/상반신 프레이밍 줌 (조정 모드의 휠·핀치) — 배율만 갱신 후 재적용
+  function applyViewZoom(mode: "fullbody" | "upperbody", ratio: number) {
+    const a = viewAdjustRef.current[mode];
+    a.zoom = Math.max(0.3, Math.min(5, a.zoom * ratio));
+    applyView(mode);
   }
 
   // ── 시점 전환 ──────────────────────────────────────────────────────────────
@@ -633,6 +692,14 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
         origWRef.current = model.width;
         origHRef.current = model.height;
         recomputeBase();
+        // 모델 로드마다 보정 초기화 후, 저장된 전신/상반신 프레이밍 보정 적용(모델별)
+        viewAdjustRef.current = { fullbody: { dx: 0, dy: 0, zoom: 1 }, upperbody: { dx: 0, dy: 0, zoom: 1 } };
+        adjustModeRef.current = false; setAdjustMode(false);
+        const ivf = initialFrameRef.current;
+        if (ivf) {
+          if (ivf.fullbody) viewAdjustRef.current.fullbody = { dx: ivf.fullbody.dx ?? 0, dy: ivf.fullbody.dy ?? 0, zoom: ivf.fullbody.zoom ?? 1 };
+          if (ivf.upperbody) viewAdjustRef.current.upperbody = { dx: ivf.upperbody.dx ?? 0, dy: ivf.upperbody.dy ?? 0, zoom: ivf.upperbody.zoom ?? 1 };
+        }
         applyView(viewModeRef.current);
 
         setLoading(false);
@@ -855,6 +922,14 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
             if (camLockRef.current) setFocus(e, true);  // 카메라 잠금: 즉시 그쪽 바라봄
             return;
           }
+          // 전신/상반신 '카메라 조정' 모드: 드래그로 프레이밍 이동
+          if (adjustModeRef.current) {
+            try { canvas.setPointerCapture(e.pointerId); } catch { /* noop */ }
+            activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            isDraggingRef.current = true;
+            lastPtrRef.current = { x: e.clientX, y: e.clientY };
+            return;
+          }
           // 비자유(전신/상반신/정면): 메쉬 선택 모드면 클릭으로 집기
           if (meshSelectRef.current) {
             const idx = pickMeshAt(e.clientX, e.clientY);
@@ -867,7 +942,28 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
         }
 
         function onPtrMove(e: PointerEvent) {
-          if (viewModeRef.current !== "free") { setFocus(e, false); return; }
+          if (viewModeRef.current !== "free") {
+            // 전신/상반신 조정 모드: 드래그=이동, 두 손가락=줌
+            const vm = viewModeRef.current;
+            if (adjustModeRef.current && isDraggingRef.current && activePointersRef.current.has(e.pointerId) && (vm === "fullbody" || vm === "upperbody")) {
+              activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+              const ptrs = Array.from(activePointersRef.current.values());
+              if (ptrs.length >= 2) {
+                const [p1, p2] = ptrs;
+                const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+                if (lastPinchDistRef.current > 0 && dist > 0) applyViewZoom(vm, dist / lastPinchDistRef.current);
+                lastPinchDistRef.current = dist;
+              } else {
+                const a = viewAdjustRef.current[vm];
+                a.dx += e.clientX - lastPtrRef.current.x;
+                a.dy += e.clientY - lastPtrRef.current.y;
+                lastPtrRef.current = { x: e.clientX, y: e.clientY };
+                applyView(vm);
+              }
+              return;
+            }
+            setFocus(e, false); return;
+          }
           // 자유시점: 안 누른 상태(hover)면 시선만 커서를 따라감(고개각도 안 바뀜)
           if (!activePointersRef.current.has(e.pointerId)) { setFocus(e, false); return; }
           // 임계값(8px) 넘게 움직여야 '드래그'로 판정 → 그 전까진 탭(메쉬 선택) 유지
@@ -921,7 +1017,15 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
 
         // 마우스 휠 줌
         function onWheel(e: WheelEvent) {
-          if (viewModeRef.current !== "free") return;
+          const vm = viewModeRef.current;
+          // 전신/상반신 조정 모드: 프레이밍 줌
+          if (vm !== "free") {
+            if (adjustModeRef.current && (vm === "fullbody" || vm === "upperbody")) {
+              e.preventDefault();
+              applyViewZoom(vm, e.deltaY < 0 ? 1.12 : 1 / 1.12);
+            }
+            return;
+          }
           e.preventDefault();
           const rect   = canvas.getBoundingClientRect();
           const pivotX = e.clientX - rect.left;
@@ -1086,28 +1190,42 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
             </button>
           </div>
         ) : (
-          <div className="ml-auto flex items-center gap-1.5">
-            {faceTrack && (
-              <button
-                onClick={centerFace}
-                className="px-2.5 py-1 rounded-lg text-[10px] glass glass-hover text-[var(--muted)]"
-                title="터치로 돌려둔 얼굴 각도를 정면으로 되돌립니다"
-              >
-                정면
-              </button>
-            )}
+          <div className="ml-auto flex items-center gap-1.5 flex-wrap">
+            {/* 전신/상반신 고정 카메라 위치 조정 */}
             <button
-              onClick={toggleFaceTrack}
-              className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 ${
-                faceTrack
-                  ? "bg-[var(--purple)]/20 text-[var(--purple)]"
-                  : "glass glass-hover text-[var(--muted)]"
+              onClick={toggleAdjustMode}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all flex items-center gap-1 ${
+                adjustMode ? "bg-[var(--purple)] text-white shadow-sm shadow-[var(--purple)]/30" : "glass glass-hover text-[var(--fg)] border border-[var(--purple)]/40"
               }`}
-              title="터치·마우스에 얼굴이 반응하는 기능을 켜고 끕니다"
+              title="켜면 드래그로 화면 위치, 휠/핀치로 확대를 조정해 이 시점의 고정 카메라를 바꿉니다"
             >
-              <span className={`w-1.5 h-1.5 rounded-full ${faceTrack ? "bg-[var(--purple)]" : "bg-[var(--muted)]/40"}`} />
-              얼굴 반응 {faceTrack ? "ON" : "OFF"}
+              <span className={`w-1.5 h-1.5 rounded-full ${adjustMode ? "bg-white" : "bg-[var(--purple)]"}`} />
+              카메라 조정 {adjustMode ? "ON" : "OFF"}
             </button>
+            {adjustMode ? (
+              <>
+                {onSaveFrame && (
+                  <button onClick={() => onSaveFrameRef.current?.()} className="px-2.5 py-1 rounded-lg text-[10px] font-medium bg-emerald-600 hover:bg-emerald-500 text-white">
+                    저장
+                  </button>
+                )}
+                <button onClick={resetCurrentFrame} className="px-2 py-1 rounded-lg text-[10px] glass glass-hover text-[var(--muted)]">초기화</button>
+              </>
+            ) : (
+              <>
+                {faceTrack && (
+                  <button onClick={centerFace} className="px-2.5 py-1 rounded-lg text-[10px] glass glass-hover text-[var(--muted)]" title="터치로 돌려둔 얼굴 각도를 정면으로 되돌립니다">정면</button>
+                )}
+                <button
+                  onClick={toggleFaceTrack}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 ${faceTrack ? "bg-[var(--purple)]/20 text-[var(--purple)]" : "glass glass-hover text-[var(--muted)]"}`}
+                  title="터치·마우스에 얼굴이 반응하는 기능을 켜고 끕니다"
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${faceTrack ? "bg-[var(--purple)]" : "bg-[var(--muted)]/40"}`} />
+                  얼굴 반응 {faceTrack ? "ON" : "OFF"}
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

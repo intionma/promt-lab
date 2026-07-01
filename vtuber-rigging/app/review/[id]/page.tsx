@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, use } from "react";
 import dynamic from "next/dynamic";
 import { ArrowLeft, MessageSquare, Sliders, Clapperboard, Layers, EyeOff, Eye, Columns2, X, Boxes, Loader2, Link2, Unlink, Crosshair, RotateCcw, Move } from "lucide-react";
 import Link from "next/link";
-import { supabase, type Session } from "@/lib/supabase";
+import { supabase, type Session, type ViewFrame } from "@/lib/supabase";
 import { getSilhouettePref, setSilhouettePref, DEFAULT_SILHOUETTE_COLOR } from "@/lib/prefs";
 import { useAdmin } from "@/lib/admin";
 import FeedbackPanel from "@/app/components/FeedbackPanel";
@@ -104,9 +104,9 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   // 기본값: 묶임(chain=true) → 두 창의 시점 전환·자유시점 카메라가 함께 움직임.
   // 풀면 선택된(활성) 창의 시점만 따로 바뀜(메쉬 편집과 동일한 방식).
   const [chain, setChain] = useState(true);
-  type VState = { viewMode: ViewMode; faceTrack: boolean; camLock: boolean };
-  const [viewStateA, setViewStateA] = useState<VState>({ viewMode: "fullbody", faceTrack: true, camLock: false });
-  const [viewStateB, setViewStateB] = useState<VState>({ viewMode: "fullbody", faceTrack: true, camLock: false });
+  type VState = { viewMode: ViewMode; faceTrack: boolean; camLock: boolean; adjustMode: boolean };
+  const [viewStateA, setViewStateA] = useState<VState>({ viewMode: "fullbody", faceTrack: true, camLock: false, adjustMode: false });
+  const [viewStateB, setViewStateB] = useState<VState>({ viewMode: "fullbody", faceTrack: true, camLock: false, adjustMode: false });
   const activeViewState = activePane === "B" ? viewStateB : viewStateA;
 
   // 자유 시점 카메라 팬·줌 동기화 (체인 연결 시)
@@ -133,6 +133,27 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   function applyResetFree() {
     if (chain) { viewerControl.current?.resetFreeView(); viewerControlB.current?.resetFreeView(); }
     else activeViewer().current?.resetFreeView();
+  }
+  // 전신/상반신 프레이밍 조정 — 모델별이라 체인과 무관하게 '활성 창'만 조정
+  function applyAdjustMode(on: boolean) { activeViewer().current?.setViewAdjustMode(on); }
+  function resetFrame() {
+    const vm = activeViewState.viewMode;
+    if (vm === "fullbody" || vm === "upperbody") activeViewer().current?.resetViewFrame(vm);
+  }
+  async function saveViewFrame() {
+    const vh = activeViewer().current;
+    if (!vh) return;
+    const frame = vh.getViewFrame();
+    const modelName = activePane === "B" ? (compareSession?.model_name ?? null) : (session?.model_name ?? null);
+    const sid = activePane === "B" ? compareId : id;
+    const pw = admin.active ? admin.pin : window.prompt("전신/상반신 카메라 위치를 이 모델에 저장 — 비밀번호를 입력하세요");
+    if (!pw) return;
+    try {
+      const res = await fetch("/api/save-view-frame", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelName, sessionId: sid, frame, password: pw }) });
+      if (res.status === 403) { alert("비밀번호가 틀렸어요"); return; }
+      if (!res.ok) { const j = await res.json().catch(() => ({})); alert("저장 실패: " + (j.error || "")); return; }
+      alert("이 모델의 전신·상반신 카메라 위치를 저장했어요 (모든 버전·모두에게 공유)");
+    } catch { alert("저장 중 오류가 났어요"); }
   }
   // A의 현재 시점·카메라를 B에 그대로 맞춤 (비교 시작·체인 재연결 시)
   function syncBFromA() {
@@ -425,19 +446,36 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                 </>
               ) : (
                 <>
-                  {activeViewState.faceTrack && (
-                    <button onClick={applyCenterFace} className="px-2.5 py-1 rounded-lg text-[10px] glass glass-hover text-[var(--muted)] flex items-center gap-1">
-                      <Crosshair className="w-3 h-3" /> 정면
-                    </button>
-                  )}
+                  {/* 카메라 조정 ({activePane} 창 모델의 이 시점 프레이밍) */}
                   <button
-                    onClick={() => applyFaceTrack(!activeViewState.faceTrack)}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 ${activeViewState.faceTrack ? "bg-[var(--purple)]/20 text-[var(--purple)]" : "glass glass-hover text-[var(--muted)]"}`}
-                    title="터치·마우스에 얼굴이 반응하는 기능"
+                    onClick={() => applyAdjustMode(!activeViewState.adjustMode)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1 shadow-sm ${activeViewState.adjustMode ? "bg-[var(--purple)] text-white shadow-[var(--purple)]/30" : "glass glass-hover text-[var(--fg)] border border-[var(--purple)]/40"}`}
+                    title="드래그로 화면 위치, 휠/핀치로 확대 — 이 시점의 고정 카메라 조정"
                   >
-                    <span className={`w-1.5 h-1.5 rounded-full ${activeViewState.faceTrack ? "bg-[var(--purple)]" : "bg-[var(--muted)]/40"}`} />
-                    얼굴 반응 {activeViewState.faceTrack ? "ON" : "OFF"}
+                    <Move className="w-3 h-3" /> 카메라 조정 {activeViewState.adjustMode ? "ON" : "OFF"}
                   </button>
+                  {activeViewState.adjustMode ? (
+                    <>
+                      <button onClick={saveViewFrame} className="px-2.5 py-1 rounded-lg text-[10px] font-medium bg-emerald-600 hover:bg-emerald-500 text-white">저장</button>
+                      <button onClick={resetFrame} className="px-2 py-1 rounded-lg text-[10px] glass glass-hover text-[var(--muted)] flex items-center gap-1"><RotateCcw className="w-3 h-3" /> 초기화</button>
+                    </>
+                  ) : (
+                    <>
+                      {activeViewState.faceTrack && (
+                        <button onClick={applyCenterFace} className="px-2.5 py-1 rounded-lg text-[10px] glass glass-hover text-[var(--muted)] flex items-center gap-1">
+                          <Crosshair className="w-3 h-3" /> 정면
+                        </button>
+                      )}
+                      <button
+                        onClick={() => applyFaceTrack(!activeViewState.faceTrack)}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 ${activeViewState.faceTrack ? "bg-[var(--purple)]/20 text-[var(--purple)]" : "glass glass-hover text-[var(--muted)]"}`}
+                        title="터치·마우스에 얼굴이 반응하는 기능"
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${activeViewState.faceTrack ? "bg-[var(--purple)]" : "bg-[var(--muted)]/40"}`} />
+                        얼굴 반응 {activeViewState.faceTrack ? "ON" : "OFF"}
+                      </button>
+                    </>
+                  )}
                 </>
               )}
               {!chain && (
@@ -465,6 +503,8 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                   showViewBar={!compareOn}
                   onViewState={setViewStateA}
                   onCameraChange={cameraToB}
+                  initialViewFrame={session?.mesh_config?.viewFrame ?? null}
+                  onSaveFrame={saveViewFrame}
                 />
               )}
               <FolderHotToggles groups={meshA.groups} hiddenIds={meshA.hiddenIds} onToggle={meshA.toggleGroup} />
@@ -487,6 +527,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                   showViewBar={false}
                   onViewState={setViewStateB}
                   onCameraChange={cameraToA}
+                  initialViewFrame={compareSession?.mesh_config?.viewFrame ?? null}
                 />
                 <FolderHotToggles groups={meshB.groups} hiddenIds={meshB.hiddenIds} onToggle={meshB.toggleGroup} />
               </div>

@@ -8,7 +8,10 @@ export const supabase = createClient(
 // 사용자가 만든 ArtMesh 그룹 + 숨김 상태 (모두에게 공유 저장)
 // shared: 이 폴더가 같은 모델의 다른 버전과 공유됨. sharedIds: 마지막 공유 시점의 멤버(수정 감지용)
 export type MeshGroup = { id: string; name: string; ids: string[]; shared?: boolean; sharedIds?: string[] };
-export type MeshConfig = { groups: MeshGroup[]; hidden: string[] };
+// 전신/상반신 고정 카메라 프레이밍 보정(모델별 공유). dx·dy = 픽셀 이동, zoom = 배율.
+export type FrameAdjust = { dx: number; dy: number; zoom: number };
+export type ViewFrame = { fullbody?: FrameAdjust; upperbody?: FrameAdjust };
+export type MeshConfig = { groups: MeshGroup[]; hidden: string[]; viewFrame?: ViewFrame };
 
 export type Session = {
   id: string;
