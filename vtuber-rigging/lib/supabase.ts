@@ -21,6 +21,8 @@ export type Session = {
   mesh_config?: MeshConfig | null;
   // 갤러리 내 수동 정렬 순서 (작을수록 위, 컬럼 없으면 undefined)
   sort_order?: number | null;
+  // 이 버전의 아트메쉬 id 목록 (버전 간 메쉬 차이 비교용, 컬럼 없으면 undefined)
+  mesh_ids?: string[] | null;
 };
 
 // ===== PIN 기반 소유권 (모든 기기에서 내 모델 보기) =====

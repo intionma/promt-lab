@@ -10,7 +10,7 @@ import { useAdmin } from "@/lib/admin";
 import FeedbackPanel from "@/app/components/FeedbackPanel";
 import ParamPanel from "@/app/components/ParamPanel";
 import ProductionPanel from "@/app/components/ProductionPanel";
-import MeshPanel from "@/app/components/MeshPanel";
+import MeshPanel, { type MeshDiff } from "@/app/components/MeshPanel";
 import type { Param, ViewerHandle, ModelMeta, ViewerState } from "@/app/components/ModelViewer";
 
 const ModelViewer = dynamic(() => import("@/app/components/ModelViewer"), {
@@ -73,6 +73,10 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [meshSelectMode, setMeshSelectMode] = useState(false);
   const [selectedMesh, setSelectedMesh] = useState<number | null>(null);
   const [meshSaving, setMeshSaving] = useState(false);
+  // 버전 간 메쉬 차이 비교
+  const [siblingMeshes, setSiblingMeshes] = useState<{ id: string; meshIds: string[] }[]>([]);
+  const [meshDiff, setMeshDiff] = useState<MeshDiff | null>(null);
+  const meshIdsSaved = useRef(false);
   const pendingMeshConfig = useRef<MeshConfig | null>(null);
   const admin = useAdmin(); // 관리자 모드면 폴더 공유 저장 시 비번 자동
 
@@ -298,6 +302,22 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
             }
           }
           pendingMeshConfig.current = { groups, hidden };
+
+          // 같은 모델의 다른 버전 아트메쉬 목록 — 메쉬 차이 비교용 (컬럼 없으면 조용히 스킵)
+          if (data.model_name) {
+            const { data: sm, error: smErr } = await supabase
+              .from("sessions")
+              .select("id, mesh_ids")
+              .eq("model_name", data.model_name)
+              .neq("id", id);
+            if (!smErr && sm) {
+              setSiblingMeshes(
+                sm
+                  .map((s) => ({ id: s.id as string, meshIds: ((s as { mesh_ids: string[] | null }).mesh_ids) ?? [] }))
+                  .filter((s) => s.meshIds.length > 0)
+              );
+            }
+          }
         } else setNotFound(true);
       } catch {
         // 네트워크 오류 등 — 무한 로딩 대신 안내 표시
@@ -334,6 +354,32 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
       pendingMeshConfig.current = null;
     }
   }, [meta, session]);
+
+  // 이 버전의 아트메쉬 목록 저장(1회) + 다른 버전과 차이 계산
+  useEffect(() => {
+    if (!meta) { setMeshDiff(null); return; }
+    const hereArr = meta.meshes.map((m) => m.id);
+    const here = new Set(hereArr);
+    if (!meshIdsSaved.current && session) {
+      const prev = session.mesh_ids ?? null;
+      const changed = !prev || prev.length !== hereArr.length || prev.some((x, i) => x !== hereArr[i]);
+      if (changed) {
+        meshIdsSaved.current = true;
+        fetch("/api/save-mesh-ids", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: id, meshIds: hereArr }),
+        }).catch(() => { /* 컬럼 없거나 실패해도 무시 */ });
+      }
+    }
+    if (siblingMeshes.length === 0) { setMeshDiff(null); return; }
+    const union = new Set<string>();
+    siblingMeshes.forEach((s) => s.meshIds.forEach((x) => union.add(x)));
+    const onlyHere = hereArr.filter((x) => !union.has(x));
+    const missingHere = [...union].filter((x) => !here.has(x));
+    setMeshDiff(onlyHere.length || missingHere.length ? { onlyHere, missingHere, versions: siblingMeshes.length } : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meta, siblingMeshes, session, id]);
 
   if (notFound) {
     return (
@@ -508,6 +554,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               onSetEditingGroup={setEditingGroupId}
               onToggleMembership={toggleMembership}
               onSave={saveMeshConfig}
+              diff={meshDiff}
             />
           </div>
         </div>

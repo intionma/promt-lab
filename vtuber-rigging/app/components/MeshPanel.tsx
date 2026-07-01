@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Eye, EyeOff, Search, Layers, MousePointerClick, Plus, Pencil, Trash2, Check, Save, FolderPlus } from "lucide-react";
+import { Eye, EyeOff, Search, Layers, MousePointerClick, Plus, Pencil, Trash2, Check, Save, FolderPlus, AlertTriangle } from "lucide-react";
+
+export type MeshDiff = { onlyHere: string[]; missingHere: string[]; versions: number };
 
 type Mesh = { index: number; id: string; part: string };
 type Group = { id: string; name: string; ids: string[] };
@@ -24,6 +26,7 @@ type Props = {
   onSetEditingGroup: (id: string | null) => void;
   onToggleMembership: (groupId: string, meshId: string) => void;
   onSave: () => void;
+  diff?: MeshDiff | null;
 };
 
 const COLORS = ["#a855f7", "#ec4899", "#3b82f6", "#22c55e", "#f59e0b", "#06b6d4", "#ef4444", "#8b5cf6"];
@@ -31,9 +34,10 @@ const COLORS = ["#a855f7", "#ec4899", "#3b82f6", "#22c55e", "#f59e0b", "#06b6d4"
 export default function MeshPanel({
   meshes, hiddenIds, groups, editingGroupId, selected, selectMode, saving,
   onToggleMesh, onToggleGroup, onShowAll, onFlash, onToggleSelectMode,
-  onCreateGroup, onDeleteGroup, onSetEditingGroup, onToggleMembership, onSave,
+  onCreateGroup, onDeleteGroup, onSetEditingGroup, onToggleMembership, onSave, diff,
 }: Props) {
   const [query, setQuery] = useState("");
+  const [showDiff, setShowDiff] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const editingGroup = groups.find((g) => g.id === editingGroupId) || null;
 
@@ -57,10 +61,19 @@ export default function MeshPanel({
   return (
     <div className="flex flex-col h-full">
       {/* 헤더 */}
-      <div className="px-3 py-2 border-b border-white/5 flex items-center justify-between gap-2 flex-shrink-0">
-        <p className="text-xs font-semibold text-[var(--fg)]">
-          ArtMesh<span className="text-[10px] text-[var(--muted)] ml-1">{meshes.length}</span>
-          {hiddenIds.size > 0 && <span className="text-[10px] text-pink-400 ml-1">· {hiddenIds.size} 숨김</span>}
+      <div className="relative px-3 py-2 border-b border-white/5 flex items-center justify-between gap-2 flex-shrink-0">
+        <p className="text-xs font-semibold text-[var(--fg)] flex items-center gap-1.5">
+          ArtMesh<span className="text-[10px] text-[var(--muted)]">{meshes.length}</span>
+          {hiddenIds.size > 0 && <span className="text-[10px] text-pink-400">· {hiddenIds.size} 숨김</span>}
+          {diff && (
+            <button
+              onClick={() => setShowDiff((v) => !v)}
+              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-400/15 text-amber-400 text-[9px] font-bold hover:bg-amber-400/25"
+              title="다른 버전과 아트메쉬가 달라요 — 눌러서 차이 보기"
+            >
+              <AlertTriangle className="w-3 h-3" /> 메쉬 차이
+            </button>
+          )}
         </p>
         <div className="flex items-center gap-1">
           {hiddenIds.size > 0 && (
@@ -70,6 +83,30 @@ export default function MeshPanel({
             <Save className="w-2.5 h-2.5" /> {saving ? "저장중" : "공유 저장"}
           </button>
         </div>
+
+        {/* 메쉬 차이 말풍선 */}
+        {diff && showDiff && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setShowDiff(false)} />
+            <div className="absolute left-3 right-3 top-full mt-1 z-50 rounded-xl border border-amber-400/30 p-3 shadow-2xl text-[10px] space-y-2" style={{ backgroundColor: "var(--bg-soft)" }}>
+              <p className="text-amber-400 font-semibold flex items-center gap-1">
+                <AlertTriangle className="w-3.5 h-3.5" /> 다른 버전과 아트메쉬가 달라요 (버전 {diff.versions}개와 비교)
+              </p>
+              {diff.missingHere.length > 0 && (
+                <div>
+                  <p className="text-[var(--fg)] mb-0.5">이 버전엔 <b>없는</b> 메쉬 · {diff.missingHere.length}개 <span className="text-[var(--muted)]">(공유 폴더가 이걸 못 찾을 수 있어요)</span></p>
+                  <p className="text-[var(--muted)] break-words leading-relaxed">{diff.missingHere.slice(0, 40).join(", ")}{diff.missingHere.length > 40 ? " …" : ""}</p>
+                </div>
+              )}
+              {diff.onlyHere.length > 0 && (
+                <div>
+                  <p className="text-[var(--fg)] mb-0.5">이 버전에<b>만</b> 있는 메쉬 · {diff.onlyHere.length}개</p>
+                  <p className="text-[var(--muted)] break-words leading-relaxed">{diff.onlyHere.slice(0, 40).join(", ")}{diff.onlyHere.length > 40 ? " …" : ""}</p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="px-2.5 pt-2 flex-shrink-0 space-y-2">
