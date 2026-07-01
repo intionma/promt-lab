@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.9.96 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.9.97 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.96 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.97 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1941,7 +1941,14 @@
         const CHANGELOG = [
             // ── 2026-07-01 ──────────────────────────────────────────────────
             {
-                version: 'v9.9.96', date: '2026-07-01', time: '최신',
+                version: 'v9.9.97', date: '2026-07-01', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[자동 분류] 별칭·변형 표기 인식 강화 — "twin tails=twintails", "eyeglasses=glasses", "outdoor=outdoors", 영국식/미국식(grey/gray, colour/color), 단수/복수까지 자동 매칭. 표기가 조금 달라도 계층을 제대로 찾음',
+                ]
+            },
+            {
+                version: 'v9.9.96', date: '2026-07-01', time: '오후',
                 tag: 'feat',
                 items: [
                     '[자동 분류] 계층 추정 정확도 향상 — DB에 없는 태그도 내장 사전(6천+ 예정)과 유사도 비교해 계층을 추정. 프롬프트 가져오기·자동 분류에서 "미분류"가 크게 줄어듦',
@@ -8612,14 +8619,78 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             "sunbeam":{"k":"햇살","l":7},"glare":{"k":"글레어","l":7},
         };
 
-        // TAG_DICT 조회: 공백/언더스코어 양방향 정규화
+        // ── 별칭/변형 정규화 (Phase 1B) ─────────────────────────────────
+        //  변형 표기 → 사전 표준형. 스펠링·영국식/미국식은 아래 생성기가
+        //  자동 처리하므로, 여기엔 "의미가 같은 진짜 동의어"만 둔다.
+        const TAG_ALIAS = {
+            // 헤어
+            'twin tails': 'twintails', 'twin tail': 'twintails', 'twin-tails': 'twintails',
+            'pony tail': 'ponytail', 'pig tails': 'twintails', 'pigtails': 'twintails',
+            'bangs': 'blunt bangs',
+            // 눈/안경
+            'eyeglasses': 'glasses', 'spectacles': 'glasses', 'eye glasses': 'glasses',
+            'heterochromia iridum': 'heterochromia',
+            // 의상/레그웨어
+            'thigh highs': 'thighhighs', 'thigh-highs': 'thighhighs', 'thigh high': 'thighhighs',
+            'over-knee socks': 'thighhighs', 'stockings': 'thighhighs',
+            'tights': 'pantyhose', 'nylons': 'pantyhose',
+            'sneaker': 'sneakers', 'trainers': 'sneakers', 'high heel': 'high heels', 'heels': 'high heels',
+            'swimwear': 'swimsuit', 'bathing suit': 'swimsuit',
+            'jean': 'jeans', 'denim pants': 'jeans',
+            'sailor uniform': 'serafuku',
+            // 화질/화풍
+            'grayscale': 'monochrome', 'greyscale': 'monochrome', 'black and white': 'monochrome',
+            'photo realistic': 'photorealistic', 'photo-realistic': 'photorealistic', 'hyper realistic': 'hyperrealistic',
+            'ultra-detailed': 'ultra detailed', 'highly-detailed': 'highly detailed',
+            'depth-of-field': 'depth of field', 'bokeh effect': 'bokeh',
+            // 구도/시점
+            'from up': 'from above', 'from top': 'from above',
+            'birds eye view': 'bird eye view', "bird's eye view": 'bird eye view', "bird's-eye view": 'bird eye view',
+            'worms eye view': 'worm eye view', "worm's eye view": 'worm eye view', "worm's-eye view": 'worm eye view',
+            'dutch tilt': 'dutch angle',
+            'close-up': 'close-up', 'closeup': 'close-up', 'full body': 'full body', 'fullbody': 'full body',
+            // 시선/표정
+            'looking at camera': 'looking at viewer', 'eye contact': 'looking at viewer',
+            'smiling': 'smile', 'grin': 'grinning',
+            // 배경/시간
+            'outdoor': 'outdoors', 'indoor': 'indoors', 'night time': 'night', 'nighttime': 'night',
+            'day time': 'day', 'daytime': 'day', 'sun light': 'sunlight', 'sun-light': 'sunlight',
+        };
+
+        // 조회 후보 생성: 별칭 → 스펠링(gray/grey, colour/color) → 공백/밑줄 → 단복수
+        //  앞쪽(정확형)을 먼저 반환하므로 오매칭 위험을 낮춘다.
+        function _dictCandidates(raw) {
+            const base = String(raw || '').toLowerCase().trim();
+            const set = new Set();
+            const spellVariants = (s) => {
+                const out = [s];
+                if (s.indexOf('grey') >= 0) out.push(s.replace(/grey/g, 'gray'));
+                if (s.indexOf('gray') >= 0) out.push(s.replace(/gray/g, 'grey'));
+                if (s.indexOf('colour') >= 0) out.push(s.replace(/colour/g, 'color'));
+                else if (s.indexOf('color') >= 0) out.push(s.replace(/color/g, 'colour'));
+                return out;
+            };
+            const primaries = [base];
+            if (TAG_ALIAS[base]) primaries.push(TAG_ALIAS[base]);
+            // 1) 정확/별칭 + 스펠링 + 공백↔밑줄 (우선순위 높음)
+            primaries.forEach(b => spellVariants(b).forEach(v => {
+                set.add(v);
+                set.add(v.replace(/_/g, ' '));
+                set.add(v.replace(/ /g, '_'));
+            }));
+            // 2) 단수/복수 토글 (마지막 후보 — 오매칭 방지 위해 뒤로)
+            [...set].forEach(v => {
+                if (/[^s]s$/.test(v)) set.add(v.replace(/s$/, ''));
+                else if (/[a-z]$/.test(v)) set.add(v + 's');
+            });
+            return [...set];
+        }
+
+        // TAG_DICT 조회: 별칭·스펠링·공백/밑줄·단복수 정규화 (첫 매칭 반환)
         function _tagDictLookup(tag) {
-            const t = tag.toLowerCase().trim();
-            if (TAG_DICT[t]) return TAG_DICT[t];
-            const swapped = t.replace(/_/g, ' ');
-            if (TAG_DICT[swapped]) return TAG_DICT[swapped];
-            const underscored = t.replace(/ /g, '_');
-            if (TAG_DICT[underscored]) return TAG_DICT[underscored];
+            for (const c of _dictCandidates(tag)) {
+                if (TAG_DICT[c]) return TAG_DICT[c];
+            }
             return null;
         }
 
