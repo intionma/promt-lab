@@ -25,6 +25,7 @@ let chatCount = 0
 let donationCount = 0
 let chatters = new Set()
 let messageBuffer = []
+let msgFailCount = 0 // 연속 저장 실패 횟수 (poison 행 감지용)
 
 function resetBucket() {
   chatCount = 0
@@ -158,11 +159,25 @@ async function flush() {
     for (const m of batch) if (m.live_id == null) m.live_id = liveId
     const { error } = await supabase.from('chat_messages').insert(batch)
     if (error) {
-      // 일시적 실패 시 손실 방지: 되돌려서 다음 분에 재시도 (과다 시 최신 5만건만 유지)
-      console.error('❌ 메시지 저장 실패(다음 분 재시도):', error.message)
-      messageBuffer = batch.concat(messageBuffer)
-      if (messageBuffer.length > 50000) messageBuffer = messageBuffer.slice(-50000)
+      msgFailCount++
+      if (msgFailCount <= 2) {
+        // 일시적 실패(네트워크 등)일 수 있음 → 되돌려 다음 분 재시도 (과다 시 최신 5만건만 유지)
+        console.error(`❌ 메시지 저장 실패(${msgFailCount}회, 다음 분 재시도):`, error.message)
+        messageBuffer = batch.concat(messageBuffer)
+        if (messageBuffer.length > 50000) messageBuffer = messageBuffer.slice(-50000)
+      } else {
+        // 3회 연속 실패 → 나쁜 행(poison) 의심. 개별 저장으로 살릴 수 있는 것만 저장하고 나쁜 행은 버림
+        console.error('❌ 메시지 반복 실패 → 개별 저장 시도(나쁜 행 건너뜀):', error.message)
+        let bad = 0
+        for (const m of batch) {
+          const { error: e2 } = await supabase.from('chat_messages').insert(m)
+          if (e2) bad++
+        }
+        console.warn(`  → 개별 저장 완료, ${bad}건 버림`)
+        msgFailCount = 0
+      }
     } else {
+      msgFailCount = 0
       console.log(`📝 [${new Date().toISOString()}] 세부 채팅 ${batch.length}건 저장`)
     }
   }
@@ -253,9 +268,20 @@ function scheduleFlush() {
   }, ms)
 }
 
+// 채팅 접속 (실패해도 나머지 수집은 계속 — 30초 후 재시도)
+async function connectChatWithRetry() {
+  try {
+    await chat.connect()
+  } catch (e) {
+    console.warn('⚠️ 채팅 접속 실패, 30초 후 재시도:', e.message)
+    setTimeout(connectChatWithRetry, 30 * 1000)
+  }
+}
+
 async function main() {
   console.log(`🚀 치지직 통계 수집기 v2 시작 — 채널 ${CHANNEL_ID}`)
-  await chat.connect()
+  // 채팅 접속이 실패해도 VOD·클립·하트비트·집계는 계속 돌게 (접속은 백그라운드 재시도)
+  connectChatWithRetry()
   scheduleFlush()
   pollVideos()
   setInterval(pollVideos, 60 * 60 * 1000)
