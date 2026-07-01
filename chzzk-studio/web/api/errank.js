@@ -11,6 +11,7 @@ export default async function handler(req, res) {
   res.setHeader('cache-control', 's-maxage=30, stale-while-revalidate=60')
   try {
     const r = await fetch(`https://api.chzzk.naver.com/service/v1/categories/GAME/${CAT}/lives?sortType=POPULAR&size=50`, { headers: { 'User-Agent': UA } })
+    if (!r.ok) return res.status(200).json({ items: [], error: `upstream ${r.status}` })
     const list = (await r.json())?.content?.liveInfoResponseList || []
     const items = list.map((L, i) => ({
       rank: i + 1,

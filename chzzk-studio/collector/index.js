@@ -230,6 +230,21 @@ async function finalizeBroadcast(s) {
   else console.log(`📊 [${new Date().toISOString()}] 방송 종료 집계: ${row.title ?? '-'} · 평균 ${avg_ccv ?? '-'} · 최대 ${max_ccv ?? '-'} · 채팅 ${chat_count}`)
 }
 
+// ── 시작 시 보정: 재시작 등으로 종료 감지를 놓친 최근 방송이 있으면 집계 ──
+async function reconcileLastBroadcast() {
+  try {
+    const { data: lastSnap } = await supabase.from('chat_snapshots').select('captured_at,live_id').order('captured_at', { ascending: false }).limit(1).maybeSingle()
+    if (!lastSnap?.live_id) return
+    const ageMs = Date.now() - new Date(lastSnap.captured_at).getTime()
+    if (ageMs < 3 * 60 * 1000) return // 아직 방송 중이거나 방금 종료 → 정상 루프가 처리
+    const bid = String(lastSnap.live_id)
+    const { data: existing } = await supabase.from('broadcast_analytics').select('broadcast_id').eq('broadcast_id', bid).maybeSingle()
+    if (existing) return // 이미 집계됨
+    await finalizeBroadcast({ liveId: lastSnap.live_id, startedAt: null, title: null, category: null })
+    console.log(`🔧 [${new Date().toISOString()}] 재시작 후 미집계 방송 보정 집계: ${bid}`)
+  } catch (e) { console.warn('보정 집계 실패:', e.message) }
+}
+
 // ── 20초(방송 중)/60초(종료): 시청자·순위·채팅수 집계 스냅샷 ──
 async function flush() {
   const live = await getLive()
@@ -360,6 +375,7 @@ async function main() {
   console.log(`🚀 치지직 통계 수집기 v2 시작 — 채널 ${CHANNEL_ID}`)
   // 채팅 접속이 실패해도 VOD·클립·하트비트·집계는 계속 돌게 (접속은 백그라운드 재시도)
   connectChatWithRetry()
+  reconcileLastBroadcast() // 재시작으로 놓친 종료 방송 보정
   runFlushLoop()
   runMessageLoop()
   pollVideos()

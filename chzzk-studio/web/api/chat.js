@@ -25,8 +25,8 @@ export default async function handler(req, res) {
     } else if (q.around) {
       const iso = new Date(Number(q.around)).toISOString()
       const [{ data: bef }, { data: aft }] = await Promise.all([
-        base().lte('msg_time', iso).order('msg_time', { ascending: false }).limit(40),
-        base().gt('msg_time', iso).order('msg_time', { ascending: true }).limit(20),
+        base().lte('msg_time', iso).order('msg_time', { ascending: false }).order('id', { ascending: false }).limit(40),
+        base().gt('msg_time', iso).order('msg_time', { ascending: true }).order('id', { ascending: true }).limit(20),
       ])
       items = [...(bef || []).filter((m) => m.nickname && m.message).reverse(), ...(aft || []).filter((m) => m.nickname && m.message)]
     } else {

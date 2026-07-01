@@ -260,8 +260,9 @@ const viewVods = (d) => {
   const ranked = [...vods].sort((a, b) => (b.read_count || 0) - (a.read_count || 0))
   const mx = ranked[0]?.read_count || 1
   const rows = ranked.slice(0, 15).map((v, i) => `<div class="li"><span class="rk">${i + 1}</span><div class="nm">${esc(v.title)}<div class="bar" style="width:${Math.round((v.read_count || 0) / mx * 100)}%;background:linear-gradient(90deg,#0070f3,#7c3aed)"></div></div><span class="ct" style="font-weight:700">${num(v.read_count)}</span></div>`).join('') || '<div class="muted">아직 데이터 없음</div>'
+  const STOP = new Set(['엠마', '방송', '다시보기', '오늘', '조금', '하다가여', '하는', '보는', '까지', '이터', '리턴'])
   const kw = new Map()
-  for (const v of vods) { const seen = new Set(); for (const w of (v.title || '').split(/[\s,·\-\/\[\]()]+/)) { if (w.length < 2 || seen.has(w)) continue; seen.add(w); const e = kw.get(w) || { n: 0, sum: 0 }; e.n++; e.sum += v.read_count || 0; kw.set(w, e) } }
+  for (const v of vods) { const seen = new Set(); for (const w of (v.title || '').split(/[\s,·\-\/\[\]()]+/)) { if (w.length < 2 || seen.has(w) || STOP.has(w)) continue; seen.add(w); const e = kw.get(w) || { n: 0, sum: 0 }; e.n++; e.sum += v.read_count || 0; kw.set(w, e) } }
   const kws = [...kw.entries()].filter(([, e]) => e.n >= 2).map(([w, e]) => ({ w, avg: Math.round(e.sum / e.n), n: e.n })).sort((a, b) => b.avg - a.avg).slice(0, 8)
   const kwHtml = kws.map((k) => `<div class="li"><span class="nm">${esc(k.w)} <span class="tagbadge">${k.n}개</span></span><span class="ct">평균 ${num(k.avg)}</span></div>`).join('') || '<div class="muted">키워드 집계 중 (VOD 더 쌓이면)</div>'
   return `<div class="cards">
@@ -716,12 +717,18 @@ function nav(el,v,scrollId){
     var cp=T('lv-cpm');if(cp&&L.cpm!=null)cp.textContent='분당 '+L.cpm+'개';
     var f=T('lv-feed');
     if(f&&!window.__feedHist&&L.feed&&L.feed.length){
-      var atB=f.scrollHeight-f.scrollTop-f.clientHeight<40, distB=f.scrollHeight-f.scrollTop, nc=0;
+      var atB=f.scrollHeight-f.scrollTop-f.clientHeight<40, nc=0;
       if(window.__lvLast){var idx=L.feed.lastIndexOf(window.__lvLast);nc=idx>=0?(L.feed.length-1-idx):L.feed.length;}
       window.__lvLast=L.feed[L.feed.length-1];
-      f.innerHTML=L.feed.join('');
-      if(atB){f.scrollTop=f.scrollHeight;hideNew();}
-      else if(nc>0){f.scrollTop=f.scrollHeight-distB;bumpNew(nc);}
+      if(atB){f.innerHTML=L.feed.join('');f.scrollTop=f.scrollHeight;hideNew();}
+      else{
+        // 위로 읽는 중: 화면 첫 메시지(data-id) 기준으로 스크롤 위치 보존(80개 롤링에도 안 튀게)
+        var anchor=null,aOff=0,kids=f.children;
+        for(var i=0;i<kids.length;i++){var id=kids[i].getAttribute('data-id');if(id&&kids[i].offsetTop+kids[i].offsetHeight>f.scrollTop){anchor=id;aOff=kids[i].offsetTop-f.scrollTop;break;}}
+        f.innerHTML=L.feed.join('');
+        if(anchor){var el=f.querySelector('[data-id="'+anchor+'"]');if(el)f.scrollTop=el.offsetTop-aOff;}
+        if(nc>0)bumpNew(nc);
+      }
     }
     var lb=T('lv-rank5');if(lb&&L.leaderboard)lb.innerHTML=L.leaderboard.map(function(x,i){var md=['🥇','🥈','🥉'][i]||(i+1);return '<div class="li"><span class="rk">'+md+'</span><div class="nm">'+e(x.nm)+'<div class="bar" style="width:'+x.w+'%"></div></div><span class="ct" style="font-weight:700">'+x.c+'</span></div>'}).join('');
     var el=T('elapsed');if(el&&L.startMs)el.dataset.start=L.startMs;

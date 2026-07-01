@@ -28,7 +28,8 @@ export const renderFeedItem = (m) => {
 export async function loadLive(supabase) {
   const { data: lastSnap } = await supabase.from('chat_snapshots').select('captured_at,concurrent_users,category_rank,chat_count,live_id,live_thumbnail_url').order('captured_at', { ascending: false }).limit(1).maybeSingle()
   const freshMs = lastSnap?.captured_at ? Date.now() - new Date(lastSnap.captured_at).getTime() : Infinity
-  if (!(lastSnap && freshMs < 3.5 * 60 * 1000 && lastSnap.live_id != null)) return null
+  // 방송 중 스냅샷은 20초 주기 → 90초(≈4.5×) 안에 없으면 종료로 판정(false-LIVE 최소화)
+  if (!(lastSnap && freshMs < 90 * 1000 && lastSnap.live_id != null)) return null
 
   const liveId = lastSnap.live_id
   const { data: sess } = await supabase.from('chat_snapshots').select('captured_at,concurrent_users,category_rank,chat_count').eq('live_id', liveId).order('captured_at', { ascending: true }).limit(1000)
