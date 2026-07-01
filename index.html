@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v8.4 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.9.95 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.82 &nbsp;·&nbsp; 2026-06-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.9.95 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1939,9 +1939,45 @@
         // 토스트 알림
         // ── 업데이트 내역 ────────────────────────────────────────────────────
         const CHANGELOG = [
+            // ── 2026-07-01 ──────────────────────────────────────────────────
+            {
+                version: 'v9.9.95', date: '2026-07-01', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[번역 세션] 에디터에 올라간 캡슐 태그가 번역 목록에 안 잡히던 문제 수정 — 이제 화면에 뜨는 모든 태그(DB에 없어도)가 번역 대상, 적용 시 캡슐이 바로 한글로 표시',
+                ]
+            },
+            {
+                version: 'v9.9.94', date: '2026-07-01', time: '오후',
+                tag: 'fix',
+                items: [
+                    '[레이아웃] 카드 덱·노드 그래프에서 드래그 리스너가 카드/노드마다 쌓이던 메모리 누수 수정 — 세션당 1세트로 통합',
+                    '[레이아웃] 기능 레이아웃(터미널·덱·노드 등)에 우상단 "레이아웃" 종료/전환 버튼 추가 — 햄버거 없이도 바로 빠져나오기',
+                    '[레이아웃] 대화형 빌더: 사전 태그 없는 계층 안내 문구 추가',
+                ]
+            },
+            {
+                version: 'v9.9.92', date: '2026-07-01', time: '오후',
+                tag: 'fix',
+                items: [
+                    '[레이아웃] 모바일/태블릿 반응형 정비 — 재배치형 레이아웃이 모바일 슬라이드 트랙 순서를 흩뜨리던 문제 수정(테마 색·폰트는 유지)',
+                    '[레이아웃] 기능 오버레이가 켜지면 하단 탭바 자동 숨김(겹침 방지), 좁은 화면에서 덱 카드·콕핏 다이얼 크기 조정',
+                ]
+            },
+            {
+                version: 'v9.9.90', date: '2026-07-01', time: '오전',
+                tag: 'feat',
+                items: [
+                    '[레이아웃] 햄버거 메뉴에 "레이아웃 변경" 추가 — 17종 레이아웃을 골라 쓰는 선택기 (자동 저장·복원)',
+                    '[레이아웃] 재배치형: 클래식·집중·세로 적층·미러',
+                    '[레이아웃] 차용형: 인스펙터(Figma)·IDE(⌘K 커맨드 팔레트)·갤러리·필름스트립·모드전환(빌드↔퍼포먼스)',
+                    '[레이아웃] 신규: 터미널(명령어 빌드)·카드 덱(스와이프)·노드 그래프(마인드맵)·대화형·매거진·레트로 OS·콕핏(다이얼)·스프레드시트 — 각자 전용 디자인·폰트',
+                    '[보안] 캡슐/조합/DB/워크플로우 등 사용자 입력이 화면에 그려지는 곳 XSS 방어 강화',
+                ]
+            },
             // ── 2026-06-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.9.82', date: '2026-06-28', time: '밤 (최신)',
+                version: 'v9.9.82', date: '2026-06-28', time: '밤',
                 tag: 'feat',
                 items: [
                     '[개발자 모드] 연결 없이도 새 기능 전체 테스트 — 다중 생성 진행바·대기열, PC 상태 실시간 모니터(가짜 VRAM/RAM 흔들림)까지 가상 동작',
