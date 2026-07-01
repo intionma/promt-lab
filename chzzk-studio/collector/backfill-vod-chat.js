@@ -61,7 +61,7 @@ async function backfillVod(v) {
     if (chats.length) {
       const rows = chats.map((e) => {
         let p = {}
-        try { p = JSON.parse(e.profile) } catch {}
+        try { p = JSON.parse(e.profile) || {} } catch {}
         return {
           video_no: no,
           player_message_time: e.playerMessageTime ?? null,
