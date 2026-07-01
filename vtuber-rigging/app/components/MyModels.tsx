@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
-import { ExternalLink, Trash2, Calendar, Layers, Boxes, Link as LinkIcon, Loader2, HardDrive, Lock, X, FileText, Download, GripVertical, Split } from "lucide-react";
+import { ExternalLink, Trash2, Calendar, Layers, Boxes, Link as LinkIcon, Loader2, HardDrive, Lock, X, FileText, Download, GripVertical, Split, AlertTriangle } from "lucide-react";
 import {
   DndContext, DragOverlay, PointerSensor, KeyboardSensor, useSensor, useSensors,
   closestCorners, useDroppable, type DragStartEvent, type DragOverEvent, type DragEndEvent,
@@ -47,6 +48,7 @@ export default function MyModels() {
   const [vmap, setVmap] = useState<Record<string, VersionItem>>({});     // id → 버전 데이터
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dragSource, setDragSource] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false); // 드래그 오버레이 포탈용 (document.body)
 
   const [pwTarget, setPwTarget] = useState<Session | null>(null);
   const [pwInput, setPwInput] = useState("");
@@ -118,6 +120,7 @@ export default function MyModels() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { setMounted(true); }, []);
 
   const findContainer = useCallback(
     (id: string): string | undefined => {
@@ -322,7 +325,13 @@ export default function MyModels() {
             onDragCancel={() => { setActiveId(null); setDragSource(null); }}
           >
             {containers.map((name) => (
-              <DroppableGroup key={name} name={name} count={items[name]?.length ?? 0} dragging={!!activeId}>
+              <DroppableGroup
+                key={name}
+                name={name}
+                count={items[name]?.length ?? 0}
+                dragging={!!activeId}
+                problem={(items[name] ?? []).some((id) => (vmap[id]?.size ?? 0) === 0)}
+              >
                 <SortableContext items={items[name] ?? []} strategy={verticalListSortingStrategy}>
                   <div className="space-y-1.5">
                     {(items[name] ?? []).map((id) => {
@@ -347,17 +356,20 @@ export default function MyModels() {
               </DroppableGroup>
             ))}
 
-            <DragOverlay>
-              {activeV ? (
-                <div className="glass-strong rounded-xl p-3 flex items-center gap-3 shadow-2xl ring-2 ring-[var(--purple)]/50">
-                  <GripVertical className="w-4 h-4 text-[var(--purple)]" />
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--purple-deep)]/30 to-[var(--pink)]/20 border border-[var(--purple)]/20 flex items-center justify-center">
-                    <span className="text-xs font-bold text-[var(--purple)]">v{activeV.versionNo}</span>
+            {mounted && createPortal(
+              <DragOverlay>
+                {activeV ? (
+                  <div className="glass-strong rounded-xl p-3 flex items-center gap-3 shadow-2xl ring-2 ring-[var(--purple)]/50">
+                    <GripVertical className="w-4 h-4 text-[var(--purple)]" />
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--purple-deep)]/30 to-[var(--pink)]/20 border border-[var(--purple)]/20 flex items-center justify-center">
+                      <span className="text-xs font-bold text-[var(--purple)]">v{activeV.versionNo}</span>
+                    </div>
+                    <span className="text-sm text-[var(--fg)] truncate max-w-[160px]">{activeV.title}</span>
                   </div>
-                  <span className="text-sm text-[var(--fg)] truncate max-w-[160px]">{activeV.title}</span>
-                </div>
-              ) : null}
-            </DragOverlay>
+                ) : null}
+              </DragOverlay>,
+              document.body
+            )}
           </DndContext>
 
           <div className="flex items-center gap-2 text-[10px] text-[var(--muted)] px-1 pt-1">
@@ -434,7 +446,7 @@ export default function MyModels() {
 }
 
 // ── 드롭 가능한 그룹(모델) ──────────────────────────────────────────────
-function DroppableGroup({ name, count, dragging, children }: { name: string; count: number; dragging: boolean; children: React.ReactNode }) {
+function DroppableGroup({ name, count, dragging, problem, children }: { name: string; count: number; dragging: boolean; problem: boolean; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id: name });
   return (
     <div
@@ -444,6 +456,11 @@ function DroppableGroup({ name, count, dragging, children }: { name: string; cou
       <div className="flex items-center gap-2 px-1">
         <Boxes className="w-4 h-4 text-[var(--purple)]" />
         <span className="text-sm font-bold text-[var(--fg)]">{name}</span>
+        {problem && (
+          <span className="flex items-center gap-0.5 text-[9px] text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-full" title="이 모델에 파일이 비어있는(업로드 실패) 버전이 있어요">
+            <AlertTriangle className="w-3 h-3" /> 문제
+          </span>
+        )}
         <span className="text-[10px] text-[var(--muted)] bg-white/5 px-2 py-0.5 rounded-full">{count}개 버전</span>
         {dragging && <span className="text-[9px] text-[var(--purple)]">여기로 드롭</span>}
       </div>
@@ -492,11 +509,16 @@ function SortableVersionRow({
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-[var(--fg)] truncate">{v.title}</p>
+          <p className="text-sm text-[var(--fg)] truncate flex items-center gap-1.5">
+            {v.size === 0 && (
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" aria-label="업로드 실패 가능성" />
+            )}
+            <span className="truncate">{v.title}</span>
+          </p>
           <div className="flex items-center gap-2 text-[10px] text-[var(--muted)]">
             <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {formatDate(v.created_at)}</span>
             <span className="opacity-40">·</span>
-            <span>{formatBytes(v.size)}</span>
+            <span className={v.size === 0 ? "text-amber-400" : ""}>{v.size === 0 ? "파일 없음 (업로드 실패)" : formatBytes(v.size)}</span>
           </div>
         </div>
 
