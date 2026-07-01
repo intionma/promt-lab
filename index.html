@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.13 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.14 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.13 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.14 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1953,7 +1953,15 @@
         const CHANGELOG = [
             // ── 2026-07-01 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.13', date: '2026-07-01', time: '최신',
+                version: 'v9.10.14', date: '2026-07-01', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[추천] 테마 시나리오 추가 확대 — 52 → 75종. 차이나 드레스·한복·느와르·궁수·뱀파이어·인어·스팀펑크·아포칼립스·레이싱걸·바리스타·비 오는 카페·벚꽃 교복·검객 등 새 테마 추가',
+                    '[추천] 성인(19+) 테마 시나리오 추가 — 란제리·실크 잠옷·목욕 후·온천 등. 카드에 "19+" 배지를 붙여 한눈에 구분되게 표시',
+                ]
+            },
+            {
+                version: 'v9.10.13', date: '2026-07-01', time: '이전',
                 tag: 'feat',
                 items: [
                     '[추천] 테마 시나리오 대폭 확대 — 12 → 52종 (학교·계절·판타지·SF·도시·우아·무대·직업·감성·자연 등). 빈 화면에서 한 번에 9개씩 보여주고 새로고침으로 계속 바뀜',
@@ -6510,6 +6518,31 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { n: '꽃밭', e: '🌷', tags: ['1girl', 'sundress', 'flower field', 'standing', 'petals falling', 'soft lighting', 'smile'] },
             { n: '숲속', e: '🌲', tags: ['1girl', 'dress', 'forest', 'dappled sunlight', 'standing', 'soft lighting', 'nature'] },
             { n: '별 보는 밤', e: '✨', tags: ['1girl', 'casual', 'field', 'starry sky', 'lying', 'moonlight', 'night'] },
+            // ── 추가 SFW 테마 ──
+            { n: '차이나 드레스', e: '🏮', tags: ['1girl', 'chinese dress', 'long hair', 'standing', 'elegant', 'soft lighting', 'warm colors'] },
+            { n: '한복', e: '🇰🇷', tags: ['1girl', 'hanbok', 'long hair', 'standing', 'soft lighting', 'elegant', 'petals falling'] },
+            { n: '형사 느와르', e: '🕵️', tags: ['1girl', 'trench coat', 'city', 'night', 'monochrome', 'serious', 'cinematic lighting'] },
+            { n: '궁수', e: '🏹', tags: ['1girl', 'aiming bow', 'forest', 'dynamic pose', 'serious', 'dappled sunlight', 'fantasy background'] },
+            { n: '뱀파이어', e: '🧛', tags: ['1girl', 'vampire', 'fangs', 'red eyes', 'castle', 'night', 'moody atmosphere'] },
+            { n: '인어', e: '🧜', tags: ['1girl', 'mermaid', 'underwater', 'long hair', 'bubbles', 'caustics', 'ethereal'] },
+            { n: '스팀펑크', e: '⚙️', tags: ['1girl', 'steampunk outfit', 'goggles', 'standing', 'warm colors', 'cinematic lighting', 'brown hair'] },
+            { n: '아포칼립스', e: '🏚️', tags: ['1girl', 'jacket', 'post-apocalypse', 'ancient ruins', 'serious', 'dust', 'cinematic lighting'] },
+            { n: '레이싱걸', e: '🏁', tags: ['1girl', 'racing suit', 'standing', 'dynamic pose', 'sunglasses', 'vibrant colors', 'sunlight'] },
+            { n: '바리스타', e: '☕', tags: ['1girl', 'apron', 'cafe', 'holding cup', 'smile', 'warm colors', 'indoors'] },
+            { n: '비 오는 카페', e: '🌦️', tags: ['1girl', 'sweater', 'cafe', 'rainy window', 'sitting', 'melancholic', 'soft lighting'] },
+            { n: '벚꽃 교복', e: '🌸', tags: ['1girl', 'school uniform', 'cherry blossoms', 'petals falling', 'smile', 'wind', 'soft lighting'] },
+            { n: '겨울 니트', e: '🧶', tags: ['1girl', 'oversized sweater', 'indoors', 'sitting', 'holding cup', 'warm colors', 'soft lighting'] },
+            { n: '검객', e: '🗡️', tags: ['1girl', 'kimono', 'holding katana', 'serious', 'petals falling', 'dramatic lighting', 'wind'] },
+            { n: '메카닉', e: '🔧', tags: ['1girl', 'overalls', 'industrial area', 'standing', 'smudge', 'warm colors', 'goggles'] },
+            // ── NSFW/성인 (성인 소비자용 · 미성년/극단 제외) ──
+            { n: '란제리', e: '🔞', nsfw: true, tags: ['1girl', 'lingerie', 'bedroom', 'bed', 'lying', 'seductive smile', 'soft lighting'] },
+            { n: '가터벨트', e: '🔞', nsfw: true, tags: ['1girl', 'garter belt', 'thighhighs', 'business suit', 'sitting', 'seductive smile', 'indoors'] },
+            { n: '실크 잠옷', e: '🔞', nsfw: true, tags: ['1girl', 'nightgown', 'bedroom', 'lying', 'long hair', 'soft lighting', 'warm colors'] },
+            { n: '목욕 후', e: '🔞', nsfw: true, tags: ['1girl', 'towel wrap', 'wet hair', 'bathroom', 'blush', 'steam', 'soft lighting'] },
+            { n: '온천 (성인)', e: '🔞', nsfw: true, tags: ['1girl', 'onsen', 'towel wrap', 'steam', 'blush', 'wet hair', 'night'] },
+            { n: '젖은 셔츠', e: '🔞', nsfw: true, tags: ['1girl', 'wet clothes', 'white shirt', 'rain', 'see-through', 'blush', 'soft lighting'] },
+            { n: '대담한 비키니', e: '🔞', nsfw: true, tags: ['1girl', 'micro bikini', 'beach', 'seductive smile', 'navel', 'sunlight', 'ocean'] },
+            { n: '핀업', e: '🔞', nsfw: true, tags: ['1girl', 'lingerie', 'garter straps', 'standing', 'seductive smile', 'retro artstyle', 'warm colors'] },
         ];
         // 동시출현(어울림) 맵: 앵커 태그 → 함께 잘 쓰이는 태그들
         const TAG_AFFINITY = {
@@ -6667,7 +6700,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 let html = head('테마로 시작', '하나 고르면 어울리는 조합이 채워져요');
                 html += `<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px;">`;
                 shuffled.forEach((r, idx) => {
-                    html += `<button class="rec-recipe" data-idx="${idx}" style="text-align:left; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.3); border-radius:10px; padding:10px; cursor:pointer;">
+                    const nsfwBadge = r.nsfw ? `<span style="position:absolute; top:6px; right:6px; font-size:8px; font-weight:800; color:#f87171; background:rgba(248,113,113,0.14); border:1px solid rgba(248,113,113,0.4); border-radius:5px; padding:1px 5px;">19+</span>` : '';
+                    const cardBg = r.nsfw ? 'rgba(248,113,113,0.06)' : 'rgba(168,85,247,0.06)';
+                    const cardBorder = r.nsfw ? 'rgba(248,113,113,0.3)' : 'rgba(168,85,247,0.3)';
+                    html += `<button class="rec-recipe" data-idx="${idx}" style="position:relative; text-align:left; background:${cardBg}; border:1px solid ${cardBorder}; border-radius:10px; padding:10px; cursor:pointer;">
+                        ${nsfwBadge}
                         <span style="font-size:18px;">${r.e}</span>
                         <span style="display:block; font-size:12px; font-weight:700; color:var(--text-main); margin-top:3px;">${_esc(r.n)}</span>
                         <span style="display:block; font-size:9px; color:var(--text-dim); margin-top:2px;">${r.tags.length}개 태그</span>
