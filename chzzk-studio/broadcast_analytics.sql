@@ -1,14 +1,41 @@
--- 치지직 공식 방송 분석 (엑셀 임포트) — Supabase SQL Editor에 실행
-create table if not exists public.broadcast_analytics (
-  id bigint generated always as identity primary key,
-  started_at timestamptz, title text, duration_min int, plays int,
-  viewers int, avg_ccu int, peak_ccu int, retention_pct numeric,
-  chat_participants int, chat_rate_pct numeric, cheese int, donation_cnt int
+-- 치지직 방송 분석 (확정 스키마 · 2-Wave) — Supabase SQL Editor에서 실행
+-- 방송 1회 = 1행. 대시보드 집계 카드/이력/추이 차트 구동.
+-- 기존 엑셀 데이터(공식 통계)는 source='official' 로 백필.
+
+drop table if exists public.broadcast_analytics;
+create table public.broadcast_analytics (
+  broadcast_id     text primary key,
+  title            text,
+  category         text,
+  started_at       timestamptz not null,
+  ended_at         timestamptz,
+  duration_sec     int,
+  avg_ccv          int,            -- Wave1 근사 → Wave2 정확
+  max_ccv          int,            -- Wave1 근사 → Wave2 정확
+  plays            int,            -- Wave2 공식
+  unique_viewers   int,            -- Wave2 공식
+  watch_time_sec   bigint,         -- Wave2 공식
+  avg_watch_sec    int,            -- Wave2 공식
+  retention_pct    numeric(5,2),   -- Wave2 공식
+  chat_count       int,            -- Wave1 (chat_snapshots 집계)
+  chat_rate_pct    numeric(5,2),   -- Wave2 공식
+  cheese_total     int default 0,  -- Wave2 공식
+  donation_count   int default 0,  -- Wave2 공식
+  er_best_rank     int,            -- nullable, ER 방송만
+  source           text default 'collected',  -- collected | official | merged
+  created_at       timestamptz default now(),
+  updated_at       timestamptz default now()
 );
+create index on public.broadcast_analytics (started_at desc);
 alter table public.broadcast_analytics enable row level security;
-delete from public.broadcast_analytics;  -- 재실행 안전
-insert into public.broadcast_analytics (started_at,title,duration_min,plays,viewers,avg_ccu,peak_ccu,retention_pct,chat_participants,chat_rate_pct,cheese,donation_cnt) values
-('2026-06-08 05:36:11+09','좋은 하루 엠마 ꉂꉂ(ᵔᗜᵔ*)',430,2170,1902,23,43,0.72,29,1.52,0,0),
+
+-- 공식 엑셀 백필 (avg_ccv/max_ccv/retention/chat_rate/plays/cheese/donation)
+insert into public.broadcast_analytics
+  (broadcast_id, started_at, title, category, duration_sec, plays, avg_ccv, max_ccv, retention_pct, chat_rate_pct, cheese_total, donation_count, source)
+select 'sabol-'||to_char(started_at,'YYYYMMDD-HH24MI'), started_at, title, '이터널 리턴',
+       duration_min*60, plays, avg_ccu, peak_ccu, retention_pct, chat_rate_pct, cheese, donation_cnt, 'official'
+from (values
+('2026-06-08 05:36:11+09'::timestamptz,'좋은 하루 엠마 ꉂꉂ(ᵔᗜᵔ*)',430,2170,1902,23,43,0.72,29,1.52,0,0),
 ('2026-06-06 07:17:44+09','엠마 조신한 랭크 방송',292,514,532,16,39,2.47,24,4.51,0,0),
 ('2026-06-04 07:29:58+09','엠마 9000점 달리기',269,397,373,12,23,2.46,20,5.36,0,0),
 ('2026-06-01 08:01:38+09','나에게 필요한 건 실력보다 미소~',296,472,476,11,26,1.91,20,4.2,0,0),
@@ -58,4 +85,5 @@ insert into public.broadcast_analytics (started_at,title,duration_min,plays,view
 ('2026-03-15 11:57:47+09','엠마 솔랭, 이대로 괜찮은가',303,161,220,10,15,3.76,12,5.45,0,0),
 ('2026-03-14 10:06:26+09','엠마랑 기싸움 한 사람',276,267,359,12,26,2.72,16,4.46,0,0),
 ('2026-03-13 07:03:26+09','뎀갓 엠마 이터달리기',420,417,450,10,20,1.68,18,4.0,0,0),
-('2026-03-12 10:32:24+09','엠마 랭크 조금만 하다가여',88,59,71,7,15,8.41,8,11.27,0,0);
+('2026-03-12 10:32:24+09','엠마 랭크 조금만 하다가여',88,59,71,7,15,8.41,8,11.27,0,0)
+) as t(started_at, title, duration_min, plays, viewers, avg_ccu, peak_ccu, retention_pct, chat_participants, chat_rate_pct, cheese, donation_cnt);

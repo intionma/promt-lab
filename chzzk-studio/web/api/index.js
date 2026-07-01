@@ -76,28 +76,31 @@ async function loadData(supabase) {
   try {
     const { data: bcs } = await supabase.from('broadcast_analytics').select('*').order('started_at', { ascending: false }).limit(200)
     if (bcs && bcs.length) {
+      // 확정 스키마: avg_ccv/max_ccv/duration_sec/cheese_total/donation_count/er_best_rank/source
       d.bcCount = bcs.length
-      d.bcHours = Math.round(bcs.reduce((a, b) => a + (b.duration_min || 0), 0) / 60)
-      const ccu = bcs.map((b) => b.avg_ccu).filter((v) => v != null)
+      d.bcHours = Math.round(bcs.reduce((a, b) => a + (b.duration_sec || 0), 0) / 3600)
+      const ccu = bcs.map((b) => b.avg_ccv).filter((v) => v != null)
       d.avgViewers = ccu.length ? Math.round(ccu.reduce((a, b) => a + b, 0) / ccu.length) : null
-      d.peakViewers = Math.max(...bcs.map((b) => b.peak_ccu || 0))
+      d.peakViewers = Math.max(...bcs.map((b) => b.max_ccv || 0))
       const ret = bcs.map((b) => b.retention_pct).filter((v) => v != null)
       d.avgRetention = ret.length ? (ret.reduce((a, b) => a + Number(b), 0) / ret.length).toFixed(2) : null
-      d.cheese = bcs.reduce((a, b) => a + (b.cheese || 0), 0)
-      d.donations = bcs.reduce((a, b) => a + (b.donation_cnt || 0), 0)
-      // 최근 방송 테이블
-      d.recentBc = bcs.slice(0, 8).map((b) => ({ date: md(b.started_at), title: b.title, plays: b.plays, avg: b.avg_ccu, peak: b.peak_ccu, ret: b.retention_pct, chat: b.chat_rate_pct }))
+      d.cheese = bcs.reduce((a, b) => a + (b.cheese_total || 0), 0)
+      d.donations = bcs.reduce((a, b) => a + (b.donation_count || 0), 0)
+      const ranks = bcs.map((b) => b.er_best_rank).filter((v) => v != null)
+      if (ranks.length) d.bestRank = Math.min(d.bestRank ?? Infinity, ...ranks)
+      // 최근 방송 테이블 (renderOffline이 쓰는 키 유지)
+      d.recentBc = bcs.slice(0, 8).map((b) => ({ date: md(b.started_at), title: b.title, plays: b.plays, avg: b.avg_ccv, peak: b.max_ccv, ret: b.retention_pct, chat: b.chat_rate_pct }))
       // 시간대 히트맵 (0~23시, 방송 시작시각 기준)
       const hours = new Array(24).fill(0)
       for (const b of bcs) if (b.started_at) hours[khour(b.started_at)]++
       d.hourHeat = hours
-      // 동접 추이(최근→과거 역순, 방송별 평균/최대)
+      // 동접 추이(과거→최근, 방송별 평균/최대)
       const chrono = [...bcs].reverse()
-      d.bcAvgSeries = sample(chrono.map((b) => b.avg_ccu), 40)
-      d.bcPeakSeries = sample(chrono.map((b) => b.peak_ccu), 40)
+      d.bcAvgSeries = sample(chrono.map((b) => b.avg_ccv), 40)
+      d.bcPeakSeries = sample(chrono.map((b) => b.max_ccv), 40)
       // 하이라이트
-      const peakBc = bcs.reduce((m, b) => ((b.peak_ccu || 0) > (m.peak_ccu || 0) ? b : m), bcs[0])
-      d.peakBc = { title: peakBc.title, peak: peakBc.peak_ccu, date: md(peakBc.started_at) }
+      const peakBc = bcs.reduce((m, b) => ((b.max_ccv || 0) > (m.max_ccv || 0) ? b : m), bcs[0])
+      d.peakBc = { title: peakBc.title, peak: peakBc.max_ccv, date: md(peakBc.started_at) }
     }
   } catch (e) { console.warn('broadcast_analytics (테이블 미생성일 수 있음):', e.message) }
 
