@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Eye, EyeOff, Search, Layers, MousePointerClick, Plus, Pencil, Trash2, Check, FolderPlus, AlertTriangle, Share2, Link2, Loader2, Lock, LockOpen } from "lucide-react";
+import { promptDialog } from "@/lib/ui";
 
 export type MeshDiff = { onlyHere: string[]; missingHere: string[]; versions: number };
 
@@ -124,7 +125,7 @@ export default function MeshPanel({
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-semibold text-[var(--muted)]">그룹</span>
             <button
-              onClick={() => { const n = window.prompt("그룹 이름 (예: 머리카락, 얼굴)"); if (n) onCreateGroup(n); }}
+              onClick={async () => { const n = await promptDialog("새 그룹 이름", "", "예: 머리카락, 얼굴"); if (n && n.trim()) onCreateGroup(n.trim()); }}
               className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] glass glass-hover text-[var(--purple)]"
             >
               <FolderPlus className="w-3 h-3" /> 새 그룹

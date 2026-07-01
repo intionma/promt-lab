@@ -2,6 +2,7 @@
 // 한 모델(창)의 메쉬 상태·로직을 캡슐화 — 단일/분할 비교 모두에서 창별 독립 사용.
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase, type MeshGroup, type MeshConfig, type Session } from "@/lib/supabase";
+import { toast, promptDialog } from "@/lib/ui";
 import type { ModelMeta, ViewerHandle } from "./ModelViewer";
 import type { MeshDiff } from "./MeshPanel";
 
@@ -120,7 +121,7 @@ export function usePaneMesh({ sessionId, meta, viewerRef, isPC, sharePassword, o
   }
   function createGroup(name: string) {
     const nm = name.trim() || "새 그룹";
-    if (groups.some((g) => g.name === nm)) { alert(`'${nm}' 폴더가 이미 있어요. (같은 모델에선 폴더 이름이 겹치면 안 돼요)`); return; }
+    if (groups.some((g) => g.name === nm)) { toast(`'${nm}' 폴더가 이미 있어요. (같은 모델에선 폴더 이름이 겹치면 안 돼요)`, "error"); return; }
     const g: MeshGroup = { id: `g_${Date.now()}`, name: nm, ids: [] };
     setGroups((p) => [...p, g]);
     setEditingGroupId(g.id);
@@ -145,14 +146,15 @@ export function usePaneMesh({ sessionId, meta, viewerRef, isPC, sharePassword, o
   }
   async function shareGroup(g: MeshGroup) {
     if (!sessionId) return;
-    const pw = sharePassword ?? window.prompt(`'${g.name}' 폴더를 같은 모델의 모든 버전에 공유 — 비밀번호를 입력하세요`);
+    const pw = sharePassword ?? (await promptDialog(`'${g.name}' 폴더를 같은 모델의 모든 버전에 공유`, "", "비밀번호"));
     if (!pw) return;
     setSharingGroupId(g.id);
     try {
       const res = await fetch("/api/share-mesh-group", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId, group: { name: g.name, ids: g.ids }, password: pw }) });
-      if (res.status === 403) { alert("비밀번호가 틀렸어요"); return; }
-      if (!res.ok) { const j = await res.json().catch(() => ({})); alert("공유 실패: " + (j.error || "")); return; }
+      if (res.status === 403) { toast("비밀번호가 틀렸어요", "error"); return; }
+      if (!res.ok) { const j = await res.json().catch(() => ({})); toast("공유 실패: " + (j.error || ""), "error"); return; }
       setGroups((p) => p.map((x) => (x.id === g.id ? { ...x, shared: true, sharedIds: [...x.ids] } : x)));
+      toast(`'${g.name}' 폴더를 모든 버전에 공유했어요`, "success");
     } finally { setSharingGroupId(null); }
   }
 

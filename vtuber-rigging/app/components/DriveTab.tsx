@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { FileUp, FolderUp, Download, Trash2, Loader2, HardDrive, CheckCircle, AlertCircle, File as FileIcon, Boxes } from "lucide-react";
 import { supabase, listDriveFiles, publicUrl, formatBytes, DRIVE_PREFIX } from "@/lib/supabase";
+import { toast, promptDialog } from "@/lib/ui";
 
 type DriveFile = { path: string; size: number; name: string };
 
@@ -38,9 +39,9 @@ export default function DriveTab() {
   }, [files]);
 
   async function publishFolder(folder: string) {
-    const pw = window.prompt("모델 갤러리에 등록 — 비밀번호를 입력하세요");
+    const pw = await promptDialog("모델 갤러리에 등록", "", "비밀번호");
     if (!pw) return;
-    const title = window.prompt("세션 이름 (비우면 모델 파일명)", folder) ?? "";
+    const title = (await promptDialog("세션 이름 (비우면 모델 파일명)", folder)) ?? "";
     setPublishing(folder);
     try {
       const res = await fetch("/api/publish-from-drive", {
@@ -49,9 +50,9 @@ export default function DriveTab() {
         body: JSON.stringify({ folder, title, password: pw }),
       });
       const j = await res.json().catch(() => ({}));
-      if (res.status === 403) { alert("비밀번호가 틀렸어요"); return; }
-      if (!res.ok) { alert("등록 실패: " + (j.error || "")); return; }
-      alert("모델 갤러리에 등록됐어요! '모델 갤러리' 탭에서 확인하세요.");
+      if (res.status === 403) { toast("비밀번호가 틀렸어요", "error"); return; }
+      if (!res.ok) { toast("등록 실패: " + (j.error || ""), "error"); return; }
+      toast("모델 갤러리에 등록됐어요! '모델 갤러리' 탭에서 확인하세요.", "success");
     } finally {
       setPublishing(null);
     }
@@ -97,7 +98,7 @@ export default function DriveTab() {
   }
 
   async function del(file: DriveFile) {
-    const pw = window.prompt(`"${file.name}" 삭제 — 비밀번호를 입력하세요`);
+    const pw = await promptDialog(`"${file.name}" 삭제`, "", "비밀번호");
     if (!pw) return;
     setDeleting(file.path);
     try {
@@ -106,8 +107,8 @@ export default function DriveTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: file.path, password: pw }),
       });
-      if (res.status === 403) { alert("비밀번호가 틀렸어요"); return; }
-      if (!res.ok) { alert("삭제 실패"); return; }
+      if (res.status === 403) { toast("비밀번호가 틀렸어요", "error"); return; }
+      if (!res.ok) { toast("삭제 실패", "error"); return; }
       await load();
     } finally {
       setDeleting(null);

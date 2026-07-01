@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Send, MessageSquare, Clock, Camera, Eye, Trash2 } from "lucide-react";
 import { supabase, type Feedback } from "@/lib/supabase";
+import { toast, promptDialog, confirmDialog } from "@/lib/ui";
 import type { ViewerState } from "./ModelViewer";
 
 type Props = {
@@ -25,15 +26,15 @@ export default function FeedbackPanel({ sessionId, currentParam, captureState, o
 
   async function deleteFeedback(fb: Feedback) {
     let pw = pwCache;
-    if (pw) { if (!window.confirm("이 코멘트를 삭제할까요?")) return; }
-    else { pw = window.prompt("코멘트 삭제 — 비밀번호를 입력하세요"); if (!pw) return; }
+    if (pw) { if (!(await confirmDialog("이 코멘트를 삭제할까요?", { danger: true, okLabel: "삭제" }))) return; }
+    else { pw = await promptDialog("코멘트 삭제", "", "비밀번호"); if (!pw) return; }
     const res = await fetch("/api/delete-feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ feedbackId: fb.id, password: pw }),
     });
-    if (res.status === 403) { setPwCache(null); alert("비밀번호가 틀렸어요"); return; }
-    if (!res.ok) { const j = await res.json().catch(() => ({})); alert("삭제 실패: " + (j.error || "")); return; }
+    if (res.status === 403) { setPwCache(null); toast("비밀번호가 틀렸어요", "error"); return; }
+    if (!res.ok) { const j = await res.json().catch(() => ({})); toast("삭제 실패: " + (j.error || ""), "error"); return; }
     setPwCache(pw);
     setFeedbacks((prev) => prev.filter((f) => f.id !== fb.id));
   }

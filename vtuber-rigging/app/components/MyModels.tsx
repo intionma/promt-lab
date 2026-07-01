@@ -19,6 +19,7 @@ import {
   STORAGE_LIMIT_BYTES,
   type Session,
 } from "@/lib/supabase";
+import { toast, promptDialog } from "@/lib/ui";
 
 type VersionItem = Session & { versionNo: number; size: number };
 
@@ -259,18 +260,18 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
       if (!res.ok) {
         restore(snap);
         const j = await res.json().catch(() => ({}));
-        alert(res.status === 403 ? "관리자 인증이 만료됐어요. 관리자 모드를 다시 켜주세요." : (j.error || "정렬 저장 실패 — 되돌렸어요 (sort_order 컬럼 필요할 수 있어요)"));
+        toast(res.status === 403 ? "관리자 인증이 만료됐어요. 관리자 모드를 다시 켜주세요." : (j.error || "정렬 저장 실패 — 되돌렸어요 (sort_order 컬럼 필요할 수 있어요)"), "error");
       }
-    } catch { restore(snap); alert("정렬 저장 중 오류 — 되돌렸어요"); }
+    } catch { restore(snap); toast("정렬 저장 중 오류 — 되돌렸어요", "error"); }
   }
 
   // 새 이름의 모델로 분리 — 낙관적
   async function splitToNewModel(v: VersionItem) {
     if (!adminPin) return;
-    const name = window.prompt("새 모델 이름을 입력하세요 (이 버전을 그 이름으로 분리)");
+    const name = await promptDialog("새 모델 이름으로 분리", "", "이 버전을 그 이름의 새 모델로");
     if (!name?.trim()) return;
     const target = name.trim();
-    if (containers.includes(target)) { alert("이미 있는 모델 이름이에요. 그건 드래그로 옮기세요."); return; }
+    if (containers.includes(target)) { toast("이미 있는 모델 이름이에요. 그건 드래그로 옮기세요.", "error"); return; }
     const snap = snapshot();
     const from = findContainer(v.id);
     const newFrom = from ? (items[from] ?? []).filter((x) => x !== v.id) : [];
@@ -296,8 +297,8 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ updates: [{ id: v.id, model_name: target, sort_order: 0 }], password: adminPin }),
       });
-      if (!res.ok) { restore(snap); const j = await res.json().catch(() => ({})); alert(res.status === 403 ? "관리자 인증이 만료됐어요." : (j.error || "분리 실패 — 되돌렸어요")); }
-    } catch { restore(snap); alert("분리 중 오류 — 되돌렸어요"); }
+      if (!res.ok) { restore(snap); const j = await res.json().catch(() => ({})); toast(res.status === 403 ? "관리자 인증이 만료됐어요." : (j.error || "분리 실패 — 되돌렸어요"), "error"); }
+    } catch { restore(snap); toast("분리 중 오류 — 되돌렸어요", "error"); }
   }
 
   // 이름 수정 — 낙관적(호출부에서 화면 먼저 반영), 실패 시 snap 롤백
@@ -314,8 +315,8 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...payload, password: adminPin }),
       });
-      if (!res.ok) { restore(snap); const j = await res.json().catch(() => ({})); alert(res.status === 403 ? "관리자 인증이 만료됐어요." : (j.error || "이름 수정 실패 — 되돌렸어요")); }
-    } catch { restore(snap); alert("이름 수정 중 오류 — 되돌렸어요"); }
+      if (!res.ok) { restore(snap); const j = await res.json().catch(() => ({})); toast(res.status === 403 ? "관리자 인증이 만료됐어요." : (j.error || "이름 수정 실패 — 되돌렸어요"), "error"); }
+    } catch { restore(snap); toast("이름 수정 중 오류 — 되돌렸어요", "error"); }
   }
   // 모델 이름 인라인 편집 시작/저장
   function startEditModel(name: string) { setEditingModel(name); setEditModelName(name); }
@@ -385,10 +386,10 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
         if (!res.ok) {
           restore(snap);
           const j = await res.json().catch(() => ({}));
-          alert(res.status === 403 ? "관리자 인증이 만료됐어요. 관리자 모드를 다시 켜주세요." : (j.error || "삭제 실패 — 되돌렸어요"));
+          toast(res.status === 403 ? "관리자 인증이 만료됐어요. 관리자 모드를 다시 켜주세요." : (j.error || "삭제 실패 — 되돌렸어요"), "error");
         }
       })
-      .catch(() => { restore(snap); alert("삭제 중 오류 — 되돌렸어요"); });
+      .catch(() => { restore(snap); toast("삭제 중 오류 — 되돌렸어요", "error"); });
   }
 
   const usagePct = Math.min(100, (totalUsage / STORAGE_LIMIT_BYTES) * 100);

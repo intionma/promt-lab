@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { ArrowLeft, MessageSquare, Sliders, Clapperboard, Layers, EyeOff, Eye, Columns2, X, Boxes, Loader2, Link2, Unlink, Crosshair, RotateCcw, Move } from "lucide-react";
 import Link from "next/link";
 import { supabase, type Session, type ViewFrame } from "@/lib/supabase";
+import { toast, promptDialog } from "@/lib/ui";
 import { getSilhouettePref, setSilhouettePref, DEFAULT_SILHOUETTE_COLOR } from "@/lib/prefs";
 import { useAdmin } from "@/lib/admin";
 import FeedbackPanel from "@/app/components/FeedbackPanel";
@@ -146,14 +147,14 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     const frame = vh.getViewFrame();
     const modelName = activePane === "B" ? (compareSession?.model_name ?? null) : (session?.model_name ?? null);
     const sid = activePane === "B" ? compareId : id;
-    const pw = admin.active ? admin.pin : window.prompt("전신/상반신 카메라 위치를 이 모델에 저장 — 비밀번호를 입력하세요");
+    const pw = admin.active ? admin.pin : (await promptDialog("전신/상반신 카메라 위치를 이 모델에 저장", "", "비밀번호"));
     if (!pw) return;
     try {
       const res = await fetch("/api/save-view-frame", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelName, sessionId: sid, frame, password: pw }) });
-      if (res.status === 403) { alert("비밀번호가 틀렸어요"); return; }
-      if (!res.ok) { const j = await res.json().catch(() => ({})); alert("저장 실패: " + (j.error || "")); return; }
-      alert("이 모델의 전신·상반신 카메라 위치를 저장했어요 (모든 버전·모두에게 공유)");
-    } catch { alert("저장 중 오류가 났어요"); }
+      if (res.status === 403) { toast("비밀번호가 틀렸어요", "error"); return; }
+      if (!res.ok) { const j = await res.json().catch(() => ({})); toast("저장 실패: " + (j.error || ""), "error"); return; }
+      toast("이 모델의 전신·상반신 카메라 위치를 저장했어요 (모든 버전·모두에게 공유)", "success");
+    } catch { toast("저장 중 오류가 났어요", "error"); }
   }
   // A의 현재 시점·카메라를 B에 그대로 맞춤 (비교 시작·체인 재연결 시)
   function syncBFromA() {
