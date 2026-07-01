@@ -1,3 +1,3 @@
 // 업데이트할 때마다 버전과 날짜(한국 시간 KST)를 갱신
-export const APP_VERSION = "v1.10.2";
-export const APP_UPDATED_AT = "2026.07.01 (수) 21:00 KST";
+export const APP_VERSION = "v1.10.3";
+export const APP_UPDATED_AT = "2026.07.01 (수) 22:30 KST";

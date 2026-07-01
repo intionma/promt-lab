@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase, listAllStorageFiles } from "@/lib/supabase";
 import { getSilhouettePref } from "@/lib/prefs";
+import { installLive2DMultiContext, bindLive2DContext } from "@/lib/live2dMultiContext";
 
 export type Param = { id: string; value: number; min: number; max: number };
 export type ViewMode = "fullbody" | "upperbody" | "free";
@@ -596,7 +597,11 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
         pixiRef.current = PIXI; // 실루엣 필터 생성에 사용
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (window as any).PIXI = PIXI;
-        const { Live2DModel } = await import("pixi-live2d-display/cubism4");
+        const L2D = await import("pixi-live2d-display/cubism4");
+        const { Live2DModel } = L2D;
+        // 두 캔버스(컨텍스트) 동시 렌더 시 Live2D 셰이더 싱글턴 충돌 방지 (컨텍스트별 인스턴스)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        installLive2DMultiContext((L2D as any).CubismShader_WebGL);
 
         if (destroyed || !canvasRef.current) return;
 
@@ -967,6 +972,9 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
 
         // ── PIXI 렌더 루프 ──────────────────────────────────────────────────
         app.ticker.add(() => {
+          // 이 프레임에서 그릴 Live2D 셰이더를 '이 뷰어의 컨텍스트'로 지정 (렌더는 이후 LOW priority)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          bindLive2DContext((app.renderer as any).gl ?? null);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const mdl = modelRef.current as any;
           if (!mdl) return;
