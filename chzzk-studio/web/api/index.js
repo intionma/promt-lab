@@ -172,19 +172,18 @@ async function loadData(supabase) {
       L.leaderboard = top.map(([nm, c]) => ({ nm, c, w: Math.round((c / mx) * 100) }))
       const colors = ['#16a34a', '#f5a623', '#e5484d', '#3b82f6']
       const top4 = top.slice(0, 4).map((t) => t[0])
-      const B = 14, spanMs = Math.max(elapsedMs, 60000)
-      const buckets = top4.map(() => new Array(B).fill(0))
+      // 분(1분) 단위 버킷 — 방송 시작부터 지금까지 전 구간을 클라이언트가 스크롤/확대해 봄
+      const stepMs = 60000
+      const nb = Math.max(1, Math.ceil(Math.max(elapsedMs, stepMs) / stepMs))
+      const pm = top4.map(() => new Array(nb).fill(0))
       for (const m of msgs) {
         const ui = top4.indexOf(m.nickname); if (ui < 0) continue
         const t = m.msg_time ? new Date(m.msg_time).getTime() : null; if (t == null) continue
-        let bi = Math.floor(((t - start) / spanMs) * B); if (bi < 0) bi = 0; if (bi >= B) bi = B - 1
-        buckets[ui][bi]++
+        let bi = Math.floor((t - start) / stepMs); if (bi < 0) bi = 0; if (bi >= nb) bi = nb - 1
+        pm[ui][bi]++
       }
-      const gmax = Math.max(1, ...buckets.flat())
-      L.timeline = top4.map((nm, i) => ({
-        nm, color: colors[i], total: cnt.get(nm),
-        pts: buckets[i].map((v, b) => `${(18 + b * (864 / (B - 1))).toFixed(0)},${(155 - (v / gmax) * 118).toFixed(0)}`).join(' '),
-      }))
+      L.tlStart = start; L.tlStep = stepMs
+      L.tlSeries = top4.map((nm, i) => ({ nm, color: colors[i], total: cnt.get(nm), vals: pm[i] }))
       d.live = L
     }
   } catch (e) { console.warn('live:', e.message) }
@@ -195,12 +194,6 @@ async function loadData(supabase) {
 // 가상(mock) 실시간 데이터 — 방송 중일 때만 표시. 실제 방송이 켜지면 수집값으로 대체 예정.
 const MOCK = {
   title: '엠마 미스릴 달리기 🔥', viewers: 41, rank: 3, rankStart: 9, chat: 512, cpm: 4.2, newFollowers: 8, elapsed: '2:14:37',
-  timeline: [
-    { nm: '전국제패엘프', color: '#16a34a', pts: '18,155 170,152 280,50 400,38 520,38 640,42 760,55 840,150 880,155', total: 128 },
-    { nm: '깜퓨퓨', color: '#f5a623', pts: '18,156 130,148 230,100 340,80 450,95 560,130 680,152 880,156', total: 94 },
-    { nm: '문돌이', color: '#e5484d', pts: '18,153 110,108 190,95 290,128 390,113 510,138 620,153 880,156', total: 71 },
-    { nm: 'Silver', color: '#3b82f6', pts: '18,157 190,153 260,151 320,125 360,156 500,155 600,151 660,125 700,157 820,154 860,120 890,157', total: 63 },
-  ],
   feed: [
     { nm: '깜퓨퓨', t: '엠마 이번판 캐리각', cls: 'fol' },
     { nm: '전국제패엘프', t: '미스릴 가자!! 🧀', cls: 'sub' },
@@ -212,6 +205,16 @@ const MOCK = {
   ],
   rank5: [{ nm: '전국제패엘프', c: 128, w: 100 }, { nm: '깜퓨퓨', c: 94, w: 73 }, { nm: '문돌이', c: 71, w: 55 }, { nm: 'Silver', c: 63, w: 49 }],
 }
+MOCK.tlN = 40
+MOCK.tlSeries = (() => {
+  const mk = (f) => Array.from({ length: MOCK.tlN }, (_, i) => Math.max(0, Math.round(f(i))))
+  return [
+    { nm: '전국제패엘프', color: '#16a34a', total: 128, vals: mk((i) => 6 * Math.sin(i / 5) + 6 + (i > 16 && i < 28 ? 7 : 0)) },
+    { nm: '깜퓨퓨', color: '#f5a623', total: 94, vals: mk((i) => 4 * Math.sin(i / 3 + 1) + 4) },
+    { nm: '문돌이', color: '#e5484d', total: 71, vals: mk((i) => 3 * Math.sin(i / 6 + 2) + 3 + (i < 8 ? 3 : 0)) },
+    { nm: 'Silver', color: '#3b82f6', total: 63, vals: mk((i) => 2.2 * Math.sin(i / 2 + 0.5) + 2.2) },
+  ]
+})()
 
 function statCard(k, v, unit, delta, deltaClass) {
   return `<div class="card"><div class="k">${esc(k)}</div><div class="v">${v}${unit ? `<small> ${esc(unit)}</small>` : ''}</div>${delta ? `<div class="delta ${deltaClass}">${esc(delta)}</div>` : ''}</div>`
@@ -282,12 +285,14 @@ function renderLive(d) {
   const chat = real ? live.chatTotal : MOCK.chat
   const cpm = real ? live.cpm : MOCK.cpm
   const elapsed = real ? live.elapsed : MOCK.elapsed
-  const timeline = (real ? live.timeline : MOCK.timeline) || []
+  const series = (real ? live.tlSeries : MOCK.tlSeries) || []
+  const tlStart = real ? live.tlStart : Date.now() - MOCK.tlN * 60000
+  const tlStep = real ? (live.tlStep || 60000) : 60000
   const feedArr = (real ? live.feed : MOCK.feed) || []
   const rankArr = real ? (live.leaderboard || []) : MOCK.rank5
 
-  const tl = timeline.map((s) => `<polyline fill="none" stroke="${s.color}" stroke-width="2.4" points="${s.pts}"/>`).join('')
-  const legend = timeline.map((s) => `<span><i class="dotc" style="background:${s.color};width:14px;height:3px;border-radius:2px"></i> ${esc(s.nm)} (${s.total})</span>`).join('')
+  const legend = series.map((s) => `<span><i class="dotc" style="background:${s.color};width:14px;height:3px;border-radius:2px"></i> ${esc(s.nm)} (${num(s.total)})</span>`).join('')
+  const tlJSON = JSON.stringify({ start: tlStart, step: tlStep, series: series.map((s) => ({ nm: s.nm, color: s.color, vals: s.vals })) }).replace(/</g, '\\u003c')
   const feed = feedArr.length ? feedArr.map((f) => `<div><span class="n ${f.cls}">${f.badge ? f.badge + ' ' : ''}${esc(f.nm)}</span> ${renderMsg(f.t, f.emojis)}</div>`).join('') : '<div class="muted">채팅 수집 대기 중…</div>'
   const rankLb = rankArr.length ? rankArr.map((r, i) => `<div class="li"><span class="rk">${['🥇', '🥈', '🥉'][i] || (i + 1)}</span><div class="nm">${esc(r.nm)}<div class="bar" style="width:${r.w}%"></div></div><span class="ct" style="font-weight:700">${r.c}</span></div>`).join('') : '<div class="muted">-</div>'
   const rankDelta = rankStart != null && rank != null ? `▲ 시작 ${rankStart}위` : '실시간'
@@ -303,9 +308,12 @@ ${statCard('이번 방송 채팅', num(chat), '', cpm != null ? `분당 ${cpm}�
 <div class="card"><div class="k">경과 시간</div><div class="v" id="elapsed" data-start="${startMs}">${esc(elapsed)}</div><div class="delta flat">${real ? '실시간 카운트' : '가상'}</div></div>
 </div>
 <div class="card"><div class="panel-h"><span class="t">시청자별 채팅 활동</span><span class="muted">방송 시작 → 지금 · 상위 4명</span></div>
-<svg viewBox="0 0 900 170" width="100%" height="170" preserveAspectRatio="none"><line x1="0" y1="158" x2="900" y2="158" stroke="#eee"/>${tl || `<text x="450" y="90" fill="#bbb" font-size="12" text-anchor="middle">채팅 수집 대기 중</text>`}</svg>
+<div class="tlbar"><span class="muted">확대</span><input type="range" id="tlzoom" min="0" max="100" value="0" aria-label="시간축 확대"><span class="muted" id="tlrange"></span></div>
+<div class="tlscroll" id="tlscroll"><svg id="tlsvg" height="170" preserveAspectRatio="none"></svg></div>
+<div class="tlmini" id="tlmini"><svg id="tlminisvg" preserveAspectRatio="none"></svg><div class="tlwindow" id="tlwindow"><span class="h l"></span><span class="h r"></span></div></div>
 <div class="legend">${legend}</div>
-<div class="muted" style="margin-top:6px">${tlNote}</div></div>
+<div class="muted" style="margin-top:6px">${tlNote} · 확대 바를 늘리면 시간축이 커지고, 아래 미니맵을 끌면 구간 이동·양끝을 잡으면 구간 조절</div>
+<script>window.__TL=${tlJSON}</script></div>
 <div class="row2" style="margin-top:16px">
 <div class="card"><div class="panel-h"><span class="t">실시간 채팅</span><span class="muted">● 흐르는 중</span></div><div class="feed">${feed}</div></div>
 <div class="card"><div class="panel-h"><span class="t">채팅 랭킹 🏆</span><span class="muted">이번 방송</span></div><div class="lst rankbars">${rankLb}</div></div>
@@ -348,6 +356,13 @@ body.live .tg .l.act{color:var(--red)}
 .panel-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap}.panel-h .t{font-weight:600}
 .muted{color:var(--dim);font-size:12px}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--dim);margin-top:8px;flex-wrap:wrap}.legend span{display:inline-flex;align-items:center;gap:6px}.dotc{width:9px;height:9px;border-radius:3px;display:inline-block;flex-shrink:0}
+.tlbar{display:flex;align-items:center;gap:10px;margin:6px 0 8px;font-size:12px}.tlbar input[type=range]{flex:1;max-width:280px;accent-color:var(--blue)}
+.tlscroll{overflow-x:auto;overflow-y:hidden;border:1px solid var(--border);border-radius:8px;-webkit-overflow-scrolling:touch;touch-action:pan-x}.tlscroll svg{display:block}
+.tlmini{position:relative;height:44px;margin-top:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fafafa;touch-action:none;user-select:none}
+.tlmini svg{position:absolute;inset:0;width:100%;height:100%}
+.tlwindow{position:absolute;top:0;bottom:0;left:0;width:100%;background:#0070f31a;border:1px solid #0070f3aa;border-radius:6px;cursor:grab;box-sizing:border-box;min-width:16px}
+.tlwindow .h{position:absolute;top:0;bottom:0;width:12px;cursor:ew-resize;touch-action:none}.tlwindow .h.l{left:-2px}.tlwindow .h.r{right:-2px}
+.tlwindow .h::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:3px;height:18px;background:#0070f3;border-radius:2px}
 .lst{display:flex;flex-direction:column;margin-top:6px}.li{display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid #f2f2f2;font-size:13px}
 .li:last-child{border-bottom:0}.li .rk{width:22px;color:var(--dim2);font-size:13px;flex-shrink:0}.li .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.li .ct{color:var(--dim);flex-shrink:0}
 .rankbars .nm{white-space:normal}.bar{height:5px;border-radius:3px;margin-top:4px;background:linear-gradient(90deg,#e5484d,#a855f7)}
@@ -407,7 +422,7 @@ ${renderLive(d)}
 <div class="foot">OFFLINE=실데이터 · LIVE=${hasLive ? '실시간 실데이터(60초 자동 새로고침)' : '가상 예시(방송 켜지면 실제값)'} · 갱신 ${esc(d.updated)} (UTC)</div>
 </main></div>
 <script>
-function sw(l){document.body.classList.toggle('live',!!l);document.querySelectorAll('.tg button').forEach(b=>b.classList.remove('act'));document.querySelector(l?'.tg .l':'.tg .o').classList.add('act')}
+function sw(l){document.body.classList.toggle('live',!!l);document.querySelectorAll('.tg button').forEach(b=>b.classList.remove('act'));document.querySelector(l?'.tg .l':'.tg .o').classList.add('act');if(l&&window.__TLinit)requestAnimationFrame(window.__TLinit)}
 // 사이드바/상단 메뉴 클릭 → 해당 섹션으로 이동(오프라인 뷰 전환 후 스크롤) + 활성 표시
 var SECS=['overview','history','viewers','chat','ranking'];
 function setActive(id){document.querySelectorAll('.navlink').forEach(function(a){a.classList.toggle('on',a.dataset.sec===id)})}
@@ -416,6 +431,61 @@ function go(id){sw(0);var t=document.getElementById(id);if(t){setActive(id);setT
 try{var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)setActive(e.target.id)})},{rootMargin:'-25% 0px -70% 0px'});SECS.forEach(function(id){var el=document.getElementById(id);if(el)io.observe(el)})}catch(e){}
 // 경과 시간 초 단위 카운트
 (function(){var el=document.getElementById('elapsed');if(!el)return;var st=+el.dataset.start;function p(n){return String(n).padStart(2,'0')}function f(){var s=Math.max(0,Math.floor((Date.now()-st)/1000));el.textContent=Math.floor(s/3600)+':'+p(Math.floor(s%3600/60))+':'+p(s%60)}f();setInterval(f,1000)})();
+// ── 시청자별 채팅 활동: 전체 방송 가로 스크롤 + 확대 바 + 미니맵 브러시 ──
+(function(){
+  var TL=window.__TL; if(!TL||!TL.series||!TL.series.length)return;
+  var scroll=document.getElementById('tlscroll'),svg=document.getElementById('tlsvg'),mini=document.getElementById('tlmini'),msvg=document.getElementById('tlminisvg'),win=document.getElementById('tlwindow'),zoom=document.getElementById('tlzoom'),lbl=document.getElementById('tlrange');
+  if(!scroll||!svg||!mini||!win||!zoom)return;
+  var n=TL.series[0].vals.length||1, ZK=19, H=170;
+  var maxVal=1; TL.series.forEach(function(s){s.vals.forEach(function(v){if(v>maxVal)maxVal=v})});
+  function p2(x){return String(x).padStart(2,'0')}
+  function clock(ms){var d=new Date(ms+9*3600000);return p2(d.getUTCHours())+':'+p2(d.getUTCMinutes())}
+  function draw(target,width,height,thin){
+    var bb=height-14,tt=8,g='<line x1="0" y1="'+bb+'" x2="'+width+'" y2="'+bb+'" stroke="#eee"/>';
+    TL.series.forEach(function(s){
+      var pts=s.vals.map(function(v,i){var x=(n<2?width/2:(i/(n-1))*width);var y=bb-(v/maxVal)*(bb-tt);return x.toFixed(1)+','+y.toFixed(1)}).join(' ');
+      g+='<polyline fill="none" stroke="'+s.color+'" stroke-width="'+(thin?1.2:2.4)+'" points="'+pts+'"/>';
+    });
+    target.setAttribute('viewBox','0 0 '+width+' '+height);target.setAttribute('width',width);target.setAttribute('height',height);target.innerHTML=g;
+  }
+  var Vw=0,world=0,fit=0;
+  function vw(){return scroll.clientWidth||scroll.getBoundingClientRect().width||0}
+  function relayout(centerFrac){
+    Vw=vw(); if(Vw<50)return false;
+    fit=Vw; var z=(+zoom.value)/100; world=Math.max(Vw, fit*(1+z*ZK));
+    draw(svg,world,H,false);
+    if(centerFrac!=null)scroll.scrollLeft=centerFrac*world-Vw/2;
+    updWin(); return true;
+  }
+  function updWin(){
+    if(world<=0)return;
+    var lf=scroll.scrollLeft/world, wf=Math.min(1,Vw/world);
+    win.style.left=(lf*100)+'%'; win.style.width=(wf*100)+'%';
+    if(TL.start){var s=TL.start+lf*n*TL.step,e=TL.start+(lf+wf)*n*TL.step;lbl.textContent=clock(s)+' ~ '+clock(Math.min(e,TL.start+n*TL.step))}
+  }
+  function frac(cx){var r=mini.getBoundingClientRect();return Math.min(1,Math.max(0,(cx-r.left)/r.width))}
+  zoom.addEventListener('input',function(){relayout(world>0?((scroll.scrollLeft+Vw/2)/world):0.5)});
+  scroll.addEventListener('scroll',updWin);
+  var rz; window.addEventListener('resize',function(){clearTimeout(rz);rz=setTimeout(function(){var c=world>0?((scroll.scrollLeft+Vw/2)/world):0.5;draw(msvg,mini.clientWidth||300,44,true);relayout(c)},120)});
+  var drag=null;
+  win.addEventListener('pointerdown',function(e){e.preventDefault();e.stopPropagation();var m=e.target.classList.contains('h')?(e.target.classList.contains('l')?'L':'R'):'M';drag={m:m,left:parseFloat(win.style.left)/100||0,width:parseFloat(win.style.width)/100||1};try{win.setPointerCapture(e.pointerId)}catch(_){}});
+  mini.addEventListener('pointerdown',function(e){if(e.target!==mini&&e.target!==msvg)return;var wf=Vw/world,nl=Math.min(1-wf,Math.max(0,frac(e.clientX)-wf/2));scroll.scrollLeft=nl*world;updWin()});
+  window.addEventListener('pointermove',function(e){
+    if(!drag)return; var f=frac(e.clientX), wf=Vw/world;
+    if(drag.m==='M'){var nl=Math.min(1-wf,Math.max(0,f-wf/2));scroll.scrollLeft=nl*world;updWin();}
+    else{
+      var left=drag.left,right=drag.left+drag.width;
+      if(drag.m==='L')left=Math.min(right-0.03,Math.max(0,f));else right=Math.max(left+0.03,Math.min(1,f));
+      var nf=Math.max(0.03,right-left),nw=Vw/nf,mult=nw/fit;if(mult<1)mult=1;
+      zoom.value=Math.min(100,Math.max(0,((mult-1)/ZK)*100));
+      world=Math.max(Vw,nw);draw(svg,world,H,false);scroll.scrollLeft=left*world;updWin();
+    }
+  });
+  window.addEventListener('pointerup',function(){drag=null});
+  function init(){if(vw()<50)return false;draw(msvg,mini.clientWidth||300,44,true);return relayout(null)}
+  window.__TLinit=init;
+  requestAnimationFrame(init);
+})();
 </script>
 </body></html>`
 }
