@@ -259,7 +259,7 @@ function renderLive(d) {
 </div>
 <div class="card"><div class="panel-h"><span class="t">시청자별 채팅 활동</span><span class="muted">방송 시작 → 지금 · 상위 4명</span></div>
 <div class="tlbar"><span class="muted">확대</span><input type="range" id="tlzoom" min="0" max="100" value="0" aria-label="시간축 확대"><span class="muted" id="tlrange"></span></div>
-<div class="tlscroll" id="tlscroll"><svg id="tlsvg" height="170" preserveAspectRatio="none"></svg></div>
+<div class="tlscroll" id="tlscroll"><div class="tlcanvas" id="tlcanvas"><svg id="tlsvg" preserveAspectRatio="none"></svg><div class="tlpulses" id="tlpulses"></div></div></div>
 <div class="tlmini" id="tlmini"><svg id="tlminisvg" preserveAspectRatio="none"></svg><div class="tlwindow" id="tlwindow"><span class="h l"></span><span class="h r"></span></div></div>
 <div class="legend">${legend}</div>
 <div class="muted" style="margin-top:6px">${tlNote} · 확대 바를 늘리면 시간축이 커지고, 아래 미니맵을 끌면 구간 이동·양끝을 잡으면 구간 조절</div>
@@ -313,6 +313,20 @@ body.live .tg .l.act{color:var(--red)}
 .tlwindow{position:absolute;top:0;bottom:0;left:0;width:100%;background:#0070f31a;border:1px solid #0070f3aa;border-radius:6px;cursor:grab;box-sizing:border-box;min-width:16px}
 .tlwindow .h{position:absolute;top:0;bottom:0;width:12px;cursor:ew-resize;touch-action:none}.tlwindow .h.l{left:-2px}.tlwindow .h.r{right:-2px}
 .tlwindow .h::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:3px;height:18px;background:#0070f3;border-radius:2px}
+/* ── 시청자별 채팅 활동: 흐르는 선(draw-on + 빛 흐름 + 끊김 펄스) ── */
+.tlcanvas{position:relative;height:180px}.tlcanvas svg{display:block;position:absolute;inset:0;width:100%;height:100%}
+.tlpulses{position:absolute;inset:0;pointer-events:none}
+.tl-draw polyline{stroke-dasharray:100;stroke-dashoffset:100;animation:tlDraw 1.1s cubic-bezier(.4,0,.2,1) forwards}
+.tl-draw polyline:nth-child(2){animation-delay:.12s}.tl-draw polyline:nth-child(3){animation-delay:.24s}.tl-draw polyline:nth-child(4){animation-delay:.36s}
+@keyframes tlDraw{to{stroke-dashoffset:0}}
+.tl-sheen{animation:tlSweep 3.6s linear 1.1s infinite}
+@keyframes tlSweep{from{transform:translateX(0)}to{transform:translateX(var(--sweep,1000px))}}
+.pnode{position:absolute}.pnode>*{position:absolute;left:0;top:0;border-radius:50%}
+.pnode .ring{width:22px;height:22px;border:2px solid;transform:translate(-50%,-50%) scale(.25);opacity:.55;animation:tlPing 2.6s ease-out infinite}
+@keyframes tlPing{0%{transform:translate(-50%,-50%) scale(.25);opacity:.55}70%{transform:translate(-50%,-50%) scale(1);opacity:0}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
+.pnode .core{width:6px;height:6px;transform:translate(-50%,-50%);animation:tlBeat 2.6s ease-in-out infinite}
+@keyframes tlBeat{0%,100%{opacity:1}50%{opacity:.55}}
+@media(prefers-reduced-motion:reduce){.tl-draw polyline{animation:none;stroke-dashoffset:0}.tl-sheen{animation:none;opacity:0}.pnode .ring{animation:none;opacity:0}.pnode .core{animation:none}}
 .lst{display:flex;flex-direction:column;margin-top:6px}.li{display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid #f2f2f2;font-size:13px}
 .li:last-child{border-bottom:0}.li .rk{width:22px;color:var(--dim2);font-size:13px;flex-shrink:0}.li .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.li .ct{color:var(--dim);flex-shrink:0}
 .rankbars .nm{white-space:normal}.bar{height:5px;border-radius:3px;margin-top:4px;background:linear-gradient(90deg,#e5484d,#a855f7)}
@@ -384,26 +398,70 @@ try{var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isI
 // ── 시청자별 채팅 활동: 전체 방송 가로 스크롤 + 확대 바 + 미니맵 브러시 ──
 (function(){
   var TL=window.__TL; if(!TL||!TL.series||!TL.series.length)return;
-  var scroll=document.getElementById('tlscroll'),svg=document.getElementById('tlsvg'),mini=document.getElementById('tlmini'),msvg=document.getElementById('tlminisvg'),win=document.getElementById('tlwindow'),zoom=document.getElementById('tlzoom'),lbl=document.getElementById('tlrange');
-  if(!scroll||!svg||!mini||!win||!zoom)return;
-  var n=TL.series[0].vals.length||1, ZK=19, H=170;
+  var scroll=document.getElementById('tlscroll'),svg=document.getElementById('tlsvg'),mini=document.getElementById('tlmini'),msvg=document.getElementById('tlminisvg'),win=document.getElementById('tlwindow'),zoom=document.getElementById('tlzoom'),lbl=document.getElementById('tlrange'),canvas=document.getElementById('tlcanvas'),pulses=document.getElementById('tlpulses');
+  if(!scroll||!svg||!mini||!win||!zoom||!canvas)return;
+  var n=TL.series[0].vals.length||1, ZK=19, H=180, BASE_Y=158, TOP=14, QUIET=3, drawn=false;
+  var HI={'#16a34a':'#22e06a','#f5a623':'#ffb400','#e5484d':'#ff5860','#3b82f6':'#5aa0ff'};
   var maxVal=1; TL.series.forEach(function(s){s.vals.forEach(function(v){if(v>maxVal)maxVal=v})});
   function p2(x){return String(x).padStart(2,'0')}
   function clock(ms){var d=new Date(ms+9*3600000);return p2(d.getUTCHours())+':'+p2(d.getUTCMinutes())}
-  function draw(target,width,height,thin){
-    var bb=height-14,tt=8,g='<line x1="0" y1="'+bb+'" x2="'+width+'" y2="'+bb+'" stroke="#eee"/>';
-    TL.series.forEach(function(s){
-      var pts=s.vals.map(function(v,i){var x=(n<2?width/2:(i/(n-1))*width);var y=bb-(v/maxVal)*(bb-tt);return x.toFixed(1)+','+y.toFixed(1)}).join(' ');
-      g+='<polyline fill="none" stroke="'+s.color+'" stroke-width="'+(thin?1.2:2.4)+'" points="'+pts+'"/>';
+  // 각 시청자 선 좌표 + 끊김(3분+ 무발화) 판정 — 끊긴 사람은 그 지점서 선을 멈추고 펄스
+  function geom(vals,width){
+    var last=-1; for(var i=0;i<vals.length;i++) if(vals[i]>0) last=i;
+    var endIdx=vals.length-1, cut=false;
+    if(last>=0 && (vals.length-1-last)>=QUIET){ endIdx=last; cut=true; }
+    var pts=[];
+    for(var i=0;i<=endIdx;i++){ var x=(n<2?width/2:(i/(n-1))*width); var y=BASE_Y-(vals[i]/maxVal)*(BASE_Y-TOP); pts.push(x.toFixed(1)+','+y.toFixed(1)); }
+    var pulse=cut?{x:(n<2?width/2:(endIdx/(n-1))*width), y:BASE_Y-(vals[endIdx]/maxVal)*(BASE_Y-TOP)}:null;
+    return {pts:pts.join(' '), pulse:pulse};
+  }
+  function seriesHTML(width){
+    var base='',hi='',pn='';
+    TL.series.forEach(function(s,i){
+      var g=geom(s.vals,width);
+      base+='<polyline fill="none" stroke="'+s.color+'" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" pathLength="100" points="'+g.pts+'"/>';
+      hi+='<polyline fill="none" stroke="'+(HI[s.color]||s.color)+'" stroke-width="3.8" stroke-linejoin="round" stroke-linecap="round" points="'+g.pts+'"/>';
+      if(g.pulse){var d=(1.4+i*0.12).toFixed(2)+'s';pn+='<div class="pnode" style="left:'+(g.pulse.x/width*100).toFixed(3)+'%;top:'+(g.pulse.y/H*100).toFixed(3)+'%"><div class="ring" style="border-color:'+s.color+';animation-delay:'+d+'"></div><div class="core" style="background:'+s.color+';animation-delay:'+d+'"></div></div>';}
     });
-    target.setAttribute('viewBox','0 0 '+width+' '+height);target.setAttribute('width',width);target.setAttribute('height',height);target.innerHTML=g;
+    return {base:base,hi:hi,pn:pn};
+  }
+  function drawMain(width,animate){
+    var S=seriesHTML(width);
+    canvas.style.width=width+'px';
+    svg.setAttribute('viewBox','0 0 '+width+' '+H);
+    svg.innerHTML='<defs>'
+      +'<linearGradient id="tlband" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000"/><stop offset=".5" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>'
+      +'<mask id="tlsheen" maskUnits="userSpaceOnUse" x="0" y="0" width="'+width+'" height="'+H+'"><rect class="tl-sheen" x="-320" y="0" width="320" height="'+H+'" fill="url(#tlband)" style="--sweep:'+(width+320)+'px"/></mask>'
+      +'<filter id="tlglow" x="-30%" y="-100%" width="160%" height="300%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+      +'</defs>'
+      +'<line x1="0" y1="'+BASE_Y+'" x2="'+width+'" y2="'+BASE_Y+'" stroke="#eee"/>'
+      +'<g id="tlbase" class="tl-base'+(animate?' tl-draw':'')+'">'+S.base+'</g>'
+      +'<g id="tlhi" mask="url(#tlsheen)" filter="url(#tlglow)">'+S.hi+'</g>';
+    pulses.innerHTML=S.pn;
+  }
+  function updateSeries(width){
+    var b=document.getElementById('tlbase'); if(!b){drawMain(width,false);return;}
+    var S=seriesHTML(width);
+    b.classList.remove('tl-draw'); b.innerHTML=S.base;
+    var h=document.getElementById('tlhi'); if(h)h.innerHTML=S.hi;
+    pulses.innerHTML=S.pn; canvas.style.width=width+'px';
+  }
+  function drawMini(){
+    var w=mini.clientWidth||300,h=44,bb=h-8,tt=6,g='<line x1="0" y1="'+bb+'" x2="'+w+'" y2="'+bb+'" stroke="#eee"/>';
+    TL.series.forEach(function(s){
+      var last=-1; for(var i=0;i<s.vals.length;i++) if(s.vals[i]>0) last=i;
+      var end=(last>=0 && (s.vals.length-1-last)>=QUIET)?last:s.vals.length-1;
+      var pts=[];for(var i=0;i<=end;i++){var x=(n<2?w/2:(i/(n-1))*w);var y=bb-(s.vals[i]/maxVal)*(bb-tt);pts.push(x.toFixed(1)+','+y.toFixed(1));}
+      g+='<polyline fill="none" stroke="'+s.color+'" stroke-width="1.2" points="'+pts.join(' ')+'"/>';
+    });
+    msvg.setAttribute('viewBox','0 0 '+w+' '+h);msvg.innerHTML=g;
   }
   var Vw=0,world=0,fit=0;
   function vw(){return scroll.clientWidth||scroll.getBoundingClientRect().width||0}
   function relayout(centerFrac){
     Vw=vw(); if(Vw<50)return false;
     fit=Vw; var z=(+zoom.value)/100; world=Math.max(Vw, fit*(1+z*ZK));
-    draw(svg,world,H,false);
+    drawMain(world,!drawn); drawn=true;
     if(centerFrac!=null)scroll.scrollLeft=centerFrac*world-Vw/2;
     updWin(); return true;
   }
@@ -416,7 +474,7 @@ try{var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isI
   function frac(cx){var r=mini.getBoundingClientRect();return Math.min(1,Math.max(0,(cx-r.left)/r.width))}
   zoom.addEventListener('input',function(){relayout(world>0?((scroll.scrollLeft+Vw/2)/world):0.5)});
   scroll.addEventListener('scroll',updWin);
-  var rz; window.addEventListener('resize',function(){clearTimeout(rz);rz=setTimeout(function(){var c=world>0?((scroll.scrollLeft+Vw/2)/world):0.5;draw(msvg,mini.clientWidth||300,44,true);relayout(c)},120)});
+  var rz; window.addEventListener('resize',function(){clearTimeout(rz);rz=setTimeout(function(){var c=world>0?((scroll.scrollLeft+Vw/2)/world):0.5;drawMini();relayout(c)},120)});
   var drag=null;
   win.addEventListener('pointerdown',function(e){e.preventDefault();e.stopPropagation();var m=e.target.classList.contains('h')?(e.target.classList.contains('l')?'L':'R'):'M';drag={m:m,left:parseFloat(win.style.left)/100||0,width:parseFloat(win.style.width)/100||1};try{win.setPointerCapture(e.pointerId)}catch(_){}});
   mini.addEventListener('pointerdown',function(e){if(e.target!==mini&&e.target!==msvg)return;var wf=Vw/world,nl=Math.min(1-wf,Math.max(0,frac(e.clientX)-wf/2));scroll.scrollLeft=nl*world;updWin()});
@@ -428,11 +486,11 @@ try{var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isI
       if(drag.m==='L')left=Math.min(right-0.03,Math.max(0,f));else right=Math.max(left+0.03,Math.min(1,f));
       var nf=Math.max(0.03,right-left),nw=Vw/nf,mult=nw/fit;if(mult<1)mult=1;
       zoom.value=Math.min(100,Math.max(0,((mult-1)/ZK)*100));
-      world=Math.max(Vw,nw);draw(svg,world,H,false);scroll.scrollLeft=left*world;updWin();
+      world=Math.max(Vw,nw);drawMain(world,false);scroll.scrollLeft=left*world;updWin();
     }
   });
   window.addEventListener('pointerup',function(){drag=null});
-  function init(){if(vw()<50)return false;draw(msvg,mini.clientWidth||300,44,true);return relayout(null)}
+  function init(){if(vw()<50)return false;drawMini();return relayout(null)}
   window.__TLinit=init;
   // 폴링으로 새 데이터가 오면 확대/스크롤 위치는 유지한 채 선만 다시 그림
   window.__TLset=function(data){
@@ -440,7 +498,7 @@ try{var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isI
     TL=data; n=TL.series[0].vals.length||1;
     maxVal=1; TL.series.forEach(function(s){s.vals.forEach(function(v){if(v>maxVal)maxVal=v})});
     if(world<=0){init();return;}
-    var sl=scroll.scrollLeft; draw(svg,world,H,false); draw(msvg,mini.clientWidth||300,44,true); scroll.scrollLeft=sl; updWin();
+    var sl=scroll.scrollLeft; updateSeries(world); drawMini(); scroll.scrollLeft=sl; updWin();
   };
   requestAnimationFrame(init);
 })();
