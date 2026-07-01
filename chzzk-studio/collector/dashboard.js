@@ -101,7 +101,8 @@ export async function buildDashboard(supabase, SUPABASE_URL) {
   } catch (e) { /* skip */ }
 
   const html = renderHTML(d)
-  const { error } = await supabase.storage.from('thumbs').upload('dashboard.html', html, { contentType: 'text/html; charset=utf-8', upsert: true })
+  const body = Buffer.from(html, 'utf-8')
+  const { error } = await supabase.storage.from('thumbs').upload('dashboard.html', body, { contentType: 'text/html; charset=utf-8', upsert: true })
   if (error) console.error('❌ 대시보드 업로드 실패:', error.message)
   else console.log(`📊 [${new Date().toISOString()}] 대시보드 갱신 → ${SUPABASE_URL}/storage/v1/object/public/thumbs/dashboard.html`)
 }
