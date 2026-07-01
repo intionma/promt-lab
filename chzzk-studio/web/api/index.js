@@ -274,13 +274,13 @@ function renderLive(d) {
   const tlNote = real ? '↑ 방송 시작부터 지금까지 상위 4명의 분당 채팅량' : '↑ 예시: 시청자별 채팅 활동 추이 (실제 방송 데이터로 대체됨)'
 
   return `<div class="v-live">
-<div class="cards">
+<div class="cards" id="lv-hero">
 <div class="card hi"><div class="k"><span class="livedot"><i></i>LIVE</span> 현재 시청자</div><div class="v"><span id="lv-viewers">${num(viewers)}</span><small> 명</small></div><div class="delta up">${real ? '실시간' : '▲ 방금 +6'}</div></div>
 <div class="card"><div class="k">이터널리턴 순위</div><div class="v"><span id="lv-rank">${rank != null ? rank : '50+'}</span><small> 위</small></div><div class="delta up" id="lv-rankd">${esc(rankDelta)}</div></div>
 <div class="card"><div class="k">이번 방송 채팅</div><div class="v" id="lv-chat">${num(chat)}</div><div class="delta flat" id="lv-cpm">${cpm != null ? `분당 ${cpm}개` : ''}</div></div>
 <div class="card"><div class="k">경과 시간</div><div class="v" id="elapsed" data-start="${startMs}">${esc(elapsed)}</div><div class="delta flat">${real ? '실시간 카운트' : '가상'}</div></div>
 </div>
-<div class="card"><div class="panel-h"><span class="t">시청자별 채팅 활동</span><span class="muted">방송 시작 → 지금 · 상위 4명</span></div>
+<div class="card" id="lv-tlcard"><div class="panel-h"><span class="t">시청자별 채팅 활동</span><span class="muted">방송 시작 → 지금 · 상위 4명</span></div>
 <div class="tlbar"><span class="muted">확대</span><input type="range" id="tlzoom" min="0" max="100" value="0" aria-label="시간축 확대"><span class="muted" id="tlrange"></span></div>
 <div class="tlscroll" id="tlscroll"><div class="tlcanvas" id="tlcanvas"><svg id="tlsvg" preserveAspectRatio="none"></svg><div class="tlpulses" id="tlpulses"></div></div></div>
 <div class="tlmini" id="tlmini"><svg id="tlminisvg" preserveAspectRatio="none"></svg><div class="tlwindow" id="tlwindow"><span class="h l"></span><span class="h r"></span></div></div>
@@ -288,7 +288,7 @@ function renderLive(d) {
 <div class="muted" style="margin-top:6px">${tlNote} · 확대 바를 늘리면 시간축이 커지고, 아래 미니맵을 끌면 구간 이동·양끝을 잡으면 구간 조절</div>
 <script>window.__TL=${tlJSON}</script></div>
 <div class="row2" style="margin-top:16px">
-<div class="card feedcard"><div class="panel-h"><span class="t">실시간 채팅</span><span class="muted">● 흐르는 중</span></div><div class="feed" id="lv-feed">${feed}</div><button class="newmsg" id="lv-newmsg" onclick="lvFeedBottom()">↓ 새 채팅 <span id="lv-newn">0</span></button></div>
+<div class="card feedcard" id="lv-feedcard"><div class="panel-h"><span class="t">실시간 채팅</span><span class="muted">● 흐르는 중</span></div><div class="feed" id="lv-feed">${feed}</div><button class="newmsg" id="lv-newmsg" onclick="lvFeedBottom()">↓ 새 채팅 <span id="lv-newn">0</span></button></div>
 <div class="card"><div class="panel-h"><span class="t">채팅 랭킹 🏆</span><span class="muted">이번 방송</span></div><div class="lst rankbars" id="lv-rank5">${rankLb}</div></div>
 </div>
 ${real ? '' : '<div class="muted" style="margin-top:12px">※ 지금은 방송 감지 전이라 <b>가상(mock)</b> 예시입니다. 실제 방송이 켜지면(수집기 가동 중) 이 화면이 실시간 실데이터로 자동 전환됩니다.</div>'}
@@ -311,8 +311,22 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .navi{display:flex;flex-direction:column;gap:2px}.navi a{padding:7px 10px;border-radius:7px;color:var(--dim);cursor:pointer;text-decoration:none}.navi a.on{background:#f2f2f2;color:var(--text);font-weight:500}
 .topnav{display:none;position:sticky;top:0;z-index:30;gap:6px;padding:10px 0;margin-bottom:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;background:var(--bg);border-bottom:1px solid var(--border)}
 .topnav::-webkit-scrollbar{display:none}.topnav{scrollbar-width:none}
-.topnav a{white-space:nowrap;padding:7px 13px;border-radius:999px;color:var(--dim);font-size:13px;font-weight:500;background:#f0f0f0;flex-shrink:0;text-decoration:none}.topnav a.on{background:var(--text);color:#fff}
+.topnav a{white-space:nowrap;padding:7px 13px;border-radius:999px;color:var(--dim);font-size:13px;font-weight:500;background:#f0f0f0;flex-shrink:0;text-decoration:none;cursor:pointer}.topnav a.on{background:var(--text);color:#fff}
 #overview,#history,#viewers,#chat,#ranking{scroll-margin-top:16px}
+/* ── 재설계 사이드바 + 뷰 전환 ── */
+.side{display:flex;flex-direction:column}
+.idcard{display:flex;gap:10px;align-items:flex-start;padding:4px 8px 14px;border-bottom:1px solid var(--border);margin-bottom:8px}
+.avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#ec4899);flex-shrink:0}
+.chname{font-weight:700;font-size:14px}.chsub{color:var(--dim);font-size:11.5px;margin-top:1px}
+.idbadges{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.lvpill{display:inline-flex;align-items:center;gap:5px;background:#fdecec;color:var(--red);font-weight:700;font-size:10.5px;padding:2px 8px;border-radius:999px}.lvpill i{width:6px;height:6px;border-radius:50%;background:var(--red);animation:bk 1.2s infinite}
+.folpill{font-size:10.5px;color:var(--dim);background:#f3f3f3;padding:2px 8px;border-radius:999px}
+.navgroup{font-size:10px;color:var(--dim2);font-weight:700;letter-spacing:.05em;padding:13px 10px 4px}
+.navi a.navlink{display:flex;align-items:center;gap:8px}
+.navi a.disabled{color:var(--dim2);cursor:default;opacity:.7}
+.navbadge{margin-left:auto;font-size:10px;background:#eef2ff;color:#4338ca;padding:1px 7px;border-radius:999px;font-weight:600}.navbadge.soon{background:#f3f3f3;color:var(--dim)}
+.sidestatus{margin-top:auto;padding:12px 10px 2px;border-top:1px solid var(--border);font-size:11px;color:var(--green);line-height:1.7}.sidestatus .mut{color:var(--dim);font-size:10.5px}
+.view{display:none}.view.active{display:block}
 .main{padding:22px 26px;max-width:1120px}
 .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap}
 .top h1{font-size:19px;font-weight:600}.top .sub{color:var(--dim);font-size:13px;margin-top:2px}
@@ -393,34 +407,70 @@ body.live .v-off{display:none}body:not(.live) .v-live{display:none}
 /* ── 초소형 (≤380px): 카드 1열 ── */
 @media(max-width:380px){.cards{grid-template-columns:1fr}}
 </style></head><body class="${hasLive ? 'live' : ''}"><div class="app">
-<aside class="side"><div class="brand"><span class="dot"></span> 치지직 통계</div>
+<aside class="side">
+<div class="idcard"><div class="avatar"></div><div><div class="chname">SoundVoltex1</div><div class="chsub">사볼 · 이터널 리턴</div>
+<div class="idbadges">${hasLive ? '<span class="lvpill"><i></i>방송 중</span>' : ''}<span class="folpill">팔로워 ${num(d.followers)}${d.followerDelta != null ? ` <b style="color:${d.followerDelta >= 0 ? 'var(--green)' : 'var(--red)'}">${d.followerDelta >= 0 ? '▲+' + d.followerDelta : '▼' + d.followerDelta}</b>` : ''}</span></div></div></div>
 <nav class="navi">
-<a class="navlink on" data-sec="overview" href="#overview" onclick="return go('overview')">대시보드</a>
-<a class="navlink" data-sec="history" href="#history" onclick="return go('history')">방송 이력</a>
-<a class="navlink" data-sec="viewers" href="#viewers" onclick="return go('viewers')">시청자·순위</a>
-<a class="navlink" data-sec="chat" href="#chat" onclick="return go('chat')">채팅 분석</a>
-<a class="navlink" data-sec="ranking" href="#ranking" onclick="return go('ranking')">랭킹</a></nav></aside>
+<a class="navlink on" data-view="dashboard" onclick="return nav(this,'dashboard')">📊 대시보드</a>
+<div class="navgroup">실시간</div>
+<a class="navlink" data-view="dashboard" onclick="return nav(this,'dashboard','lv-hero')">🔴 라이브 현황</a>
+<a class="navlink" data-view="dashboard" onclick="return nav(this,'dashboard','lv-feedcard')">💬 실시간 채팅${hasLive && d.live ? ` <span class="navbadge">${num(d.live.chatTotal)}</span>` : ''}</a>
+<a class="navlink" data-view="dashboard" onclick="return nav(this,'dashboard','lv-tlcard')">📈 시청자 활동</a>
+<div class="navgroup">분석</div>
+<a class="navlink" data-view="history" onclick="return nav(this,'history')">🎬 방송 이력</a>
+<a class="navlink" data-view="viewers" onclick="return nav(this,'viewers')">👥 시청자·순위</a>
+<a class="navlink" data-view="chat" onclick="return nav(this,'chat')">💭 채팅 분석</a>
+<a class="navlink" data-view="emotes" onclick="return nav(this,'emotes')">😄 이모티콘</a>
+<a class="navlink" data-view="ranking" onclick="return nav(this,'ranking')">🏆 랭킹</a>
+<div class="navgroup">성장</div>
+<a class="navlink" data-view="followers" onclick="return nav(this,'followers')">📈 팔로워 추이</a>
+<a class="navlink" data-view="vods" onclick="return nav(this,'vods')">▶️ 다시보기 성과</a>
+<div class="navgroup">수익</div>
+<a class="navlink disabled">🪙 구독·치즈·광고 <span class="navbadge soon">곧</span></a>
+</nav>
+<div class="sidestatus">🟢 수집기 정상 · 오라클<div class="mut">동기화 ${esc((d.updated || '').slice(11, 19))} UTC · 60초</div></div>
+</aside>
 <main class="main">
 <nav class="topnav">
-<a class="navlink on" data-sec="overview" href="#overview" onclick="return go('overview')">대시보드</a>
-<a class="navlink" data-sec="history" href="#history" onclick="return go('history')">방송 이력</a>
-<a class="navlink" data-sec="viewers" href="#viewers" onclick="return go('viewers')">시청자·순위</a>
-<a class="navlink" data-sec="chat" href="#chat" onclick="return go('chat')">채팅 분석</a>
-<a class="navlink" data-sec="ranking" href="#ranking" onclick="return go('ranking')">랭킹</a></nav>
+<a class="navlink on" data-view="dashboard" onclick="return nav(this,'dashboard')">대시보드</a>
+<a class="navlink" data-view="history" onclick="return nav(this,'history')">방송 이력</a>
+<a class="navlink" data-view="viewers" onclick="return nav(this,'viewers')">시청자·순위</a>
+<a class="navlink" data-view="chat" onclick="return nav(this,'chat')">채팅 분석</a>
+<a class="navlink" data-view="emotes" onclick="return nav(this,'emotes')">이모티콘</a>
+<a class="navlink" data-view="ranking" onclick="return nav(this,'ranking')">랭킹</a>
+<a class="navlink" data-view="followers" onclick="return nav(this,'followers')">팔로워</a>
+<a class="navlink" data-view="vods" onclick="return nav(this,'vods')">다시보기</a></nav>
 <div class="top"><div><h1>SoundVoltex1 ${hasLive ? '<span class="livedot" style="margin-left:6px"><i></i>LIVE</span>' : ''}</h1><div class="sub">이터널 리턴 · ${hasLive ? '지금 방송 중 — 실시간 실데이터' : '실데이터(과거 방송 포함) · 방송 중엔 실시간'}</div></div>
 ${debug ? `<div class="tg"><button class="o ${hasLive ? '' : 'act'}" onclick="sw(0)">⚫ 방송 종료</button><button class="l ${hasLive ? 'act' : ''}" onclick="sw(1)">🔴 방송 중</button></div>` : ''}</div>
+<div class="views">
+<section class="view active" data-view="dashboard">
 ${renderOffline(d)}
 ${renderLive(d)}
+</section>
+<section class="view" data-view="history">${cardHistory(d)}</section>
+<section class="view" data-view="viewers"><div class="row3">${cardViewerTrend(d)}${cardTimeHeat(d)}</div></section>
+<section class="view" data-view="chat"><div class="row2"><div class="card"><div class="panel-h"><span class="t">최다 채팅 시청자</span><span class="muted">전 기간(실시간+다시보기)</span></div><div class="lst">${htChatters(d)}</div></div><div class="card"><div class="panel-h"><span class="t">자주 쓰는 이모티콘</span></div><div class="emos">${htEmotes(d)}</div></div></div></section>
+<section class="view" data-view="emotes"><div class="card"><div class="panel-h"><span class="t">자주 쓰는 이모티콘</span><span class="muted">전 기간</span></div><div class="emos">${htEmotes(d)}</div></div></section>
+<section class="view" data-view="ranking"><div class="card"><div class="panel-h"><span class="t">채팅 랭킹</span><span class="muted">전 기간 최다 채팅</span></div><div class="lst rankbars">${htChatBars(d)}</div></div></section>
+<section class="view" data-view="followers"><div class="card"><div class="panel-h"><span class="t">팔로워 추이</span><span class="muted">최근</span></div>${lineSVG([{ data: d.followerSeries || [], color: '#16a34a' }], { H: 220 })}</div></section>
+<section class="view" data-view="vods"><div class="card"><div class="panel-h"><span class="t">다시보기 성과</span><span class="muted">조회수</span></div><div class="lst">${htVods(d)}</div></div></section>
+<section class="view" data-view="revenue"><div class="card"><div class="panel-h"><span class="t">구독 · 치즈 · 광고</span><span class="muted">준비 중</span></div><div class="muted" style="padding:22px 0;text-align:center">수익 지표는 수집 항목 추가 후 제공됩니다 💰</div></div></section>
+</div>
 <div class="foot">OFFLINE=실데이터 · LIVE=${hasLive ? '실시간 실데이터(채팅 4초 갱신 · 시청자/순위 20초)' : '가상 예시(방송 켜지면 실제값)'} · 갱신 ${esc(d.updated)} (UTC)</div>
 </main></div>
 <script>
 function sw(l){document.body.classList.toggle('live',!!l);document.querySelectorAll('.tg button').forEach(b=>b.classList.remove('act'));document.querySelector(l?'.tg .l':'.tg .o').classList.add('act');if(l&&window.__TLinit)requestAnimationFrame(window.__TLinit)}
-// 사이드바/상단 메뉴 클릭 → 해당 섹션으로 이동(오프라인 뷰 전환 후 스크롤) + 활성 표시
-var SECS=['overview','history','viewers','chat','ranking'];
-function setActive(id){document.querySelectorAll('.navlink').forEach(function(a){a.classList.toggle('on',a.dataset.sec===id)})}
-function go(id){sw(0);var t=document.getElementById(id);if(t){setActive(id);setTimeout(function(){t.scrollIntoView({behavior:'smooth',block:'start'})},30)}return false}
-// 스크롤 위치에 따라 현재 섹션 자동 하이라이트
-try{var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)setActive(e.target.id)})},{rootMargin:'-25% 0px -70% 0px'});SECS.forEach(function(id){var el=document.getElementById(id);if(el)io.observe(el)})}catch(e){}
+// 사이드바/상단 메뉴 = 뷰 전환(선택 섹션만 표시). 실시간 항목은 대시보드로 전환 후 해당 패널로 스크롤.
+function nav(el,v,scrollId){
+  if(el&&el.classList.contains('disabled'))return false;
+  document.querySelectorAll('.view').forEach(function(s){s.classList.toggle('active',s.dataset.view===v)});
+  document.querySelectorAll('.navlink').forEach(function(a){a.classList.remove('on')});
+  if(el)el.classList.add('on');
+  window.scrollTo({top:0});
+  if(v==='dashboard'&&window.__TLinit)requestAnimationFrame(window.__TLinit);
+  if(scrollId){var t=document.getElementById(scrollId);if(t)setTimeout(function(){t.scrollIntoView({behavior:'smooth',block:'start'})},70)}
+  return false;
+}
 // 경과 시간 초 단위 카운트
 (function(){var el=document.getElementById('elapsed');if(!el)return;var st=+el.dataset.start;function p(n){return String(n).padStart(2,'0')}function f(){var s=Math.max(0,Math.floor((Date.now()-st)/1000));el.textContent=Math.floor(s/3600)+':'+p(Math.floor(s%3600/60))+':'+p(s%60)}f();setInterval(f,1000)})();
 // ── 시청자별 채팅 활동: 전체 방송 가로 스크롤 + 확대 바 + 미니맵 브러시 ──
