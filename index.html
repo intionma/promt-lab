@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.8 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.9 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.8 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.9 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1370,6 +1370,13 @@
                             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                                 <span style="color:#eab308;font-size:12px;font-weight:bold;flex:1;min-width:0;word-break:break-word;overflow-wrap:anywhere;"><i class="fa-solid fa-copy"></i> 중복 토큰: <span id="duplicate-warning-text"></span></span>
                                 <button onclick="autoFixPrompt()" style="flex-shrink:0;font-size:11px;padding:2px 10px;background:#eab308;color:#000;border:none;border-radius:5px;cursor:pointer;font-family:var(--font-ui);font-weight:700;white-space:nowrap;"><i class="fa-solid fa-wand-magic-sparkles"></i> 자동 수정</button>
+                            </div>
+                        </div>
+                        <div id="token-warning" style="display:none; margin-top:4px;">
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                <span style="color:var(--accent-danger);font-size:12px;font-weight:bold;flex:1;min-width:0;word-break:break-word;overflow-wrap:anywhere;"><i class="fa-solid fa-triangle-exclamation"></i> <span id="token-warning-text"></span></span>
+                                <button onclick="copyWithBreaks()" style="flex-shrink:0;font-size:11px;padding:2px 10px;background:#38bdf8;color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:var(--font-ui);font-weight:700;white-space:nowrap;"><i class="fa-solid fa-scissors"></i> BREAK로 나눠 복사</button>
+                                <button onclick="autoFixPrompt()" style="flex-shrink:0;font-size:11px;padding:2px 10px;background:#eab308;color:#000;border:none;border-radius:5px;cursor:pointer;font-family:var(--font-ui);font-weight:700;white-space:nowrap;"><i class="fa-solid fa-copy"></i> 중복 정리</button>
                             </div>
                         </div>
                     </div>
@@ -1942,7 +1949,16 @@
         const CHANGELOG = [
             // ── 2026-07-01 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.8', date: '2026-07-01', time: '최신',
+                version: 'v9.10.9', date: '2026-07-01', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[결과] 토큰 수를 정확하게 — 실제 CLIP 토크나이저로 계산(온라인). "약 N토큰"이 아니라 SD/Pony가 실제로 세는 값. (로컬 파일 실행 시엔 개선된 근사치)',
+                    '[결과] 토큰 초과 경고 — 한 청크가 75토큰을 넘으면 경고 배너 표시, "BREAK로 나눠 복사"(75토큰마다 자동 분할·태그 안 버림) + "중복 정리" 버튼 제공',
+                    '[결과] BREAK 청크 단위로 토큰을 세어 청크 개수도 함께 표시',
+                ]
+            },
+            {
+                version: 'v9.10.8', date: '2026-07-01', time: '오후',
                 tag: 'feat',
                 items: [
                     '[추천] "어울리는 태그"가 더 똑똑해짐 — 테마 레시피 겹침을 반영하고 흔한 태그 자동 보완으로, 이제 어떤 조합에서도 추천이 비지 않음("추천할 태그가 부족합니다" 거의 사라짐)',
@@ -12411,6 +12427,106 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return parts.filter(Boolean).join('') || '<span style="color:var(--text-dim);">태그 정보를 불러올 수 없습니다.</span>';
         }
 
+        // ══════════════════════════════════════════════════════════════
+        //  CLIP 토크나이저 (정확한 토큰 수) — Pages에서 merges 지연 로드,
+        //  로컬(file://)에선 개선 휴리스틱 폴백.
+        // ══════════════════════════════════════════════════════════════
+        const _clip = { ranks: null, ready: false, loading: false, byteEnc: null, pat: null, cache: {} };
+        function _clipByteEncoder() {
+            const bs = []; for (let i = 33; i <= 126; i++) bs.push(i); for (let i = 161; i <= 172; i++) bs.push(i); for (let i = 174; i <= 255; i++) bs.push(i);
+            const cs = bs.slice(); let n = 0;
+            for (let b = 0; b < 256; b++) { if (bs.indexOf(b) === -1) { bs.push(b); cs.push(256 + n); n++; } }
+            const m = {}; for (let i = 0; i < bs.length; i++) m[bs[i]] = String.fromCharCode(cs[i]); return m;
+        }
+        function _clipInit() {
+            if (_clip.ready || _clip.loading) return;
+            _clip.loading = true;
+            _clip.byteEnc = _clipByteEncoder();
+            try { _clip.pat = new RegExp("<\\|startoftext\\|>|<\\|endoftext\\|>|'s|'t|'re|'ve|'m|'ll|'d|[\\p{L}]+|[\\p{N}]|[^\\s\\p{L}\\p{N}]+", "giu"); }
+            catch (e) { _clip.pat = /'s|'t|'re|'ve|'m|'ll|'d|[a-z]+|[0-9]|[^\sa-z0-9]+/gi; }
+            fetch('./data/clip-merges.txt').then(r => { if (!r.ok) throw 0; return r.text(); }).then(txt => {
+                const lines = txt.split('\n'); const ranks = {}; let rank = 0;
+                for (let i = 0; i < lines.length; i++) { const ln = lines[i].replace(/\r$/, ''); if (!ln || ln[0] === '#') continue; const sp = ln.split(' '); if (sp.length !== 2) continue; ranks[sp[0] + '' + sp[1]] = rank++; }
+                _clip.ranks = ranks; _clip.ready = true; _clip.cache = {};
+                try { if (typeof updateMasterOutput === 'function') updateMasterOutput(); } catch (e) {}
+            }).catch(() => { _clip.loading = false; });
+        }
+        function _clipBpe(word) {
+            const ranks = _clip.ranks;
+            while (word.length >= 2) {
+                let min = Infinity, bi = -1;
+                for (let i = 0; i < word.length - 1; i++) { const r = ranks[word[i] + '' + word[i + 1]]; if (r !== undefined && r < min) { min = r; bi = i; } }
+                if (bi === -1) break;
+                word = word.slice(0, bi).concat([word[bi] + word[bi + 1]]).concat(word.slice(bi + 2));
+            }
+            return word;
+        }
+        // 콘텐츠 토큰 수 (BOS/EOS 제외). CLIP 준비 안됐으면 null.
+        function _clipCountText(text) {
+            if (!_clip.ready) return null;
+            text = text.toLowerCase().replace(/\s+/g, ' ').trim();
+            if (!text) return 0;
+            const toks = text.match(_clip.pat) || []; let n = 0;
+            for (const tok of toks) {
+                if (_clip.cache[tok] !== undefined) { n += _clip.cache[tok]; continue; }
+                const bytes = new TextEncoder().encode(tok); const word = [];
+                for (const b of bytes) word.push(_clip.byteEnc[b]);
+                if (!word.length) { _clip.cache[tok] = 0; continue; }
+                word[word.length - 1] = word[word.length - 1] + '</w>';
+                const c = _clipBpe(word).length; _clip.cache[tok] = c; n += c;
+            }
+            return n;
+        }
+        // 개선 휴리스틱 (CLIP 미로드 시): 서브워드(~4자/토큰) + 문장부호 토큰
+        function _estTokens(text) {
+            const t = (text || '').toLowerCase();
+            const punct = (t.match(/[,()\[\]|:.]/g) || []).length;
+            const words = t.split(/[\s,()\[\]|:.]+/).filter(Boolean);
+            let sub = 0; for (const w of words) sub += Math.max(1, Math.ceil(w.replace(/[^a-z0-9]/g, '').length / 4));
+            return sub + punct;
+        }
+        // 공개: 토큰 수 + 정확여부
+        function countPromptTokens(text) {
+            const c = _clipCountText(text);
+            return { tokens: c !== null ? c : _estTokens(text), exact: c !== null };
+        }
+        // 부팅 시 CLIP 준비 (온라인이면 정확 토큰)
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(_clipInit, 400));
+        else setTimeout(_clipInit, 400);
+
+        // 토큰 초과 경고 배너 (75토큰/청크)
+        function updateTokenWarning(maxChunkTok, chunkCount) {
+            const el = document.getElementById('token-warning'); if (!el) return;
+            if (maxChunkTok > 75) {
+                el.style.display = 'block';
+                const t = document.getElementById('token-warning-text');
+                if (t) t.textContent = `한 청크가 ${maxChunkTok}토큰 — 75 초과분은 뒤로 밀려 반영이 약해집니다. BREAK로 나누면 온전히 반영돼요.`;
+            } else {
+                el.style.display = 'none';
+            }
+        }
+        // 75토큰마다 BREAK로 나눠서 복사 (태그 안 버림)
+        function copyWithBreaks() {
+            const src = (document.getElementById('final-positive').value || '').replace(/\s*\bBREAK\b\s*/g, ', ').trim();
+            const tags = src.split(',').map(s => s.trim()).filter(Boolean);
+            if (!tags.length) { showToast('복사할 프롬프트가 없습니다.', 'warning'); return; }
+            const chunks = []; let cur = [], curTok = 0;
+            for (const tag of tags) {
+                const tk = countPromptTokens(tag).tokens + 1; // 쉼표 ~1토큰
+                if (curTok + tk > 75 && cur.length) { chunks.push(cur.join(', ')); cur = []; curTok = 0; }
+                cur.push(tag); curTok += tk;
+            }
+            if (cur.length) chunks.push(cur.join(', '));
+            const out = chunks.join('\nBREAK\n');
+            const done = () => showToast(`BREAK ${chunks.length}청크로 나눠 복사했어요`, 'success', 2400);
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(out).then(done).catch(() => { _fallbackCopy(out); done(); });
+            } else { _fallbackCopy(out); done(); }
+        }
+        function _fallbackCopy(text) {
+            try { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); } catch (e) {}
+        }
+
         function updateMasterOutput() {
             // 동적 탭 기반으로 각 탭의 내용 수집
             const tabStrings = contextTabs.map(tab => {
@@ -12434,18 +12550,23 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
             document.getElementById('final-positive').value = finalOutput.trim() || "";
 
-            const approxTokens = finalOutput.split(/[\s,()|:]+/).filter(w => w.length > 0).length + (finalOutput.match(/,/g) || []).length;
+            // 각 BREAK 청크별로 토큰을 세어 최대 청크 기준으로 판정 (SD는 75토큰/청크)
+            const _chunks = finalOutput.split(/\bBREAK\b/).map(s => s.trim()).filter(Boolean);
+            let _maxChunkTok = 0, _totalTok = 0, _exact = true;
+            (_chunks.length ? _chunks : ['']).forEach(ch => { const r = countPromptTokens(ch); _totalTok += r.tokens; if (r.tokens > _maxChunkTok) _maxChunkTok = r.tokens; if (!r.exact) _exact = false; });
+            const approxTokens = _totalTok;
+            const _overChunks = Math.ceil(_maxChunkTok / 75);
             const tokenCountEl = document.getElementById('token-count');
             if (tokenCountEl) {
-                tokenCountEl.innerText = `약 ${approxTokens}토큰`;
-                if (approxTokens > 150) {
-                    tokenCountEl.style.color = 'var(--accent-danger)';
-                } else if (approxTokens > 75) {
-                    tokenCountEl.style.color = '#eab308';
-                } else {
-                    tokenCountEl.style.color = 'var(--text-dim)';
-                }
+                const pre = _exact ? '' : '약 ';
+                const multi = _chunks.length > 1 ? ` · ${_chunks.length}청크` : '';
+                tokenCountEl.innerText = `${pre}${approxTokens}토큰${multi}`;
+                if (_maxChunkTok > 75) tokenCountEl.style.color = 'var(--accent-danger)';
+                else if (_maxChunkTok > 60) tokenCountEl.style.color = '#eab308';
+                else tokenCountEl.style.color = 'var(--text-dim)';
             }
+            // 토큰 초과 경고/도구 갱신 (Task 2)
+            try { if (typeof updateTokenWarning === 'function') updateTokenWarning(_maxChunkTok, _chunks.length); } catch (e) {}
 
             let syntaxErrors = [];
             // 괄호 짝 검사: 위치까지 특정
