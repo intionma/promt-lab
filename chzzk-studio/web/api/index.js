@@ -135,7 +135,7 @@ async function loadData(supabase) {
     const { data: vids } = await supabase.from('video_snapshots').select('video_no,title,read_count,captured_at').order('captured_at', { ascending: false }).limit(300)
     const seen = new Set(), vods = []
     for (const v of vids || []) if (!seen.has(v.video_no)) { seen.add(v.video_no); vods.push(v) }
-    d.vods = vods.slice(0, 5)
+    d.vods = vods.slice(0, 40)
   } catch (e) { console.warn('vods:', e.message) }
 
   // ── 실시간 라이브 감지 + 실데이터 (공용 모듈)
@@ -186,7 +186,7 @@ const htEmotes = (d) => (d.topEmotes || []).map((e) => {
   const img = e.url ? `<img src="${esc(e.url)}" width="22" height="22" style="border-radius:4px" loading="lazy"/>` : `<span class="ei"></span>`
   return `<div class="emo">${img} ×${num(e.count)}</div>`
 }).join('') || '<div class="muted">아직 데이터 없음</div>'
-const htVods = (d) => (d.vods || []).map((v) => `<div class="li"><span class="nm">${esc(v.title)}</span><span class="ct">조회 ${num(v.read_count)}</span></div>`).join('') || '<div class="muted">아직 데이터 없음</div>'
+const htVods = (d, n) => (d.vods || []).slice(0, n || 6).map((v) => `<div class="li"><span class="nm">${esc(v.title)}</span><span class="ct">조회 ${num(v.read_count)}</span></div>`).join('') || '<div class="muted">아직 데이터 없음</div>'
 const htBcRows = (d) => (d.recentBc || []).map((b) => `<tr><td>${esc(b.date)}</td><td class="tt">${esc(b.title)}</td><td class="num">${num(b.plays)}</td><td class="num">${num(b.avg)}</td><td class="num">${num(b.peak)}</td><td class="num">${b.ret != null ? b.ret + '%' : '-'}</td><td class="num">${b.chat != null ? b.chat + '%' : '-'}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">방송 종료 후 집계됩니다 (broadcast_analytics)</td></tr>'
 const htHeat = (d) => (d.hourHeat || []).length ? d.hourHeat.map((c, h) => {
   const mx = Math.max(...d.hourHeat, 1); const lv = c === 0 ? 0 : Math.ceil((c / mx) * 4)
@@ -202,6 +202,42 @@ ${heat ? `<div class="grass">${heat}</div><div class="axis"><span>00</span><span
 const cardHistory = (d) => `<div class="card"><div class="panel-h"><span class="t">방송 이력</span><span class="muted">최근 8회 · 공식/수집</span></div>
 <div class="tablewrap"><table><thead><tr><th>날짜</th><th>제목</th><th class="num">재생</th><th class="num">평균</th><th class="num">최대</th><th class="num">지속률</th><th class="num">채팅%</th></tr></thead><tbody>${htBcRows(d)}</tbody></table></div></div>`
 const cardFollower = (d) => `<div class="card"><div class="panel-h"><span class="t">팔로워 성장</span></div>${lineSVG([{ data: d.followerSeries || [], color: '#16a34a' }], { H: 150 })}</div>`
+
+// ── SSOT 탭 뷰들 ──
+const viewAnalysis = (d) => `<div class="card"><div class="panel-h"><span class="t">팔로워 성장</span><span class="muted">방송 지속 · 우상향</span></div>${lineSVG([{ data: d.followerSeries || [], color: '#16a34a' }], { H: 200 })}</div>
+<div class="row3" style="margin-top:16px">${cardViewerTrend(d)}${cardTimeHeat(d)}</div>`
+
+const viewChat = (d) => { const heat = htHeat(d); return `<div class="row3">
+<div class="card"><div class="panel-h"><span class="t">방송 시간대 분포</span><span class="muted">채팅 활동 시간대</span></div>${heat ? `<div class="grass">${heat}</div><div class="axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>23시</span></div>` : '<div class="muted">집계 중</div>'}</div>
+<div class="card"><div class="panel-h"><span class="t">자주 쓰는 이모티콘</span><span class="muted">비중</span></div><div class="emos">${htEmotes(d)}</div></div></div>
+<div class="card" style="margin-top:16px"><div class="panel-h"><span class="t">최다 채팅 시청자</span><span class="muted">전 기간(실시간+다시보기)</span></div><div class="lst">${htChatters(d)}</div></div>` }
+
+const viewRanking = (d) => `<div class="card"><div class="panel-h"><span class="t">🏆 채팅왕</span><span class="muted">전 기간 최다 채팅</span></div><div class="lst rankbars">${htChatBars(d)}</div></div>
+<div class="row2" style="margin-top:16px">
+<div class="card"><div class="panel-h"><span class="t">📅 개근왕</span><span class="muted">준비 중</span></div><div class="muted" style="padding:16px 0">방송별 참여 기록이 쌓이면 활성돼요</div></div>
+<div class="card"><div class="panel-h"><span class="t">😄 이모티콘 장인</span><span class="muted">준비 중</span></div><div class="muted" style="padding:16px 0">시청자별 이모티콘 사용 집계 후 활성</div></div></div>`
+
+const viewVods = (d) => {
+  const vods = d.vods || []
+  const total = vods.length, sum = vods.reduce((a, v) => a + (v.read_count || 0), 0)
+  const avg = total ? Math.round(sum / total) : 0
+  const top = vods.reduce((m, v) => ((v.read_count || 0) > (m ? m.read_count || 0 : 0) ? v : m), null)
+  const ranked = [...vods].sort((a, b) => (b.read_count || 0) - (a.read_count || 0))
+  const mx = ranked[0]?.read_count || 1
+  const rows = ranked.slice(0, 15).map((v, i) => `<div class="li"><span class="rk">${i + 1}</span><div class="nm">${esc(v.title)}<div class="bar" style="width:${Math.round((v.read_count || 0) / mx * 100)}%;background:linear-gradient(90deg,#0070f3,#7c3aed)"></div></div><span class="ct" style="font-weight:700">${num(v.read_count)}</span></div>`).join('') || '<div class="muted">아직 데이터 없음</div>'
+  const kw = new Map()
+  for (const v of vods) { const seen = new Set(); for (const w of (v.title || '').split(/[\s,·\-\/\[\]()]+/)) { if (w.length < 2 || seen.has(w)) continue; seen.add(w); const e = kw.get(w) || { n: 0, sum: 0 }; e.n++; e.sum += v.read_count || 0; kw.set(w, e) } }
+  const kws = [...kw.entries()].filter(([, e]) => e.n >= 2).map(([w, e]) => ({ w, avg: Math.round(e.sum / e.n), n: e.n })).sort((a, b) => b.avg - a.avg).slice(0, 8)
+  const kwHtml = kws.map((k) => `<div class="li"><span class="nm">${esc(k.w)} <span class="tagbadge">${k.n}개</span></span><span class="ct">평균 ${num(k.avg)}</span></div>`).join('') || '<div class="muted">키워드 집계 중 (VOD 더 쌓이면)</div>'
+  return `<div class="cards">
+${statCard('총 VOD', num(total), '개', '', 'flat')}${statCard('누적 조회', num(sum), '', '', 'flat')}${statCard('평균 조회', num(avg), '', '', 'flat')}${statCard('최고 조회', top ? num(top.read_count) : '-', '', top ? esc(top.title).slice(0, 14) : '', 'flat')}
+</div>
+<div class="row2" style="margin-top:16px">
+<div class="card"><div class="panel-h"><span class="t">▶️ VOD 조회 랭킹</span><span class="muted">상위 15</span></div><div class="lst">${rows}</div></div>
+<div class="card"><div class="panel-h"><span class="t">🔑 제목 키워드 인사이트</span><span class="muted">키워드별 평균 조회</span></div><div class="lst">${kwHtml}</div></div></div>
+<div class="card" style="margin-top:16px"><div class="panel-h"><span class="t">📈 롱테일 분석</span><span class="muted">반짝형 vs 꾸준형</span></div>
+<div class="muted" style="padding:16px 0;line-height:1.7">조회수 시간 스냅샷을 누적하는 중이에요. 데이터가 쌓이면 <b>"지금도 조회수 오르는 꾸준형 VOD"</b>와 반짝형을 자동 분류해서 강조할게요. (수집기에 업로드일·길이·좋아요·댓글이 붙으면 더 정밀해져요.)</div></div>`
+}
 
 function renderOffline(d) {
   const chatters = htChatters(d)
@@ -353,8 +389,8 @@ body.live .tg .l.act{color:var(--red)}
 /* ── 시청자별 채팅 활동: 흐르는 선(draw-on + 빛 흐름 + 끊김 펄스) ── */
 .tlcanvas{position:relative;height:180px}.tlcanvas svg{display:block;position:absolute;inset:0;width:100%;height:100%}
 .tlpulses{position:absolute;inset:0;pointer-events:none}
-.tl-draw polyline{stroke-dasharray:100;stroke-dashoffset:100;animation:tlDraw 1.1s cubic-bezier(.4,0,.2,1) forwards}
-.tl-draw polyline:nth-child(2){animation-delay:.12s}.tl-draw polyline:nth-child(3){animation-delay:.24s}.tl-draw polyline:nth-child(4){animation-delay:.36s}
+.tl-draw path{stroke-dasharray:100;stroke-dashoffset:100;animation:tlDraw 1.1s cubic-bezier(.4,0,.2,1) forwards}
+.tl-draw path:nth-child(2){animation-delay:.12s}.tl-draw path:nth-child(3){animation-delay:.24s}.tl-draw path:nth-child(4){animation-delay:.36s}
 @keyframes tlDraw{to{stroke-dashoffset:0}}
 .tl-sheen{animation:tlSweep 3.6s linear 1.1s infinite}
 @keyframes tlSweep{from{transform:translateX(0)}to{transform:translateX(var(--sweep,1000px))}}
@@ -363,7 +399,7 @@ body.live .tg .l.act{color:var(--red)}
 @keyframes tlPing{0%{transform:translate(-50%,-50%) scale(.25);opacity:.55}70%{transform:translate(-50%,-50%) scale(1);opacity:0}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
 .pnode .core{width:6px;height:6px;transform:translate(-50%,-50%);animation:tlBeat 2.6s ease-in-out infinite}
 @keyframes tlBeat{0%,100%{opacity:1}50%{opacity:.55}}
-@media(prefers-reduced-motion:reduce){.tl-draw polyline{animation:none;stroke-dashoffset:0}.tl-sheen{animation:none;opacity:0}.pnode .ring{animation:none;opacity:0}.pnode .core{animation:none}}
+@media(prefers-reduced-motion:reduce){.tl-draw path{animation:none;stroke-dashoffset:0}.tl-sheen{animation:none;opacity:0}.pnode .ring{animation:none;opacity:0}.pnode .core{animation:none}}
 .lst{display:flex;flex-direction:column;margin-top:6px}.li{display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid #f2f2f2;font-size:13px}
 .li:last-child{border-bottom:0}.li .rk{width:22px;color:var(--dim2);font-size:13px;flex-shrink:0}.li .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.li .ct{color:var(--dim);flex-shrink:0}
 .rankbars .nm{white-space:normal}.bar{height:5px;border-radius:3px;margin-top:4px;background:linear-gradient(90deg,#e5484d,#a855f7)}
@@ -412,18 +448,11 @@ body.live .v-off{display:none}body:not(.live) .v-live{display:none}
 <div class="idbadges">${hasLive ? '<span class="lvpill"><i></i>방송 중</span>' : ''}<span class="folpill">팔로워 ${num(d.followers)}${d.followerDelta != null ? ` <b style="color:${d.followerDelta >= 0 ? 'var(--green)' : 'var(--red)'}">${d.followerDelta >= 0 ? '▲+' + d.followerDelta : '▼' + d.followerDelta}</b>` : ''}</span></div></div></div>
 <nav class="navi">
 <a class="navlink on" data-view="dashboard" onclick="return nav(this,'dashboard')">📊 대시보드</a>
-<div class="navgroup">실시간</div>
-<a class="navlink" data-view="dashboard" onclick="return nav(this,'dashboard','lv-hero')">🔴 라이브 현황</a>
-<a class="navlink" data-view="dashboard" onclick="return nav(this,'dashboard','lv-feedcard')">💬 실시간 채팅${hasLive && d.live ? ` <span class="navbadge">${num(d.live.chatTotal)}</span>` : ''}</a>
-<a class="navlink" data-view="dashboard" onclick="return nav(this,'dashboard','lv-tlcard')">📈 시청자 활동</a>
 <div class="navgroup">분석</div>
+<a class="navlink" data-view="analysis" onclick="return nav(this,'analysis')">📈 분석</a>
 <a class="navlink" data-view="history" onclick="return nav(this,'history')">🎬 방송 이력</a>
-<a class="navlink" data-view="viewers" onclick="return nav(this,'viewers')">👥 시청자·순위</a>
 <a class="navlink" data-view="chat" onclick="return nav(this,'chat')">💭 채팅 분석</a>
-<a class="navlink" data-view="emotes" onclick="return nav(this,'emotes')">😄 이모티콘</a>
 <a class="navlink" data-view="ranking" onclick="return nav(this,'ranking')">🏆 랭킹</a>
-<div class="navgroup">성장</div>
-<a class="navlink" data-view="followers" onclick="return nav(this,'followers')">📈 팔로워 추이</a>
 <a class="navlink" data-view="vods" onclick="return nav(this,'vods')">▶️ 다시보기 성과</a>
 <div class="navgroup">수익</div>
 <a class="navlink disabled">🪙 구독·치즈·광고 <span class="navbadge soon">곧</span></a>
@@ -433,12 +462,10 @@ body.live .v-off{display:none}body:not(.live) .v-live{display:none}
 <main class="main">
 <nav class="topnav">
 <a class="navlink on" data-view="dashboard" onclick="return nav(this,'dashboard')">대시보드</a>
+<a class="navlink" data-view="analysis" onclick="return nav(this,'analysis')">분석</a>
 <a class="navlink" data-view="history" onclick="return nav(this,'history')">방송 이력</a>
-<a class="navlink" data-view="viewers" onclick="return nav(this,'viewers')">시청자·순위</a>
 <a class="navlink" data-view="chat" onclick="return nav(this,'chat')">채팅 분석</a>
-<a class="navlink" data-view="emotes" onclick="return nav(this,'emotes')">이모티콘</a>
 <a class="navlink" data-view="ranking" onclick="return nav(this,'ranking')">랭킹</a>
-<a class="navlink" data-view="followers" onclick="return nav(this,'followers')">팔로워</a>
 <a class="navlink" data-view="vods" onclick="return nav(this,'vods')">다시보기</a></nav>
 <div class="top"><div><h1>SoundVoltex1 ${hasLive ? '<span class="livedot" style="margin-left:6px"><i></i>LIVE</span>' : ''}</h1><div class="sub">이터널 리턴 · ${hasLive ? '지금 방송 중 — 실시간 실데이터' : '실데이터(과거 방송 포함) · 방송 중엔 실시간'}</div></div>
 ${debug ? `<div class="tg"><button class="o ${hasLive ? '' : 'act'}" onclick="sw(0)">⚫ 방송 종료</button><button class="l ${hasLive ? 'act' : ''}" onclick="sw(1)">🔴 방송 중</button></div>` : ''}</div>
@@ -447,13 +474,11 @@ ${debug ? `<div class="tg"><button class="o ${hasLive ? '' : 'act'}" onclick="sw
 ${renderOffline(d)}
 ${renderLive(d)}
 </section>
+<section class="view" data-view="analysis">${viewAnalysis(d)}</section>
 <section class="view" data-view="history">${cardHistory(d)}</section>
-<section class="view" data-view="viewers"><div class="row3">${cardViewerTrend(d)}${cardTimeHeat(d)}</div></section>
-<section class="view" data-view="chat"><div class="row2"><div class="card"><div class="panel-h"><span class="t">최다 채팅 시청자</span><span class="muted">전 기간(실시간+다시보기)</span></div><div class="lst">${htChatters(d)}</div></div><div class="card"><div class="panel-h"><span class="t">자주 쓰는 이모티콘</span></div><div class="emos">${htEmotes(d)}</div></div></div></section>
-<section class="view" data-view="emotes"><div class="card"><div class="panel-h"><span class="t">자주 쓰는 이모티콘</span><span class="muted">전 기간</span></div><div class="emos">${htEmotes(d)}</div></div></section>
-<section class="view" data-view="ranking"><div class="card"><div class="panel-h"><span class="t">채팅 랭킹</span><span class="muted">전 기간 최다 채팅</span></div><div class="lst rankbars">${htChatBars(d)}</div></div></section>
-<section class="view" data-view="followers"><div class="card"><div class="panel-h"><span class="t">팔로워 추이</span><span class="muted">최근</span></div>${lineSVG([{ data: d.followerSeries || [], color: '#16a34a' }], { H: 220 })}</div></section>
-<section class="view" data-view="vods"><div class="card"><div class="panel-h"><span class="t">다시보기 성과</span><span class="muted">조회수</span></div><div class="lst">${htVods(d)}</div></div></section>
+<section class="view" data-view="chat">${viewChat(d)}</section>
+<section class="view" data-view="ranking">${viewRanking(d)}</section>
+<section class="view" data-view="vods">${viewVods(d)}</section>
 <section class="view" data-view="revenue"><div class="card"><div class="panel-h"><span class="t">구독 · 치즈 · 광고</span><span class="muted">준비 중</span></div><div class="muted" style="padding:22px 0;text-align:center">수익 지표는 수집 항목 추가 후 제공됩니다 💰</div></div></section>
 </div>
 <div class="foot">OFFLINE=실데이터 · LIVE=${hasLive ? '실시간 실데이터(채팅 4초 갱신 · 시청자/순위 20초)' : '가상 예시(방송 켜지면 실제값)'} · 갱신 ${esc(d.updated)} (UTC)</div>
@@ -483,25 +508,49 @@ function nav(el,v,scrollId){
   var maxVal=1; TL.series.forEach(function(s){s.vals.forEach(function(v){if(v>maxVal)maxVal=v})});
   function p2(x){return String(x).padStart(2,'0')}
   function clock(ms){var d=new Date(ms+9*3600000);return p2(d.getUTCHours())+':'+p2(d.getUTCMinutes())}
+  // 부드러운 곡선(Catmull-Rom→베지어)로 라인 정리 (삐죽삐죽한 삼각형 제거)
+  function smooth(p){
+    if(p.length<2) return p.length?('M'+p[0][0].toFixed(1)+','+p[0][1].toFixed(1)):'';
+    var d='M'+p[0][0].toFixed(1)+','+p[0][1].toFixed(1);
+    for(var i=0;i<p.length-1;i++){
+      var p0=p[i>0?i-1:0],p1=p[i],p2=p[i+1],p3=p[i+2<p.length?i+2:i+1];
+      var c1x=p1[0]+(p2[0]-p0[0])/6,c1y=p1[1]+(p2[1]-p0[1])/6;
+      var c2x=p2[0]-(p3[0]-p1[0])/6,c2y=p2[1]-(p3[1]-p1[1])/6;
+      d+=' C'+c1x.toFixed(1)+','+c1y.toFixed(1)+' '+c2x.toFixed(1)+','+c2y.toFixed(1)+' '+p2[0].toFixed(1)+','+p2[1].toFixed(1);
+    }
+    return d;
+  }
   // 각 시청자 선 좌표 + 끊김(3분+ 무발화) 판정 — 끊긴 사람은 그 지점서 선을 멈추고 펄스
   function geom(vals,width){
     var last=-1; for(var i=0;i<vals.length;i++) if(vals[i]>0) last=i;
     var endIdx=vals.length-1, cut=false;
     if(last>=0 && (vals.length-1-last)>=QUIET){ endIdx=last; cut=true; }
-    var pts=[];
-    for(var i=0;i<=endIdx;i++){ var x=(n<2?width/2:(i/(n-1))*width); var y=BASE_Y-(vals[i]/maxVal)*(BASE_Y-TOP); pts.push(x.toFixed(1)+','+y.toFixed(1)); }
+    var pairs=[];
+    for(var i=0;i<=endIdx;i++){ var x=(n<2?width/2:(i/(n-1))*width); var y=BASE_Y-(vals[i]/maxVal)*(BASE_Y-TOP); pairs.push([x,y]); }
     var pulse=cut?{x:(n<2?width/2:(endIdx/(n-1))*width), y:BASE_Y-(vals[endIdx]/maxVal)*(BASE_Y-TOP)}:null;
-    return {pts:pts.join(' '), pulse:pulse};
+    return {pairs:pairs, pulse:pulse};
   }
   function seriesHTML(width){
     var base='',hi='',pn='';
     TL.series.forEach(function(s,i){
-      var g=geom(s.vals,width);
-      base+='<polyline fill="none" stroke="'+s.color+'" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" pathLength="100" points="'+g.pts+'"/>';
-      hi+='<polyline fill="none" stroke="'+(HI[s.color]||s.color)+'" stroke-width="3.8" stroke-linejoin="round" stroke-linecap="round" points="'+g.pts+'"/>';
+      var g=geom(s.vals,width), dpath=smooth(g.pairs);
+      base+='<path fill="none" stroke="'+s.color+'" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" pathLength="100" d="'+dpath+'"/>';
+      hi+='<path fill="none" stroke="'+(HI[s.color]||s.color)+'" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="'+dpath+'"/>';
       if(g.pulse){var d=(1.4+i*0.12).toFixed(2)+'s';pn+='<div class="pnode" style="left:'+(g.pulse.x/width*100).toFixed(3)+'%;top:'+(g.pulse.y/H*100).toFixed(3)+'%"><div class="ring" style="border-color:'+s.color+';animation-delay:'+d+'"></div><div class="core" style="background:'+s.color+';animation-delay:'+d+'"></div></div>';}
     });
     return {base:base,hi:hi,pn:pn};
+  }
+  // 시간축 눈금(HH:MM) — 그래프 하단에 실제 시간 표기
+  function ticksHTML(width){
+    if(!TL.start) return '';
+    var t='',step=Math.max(1,Math.round(n/8));
+    for(var i=0;i<n;i+=step){
+      var tx=(n<2?width/2:(i/(n-1))*width);
+      var anchor=i===0?'start':(i+step>=n?'end':'middle');
+      t+='<line x1="'+tx.toFixed(1)+'" y1="'+BASE_Y+'" x2="'+tx.toFixed(1)+'" y2="'+(BASE_Y+4)+'" stroke="#ddd"/>';
+      t+='<text x="'+tx.toFixed(1)+'" y="'+(H-4)+'" font-size="9" fill="#999" text-anchor="'+anchor+'">'+clock(TL.start+i*TL.step)+'</text>';
+    }
+    return t;
   }
   function drawMain(width,animate){
     var S=seriesHTML(width);
@@ -513,6 +562,7 @@ function nav(el,v,scrollId){
       +'<filter id="tlglow" x="-30%" y="-100%" width="160%" height="300%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
       +'</defs>'
       +'<line x1="0" y1="'+BASE_Y+'" x2="'+width+'" y2="'+BASE_Y+'" stroke="#eee"/>'
+      +'<g id="tlticks">'+ticksHTML(width)+'</g>'
       +'<g id="tlbase" class="tl-base'+(animate?' tl-draw':'')+'">'+S.base+'</g>'
       +'<g id="tlhi" mask="url(#tlsheen)" filter="url(#tlglow)">'+S.hi+'</g>';
     pulses.innerHTML=S.pn;
@@ -522,6 +572,7 @@ function nav(el,v,scrollId){
     var S=seriesHTML(width);
     b.classList.remove('tl-draw'); b.innerHTML=S.base;
     var h=document.getElementById('tlhi'); if(h)h.innerHTML=S.hi;
+    var tk=document.getElementById('tlticks'); if(tk)tk.innerHTML=ticksHTML(width);
     pulses.innerHTML=S.pn; canvas.style.width=width+'px';
   }
   function drawMini(){
