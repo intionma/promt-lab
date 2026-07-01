@@ -26,29 +26,37 @@ create index if not exists idx_chat_time on public.chat_snapshots(captured_at);
 
 ---
 
-## 1. Oracle Cloud 무료 VM 만들기 (최초 1회)
+## 1. GCP 무료 VM 만들기 (최초 1회)
 
-1. https://www.oracle.com/kr/cloud/free/ → **무료로 시작하기** → 계정 생성
-   (카드 인증 필요하지만 **과금 안 됨** — Always Free 리소스만 씀)
-2. 콘솔 로그인 → **Compute → Instances → Create Instance**
-   - Image: **Canonical Ubuntu 22.04**
-   - Shape: **Always Free 대상**(`VM.Standard.E2.1.Micro` 또는 Ampere `A1.Flex` 1 OCPU/6GB)
-   - **SSH 키**: "Generate a key pair for me" → **개인키(private key) 다운로드해서 보관**
-3. 생성되면 인스턴스의 **Public IP** 를 메모.
+> ⚠️ **무료가 되려면 리전이 `us-west1` / `us-central1` / `us-east1` 중 하나여야 함.**
+> 다른 리전(서울 등)은 과금됨. 한국과 멀지만 이 작업(1분에 1회 저장)엔 지장 없음.
+
+**Console → Compute Engine → VM instances → Create**
+- Region: `us-west1` (위 셋 중 아무거나)
+- Machine type: **`e2-micro`** (Series E2) — 무료 대상
+- Boot disk: **Ubuntu 22.04 LTS**, Standard persistent disk **30GB**
+
+gcloud CLI:
+```bash
+gcloud compute instances create chzzk-collector \
+  --zone=us-west1-a --machine-type=e2-micro \
+  --image-family=ubuntu-2204-lts --image-project=ubuntu-os-cloud \
+  --boot-disk-size=30GB --boot-disk-type=pd-standard
+```
 
 ## 2. 서버 접속 & 준비
 
 ```bash
-# 다운로드한 키 권한 설정 (맥/리눅스)
-chmod 400 ~/Downloads/ssh-key-*.key
-# 접속 (윈도우는 PowerShell 또는 PuTTY)
-ssh -i ~/Downloads/ssh-key-*.key ubuntu@<서버_PUBLIC_IP>
+# 접속: 콘솔의 브라우저 SSH 버튼, 또는
+gcloud compute ssh chzzk-collector --zone=us-west1-a
 
 # Node.js 20 + git + pm2 설치
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs git
 sudo npm install -g pm2
 ```
+
+> 다른 클라우드(Oracle 등)를 써도 됨 — 아래 3~4단계(코드 받기·실행)는 리눅스면 동일.
 
 ## 3. 코드 받기 & 설정
 
