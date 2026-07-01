@@ -6,7 +6,8 @@ export const supabase = createClient(
 );
 
 // 사용자가 만든 ArtMesh 그룹 + 숨김 상태 (모두에게 공유 저장)
-export type MeshGroup = { id: string; name: string; ids: string[] };
+// shared: 이 폴더가 같은 모델의 다른 버전과 공유됨. sharedIds: 마지막 공유 시점의 멤버(수정 감지용)
+export type MeshGroup = { id: string; name: string; ids: string[]; shared?: boolean; sharedIds?: string[] };
 export type MeshConfig = { groups: MeshGroup[]; hidden: string[] };
 
 export type Session = {

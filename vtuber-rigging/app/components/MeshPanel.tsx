@@ -1,12 +1,18 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Eye, EyeOff, Search, Layers, MousePointerClick, Plus, Pencil, Trash2, Check, Save, FolderPlus, AlertTriangle } from "lucide-react";
+import { Eye, EyeOff, Search, Layers, MousePointerClick, Plus, Pencil, Trash2, Check, FolderPlus, AlertTriangle, Share2, Link2, Loader2 } from "lucide-react";
 
 export type MeshDiff = { onlyHere: string[]; missingHere: string[]; versions: number };
 
 type Mesh = { index: number; id: string; part: string };
-type Group = { id: string; name: string; ids: string[] };
+type Group = { id: string; name: string; ids: string[]; shared?: boolean; sharedIds?: string[] };
+
+function sameIds(a: string[], b: string[]) {
+  if (a.length !== b.length) return false;
+  const sb = new Set(b);
+  return a.every((x) => sb.has(x));
+}
 
 type Props = {
   meshes: Mesh[];
@@ -15,7 +21,7 @@ type Props = {
   editingGroupId: string | null;
   selected: number | null;
   selectMode: boolean;
-  saving: boolean;
+  sharingGroupId: string | null;
   onToggleMesh: (id: string, hide: boolean) => void;
   onToggleGroup: (g: Group) => void;
   onShowAll: () => void;
@@ -25,16 +31,16 @@ type Props = {
   onDeleteGroup: (id: string) => void;
   onSetEditingGroup: (id: string | null) => void;
   onToggleMembership: (groupId: string, meshId: string) => void;
-  onSave: () => void;
+  onShareGroup: (g: Group) => void;
   diff?: MeshDiff | null;
 };
 
 const COLORS = ["#a855f7", "#ec4899", "#3b82f6", "#22c55e", "#f59e0b", "#06b6d4", "#ef4444", "#8b5cf6"];
 
 export default function MeshPanel({
-  meshes, hiddenIds, groups, editingGroupId, selected, selectMode, saving,
+  meshes, hiddenIds, groups, editingGroupId, selected, selectMode, sharingGroupId,
   onToggleMesh, onToggleGroup, onShowAll, onFlash, onToggleSelectMode,
-  onCreateGroup, onDeleteGroup, onSetEditingGroup, onToggleMembership, onSave, diff,
+  onCreateGroup, onDeleteGroup, onSetEditingGroup, onToggleMembership, onShareGroup, diff,
 }: Props) {
   const [query, setQuery] = useState("");
   const [showDiff, setShowDiff] = useState(false);
@@ -79,9 +85,6 @@ export default function MeshPanel({
           {hiddenIds.size > 0 && (
             <button onClick={onShowAll} className="px-2 py-0.5 rounded-md text-[10px] glass glass-hover text-[var(--muted)]">전체표시</button>
           )}
-          <button onClick={onSave} disabled={saving} className="px-2 py-0.5 rounded-md text-[10px] bg-[var(--purple)]/25 text-[var(--purple)] flex items-center gap-1 disabled:opacity-50" title="그룹·숨김 상태를 모두에게 공유 저장">
-            <Save className="w-2.5 h-2.5" /> {saving ? "저장중" : "공유 저장"}
-          </button>
         </div>
 
         {/* 메쉬 차이 말풍선 */}
@@ -129,13 +132,24 @@ export default function MeshPanel({
                 const color = COLORS[gi % COLORS.length];
                 const allHidden = g.ids.length > 0 && g.ids.every((id) => hiddenIds.has(id));
                 const editing = editingGroupId === g.id;
+                const modified = !!g.shared && !sameIds(g.ids, g.sharedIds ?? []); // 공유 후 멤버가 바뀜
+                const showShare = !g.shared || modified;                          // 공유 전 · 또는 수정됨(다시 공유)
+                const sharing = sharingGroupId === g.id;
                 return (
-                  <div key={g.id} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg glass ${editing ? "ring-1 ring-[var(--purple)]" : ""}`}>
+                  <div key={g.id} className={`flex items-center gap-1 px-2 py-1 rounded-lg glass ${editing ? "ring-1 ring-[var(--purple)]" : ""}`}>
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
+                    {g.shared && <Link2 className="w-3 h-3 text-emerald-400 flex-shrink-0" aria-label="공유된 폴더" />}
                     <span className="text-[11px] text-[var(--fg)] truncate flex-1">{g.name}<span className="text-[9px] text-[var(--muted)] ml-1">{g.ids.length}</span></span>
                     <button onClick={() => onToggleGroup(g)} className="p-1 glass-hover rounded" title={allHidden ? "그룹 표시" : "그룹 숨김"}>
                       {allHidden ? <EyeOff className="w-3.5 h-3.5 text-[var(--muted)]/60" /> : <Eye className="w-3.5 h-3.5 text-[var(--purple)]" />}
                     </button>
+                    {showShare && (
+                      <button onClick={() => onShareGroup(g)} disabled={sharing}
+                        className={`p-1 glass-hover rounded ${modified ? "text-amber-400" : "text-[var(--purple)]"} disabled:opacity-50`}
+                        title={modified ? "수정됨 — 다시 공유(다른 버전에도 반영)" : "이 폴더를 같은 모델의 모든 버전에 공유"}>
+                        {sharing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
                     <button onClick={() => onSetEditingGroup(editing ? null : g.id)} className={`p-1 glass-hover rounded ${editing ? "text-[var(--purple)]" : "text-[var(--muted)]"}`} title="멤버 편집">
                       <Pencil className="w-3 h-3" />
                     </button>

@@ -44,6 +44,8 @@ export interface ViewerHandle {
   setMeshSelectMode: (on: boolean) => void;
   setParamSweep: (on: boolean) => void;
   setSilhouette: (on: boolean, color?: number) => void;
+  // 두 모델 비교: 다른 창의 시선을 그대로 적용 (focusController 값 gx,gy)
+  gazeTo: (gx: number, gy: number, instant: boolean) => void;
 }
 
 type Props = {
@@ -52,6 +54,8 @@ type Props = {
   onModelMeta?: (meta: ModelMeta) => void;
   onMeshPicked?: (index: number) => void;
   controlRef?: { current: ViewerHandle | null };
+  // 두 모델 비교: 이 창의 시선(focusController 값)이 바뀌면 알림 → 다른 창에 전달
+  onGaze?: (gx: number, gy: number, instant: boolean) => void;
 };
 
 // 배경 옵션 (캔버스 컨테이너 CSS 배경 + 스크린샷 합성용 draw)
@@ -134,7 +138,10 @@ const VIEW_LABELS: Record<ViewMode, string> = {
   free: "자유 시점",
 };
 
-export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, onMeshPicked, controlRef }: Props) {
+export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, onMeshPicked, controlRef, onGaze }: Props) {
+  // 최신 onGaze 를 ref 로 (init 클로저에서 안전하게 참조)
+  const onGazeRef = useRef(onGaze);
+  onGazeRef.current = onGaze;
   const canvasRef   = useRef<HTMLCanvasElement>(null);
   const gazeDotRef  = useRef<HTMLDivElement>(null);
   const appRef      = useRef<unknown>(null);
@@ -346,6 +353,8 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
         silhouetteRef.current = { on, color };
         applySilhouette();
       },
+      // 다른 창의 시선을 그대로 적용 (자기 pointer 이벤트가 아니라 외부 값 → onGaze 재발행 안 함)
+      gazeTo: (gx, gy, instant) => { focusFnRef.current?.(gx, gy, instant); },
       flashMesh: (index) => {
         // 해당 메쉬를 부드럽게 페이드(밝→어둠→밝) 반복해 어떤 부위인지 눈에 띄게 함.
         // 경과시간을 0 으로 (재)시작 — 실제 페이드 애니메이션은 렌더 루프가 처리.
@@ -692,6 +701,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
           const nx = ((e.clientX - rect.left) / rect.width)  * 2 - 1;  // -1(좌)~+1(우)
           const ny = ((e.clientY - rect.top)  / rect.height) * 2 - 1;  // -1(상)~+1(하)
           internalModel.focusController.focus(nx, -ny, instant);
+          onGazeRef.current?.(nx, -ny, instant); // 다른 창에 같은 시선 전달
         }
         focusFnRef.current = (nx: number, ny: number, instant: boolean) =>
           internalModel.focusController.focus(nx, ny, instant);
@@ -699,7 +709,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
         function onFaceLeave(e: PointerEvent) {
           // 마우스 hover 가 캔버스를 벗어나면 정면 복귀.
           // 터치/펜은 손을 떼도 마지막 각도를 '유지'(탭으로 각도 테스트 가능)
-          if (e.pointerType === "mouse") internalModel.focusController.focus(0, 0);
+          if (e.pointerType === "mouse") { internalModel.focusController.focus(0, 0); onGazeRef.current?.(0, 0, false); }
         }
 
         // ── 메쉬 선택(클릭한 지점의 ArtMesh 집기) ───────────────────────────

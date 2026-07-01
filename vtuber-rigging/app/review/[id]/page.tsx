@@ -72,7 +72,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [isPC, setIsPC] = useState(false);
   const [meshSelectMode, setMeshSelectMode] = useState(false);
   const [selectedMesh, setSelectedMesh] = useState<number | null>(null);
-  const [meshSaving, setMeshSaving] = useState(false);
+  const [sharingGroupId, setSharingGroupId] = useState<string | null>(null);
   // 버전 간 메쉬 차이 비교
   const [siblingMeshes, setSiblingMeshes] = useState<{ id: string; meshIds: string[] }[]>([]);
   const [meshDiff, setMeshDiff] = useState<MeshDiff | null>(null);
@@ -103,7 +103,10 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     });
   }
   function createGroup(name: string) {
-    const g: MeshGroup = { id: `g_${Date.now()}`, name: name.trim() || "새 그룹", ids: [] };
+    const nm = name.trim() || "새 그룹";
+    // 같은 모델은 폴더가 이름 기준 공유되므로 같은 이름 폴더 금지
+    if (meshGroups.some((g) => g.name === nm)) { alert(`'${nm}' 폴더가 이미 있어요. (같은 모델에선 폴더 이름이 겹치면 안 돼요)`); return; }
+    const g: MeshGroup = { id: `g_${Date.now()}`, name: nm, ids: [] };
     setMeshGroups((p) => [...p, g]);
     setEditingGroupId(g.id);
   }
@@ -144,27 +147,27 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     viewerControl.current?.showAllMeshes();
     setHiddenIds(new Set());
   }
-  async function saveMeshConfig() {
-    // 관리자 모드면 PIN 자동, 아니면 비번 입력
-    const pw = admin.active ? admin.pin : window.prompt("폴더를 이 모델의 모든 버전에 공유 저장 — 비밀번호를 입력하세요");
+  // 폴더 하나를 같은 모델의 모든 버전에 공유 (이름 기준)
+  async function shareGroup(g: MeshGroup) {
+    const pw = admin.active ? admin.pin : window.prompt(`'${g.name}' 폴더를 같은 모델의 모든 버전에 공유 — 비밀번호를 입력하세요`);
     if (!pw) return;
-    setMeshSaving(true);
+    setSharingGroupId(g.id);
     try {
-      const config: MeshConfig = { groups: meshGroups, hidden: Array.from(hiddenIds) };
-      const res = await fetch("/api/save-mesh-config", {
+      const res = await fetch("/api/share-mesh-group", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: id, config, password: pw }),
+        body: JSON.stringify({ sessionId: id, group: { name: g.name, ids: g.ids }, password: pw }),
       });
       if (res.status === 403) { alert("비밀번호가 틀렸어요"); return; }
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        alert("저장 실패: " + (j.error || "") + "\n(Supabase 에 mesh_config 컬럼이 필요할 수 있어요)");
+        alert("공유 실패: " + (j.error || "") + "\n(mesh_config 컬럼이 필요할 수 있어요)");
         return;
       }
-      alert("폴더를 저장했어요 — 같은 모델의 모든 버전(앞으로 올릴 버전 포함)에 폴더가 공유됩니다");
+      // 로컬 폴더를 '공유됨'으로 표시(수정 감지 기준점 갱신)
+      setMeshGroups((p) => p.map((x) => (x.id === g.id ? { ...x, shared: true, sharedIds: [...x.ids] } : x)));
     } finally {
-      setMeshSaving(false);
+      setSharingGroupId(null);
     }
   }
 
@@ -543,7 +546,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               editingGroupId={editingGroupId}
               selected={selectedMesh}
               selectMode={meshSelectMode}
-              saving={meshSaving}
+              sharingGroupId={sharingGroupId}
               onToggleMesh={toggleMesh}
               onToggleGroup={toggleGroup}
               onShowAll={showAllMeshes}
@@ -553,7 +556,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               onDeleteGroup={deleteGroup}
               onSetEditingGroup={setEditingGroupId}
               onToggleMembership={toggleMembership}
-              onSave={saveMeshConfig}
+              onShareGroup={shareGroup}
               diff={meshDiff}
             />
           </div>
