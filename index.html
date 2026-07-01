@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.4 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.5 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.4 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.5 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1942,7 +1942,15 @@
         const CHANGELOG = [
             // ── 2026-07-01 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.4', date: '2026-07-01', time: '최신',
+                version: 'v9.10.5', date: '2026-07-01', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[태그 사전] 사전 전수 점검 후 정리 — 계층이 잘못 배정된 태그 교정(피사계 심도→구도, 갸루/보이시/중성적→외형, 머리 장식→악세서리, 레이트레이싱→화질 등)',
+                    '[태그 사전] 헷갈리는 번역 구분 — "배(선박)" vs "드러난 배", "손목시계" vs "벽시계" 등. 계층 불일치·모호한 표기 모두 해소',
+                ]
+            },
+            {
+                version: 'v9.10.4', date: '2026-07-01', time: '오후',
                 tag: 'fix',
                 items: [
                     '[추천] 태그를 추가/삭제하면 추천이 즉시 갱신되도록 수정 (이전엔 추천 영역을 직접 눌러야 반영됐음)',
@@ -9410,11 +9418,26 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             "eye-level shot":{"k":"눈높이 샷","l":2},"slight high angle":{"k":"약한 하이앵글","l":2},"slight low angle":{"k":"약한 로우앵글","l":2},"centered subject":{"k":"중앙 피사체","l":2},
             "warm sunlight glow":{"k":"따스한 햇살 발광","l":7},"cool moonlight glow":{"k":"차가운 달빛 발광","l":7},"soft window light":{"k":"부드러운 창빛","l":7},"dappled shade":{"k":"얼룩진 그늘","l":7},
         });
-        // 기존 사전의 어색한 번역만 선별 교정 (force overwrite)
+        // 기존 사전의 어색한 번역·계층만 선별 교정 (force overwrite)
         (function () {
-            const fix = { "looking at viewer": "정면 응시", "looking away": "시선 돌림" };
-            for (const k in fix) { if (TAG_DICT[k]) TAG_DICT[k].k = fix[k]; }
-            _dictByLayerCache = null; _dictFlatCache = null; // 캐시 무효화 (아직 미생성이지만 안전)
+            // 번역 교정 (모호한 한글 → 구분되게)
+            const fixK = {
+                "looking at viewer": "정면 응시", "looking away": "시선 돌림",
+                "ship": "배(선박)", "midriff": "드러난 배(복부)", "watch": "손목시계", "clock": "벽시계",
+                "cgi": "3D CG", "hdr": "HDR", "uhd": "UHD 초고화질", "2.5d": "2.5D", "8k uhd": "8K UHD",
+            };
+            for (const k in fixK) { if (TAG_DICT[k]) TAG_DICT[k].k = fixK[k]; }
+            // 계층 교정 (잘못 배치된 것 — 중복 정의로 엉뚱한 계층이 이긴 케이스 포함)
+            const fixL = {
+                "hair pin": 4, "blurred background": 2,
+                "depth of field": 2,   // 피사계 심도 = 구도(L6→L2)
+                "androgynous": 3, "gyaru": 3, "tomboy": 3, // 외형(L2→L3)
+                "sleeping": 5,         // 동작(L3→L5)
+                "hair flower": 4,      // 머리 장식 = 악세서리(L3→L4)
+                "ray tracing": 1,      // 렌더링 기법(L7→L1)
+            };
+            for (const k in fixL) { if (TAG_DICT[k]) TAG_DICT[k].l = fixL[k]; }
+            _dictByLayerCache = null; _dictFlatCache = null; // 캐시 무효화
         })();
 
         // ── 별칭/변형 정규화 (Phase 1B) ─────────────────────────────────
