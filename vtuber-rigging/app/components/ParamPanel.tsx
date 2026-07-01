@@ -100,13 +100,14 @@ function ComboPad({
     } else { clearHold(); }
   }
 
-  // PC: 우클릭 → 가까운 스냅 지점(꼭짓점·중앙)으로 이동
+  // PC: 우클릭 → 가까운 스냅 지점(꼭짓점·중앙)으로 이동 (브라우저 기본 메뉴 억제)
   function onContextMenu(e: React.MouseEvent<HTMLDivElement>) {
+    e.preventDefault();
     const rect = e.currentTarget.getBoundingClientRect();
     const px = (e.clientX - rect.left) / rect.width;
     const py = 1 - (e.clientY - rect.top) / rect.height;
     const near = snaps.find((s) => Math.hypot(px - s.px, py - s.py) <= SNAP_DIST);
-    if (near) { e.preventDefault(); onChange(xP.id, near.xv); onChange(yP.id, near.yv); }
+    if (near) { onChange(xP.id, near.xv); onChange(yP.id, near.yv); }
   }
 
   return (
@@ -228,12 +229,13 @@ function Slider({
     }
   }
 
-  // PC: 트랙에서 우클릭 → 가까운 스냅 지점 값으로 이동
+  // PC: 트랙에서 우클릭 → 가까운 스냅 지점 값으로 이동 (브라우저 기본 메뉴는 항상 억제)
   function onContextMenu(e: React.MouseEvent<HTMLDivElement>) {
+    e.preventDefault();
     const rect = e.currentTarget.getBoundingClientRect();
     const xPct = ((e.clientX - rect.left) / rect.width) * 100;
     const near = snaps.find((s) => Math.abs(xPct - s.pos) <= 8);
-    if (near) { e.preventDefault(); onChange(p.id, near.v); }
+    if (near) onChange(p.id, near.v);
   }
 
   return (

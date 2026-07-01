@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { ExternalLink, Trash2, Calendar, Layers, Boxes, Loader2, HardDrive, FileText, Download, GripVertical, Split, AlertTriangle, Pencil, Lock, Check, X } from "lucide-react";
@@ -63,6 +63,8 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
   const [expandedDesc, setExpandedDesc] = useState<string | null>(null); // 긴 설명 펼침
   const [editingModel, setEditingModel] = useState<string | null>(null);
   const [editModelName, setEditModelName] = useState("");
+  // Enter→저장 직후 blur 로 저장이 한 번 더 불리는 중복 저장 방지(같은 tick 내 1회)
+  const saveGuard = useRef(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -281,6 +283,8 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
   // 모델 이름 인라인 편집 시작/저장
   function startEditModel(name: string) { setEditingModel(name); setEditModelName(name); }
   function saveEditModel(name: string) {
+    if (saveGuard.current) return;                       // Enter 직후 blur 중복 저장 차단
+    saveGuard.current = true; setTimeout(() => { saveGuard.current = false; }, 0);
     const target = editModelName.trim();
     setEditingModel(null);
     if (!target || target === name) return;
