@@ -686,3 +686,6 @@ export default async function handler(req, res) {
     return res.status(500).send(`<h3>대시보드 오류</h3><pre>${esc(e.message)}</pre>`)
   }
 }
+
+// 미리보기/테스트 렌더용 export (Vercel 런타임엔 영향 없음 — default export가 핸들러)
+export { renderHTML }
