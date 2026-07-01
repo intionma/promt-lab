@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.14 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.15 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.14 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.15 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1953,7 +1953,14 @@
         const CHANGELOG = [
             // ── 2026-07-01 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.14', date: '2026-07-01', time: '최신',
+                version: 'v9.10.15', date: '2026-07-01', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[번역] 시나리오 태그 중 번역이 비던 항목 보완 — "jewelry(장신구)", "melancholic(우수 어린 표정)"이 이제 계층 분류·한글 번역까지 정상 처리',
+                ]
+            },
+            {
+                version: 'v9.10.14', date: '2026-07-01', time: '이전',
                 tag: 'feat',
                 items: [
                     '[추천] 테마 시나리오 추가 확대 — 52 → 75종. 차이나 드레스·한복·느와르·궁수·뱀파이어·인어·스팀펑크·아포칼립스·레이싱걸·바리스타·비 오는 카페·벚꽃 교복·검객 등 새 테마 추가',
@@ -8947,7 +8954,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             "seductive smile":{"k":"유혹적인 미소","l":3},"bedroom eyes":{"k":"몽롱한 눈빛","l":3},
             "naughty face":{"k":"짓궂은 표정","l":3},"evil grin":{"k":"사악한 미소","l":3},
             "yandere":{"k":"얀데레","l":3},"expressionless":{"k":"무표정","l":3},"annoyed":{"k":"짜증난","l":3},
-            "scared":{"k":"겁먹은","l":3},"sad":{"k":"슬픈","l":3},"determined":{"k":"결연한","l":3},
+            "scared":{"k":"겁먹은","l":3},"sad":{"k":"슬픈","l":3},"determined":{"k":"결연한","l":3},"melancholic":{"k":"우수 어린 표정","l":3},
             "aroused":{"k":"흥분한","l":3},"heavy breathing":{"k":"가쁜 숨","l":3},
             "eyeliner":{"k":"아이라이너","l":3},"nail polish":{"k":"매니큐어","l":3},
             "cat girl":{"k":"고양이 소녀","l":3},"fox girl":{"k":"여우 소녀","l":3},
@@ -9184,7 +9191,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             "witch hat":{"k":"마녀 모자","l":4},"beanie":{"k":"비니","l":4},"headband":{"k":"머리띠","l":4},"hair ribbon":{"k":"머리 리본","l":4},
             "hairclip":{"k":"머리핀","l":4},"hair bow":{"k":"머리 리본","l":4},"hair flower":{"k":"머리 꽃장식","l":4},"scrunchie":{"k":"곱창밴드","l":4},
             "glasses":{"k":"안경","l":4},"sunglasses":{"k":"선글라스","l":4},"necklace":{"k":"목걸이","l":4},"choker":{"k":"초커","l":4},
-            "earrings":{"k":"귀걸이","l":4},"bracelet":{"k":"팔찌","l":4},"ring":{"k":"반지","l":4},"gloves":{"k":"장갑","l":4},
+            "earrings":{"k":"귀걸이","l":4},"bracelet":{"k":"팔찌","l":4},"ring":{"k":"반지","l":4},"gloves":{"k":"장갑","l":4},"jewelry":{"k":"장신구","l":4},
             "fingerless gloves":{"k":"핑거리스 장갑","l":4},"scarf":{"k":"목도리","l":4},"necktie":{"k":"넥타이","l":4},"bowtie":{"k":"나비넥타이","l":4},
             "belt":{"k":"벨트","l":4},"backpack":{"k":"백팩","l":4},"handbag":{"k":"핸드백","l":4},"apron":{"k":"앞치마","l":4},
             "cape":{"k":"망토","l":4},"hood":{"k":"후드","l":4},"wings":{"k":"날개","l":4},"tail":{"k":"꼬리","l":4},
