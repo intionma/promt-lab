@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { ExternalLink, Trash2, Calendar, Layers, Boxes, Link as LinkIcon, Loader2, HardDrive, FileText, Download, GripVertical, Split, AlertTriangle, Pencil, Lock } from "lucide-react";
+import { ExternalLink, Trash2, Calendar, Layers, Boxes, Loader2, HardDrive, FileText, Download, GripVertical, Split, AlertTriangle, Pencil, Lock } from "lucide-react";
 import {
   DndContext, DragOverlay, PointerSensor, KeyboardSensor, useSensor, useSensors,
   closestCorners, useDroppable, type DragStartEvent, type DragOverEvent, type DragEndEvent,
@@ -40,7 +40,6 @@ function orderCmp(a: Session, b: Session) {
 export default function MyModels({ adminPin }: { adminPin: string | null }) {
   const admin = !!adminPin;
   const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState<string | null>(null);
   const [totalUsage, setTotalUsage] = useState(0);
 
   // 드래그앤드롭 정렬 상태
@@ -178,48 +177,87 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
     persistOrder(nextItems, affected);
   }
 
+  // 낙관적 업데이트용 스냅샷/롤백 (모든 변경은 화면 먼저 반영 → 새로고침 없음 → 깜빡임 없음)
+  function snapshot() {
+    return { containers, items, vmap, usage: totalUsage };
+  }
+  function restore(s: { containers: string[]; items: Record<string, string[]>; vmap: Record<string, VersionItem>; usage: number }) {
+    setContainers(s.containers); setItems(s.items); setVmap(s.vmap); setTotalUsage(s.usage);
+  }
+
   async function persistOrder(itemsState: Record<string, string[]>, affected: Set<string>) {
     const updates: { id: string; model_name: string; sort_order: number }[] = [];
     for (const c of affected) {
       (itemsState[c] ?? []).forEach((id, idx) => updates.push({ id, model_name: c, sort_order: idx }));
     }
-    if (!updates.length || !adminPin) { load(); return; }
+    if (!updates.length || !adminPin) return;
+    const snap = snapshot();
+    // vmap(그룹·버전번호) 갱신 + 빈 그룹 제거를 즉시 반영
+    setVmap((prev) => {
+      const n = { ...prev };
+      for (const c of affected) {
+        const arr = itemsState[c] ?? [];
+        const cnt = arr.length;
+        arr.forEach((id, idx) => { if (n[id]) n[id] = { ...n[id], model_name: c, versionNo: cnt - idx }; });
+      }
+      return n;
+    });
+    setContainers((prev) => prev.filter((c) => (itemsState[c]?.length ?? 0) > 0));
     try {
       const res = await fetch("/api/reorder-versions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ updates, password: adminPin }),
       });
-      if (res.status === 403) { alert("관리자 인증이 만료됐어요. 관리자 모드를 다시 켜주세요."); load(); return; }
-      if (!res.ok) { const j = await res.json().catch(() => ({})); alert(j.error || "정렬 저장 실패 (sort_order 컬럼이 필요할 수 있어요)"); load(); return; }
-      load();
-    } catch {
-      alert("정렬 저장 중 오류가 발생했어요");
-      load();
-    }
+      if (!res.ok) {
+        restore(snap);
+        const j = await res.json().catch(() => ({}));
+        alert(res.status === 403 ? "관리자 인증이 만료됐어요. 관리자 모드를 다시 켜주세요." : (j.error || "정렬 저장 실패 — 되돌렸어요 (sort_order 컬럼 필요할 수 있어요)"));
+      }
+    } catch { restore(snap); alert("정렬 저장 중 오류 — 되돌렸어요"); }
   }
 
-  // 완전히 새 이름의 모델로 분리
+  // 새 이름의 모델로 분리 — 낙관적
   async function splitToNewModel(v: VersionItem) {
     if (!adminPin) return;
     const name = window.prompt("새 모델 이름을 입력하세요 (이 버전을 그 이름으로 분리)");
     if (!name?.trim()) return;
     const target = name.trim();
     if (containers.includes(target)) { alert("이미 있는 모델 이름이에요. 그건 드래그로 옮기세요."); return; }
+    const snap = snapshot();
+    const from = findContainer(v.id);
+    const newFrom = from ? (items[from] ?? []).filter((x) => x !== v.id) : [];
+    setItems((prev) => {
+      const next = { ...prev };
+      if (from) next[from] = newFrom;
+      next[target] = [v.id];
+      return next;
+    });
+    setContainers((prev) => {
+      const withNew = [target, ...prev.filter((c) => c !== target)];
+      return from && newFrom.length === 0 ? withNew.filter((c) => c !== from) : withNew;
+    });
+    setVmap((prev) => {
+      const n = { ...prev, [v.id]: { ...prev[v.id], model_name: target, versionNo: 1 } };
+      const cnt = newFrom.length;
+      newFrom.forEach((id, idx) => { if (n[id]) n[id] = { ...n[id], versionNo: cnt - idx }; });
+      return n;
+    });
     try {
       const res = await fetch("/api/reorder-versions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ updates: [{ id: v.id, model_name: target, sort_order: 0 }], password: adminPin }),
       });
-      if (res.status === 403) { alert("관리자 인증이 만료됐어요."); return; }
-      if (!res.ok) { const j = await res.json().catch(() => ({})); alert(j.error || "분리 실패"); return; }
-      load();
-    } catch { alert("분리 중 오류가 발생했어요"); }
+      if (!res.ok) { restore(snap); const j = await res.json().catch(() => ({})); alert(res.status === 403 ? "관리자 인증이 만료됐어요." : (j.error || "분리 실패 — 되돌렸어요")); }
+    } catch { restore(snap); alert("분리 중 오류 — 되돌렸어요"); }
   }
 
-  // 이름 수정 (모델 그룹 / 버전 제목)
-  async function apiRename(payload: { scope: "model"; ids: string[]; newName: string } | { scope: "version"; sessionId: string; newName: string }) {
+  // 이름 수정 — 낙관적(호출부에서 화면 먼저 반영), 실패 시 snap 롤백
+  async function apiRename(
+    payload: { scope: "model"; ids: string[]; newName: string } | { scope: "version"; sessionId: string; newName: string },
+    snap: ReturnType<typeof snapshot>
+  ) {
     if (!adminPin) return;
     try {
       const res = await fetch("/api/rename", {
@@ -227,42 +265,72 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...payload, password: adminPin }),
       });
-      if (res.status === 403) { alert("관리자 인증이 만료됐어요."); return; }
-      if (!res.ok) { const j = await res.json().catch(() => ({})); alert(j.error || "이름 수정 실패"); return; }
-      load();
-    } catch { alert("이름 수정 중 오류가 발생했어요"); }
+      if (!res.ok) { restore(snap); const j = await res.json().catch(() => ({})); alert(res.status === 403 ? "관리자 인증이 만료됐어요." : (j.error || "이름 수정 실패 — 되돌렸어요")); }
+    } catch { restore(snap); alert("이름 수정 중 오류 — 되돌렸어요"); }
   }
   function renameModel(name: string) {
     const nn = window.prompt("새 모델 이름", name);
     if (!nn?.trim() || nn.trim() === name) return;
-    apiRename({ scope: "model", ids: items[name] ?? [], newName: nn.trim() });
+    const target = nn.trim();
+    const ids = items[name] ?? [];
+    const snap = snapshot();
+    const merge = containers.includes(target);
+    setItems((prev) => {
+      const next = { ...prev };
+      const arr = next[name] ?? [];
+      delete next[name];
+      next[target] = merge ? [...(next[target] ?? []), ...arr] : arr;
+      return next;
+    });
+    setContainers((prev) => (merge ? prev.filter((c) => c !== name) : prev.map((c) => (c === name ? target : c))));
+    setVmap((prev) => {
+      const n = { ...prev };
+      ids.forEach((id) => { if (n[id]) n[id] = { ...n[id], model_name: target }; });
+      return n;
+    });
+    apiRename({ scope: "model", ids, newName: target }, snap);
   }
   function renameVersion(v: VersionItem) {
     const nn = window.prompt("새 버전 제목", v.title);
     if (!nn?.trim() || nn.trim() === v.title) return;
-    apiRename({ scope: "version", sessionId: v.id, newName: nn.trim() });
+    const target = nn.trim();
+    const snap = snapshot();
+    setVmap((prev) => ({ ...prev, [v.id]: { ...prev[v.id], title: target } }));
+    apiRename({ scope: "version", sessionId: v.id, newName: target }, snap);
   }
 
-  async function doDelete(session: Session) {
-    if (!adminPin || deleting) return;
-    setDeleting(session.id);
-    try {
-      const res = await fetch("/api/delete-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: session.id, password: adminPin }),
-      });
-      if (res.status === 403) { setConfirmTarget(null); alert("관리자 인증이 만료됐어요. 관리자 모드를 다시 켜주세요."); return; }
-      if (!res.ok) { const j = await res.json().catch(() => ({})); alert(j.error || "삭제 실패"); return; }
-      setConfirmTarget(null);
-      await load();
-    } finally {
-      setDeleting(null);
-    }
-  }
-
-  async function copyLink(id: string) {
-    await navigator.clipboard.writeText(`${window.location.origin}/review/${id}`);
+  // 삭제 — 낙관적(즉시 목록에서 제거) + 백그라운드 처리, 실패 시 롤백
+  function doDelete(session: Session) {
+    if (!adminPin) return;
+    const id = session.id;
+    const snap = snapshot();
+    const group = findContainer(id);
+    const remaining = group ? (items[group] ?? []).filter((x) => x !== id) : [];
+    const size = vmap[id]?.size ?? 0;
+    setConfirmTarget(null);
+    setItems((prev) => (group ? { ...prev, [group]: remaining } : prev));
+    if (group && remaining.length === 0) setContainers((prev) => prev.filter((c) => c !== group));
+    setVmap((prev) => {
+      const n = { ...prev };
+      delete n[id];
+      const cnt = remaining.length;
+      remaining.forEach((rid, idx) => { if (n[rid]) n[rid] = { ...n[rid], versionNo: cnt - idx }; });
+      return n;
+    });
+    setTotalUsage((u) => Math.max(0, u - size));
+    fetch("/api/delete-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: id, password: adminPin }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          restore(snap);
+          const j = await res.json().catch(() => ({}));
+          alert(res.status === 403 ? "관리자 인증이 만료됐어요. 관리자 모드를 다시 켜주세요." : (j.error || "삭제 실패 — 되돌렸어요"));
+        }
+      })
+      .catch(() => { restore(snap); alert("삭제 중 오류 — 되돌렸어요"); });
   }
 
   const usagePct = Math.min(100, (totalUsage / STORAGE_LIMIT_BYTES) * 100);
@@ -340,9 +408,7 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
                           admin={admin}
                           open={expandedId === id}
                           files={fileCache[id]}
-                          deleting={deleting === id}
                           onToggleFiles={() => toggleFiles(id)}
-                          onCopyLink={() => copyLink(id)}
                           onDelete={() => setConfirmTarget(v)}
                           onSplit={() => splitToNewModel(v)}
                           onRename={() => renameVersion(v)}
@@ -393,8 +459,8 @@ export default function MyModels({ adminPin }: { adminPin: string | null }) {
             </p>
             <div className="flex gap-2">
               <button onClick={() => setConfirmTarget(null)} className="flex-1 glass glass-hover rounded-xl py-2.5 text-sm text-[var(--muted)]">아니요</button>
-              <button onClick={() => doDelete(confirmTarget)} disabled={deleting === confirmTarget.id} className="flex-1 bg-red-600 hover:bg-red-500 rounded-xl py-2.5 text-sm text-white transition-all disabled:opacity-60">
-                {deleting === confirmTarget.id ? "삭제 중..." : "네, 삭제"}
+              <button onClick={() => doDelete(confirmTarget)} className="flex-1 bg-red-600 hover:bg-red-500 rounded-xl py-2.5 text-sm text-white transition-all">
+                네, 삭제
               </button>
             </div>
           </div>
@@ -435,15 +501,13 @@ function DroppableGroup({ name, count, dragging, admin, problem, onRename, child
 
 // ── 정렬 가능한 버전 행 ──────────────────────────────────────────────────
 function SortableVersionRow({
-  v, admin, open, files, deleting, onToggleFiles, onCopyLink, onDelete, onSplit, onRename,
+  v, admin, open, files, onToggleFiles, onDelete, onSplit, onRename,
 }: {
   v: VersionItem;
   admin: boolean;
   open: boolean;
   files: { path: string; size: number }[] | "loading" | undefined;
-  deleting: boolean;
   onToggleFiles: () => void;
-  onCopyLink: () => void;
   onDelete: () => void;
   onSplit: () => void;
   onRename: () => void;
@@ -490,9 +554,6 @@ function SortableVersionRow({
         <button onClick={onToggleFiles} className={`glass glass-hover p-2 rounded-lg ${open ? "text-[var(--purple)]" : "text-[var(--muted)] hover:text-[var(--purple)]"}`} title="파일 목록">
           <FileText className="w-3.5 h-3.5" />
         </button>
-        <button onClick={onCopyLink} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="링크 복사">
-          <LinkIcon className="w-3.5 h-3.5" />
-        </button>
         <Link href={`/review/${v.id}`} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="열기">
           <ExternalLink className="w-3.5 h-3.5" />
         </Link>
@@ -504,8 +565,8 @@ function SortableVersionRow({
             <button onClick={onSplit} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="새 모델 이름으로 분리">
               <Split className="w-3.5 h-3.5" />
             </button>
-            <button onClick={onDelete} disabled={deleting} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-red-400" title="삭제">
-              {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+            <button onClick={onDelete} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-red-400" title="삭제">
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           </>
         )}
