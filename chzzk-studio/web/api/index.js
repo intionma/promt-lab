@@ -12,6 +12,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<
 const num = (n) => (n == null ? '-' : Number(n).toLocaleString())
 const md = (iso) => { const d = new Date(iso); const k = new Date(d.getTime() + 9 * 36e5); return `${String(k.getUTCMonth() + 1).padStart(2, '0')}-${String(k.getUTCDate()).padStart(2, '0')}` }
 const khour = (iso) => (new Date(iso).getUTCHours() + 9) % 24
+const fmtDur = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); return `${h}:${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` }
 
 function lineSVG(series, opts = {}) {
   const W = opts.W || 640, H = opts.H || 200, pl = 36, pr = 12, pt = 12, pb = 22
@@ -128,6 +129,55 @@ async function loadData(supabase) {
     d.vods = vods.slice(0, 5)
   } catch (e) { console.warn('vods:', e.message) }
 
+  // ── 실시간 라이브 감지 + 실데이터 (chat_snapshots가 최근 3.5분 내면 방송 중)
+  try {
+    const { data: lastSnap } = await supabase.from('chat_snapshots').select('captured_at,concurrent_users,category_rank,chat_count,live_id,live_thumbnail_url').order('captured_at', { ascending: false }).limit(1).maybeSingle()
+    const freshMs = lastSnap?.captured_at ? Date.now() - new Date(lastSnap.captured_at).getTime() : Infinity
+    if (lastSnap && freshMs < 3.5 * 60 * 1000 && lastSnap.live_id != null) {
+      const liveId = lastSnap.live_id
+      const { data: sess } = await supabase.from('chat_snapshots').select('captured_at,concurrent_users,category_rank,chat_count').eq('live_id', liveId).order('captured_at', { ascending: true }).limit(1000)
+      const rows = sess || []
+      const start = rows.length ? new Date(rows[0].captured_at).getTime() : Date.now()
+      const elapsedMs = Date.now() - start
+      const L = {
+        isLive: true,
+        viewers: lastSnap.concurrent_users,
+        rank: lastSnap.category_rank,
+        rankStart: rows.find((r) => r.category_rank != null)?.category_rank ?? null,
+        chatTotal: rows.reduce((a, r) => a + (r.chat_count || 0), 0),
+        cpm: rows.length ? Math.round((rows.slice(-5).reduce((a, r) => a + (r.chat_count || 0), 0) / Math.min(5, rows.length)) * 10) / 10 : null,
+        elapsed: fmtDur(elapsedMs),
+        viewerSeries: sample(rows.map((r) => r.concurrent_users), 40),
+        chatSeries: sample(rows.map((r) => r.chat_count), 40),
+      }
+      // 이번 방송 채팅 메시지 → 피드 / 리더보드 / 시청자별 타임라인
+      const { data: lm } = await supabase.from('chat_messages').select('nickname,message,msg_type,msg_time,is_subscriber,is_follower').eq('live_id', liveId).order('id', { ascending: false }).limit(4000)
+      const msgs = (lm || []).filter((m) => m.nickname)
+      L.feed = msgs.filter((m) => m.msg_type === 'chat' && m.message).slice(0, 14).reverse().map((m) => ({ nm: m.nickname, t: m.message, cls: m.is_subscriber ? 'sub' : m.is_follower ? 'fol' : '' }))
+      const cnt = new Map()
+      for (const m of msgs) cnt.set(m.nickname, (cnt.get(m.nickname) || 0) + 1)
+      const top = [...cnt.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
+      const mx = top[0]?.[1] || 1
+      L.leaderboard = top.map(([nm, c]) => ({ nm, c, w: Math.round((c / mx) * 100) }))
+      const colors = ['#16a34a', '#f5a623', '#e5484d', '#3b82f6']
+      const top4 = top.slice(0, 4).map((t) => t[0])
+      const B = 14, spanMs = Math.max(elapsedMs, 60000)
+      const buckets = top4.map(() => new Array(B).fill(0))
+      for (const m of msgs) {
+        const ui = top4.indexOf(m.nickname); if (ui < 0) continue
+        const t = m.msg_time ? new Date(m.msg_time).getTime() : null; if (t == null) continue
+        let bi = Math.floor(((t - start) / spanMs) * B); if (bi < 0) bi = 0; if (bi >= B) bi = B - 1
+        buckets[ui][bi]++
+      }
+      const gmax = Math.max(1, ...buckets.flat())
+      L.timeline = top4.map((nm, i) => ({
+        nm, color: colors[i], total: cnt.get(nm),
+        pts: buckets[i].map((v, b) => `${(18 + b * (864 / (B - 1))).toFixed(0)},${(155 - (v / gmax) * 118).toFixed(0)}`).join(' '),
+      }))
+      d.live = L
+    }
+  } catch (e) { console.warn('live:', e.message) }
+
   return d
 }
 
@@ -211,35 +261,50 @@ ${lineSVG([{ data: d.followerSeries || [], color: '#16a34a' }], { H: 130 })}</di
 </div>`
 }
 
-function renderLive() {
-  const m = MOCK
-  const tl = m.timeline.map((s) => `<polyline fill="none" stroke="${s.color}" stroke-width="2.4" points="${s.pts}"/>`).join('')
-  const legend = m.timeline.map((s) => `<span><i class="dotc" style="background:${s.color};width:14px;height:3px;border-radius:2px"></i> ${esc(s.nm)} (${s.total})</span>`).join('')
-  const feed = m.feed.map((f) => `<div><span class="n ${f.cls}">${esc(f.nm)}</span> ${esc(f.t)}</div>`).join('')
-  const rank = m.rank5.map((r, i) => `<div class="li"><span class="rk">${['🥇', '🥈', '🥉'][i] || (i + 1)}</span><div class="nm">${esc(r.nm)}<div class="bar" style="width:${r.w}%"></div></div><span class="ct" style="font-weight:700">${r.c}</span></div>`).join('')
+function renderLive(d) {
+  const live = d.live
+  const real = !!live
+  // 실데이터 있으면 실데이터, 없으면 가상(mock)
+  const viewers = real ? live.viewers : MOCK.viewers
+  const rank = real ? live.rank : MOCK.rank
+  const rankStart = real ? live.rankStart : MOCK.rankStart
+  const chat = real ? live.chatTotal : MOCK.chat
+  const cpm = real ? live.cpm : MOCK.cpm
+  const elapsed = real ? live.elapsed : MOCK.elapsed
+  const timeline = (real ? live.timeline : MOCK.timeline) || []
+  const feedArr = (real ? live.feed : MOCK.feed) || []
+  const rankArr = real ? (live.leaderboard || []) : MOCK.rank5
+
+  const tl = timeline.map((s) => `<polyline fill="none" stroke="${s.color}" stroke-width="2.4" points="${s.pts}"/>`).join('')
+  const legend = timeline.map((s) => `<span><i class="dotc" style="background:${s.color};width:14px;height:3px;border-radius:2px"></i> ${esc(s.nm)} (${s.total})</span>`).join('')
+  const feed = feedArr.length ? feedArr.map((f) => `<div><span class="n ${f.cls}">${esc(f.nm)}</span> ${esc(f.t)}</div>`).join('') : '<div class="muted">채팅 수집 대기 중…</div>'
+  const rankLb = rankArr.length ? rankArr.map((r, i) => `<div class="li"><span class="rk">${['🥇', '🥈', '🥉'][i] || (i + 1)}</span><div class="nm">${esc(r.nm)}<div class="bar" style="width:${r.w}%"></div></div><span class="ct" style="font-weight:700">${r.c}</span></div>`).join('') : '<div class="muted">-</div>'
+  const rankDelta = rankStart != null && rank != null ? `▲ 시작 ${rankStart}위` : '실시간'
+  const tlNote = real ? '↑ 방송 시작부터 지금까지 상위 4명의 분당 채팅량' : '↑ 예시: 시청자별 채팅 활동 추이 (실제 방송 데이터로 대체됨)'
+
   return `<div class="v-live">
 <div class="cards">
-<div class="card hi"><div class="k"><span class="livedot"><i></i>LIVE</span> 현재 시청자</div><div class="v">${m.viewers}<small> 명</small></div><div class="delta up">▲ 방금 +6</div></div>
-${statCard('이터널리턴 순위', m.rank, '위', `▲ 시작 ${m.rankStart}위`, 'up')}
-${statCard('이번 방송 채팅', num(m.chat), '', `분당 ${m.cpm}개`, 'flat')}
-${statCard('신규 팔로워', '+' + m.newFollowers, '', `경과 ${m.elapsed}`, 'flat')}
+<div class="card hi"><div class="k"><span class="livedot"><i></i>LIVE</span> 현재 시청자</div><div class="v">${num(viewers)}<small> 명</small></div><div class="delta up">${real ? '실시간' : '▲ 방금 +6'}</div></div>
+${statCard('이터널리턴 순위', rank != null ? rank : '50+', '위', rankDelta, 'up')}
+${statCard('이번 방송 채팅', num(chat), '', cpm != null ? `분당 ${cpm}개` : '', 'flat')}
+${statCard('경과 시간', elapsed, '', real ? '실데이터' : '가상', 'flat')}
 </div>
 <div class="card"><div class="panel-h"><span class="t">시청자별 채팅 활동</span><span class="muted">방송 시작 → 지금 · 상위 4명</span></div>
-<svg viewBox="0 0 900 170" width="100%" height="170" preserveAspectRatio="none"><line x1="0" y1="158" x2="900" y2="158" stroke="#eee"/>${tl}</svg>
+<svg viewBox="0 0 900 170" width="100%" height="170" preserveAspectRatio="none"><line x1="0" y1="158" x2="900" y2="158" stroke="#eee"/>${tl || `<text x="450" y="90" fill="#bbb" font-size="12" text-anchor="middle">채팅 수집 대기 중</text>`}</svg>
 <div class="legend">${legend}</div>
-<div class="muted" style="margin-top:6px">↑ 초록(전국제패엘프)이 중반부터 폭발 · 빨강(문돌이)은 초반 반짝 · 파랑(Silver)은 특정 순간만 스파이크</div></div>
+<div class="muted" style="margin-top:6px">${tlNote}</div></div>
 <div class="row2" style="margin-top:16px">
 <div class="card"><div class="panel-h"><span class="t">실시간 채팅</span><span class="muted">● 흐르는 중</span></div><div class="feed">${feed}</div></div>
-<div class="card"><div class="panel-h"><span class="t">채팅 랭킹 🏆</span><span class="muted">이번 방송</span></div><div class="lst rankbars">${rank}</div></div>
+<div class="card"><div class="panel-h"><span class="t">채팅 랭킹 🏆</span><span class="muted">이번 방송</span></div><div class="lst rankbars">${rankLb}</div></div>
 </div>
-<div class="muted" style="margin-top:12px">※ 방송 중 뷰는 현재 <b>가상(mock) 데이터</b>입니다. 실제 방송이 켜지면 수집기가 이 값을 실시간으로 채웁니다.</div>
+${real ? '' : '<div class="muted" style="margin-top:12px">※ 지금은 방송 감지 전이라 <b>가상(mock)</b> 예시입니다. 실제 방송이 켜지면(수집기 가동 중) 이 화면이 실시간 실데이터로 자동 전환됩니다.</div>'}
 </div>`
 }
 
 function renderHTML(d) {
-  const hasLive = false // 실제 라이브 감지 붙일 자리. 지금은 항상 종료 상태로 시작.
+  const hasLive = !!d.live?.isLive // 실시간 감지: 방송 중이면 LIVE 뷰로 시작
   return `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>치지직 통계 — SoundVoltex1</title>
+${hasLive ? '<meta http-equiv="refresh" content="60">' : ''}<title>치지직 통계 — SoundVoltex1</title>
 <style>
 :root{--bg:#fafafa;--panel:#fff;--border:#ebebeb;--text:#171717;--dim:#666;--dim2:#8f8f8f;--green:#16a34a;--red:#e5484d;--blue:#0070f3;--amber:#f5a623;--purple:#7c3aed;--radius:12px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -288,11 +353,11 @@ body.live .v-off{display:none}body:not(.live) .v-live{display:none}
 <aside class="side"><div class="brand"><span class="dot"></span> 치지직 통계</div>
 <nav class="navi"><a class="on">개요</a><a>방송 이력</a><a>시청자·순위</a><a>채팅 분석</a><a>랭킹</a></nav></aside>
 <main class="main">
-<div class="top"><div><h1>SoundVoltex1</h1><div class="sub">이터널 리턴 · 실데이터(과거 방송 포함) · 방송 중엔 실시간</div></div>
+<div class="top"><div><h1>SoundVoltex1 ${hasLive ? '<span class="livedot" style="margin-left:6px"><i></i>LIVE</span>' : ''}</h1><div class="sub">이터널 리턴 · ${hasLive ? '지금 방송 중 — 실시간 실데이터' : '실데이터(과거 방송 포함) · 방송 중엔 실시간'}</div></div>
 <div class="tg"><button class="o ${hasLive ? '' : 'act'}" onclick="sw(0)">⚫ 방송 종료</button><button class="l ${hasLive ? 'act' : ''}" onclick="sw(1)">🔴 방송 중</button></div></div>
 ${renderOffline(d)}
-${renderLive()}
-<div class="foot">OFFLINE=실데이터 · LIVE=가상 실시간(방송 켜지면 실제값) · 갱신 ${esc(d.updated)} (UTC)</div>
+${renderLive(d)}
+<div class="foot">OFFLINE=실데이터 · LIVE=${hasLive ? '실시간 실데이터(60초 자동 새로고침)' : '가상 예시(방송 켜지면 실제값)'} · 갱신 ${esc(d.updated)} (UTC)</div>
 </main></div>
 <script>function sw(l){document.body.classList.toggle('live',!!l);document.querySelectorAll('.tg button').forEach(b=>b.classList.remove('act'));document.querySelector(l?'.tg .l':'.tg .o').classList.add('act')}</script>
 </body></html>`
