@@ -414,8 +414,8 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                 <>
                   <button
                     onClick={() => applyCamLock(!activeViewState.camLock)}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 ${activeViewState.camLock ? "bg-[var(--purple)]/20 text-[var(--purple)]" : "glass glass-hover text-[var(--muted)]"}`}
-                    title="켜면 드래그로 카메라 대신 시선·고개를 돌립니다"
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1 shadow-sm ${activeViewState.camLock ? "bg-[var(--purple)] text-white shadow-[var(--purple)]/30" : "glass glass-hover text-[var(--fg)] border border-[var(--purple)]/40"}`}
+                    title="켜면 드래그로 카메라 대신 시선·고개를 돌립니다 (끄면 마우스로 시선·드래그로 화면 이동)"
                   >
                     <Move className="w-3 h-3" /> 카메라 잠금 {activeViewState.camLock ? "ON" : "OFF"}
                   </button>

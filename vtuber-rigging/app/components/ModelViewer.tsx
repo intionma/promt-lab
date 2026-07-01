@@ -757,9 +757,8 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
         // 얼굴 추적: 라이브러리 내장 focusController 사용(올바른 타이밍·스무딩 내장)
         function setFocus(e: PointerEvent, instant = false) {
           const free = viewModeRef.current === "free";
-          // 자유시점: 카메라 잠금일 때만 추적 / 비자유: 얼굴반응 ON 일 때만
-          if (free) { if (!camLockRef.current) return; }
-          else if (!faceTrackRef.current) return;
+          // 자유시점: 마우스 커서(hover)를 시선이 항상 따라감 / 비자유: 얼굴반응 ON 일 때만
+          if (!free && !faceTrackRef.current) return;
           const rect = canvas.getBoundingClientRect();
           const nx = ((e.clientX - rect.left) / rect.width)  * 2 - 1;  // -1(좌)~+1(우)
           const ny = ((e.clientY - rect.top)  / rect.height) * 2 - 1;  // -1(상)~+1(하)
@@ -864,9 +863,10 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
 
         function onPtrMove(e: PointerEvent) {
           if (viewModeRef.current !== "free") { setFocus(e, false); return; }
-          if (!activePointersRef.current.has(e.pointerId)) return;
-          // 조금이라도 움직이면 '탭'이 아님(=드래그) → 메쉬 선택 안 함
-          if (tapRef.current && (Math.abs(e.clientX - tapRef.current.x) > 6 || Math.abs(e.clientY - tapRef.current.y) > 6)) {
+          // 자유시점: 안 누른 상태(hover)면 시선만 커서를 따라감(고개각도 안 바뀜)
+          if (!activePointersRef.current.has(e.pointerId)) { setFocus(e, false); return; }
+          // 임계값(8px) 넘게 움직여야 '드래그'로 판정 → 그 전까진 탭(메쉬 선택) 유지
+          if (tapRef.current && (Math.abs(e.clientX - tapRef.current.x) > 8 || Math.abs(e.clientY - tapRef.current.y) > 8)) {
             tapRef.current.moved = true;
           }
           activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -888,13 +888,13 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
             if (camLockRef.current) {
               // 카메라 잠금: 드래그로 시선·고개 돌리기
               setFocus(e, false);
-            } else {
-              // 한 손가락 드래그: 카메라 이동(팬)
+            } else if (tapRef.current?.moved) {
+              // 임계값 넘긴 뒤에만 카메라 이동(팬) — 클릭 흔들림으로 메쉬 선택이 취소되지 않게
               freeRef.current.offsetX += e.clientX - lastPtrRef.current.x;
               freeRef.current.offsetY += e.clientY - lastPtrRef.current.y;
-              lastPtrRef.current = { x: e.clientX, y: e.clientY };
               onCameraChangeRef.current?.({ ...freeRef.current }); // 체인 연결 시 다른 창에 동일 적용
             }
+            lastPtrRef.current = { x: e.clientX, y: e.clientY };
           }
         }
 
@@ -989,7 +989,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
           if (gd) {
             const fc = internalModel.focusController;
             const free = viewModeRef.current === "free";
-            const tracking = (!free && faceTrackRef.current) || (free && camLockRef.current);
+            const tracking = (!free && faceTrackRef.current) || free; // 자유시점: 커서 hover 시선 항상
             if (tracking && (Math.abs(fc.x) + Math.abs(fc.y)) > 0.03) {
               const px = ((fc.x + 1) / 2) * canvas.clientWidth;
               const py = ((1 - fc.y) / 2) * canvas.clientHeight;
@@ -1040,7 +1040,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
 
       {/* 시점 버튼 (비교 모드에선 부모의 통합 바가 대신 표시) */}
       {showViewBar && (
-      <div className="flex items-center gap-1.5 px-3 pt-3 flex-shrink-0">
+      <div className="flex items-center gap-1.5 px-3 pt-3 flex-shrink-0 flex-wrap">
         <span className="text-[10px] text-[var(--muted)] mr-0.5">시점</span>
         {(["fullbody", "upperbody", "free"] as ViewMode[]).map((mode) => (
           <button
@@ -1056,22 +1056,23 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
           </button>
         ))}
         {viewMode === "free" ? (
-          <div className="ml-auto flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-1">
+            {/* 카메라 잠금 — 자유시점 바로 오른쪽에 눈에 띄게 */}
             <button
               onClick={toggleCamLock}
-              className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 ${
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1.5 shadow-sm ${
                 camLock
-                  ? "bg-[var(--purple)]/20 text-[var(--purple)]"
-                  : "glass glass-hover text-[var(--muted)]"
+                  ? "bg-[var(--purple)] text-white shadow-[var(--purple)]/30"
+                  : "glass glass-hover text-[var(--fg)] border border-[var(--purple)]/40"
               }`}
-              title="켜면 드래그로 카메라 대신 시선·고개를 돌립니다"
+              title="켜면 드래그로 카메라 대신 시선·고개를 돌립니다 (끄면 마우스로 시선·드래그로 화면 이동)"
             >
-              <span className={`w-1.5 h-1.5 rounded-full ${camLock ? "bg-[var(--purple)]" : "bg-[var(--muted)]/40"}`} />
+              <span className={`w-1.5 h-1.5 rounded-full ${camLock ? "bg-white" : "bg-[var(--purple)]"}`} />
               카메라 잠금 {camLock ? "ON" : "OFF"}
             </button>
             <button
               onClick={resetFreeView}
-              className="px-2 py-1 rounded-lg text-[10px] glass glass-hover text-[var(--muted)]"
+              className="ml-auto px-2 py-1 rounded-lg text-[10px] glass glass-hover text-[var(--muted)]"
             >
               초기화
             </button>
@@ -1146,7 +1147,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
                   : viewMode === "free"
                   ? camLock
                     ? "카메라 잠금 · 드래그로 시선·고개 · 핀치/휠 확대축소"
-                    : "드래그 이동 · 핀치/휠 확대축소"
+                    : "마우스로 시선 · 드래그로 화면 이동 · 클릭으로 메쉬 선택 · 핀치/휠 확대"
                   : faceTrack
                     ? "터치·드래그로 각도 조절 · 손 떼면 유지 · 정면 버튼으로 복귀"
                     : "얼굴 반응 꺼짐 · 슬라이더로 직접 조작"}
