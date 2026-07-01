@@ -12275,15 +12275,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (customKorMap[token]) return true;
                 return false;
             };
+            // 토큰 정규화 (가중치/괄호/대괄호 제거)
+            const _normTok = (raw) => raw.trim()
+                .replace(/^[\(\[]+|[\)\]]+$/g, '')
+                .replace(/:\d*\.?\d+$/, '')
+                .replace(/^[\(\[]+|[\)\]]+$/g, '')
+                .trim();
+
             Object.values(comboFS.items).forEach(item => {
                 if (item.type !== 'combo' || !item.tags) return;
                 Object.values(item.tags).forEach(tagStr => {
                     tagStr.split(',').forEach(raw => {
-                        // 토큰 정규화 (가중치/괄호 제거)
-                        let t = raw.trim()
-                            .replace(/^\(+|\)+$/g, '')
-                            .replace(/:\d*\.?\d+$/, '')
-                            .trim();
+                        const t = _normTok(raw);
                         if (!t || seenT.has(t)) return;
                         if (!_hasKor(t)) {
                             seenT.add(t);
@@ -12292,6 +12295,24 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     });
                 });
             });
+
+            // 3) 현재 에디터의 모든 탭·계층에 올라간 캡슐 태그 중 번역 없는 것
+            //    (DB/콤보에 없어도, 화면에 뜨는 캡슐이면 전부 번역 대상)
+            try {
+                Object.values(contextStates || {}).forEach(layers => {
+                    (layers || []).forEach(layerStr => {
+                        (layerStr || '').split(',').forEach(raw => {
+                            const t = _normTok(raw);
+                            if (!t || seenT.has(t)) return;
+                            if (t.startsWith('__') || t.startsWith('{')) return; // 특수/와일드카드 토큰 제외
+                            if (!_hasKor(t)) {
+                                seenT.add(t);
+                                untranslated.push({ type: 'custom', t });
+                            }
+                        });
+                    });
+                });
+            } catch (e) {}
 
             const overlay = document.createElement('div');
             overlay.className = 'trans-session-overlay';
@@ -12416,8 +12437,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
                 const total = appliedDB + appliedCustom;
                 if (total > 0) {
-                    if (appliedDB > 0) { safeSetStorage('pro_prompt_db_v7_0', promptDB); initApp(); renderDBTable(); }
+                    if (appliedDB > 0) { safeSetStorage('pro_prompt_db_v7_0', promptDB); renderDBTable(); }
                     if (appliedCustom > 0) saveCustomKorMap();
+                    initApp();          // 캡슐 재렌더 — DB·커스텀 번역 모두 화면에 반영
                     updateMasterOutput();
                     const msgs = [];
                     if (appliedDB > 0) msgs.push(`DB 태그 ${appliedDB}개`);
