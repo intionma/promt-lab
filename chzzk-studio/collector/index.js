@@ -154,42 +154,45 @@ chat.on('subscription', (ev) => {
   recordMessage('subscription', ev, null)
 })
 
-// ── 1분마다: 세부 메시지 배치 저장 + 집계/순위/썸네일 저장 ──
+let currentLiveId = null // 최근 감지된 라이브ID (메시지 flush가 스냅샷과 별개로 돌기 때문에 캐시)
+const MSG_FLUSH_MS = 5 * 1000 // 채팅 메시지는 5초마다 DB로 (실시간 채팅 빠르게)
+
+// ── 5초마다: 세부 채팅 메시지 배치 저장 (스냅샷과 분리 → 채팅이 빠르게 반영) ──
+async function flushMessages() {
+  if (!messageBuffer.length) return
+  const batch = messageBuffer.splice(0, messageBuffer.length)
+  for (const m of batch) if (m.live_id == null) m.live_id = currentLiveId
+  const { error } = await supabase.from('chat_messages').insert(batch)
+  if (error) {
+    msgFailCount++
+    if (msgFailCount <= 2) {
+      // 일시적 실패(네트워크 등)일 수 있음 → 되돌려 재시도 (과다 시 최신 5만건만 유지)
+      console.error(`❌ 메시지 저장 실패(${msgFailCount}회, 재시도):`, error.message)
+      messageBuffer = batch.concat(messageBuffer)
+      if (messageBuffer.length > 50000) messageBuffer = messageBuffer.slice(-50000)
+    } else {
+      // 3회 연속 실패 → 나쁜 행(poison) 의심. 개별 저장으로 살릴 수 있는 것만 저장하고 나쁜 행은 버림
+      console.error('❌ 메시지 반복 실패 → 개별 저장 시도(나쁜 행 건너뜀):', error.message)
+      let bad = 0
+      for (const m of batch) {
+        const { error: e2 } = await supabase.from('chat_messages').insert(m)
+        if (e2) bad++
+      }
+      console.warn(`  → 개별 저장 완료, ${bad}건 버림`)
+      msgFailCount = 0
+    }
+  } else {
+    msgFailCount = 0
+    console.log(`📝 [${new Date().toISOString()}] 세부 채팅 ${batch.length}건 저장`)
+  }
+}
+
+// ── 20초(방송 중)/60초(종료): 시청자·순위·채팅수 집계 스냅샷 ──
 async function flush() {
   const live = await getLive()
   liveNow = !!live // 다음 수집 주기 결정에 사용
+  currentLiveId = live?.liveId ?? null // 메시지 flush가 쓸 라이브ID 갱신
 
-  // (1) 세부 메시지 배치 저장 (버퍼에 쌓인 것)
-  if (messageBuffer.length) {
-    const batch = messageBuffer.splice(0, messageBuffer.length)
-    const liveId = live?.liveId ?? null
-    for (const m of batch) if (m.live_id == null) m.live_id = liveId
-    const { error } = await supabase.from('chat_messages').insert(batch)
-    if (error) {
-      msgFailCount++
-      if (msgFailCount <= 2) {
-        // 일시적 실패(네트워크 등)일 수 있음 → 되돌려 다음 분 재시도 (과다 시 최신 5만건만 유지)
-        console.error(`❌ 메시지 저장 실패(${msgFailCount}회, 다음 분 재시도):`, error.message)
-        messageBuffer = batch.concat(messageBuffer)
-        if (messageBuffer.length > 50000) messageBuffer = messageBuffer.slice(-50000)
-      } else {
-        // 3회 연속 실패 → 나쁜 행(poison) 의심. 개별 저장으로 살릴 수 있는 것만 저장하고 나쁜 행은 버림
-        console.error('❌ 메시지 반복 실패 → 개별 저장 시도(나쁜 행 건너뜀):', error.message)
-        let bad = 0
-        for (const m of batch) {
-          const { error: e2 } = await supabase.from('chat_messages').insert(m)
-          if (e2) bad++
-        }
-        console.warn(`  → 개별 저장 완료, ${bad}건 버림`)
-        msgFailCount = 0
-      }
-    } else {
-      msgFailCount = 0
-      console.log(`📝 [${new Date().toISOString()}] 세부 채팅 ${batch.length}건 저장`)
-    }
-  }
-
-  // (2) 분당 집계 (방송 중일 때만)
   if (!live) {
     resetBucket()
     return
@@ -209,6 +212,12 @@ async function flush() {
   const { error } = await supabase.from('chat_snapshots').insert(row)
   if (error) console.error('❌ 집계 저장 실패:', error.message)
   else console.log(`💬 [${new Date().toISOString()}] 채팅 ${row.chat_count} · 참여 ${row.unique_chatters} · 시청 ${row.concurrent_users} · 순위 ${rank ?? '-'}위 저장`)
+}
+
+// 채팅 메시지 전용 루프 (항상 5초)
+async function runMessageLoop() {
+  try { await flushMessages() } catch (e) { console.error('메시지 flush 오류:', e.message) }
+  setTimeout(runMessageLoop, MSG_FLUSH_MS)
 }
 
 // ── 1시간마다: 다시보기 조회수 + 썸네일 ─────────────────────
@@ -288,6 +297,7 @@ async function main() {
   // 채팅 접속이 실패해도 VOD·클립·하트비트·집계는 계속 돌게 (접속은 백그라운드 재시도)
   connectChatWithRetry()
   runFlushLoop()
+  runMessageLoop()
   pollVideos()
   setInterval(pollVideos, 60 * 60 * 1000)
   pollClips()
