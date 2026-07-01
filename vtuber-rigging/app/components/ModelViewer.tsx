@@ -870,6 +870,20 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
         const onResize = () => { recomputeBase(); applyView(viewModeRef.current); };
         app.renderer.on("resize", onResize);
 
+        // PIXI resizeTo 는 window resize 에만 반응 → 컨테이너 크기 변화(비교 모드 토글 등)엔
+        // 반응 안 함. ResizeObserver 로 부모 크기가 바뀌면 직접 app.resize() 호출해 재적용.
+        const parentEl = canvas.parentElement;
+        let ro: ResizeObserver | null = null;
+        if (parentEl && typeof ResizeObserver !== "undefined") {
+          ro = new ResizeObserver(() => {
+            if (parentEl.clientWidth > 0 && parentEl.clientHeight > 0) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (app as any).resize();
+            }
+          });
+          ro.observe(parentEl);
+        }
+
         eventCleanup = () => {
           canvas.removeEventListener("pointermove",  onPtrMove);
           canvas.removeEventListener("pointerdown",  onPtrDown);
@@ -877,6 +891,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
           canvas.removeEventListener("pointercancel",onPtrUp);
           canvas.removeEventListener("pointerleave", onFaceLeave);
           canvas.removeEventListener("wheel",        onWheel);
+          ro?.disconnect();
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (app.renderer as any)?.off?.("resize", onResize);
         };

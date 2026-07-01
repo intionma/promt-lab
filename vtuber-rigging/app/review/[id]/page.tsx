@@ -316,7 +316,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
           {/* Pane A */}
           <div
             onPointerDownCapture={() => compareOn && setActivePane("A")}
-            className={`flex-1 min-h-0 overflow-hidden rounded-xl transition-all ${compareOn ? (activePane === "A" ? "ring-2 ring-[var(--purple)]" : "ring-1 ring-white/10 opacity-90") : ""}`}
+            className={`flex-1 min-h-0 overflow-hidden rounded-xl transition-colors ${compareOn ? (activePane === "A" ? "border-2 border-[var(--purple)]" : "border-2 border-white/10") : ""}`}
           >
             {session && (
               <ModelViewer
@@ -333,7 +333,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
           {compareOn && (
             <div
               onPointerDownCapture={() => setActivePane("B")}
-              className={`flex-1 min-h-0 overflow-hidden rounded-xl relative transition-all ${activePane === "B" ? "ring-2 ring-[var(--purple)]" : "ring-1 ring-white/10 opacity-90"}`}
+              className={`flex-1 min-h-0 overflow-hidden rounded-xl relative transition-colors ${activePane === "B" ? "border-2 border-[var(--purple)]" : "border-2 border-white/10"}`}
             >
               <button onClick={closeCompare} title="비교 닫기" className="absolute top-2 right-2 z-20 glass-strong p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--fg)]">
                 <X className="w-4 h-4" />
