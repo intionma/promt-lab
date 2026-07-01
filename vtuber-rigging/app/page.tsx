@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Upload, Sliders, GitBranch, Boxes, HardDrive, EyeOff, Eye, Shield, ShieldCheck, X, Menu, ChevronDown } from "lucide-react";
 import dynamic from "next/dynamic";
 import { getSilhouettePref, setSilhouettePref } from "@/lib/prefs";
@@ -43,8 +44,19 @@ const MORE_TABS: TabDef[] = [
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("upload");
   const [moreOpen, setMoreOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const moreBtnRef = useRef<HTMLButtonElement>(null);
   const moreActive = MORE_TABS.find((t) => t.id === activeTab);
   const MoreIcon = moreActive?.icon ?? Menu;
+  useEffect(() => { setMounted(true); }, []);
+  function toggleMore() {
+    if (!moreOpen && moreBtnRef.current) {
+      const r = moreBtnRef.current.getBoundingClientRect();
+      setMenuPos({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) });
+    }
+    setMoreOpen((o) => !o);
+  }
   // 실루엣 사전 설정 — 리뷰에 들어가기 전에 미리 켜두면, 모델이 처음부터 실루엣으로 열림
   const [silhouette, setSilhouette] = useState(false);
   useEffect(() => { setSilhouette(getSilhouettePref().on); }, []);
@@ -167,44 +179,49 @@ export default function Home() {
           })}
 
           {/* 더보기 (드라이브 / 파라미터 / 디포머) */}
-          <div className="relative flex-1">
-            <button
-              onClick={() => setMoreOpen((o) => !o)}
-              className={`w-full flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${
-                moreActive
-                  ? "bg-gradient-to-br from-[var(--purple-deep)] to-[#9333ea] text-white shadow-lg shadow-purple-900/40"
-                  : "text-[var(--muted)] hover:text-[var(--fg)] hover:bg-white/5"
-              }`}
-            >
-              <MoreIcon className="w-4 h-4 shrink-0" />
-              <span className="truncate">{moreActive ? moreActive.label : "더보기"}</span>
-              <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${moreOpen ? "rotate-180" : ""}`} />
-            </button>
-            {moreOpen && (
-              <>
-                <div className="fixed inset-0 z-30" onClick={() => setMoreOpen(false)} />
-                <div className="absolute right-0 top-full mt-1.5 z-40 w-44 glass-strong rounded-xl p-1 shadow-2xl">
-                  {MORE_TABS.map((tab) => {
-                    const Icon = tab.icon;
-                    const active = activeTab === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => { setActiveTab(tab.id); setMoreOpen(false); }}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
-                          active ? "bg-[var(--purple)]/20 text-[var(--purple)]" : "text-[var(--muted)] hover:text-[var(--fg)] hover:bg-white/5"
-                        }`}
-                      >
-                        <Icon className="w-4 h-4 shrink-0" />
-                        <span className="truncate">{tab.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </div>
+          <button
+            ref={moreBtnRef}
+            onClick={toggleMore}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${
+              moreActive
+                ? "bg-gradient-to-br from-[var(--purple-deep)] to-[#9333ea] text-white shadow-lg shadow-purple-900/40"
+                : "text-[var(--muted)] hover:text-[var(--fg)] hover:bg-white/5"
+            }`}
+          >
+            <MoreIcon className="w-4 h-4 shrink-0" />
+            <span className="truncate">{moreActive ? moreActive.label : "더보기"}</span>
+            <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${moreOpen ? "rotate-180" : ""}`} />
+          </button>
         </nav>
+
+        {/* 더보기 드롭다운 — 불투명 배경 + body 포탈(스택/투명 문제 방지) */}
+        {mounted && moreOpen && menuPos && createPortal(
+          <>
+            <div className="fixed inset-0 z-[90]" onClick={() => setMoreOpen(false)} />
+            <div
+              className="fixed z-[100] w-44 rounded-xl p-1 border border-white/10 shadow-2xl"
+              style={{ top: menuPos.top, right: menuPos.right, backgroundColor: "var(--bg-soft)" }}
+            >
+              {MORE_TABS.map((tab) => {
+                const Icon = tab.icon;
+                const active = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => { setActiveTab(tab.id); setMoreOpen(false); }}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
+                      active ? "bg-[var(--purple)]/25 text-[var(--purple)]" : "text-[var(--fg)] hover:bg-white/10"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span className="truncate">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>,
+          document.body
+        )}
 
         {/* Content */}
         <main className="flex-1 glass rounded-2xl overflow-hidden flex flex-col min-h-0 mt-3 fade-up">
