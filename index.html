@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.6 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.7 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.6 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.7 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1942,7 +1942,15 @@
         const CHANGELOG = [
             // ── 2026-07-01 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.6', date: '2026-07-01', time: '최신',
+                version: 'v9.10.7', date: '2026-07-01', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[기본 태그] Pony Realism 정석에 맞게 보강 — 품질 score를 6단 체인(score_9~score_4_up)으로, "소스 & 레이팅" 폴더 신설(source_pony/anime/furry/cartoon + rating_safe/questionable/explicit)',
+                    '[기본 태그] source_anime를 화풍 폴더에서 소스 폴더로 이동(리얼리즘 오해 소지 정리). 기존 사용자 DB에도 자동 반영(안전한 추가만)',
+                ]
+            },
+            {
+                version: 'v9.10.6', date: '2026-07-01', time: '오후',
                 tag: 'fix',
                 items: [
                     '[태그 사전] 2차 정밀 점검 — 계층 추가 교정(볼류메트릭→이펙트, 머리 날림→외형), 한글 띄어쓰기 정리("앉아있는"→"앉아 있는" 등)',
@@ -5821,11 +5829,19 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         const defaultNestedDB = {
           1: {
             "Pony 코어|자유": [
-              {"t":"score_9, score_8_up, score_7_up","n":"score_4, score_3, score_2, score_1","k":"Pony 최고 품질 베이스 (필수)","c":""},
-              {"t":"rating_safe","n":"nsfw, explicit, nude","k":"전연령 SFW 고정","c":""},
+              {"t":"score_9, score_8_up, score_7_up, score_6_up, score_5_up, score_4_up","n":"score_4, score_3, score_2, score_1","k":"Pony 최고 품질 베이스 (필수 · 6단 체인)","c":""},
               {"t":"masterpiece, best_quality","n":"worst_quality, low_quality","k":"최상급 걸작","c":""},
               {"t":"highres, highly_detailed","n":"lowres, blurry","k":"고해상도 디테일","c":""},
               {"t":"absurdres, 8k","n":"lowres","k":"초고화질 (8K)","c":""}
+            ],
+            "소스 & 레이팅 (Source/Rating)|1개": [
+              {"t":"source_pony","n":"","k":"소스: Pony","c":"source"},
+              {"t":"source_furry","n":"","k":"소스: Furry (수인)","c":"source"},
+              {"t":"source_cartoon","n":"","k":"소스: Cartoon","c":"source"},
+              {"t":"source_anime","n":"photorealistic, realistic","k":"소스: Anime (애니풍 · 리얼리즘엔 비권장)","c":"source"},
+              {"t":"rating_safe","n":"nsfw, explicit, nude","k":"레이팅: 전연령 (SFW)","c":"rating"},
+              {"t":"rating_questionable","n":"","k":"레이팅: 약간 선정적","c":"rating"},
+              {"t":"rating_explicit","n":"","k":"레이팅: 노골적 (성인)","c":"rating"}
             ],
             "화풍 (Style)|1~2개": [
               {"t":"photorealistic, realistic","n":"anime, cartoon, illustration","k":"실사풍 (Realism 기본)","c":"style"},
@@ -5836,7 +5852,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
               {"t":"award-winning_photography","n":"amateur","k":"사진전 수상작 퀄리티","c":"style"},
               {"t":"editorial_photography, magazine_cover","n":"casual","k":"하이엔드 잡지 화보","c":"style"},
               {"t":"macro_photography","n":"wide_shot","k":"모공·디테일 극한 접사","c":"style"},
-              {"t":"source_anime","n":"photorealistic, realistic","k":"애니메이션풍","c":"style"},
               {"t":"3d, octane_render","n":"2d, flat","k":"3D 렌더링","c":"style"},
               {"t":"oil_painting","n":"photo","k":"유화 질감","c":"style"}
             ],
@@ -6119,6 +6134,38 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         };
 
         let promptDB; try { promptDB = JSON.parse(localStorage.getItem('pro_prompt_db_v7_0')) || defaultNestedDB; } catch(e) { promptDB = defaultNestedDB; }
+
+        // ── Pony Realism 기본값 마이그레이션 (기존 사용자 DB에도 안전하게 반영) ──
+        //   순수 추가/정밀 매칭만 하므로 사용자 커스터마이즈를 건드리지 않음. 멱등적.
+        (function migratePonyDefaults() {
+            try {
+                const L1 = promptDB[1]; if (!L1) return;
+                let changed = false;
+                // 1) score 3단 → 6단 체인 (정확히 기존 기본값일 때만 업그레이드)
+                for (const fk in L1) (L1[fk] || []).forEach(e => {
+                    if (e && e.t === 'score_9, score_8_up, score_7_up') {
+                        e.t = 'score_9, score_8_up, score_7_up, score_6_up, score_5_up, score_4_up';
+                        e.k = 'Pony 최고 품질 베이스 (필수 · 6단 체인)';
+                        changed = true;
+                    }
+                });
+                // 2) "소스 & 레이팅" 폴더 없으면 추가 (source/rating 태그 보강)
+                const hasSourceFolder = Object.keys(L1).some(k => k.startsWith('소스'));
+                if (!hasSourceFolder) {
+                    L1['소스 & 레이팅 (Source/Rating)|1개'] = [
+                        { t: 'source_pony', n: '', k: '소스: Pony', c: 'source' },
+                        { t: 'source_furry', n: '', k: '소스: Furry (수인)', c: 'source' },
+                        { t: 'source_cartoon', n: '', k: '소스: Cartoon', c: 'source' },
+                        { t: 'source_anime', n: 'photorealistic, realistic', k: '소스: Anime (애니풍 · 리얼리즘엔 비권장)', c: 'source' },
+                        { t: 'rating_safe', n: 'nsfw, explicit, nude', k: '레이팅: 전연령 (SFW)', c: 'rating' },
+                        { t: 'rating_questionable', n: '', k: '레이팅: 약간 선정적', c: 'rating' },
+                        { t: 'rating_explicit', n: '', k: '레이팅: 노골적 (성인)', c: 'rating' },
+                    ];
+                    changed = true;
+                }
+                if (changed) { try { localStorage.setItem('pro_prompt_db_v7_0', JSON.stringify(promptDB)); } catch (e) {} }
+            } catch (e) {}
+        })();
 
         // ─── 동적 탭 시스템 ───
         // tabs: [{ id, name }]
