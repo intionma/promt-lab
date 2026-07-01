@@ -1,9 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Upload, Sliders, GitBranch, Boxes, HardDrive, EyeOff, Eye } from "lucide-react";
+import { Upload, Sliders, GitBranch, Boxes, HardDrive, EyeOff, Eye, Shield, ShieldCheck, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { getSilhouettePref, setSilhouettePref } from "@/lib/prefs";
+import { useAdmin, useAdminRemaining, startAdmin, stopAdmin, fmtRemain } from "@/lib/admin";
+
+// 남은 시간만 매초 갱신 (헤더 버튼만 리렌더 → 페이지 전체 리렌더 방지)
+function AdminCountdown() {
+  const ms = useAdminRemaining();
+  return <span className="text-[8px] font-semibold leading-none tabular-nums">{fmtRemain(ms)}</span>;
+}
 import UploadSession from "./components/UploadSession";
 import MyModels from "./components/MyModels";
 import ParamCalculator from "./components/ParamCalculator";
@@ -38,6 +45,33 @@ export default function Home() {
     const next = !silhouette;
     setSilhouette(next);
     setSilhouettePref(next, getSilhouettePref().color);
+  }
+
+  // 관리자 모드 (10분) — 삭제·이동·이름수정 잠금 해제
+  const admin = useAdmin();
+  const [adminModal, setAdminModal] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [pinError, setPinError] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  async function submitPin() {
+    if (verifying || !pinInput) return;
+    setVerifying(true);
+    try {
+      const res = await fetch("/api/verify-admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pinInput }),
+      });
+      if (!res.ok) { setPinError(true); return; }
+      startAdmin(pinInput);
+      setAdminModal(false);
+      setPinInput("");
+      setPinError(false);
+    } catch {
+      setPinError(true);
+    } finally {
+      setVerifying(false);
+    }
   }
 
   return (
@@ -82,6 +116,26 @@ export default function Home() {
             {silhouette ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             <span className="text-[8px] font-semibold leading-none">{silhouette ? "실루엣 ON" : "실루엣"}</span>
           </button>
+          {/* 관리자 모드 (10분) — 삭제·이동·이름수정 잠금 해제 */}
+          {admin.active ? (
+            <button
+              onClick={stopAdmin}
+              title="관리자 모드 켜짐 — 눌러서 끄기"
+              className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl shrink-0 bg-emerald-500/90 text-white shadow-lg shadow-emerald-500/30 transition-all"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <AdminCountdown />
+            </button>
+          ) : (
+            <button
+              onClick={() => { setAdminModal(true); setPinInput(""); setPinError(false); }}
+              title="관리자 모드 — PIN 입력 시 10분간 삭제·이동·이름수정 가능"
+              className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl shrink-0 glass glass-hover text-[var(--muted)] transition-all"
+            >
+              <Shield className="w-4 h-4" />
+              <span className="text-[8px] font-semibold leading-none">관리자</span>
+            </button>
+          )}
         </header>
 
         {/* Tabs */}
@@ -111,12 +165,47 @@ export default function Home() {
           <div className={activeTab === "upload" ? "flex-1 flex flex-col min-h-0" : "hidden"}>
             <UploadSession />
           </div>
-          {activeTab === "models" && <MyModels />}
+          {activeTab === "models" && <MyModels adminPin={admin.active ? admin.pin : null} />}
           {activeTab === "drive" && <DriveTab />}
           {activeTab === "params" && <ParamCalculator />}
           {activeTab === "deformer" && <DeformerTree />}
         </main>
       </div>
+
+      {/* 관리자 PIN 모달 */}
+      {adminModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setAdminModal(false)}>
+          <div className="glass-strong rounded-2xl p-6 w-full max-w-xs space-y-4 fade-up" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                  <Shield className="w-4 h-4 text-emerald-400" />
+                </div>
+                <span className="text-sm font-semibold">관리자 모드</span>
+              </div>
+              <button onClick={() => setAdminModal(false)} className="text-[var(--muted)] hover:text-[var(--fg)]"><X className="w-4 h-4" /></button>
+            </div>
+            <p className="text-xs text-[var(--muted)]">PIN을 입력하면 <span className="text-[var(--fg)]">10분간</span> 삭제·이동·이름수정을 비밀번호 없이 할 수 있어요.</p>
+            <input
+              type="password"
+              inputMode="numeric"
+              value={pinInput}
+              onChange={(e) => { setPinInput(e.target.value); setPinError(false); }}
+              onKeyDown={(e) => { if (e.key === "Enter") submitPin(); }}
+              placeholder="PIN"
+              autoFocus
+              className={`w-full glass rounded-xl px-4 py-3 text-sm text-center tracking-widest outline-none ${pinError ? "border border-red-500/50" : ""}`}
+            />
+            {pinError && <p className="text-xs text-red-400">PIN이 틀렸어요</p>}
+            <div className="flex gap-2">
+              <button onClick={() => setAdminModal(false)} className="flex-1 glass glass-hover rounded-xl py-2.5 text-sm text-[var(--muted)]">취소</button>
+              <button onClick={submitPin} disabled={verifying || !pinInput} className="flex-1 bg-emerald-600 hover:bg-emerald-500 rounded-xl py-2.5 text-sm text-white transition-all disabled:opacity-60">
+                {verifying ? "확인 중..." : "관리자 모드 켜기"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

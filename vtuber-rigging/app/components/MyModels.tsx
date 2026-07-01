@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { ExternalLink, Trash2, Calendar, Layers, Boxes, Link as LinkIcon, Loader2, HardDrive, Lock, X, FileText, Download, GripVertical, Split, AlertTriangle } from "lucide-react";
+import { ExternalLink, Trash2, Calendar, Layers, Boxes, Link as LinkIcon, Loader2, HardDrive, FileText, Download, GripVertical, Split, AlertTriangle, Pencil, Lock } from "lucide-react";
 import {
   DndContext, DragOverlay, PointerSensor, KeyboardSensor, useSensor, useSensors,
   closestCorners, useDroppable, type DragStartEvent, type DragOverEvent, type DragEndEvent,
@@ -37,23 +37,20 @@ function orderCmp(a: Session, b: Session) {
   return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
 }
 
-export default function MyModels() {
+export default function MyModels({ adminPin }: { adminPin: string | null }) {
+  const admin = !!adminPin;
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [totalUsage, setTotalUsage] = useState(0);
 
   // 드래그앤드롭 정렬 상태
-  const [containers, setContainers] = useState<string[]>([]);            // 모델(그룹) 이름 — 표시 순서
-  const [items, setItems] = useState<Record<string, string[]>>({});      // 그룹 → 버전 id 배열(표시 순서)
-  const [vmap, setVmap] = useState<Record<string, VersionItem>>({});     // id → 버전 데이터
+  const [containers, setContainers] = useState<string[]>([]);
+  const [items, setItems] = useState<Record<string, string[]>>({});
+  const [vmap, setVmap] = useState<Record<string, VersionItem>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dragSource, setDragSource] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false); // 드래그 오버레이 포탈용 (document.body)
+  const [mounted, setMounted] = useState(false);
 
-  const [pwTarget, setPwTarget] = useState<Session | null>(null);
-  const [pwInput, setPwInput] = useState("");
-  const [pwError, setPwError] = useState(false);
-  const [verifiedPw, setVerifiedPw] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<Session | null>(null);
 
   // 버전별 파일 목록 펼치기
@@ -85,7 +82,6 @@ export default function MyModels() {
     (data as Session[]).forEach((s, i) => sizeMap.set(s.id, sizes[i]));
     setTotalUsage(sizes.reduce((a, b) => a + b, 0));
 
-    // 그룹핑
     const groupMap = new Map<string, Session[]>();
     for (const s of data as Session[]) {
       const key = s.model_name || s.title;
@@ -97,19 +93,17 @@ export default function MyModels() {
     const nextItems: Record<string, string[]> = {};
     const nextVmap: Record<string, VersionItem> = {};
     const groupList = Array.from(groupMap.entries());
-    // 그룹 순서: 그룹 내 최신 활동순
     groupList.sort((a, b) => {
       const al = Math.max(...a[1].map((v) => new Date(v.created_at).getTime()));
       const bl = Math.max(...b[1].map((v) => new Date(v.created_at).getTime()));
       return bl - al;
     });
     for (const [name, sessions] of groupList) {
-      const ordered = [...sessions].sort(orderCmp); // 위(0) → 아래
+      const ordered = [...sessions].sort(orderCmp);
       nextContainers.push(name);
       nextItems[name] = ordered.map((s) => s.id);
       const n = ordered.length;
       ordered.forEach((s, idx) => {
-        // 위치 따라 재번호: 맨 위가 가장 높은 번호 (현재 UI 와 동일하게 v{n} 이 위)
         nextVmap[s.id] = { ...s, versionNo: n - idx, size: sizeMap.get(s.id) || 0 };
       });
     }
@@ -168,7 +162,6 @@ export default function MyModels() {
     if (!to) return;
 
     let nextItems = items;
-    // 같은 그룹 내 재정렬
     if (to === findContainer(aId)) {
       const arr = items[to] ?? [];
       const oldIndex = arr.indexOf(aId);
@@ -190,19 +183,15 @@ export default function MyModels() {
     for (const c of affected) {
       (itemsState[c] ?? []).forEach((id, idx) => updates.push({ id, model_name: c, sort_order: idx }));
     }
-    if (!updates.length) return;
-
-    const password = verifiedPw || window.prompt("순서/이동을 저장하려면 비밀번호를 입력하세요");
-    if (!password) { load(); return; } // 취소 → 서버 기준으로 되돌림
+    if (!updates.length || !adminPin) { load(); return; }
     try {
       const res = await fetch("/api/reorder-versions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updates, password }),
+        body: JSON.stringify({ updates, password: adminPin }),
       });
-      if (res.status === 403) { setVerifiedPw(null); alert("비밀번호가 틀렸어요"); load(); return; }
+      if (res.status === 403) { alert("관리자 인증이 만료됐어요. 관리자 모드를 다시 켜주세요."); load(); return; }
       if (!res.ok) { const j = await res.json().catch(() => ({})); alert(j.error || "정렬 저장 실패 (sort_order 컬럼이 필요할 수 있어요)"); load(); return; }
-      setVerifiedPw(password);
       load();
     } catch {
       alert("정렬 저장 중 오류가 발생했어요");
@@ -210,57 +199,62 @@ export default function MyModels() {
     }
   }
 
-  // 완전히 새 이름의 모델로 분리 (드래그로는 기존 그룹끼리만 가능하므로 별도 버튼)
+  // 완전히 새 이름의 모델로 분리
   async function splitToNewModel(v: VersionItem) {
+    if (!adminPin) return;
     const name = window.prompt("새 모델 이름을 입력하세요 (이 버전을 그 이름으로 분리)");
     if (!name?.trim()) return;
     const target = name.trim();
     if (containers.includes(target)) { alert("이미 있는 모델 이름이에요. 그건 드래그로 옮기세요."); return; }
-    const password = verifiedPw || window.prompt("분리하려면 비밀번호를 입력하세요");
-    if (!password) return;
     try {
       const res = await fetch("/api/reorder-versions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updates: [{ id: v.id, model_name: target, sort_order: 0 }], password }),
+        body: JSON.stringify({ updates: [{ id: v.id, model_name: target, sort_order: 0 }], password: adminPin }),
       });
-      if (res.status === 403) { setVerifiedPw(null); alert("비밀번호가 틀렸어요"); return; }
+      if (res.status === 403) { alert("관리자 인증이 만료됐어요."); return; }
       if (!res.ok) { const j = await res.json().catch(() => ({})); alert(j.error || "분리 실패"); return; }
-      setVerifiedPw(password);
       load();
     } catch { alert("분리 중 오류가 발생했어요"); }
   }
 
-  function startDelete(session: Session) {
-    if (verifiedPw) setConfirmTarget(session);
-    else { setPwTarget(session); setPwInput(""); setPwError(false); }
+  // 이름 수정 (모델 그룹 / 버전 제목)
+  async function apiRename(payload: { scope: "model"; ids: string[]; newName: string } | { scope: "version"; sessionId: string; newName: string }) {
+    if (!adminPin) return;
+    try {
+      const res = await fetch("/api/rename", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, password: adminPin }),
+      });
+      if (res.status === 403) { alert("관리자 인증이 만료됐어요."); return; }
+      if (!res.ok) { const j = await res.json().catch(() => ({})); alert(j.error || "이름 수정 실패"); return; }
+      load();
+    } catch { alert("이름 수정 중 오류가 발생했어요"); }
+  }
+  function renameModel(name: string) {
+    const nn = window.prompt("새 모델 이름", name);
+    if (!nn?.trim() || nn.trim() === name) return;
+    apiRename({ scope: "model", ids: items[name] ?? [], newName: nn.trim() });
+  }
+  function renameVersion(v: VersionItem) {
+    const nn = window.prompt("새 버전 제목", v.title);
+    if (!nn?.trim() || nn.trim() === v.title) return;
+    apiRename({ scope: "version", sessionId: v.id, newName: nn.trim() });
   }
 
-  async function doDelete(session: Session, password: string) {
-    if (deleting) return;
+  async function doDelete(session: Session) {
+    if (!adminPin || deleting) return;
     setDeleting(session.id);
     try {
       const res = await fetch("/api/delete-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: session.id, password }),
+        body: JSON.stringify({ sessionId: session.id, password: adminPin }),
       });
-      if (res.status === 403) {
-        setVerifiedPw(null);
-        if (pwTarget) setPwError(true);
-        else { setConfirmTarget(null); alert("비밀번호가 만료됐어요. 다시 입력해주세요"); }
-        return;
-      }
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        alert(j.error || "삭제 실패");
-        return;
-      }
-      setVerifiedPw(password);
-      setPwTarget(null);
+      if (res.status === 403) { setConfirmTarget(null); alert("관리자 인증이 만료됐어요. 관리자 모드를 다시 켜주세요."); return; }
+      if (!res.ok) { const j = await res.json().catch(() => ({})); alert(j.error || "삭제 실패"); return; }
       setConfirmTarget(null);
-      setPwInput("");
-      setPwError(false);
       await load();
     } finally {
       setDeleting(null);
@@ -330,7 +324,9 @@ export default function MyModels() {
                 name={name}
                 count={items[name]?.length ?? 0}
                 dragging={!!activeId}
+                admin={admin}
                 problem={(items[name] ?? []).some((id) => (vmap[id]?.size ?? 0) === 0)}
+                onRename={() => renameModel(name)}
               >
                 <SortableContext items={items[name] ?? []} strategy={verticalListSortingStrategy}>
                   <div className="space-y-1.5">
@@ -341,13 +337,15 @@ export default function MyModels() {
                         <SortableVersionRow
                           key={id}
                           v={v}
+                          admin={admin}
                           open={expandedId === id}
                           files={fileCache[id]}
                           deleting={deleting === id}
                           onToggleFiles={() => toggleFiles(id)}
                           onCopyLink={() => copyLink(id)}
-                          onDelete={() => startDelete(v)}
+                          onDelete={() => setConfirmTarget(v)}
                           onSplit={() => splitToNewModel(v)}
+                          onRename={() => renameVersion(v)}
                         />
                       );
                     })}
@@ -373,54 +371,16 @@ export default function MyModels() {
           </DndContext>
 
           <div className="flex items-center gap-2 text-[10px] text-[var(--muted)] px-1 pt-1">
-            <Layers className="w-3 h-3" />
-            왼쪽 손잡이(⋮⋮)를 끌어 순서를 바꾸거나 다른 모델로 옮기세요
+            {admin ? (
+              <><Layers className="w-3 h-3" /> 왼쪽 손잡이(⋮⋮)를 끌어 순서를 바꾸거나 다른 모델로 옮기세요</>
+            ) : (
+              <><Lock className="w-3 h-3" /> 삭제·이동·이름수정은 상단 &lsquo;관리자&rsquo; 버튼으로 관리자 모드를 켜면 가능해요</>
+            )}
           </div>
         </div>
       )}
 
-      {/* 비밀번호 모달 */}
-      {pwTarget && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setPwTarget(null)}>
-          <div className="glass-strong rounded-2xl p-6 w-full max-w-xs space-y-4 fade-up" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center">
-                  <Lock className="w-4 h-4 text-red-400" />
-                </div>
-                <span className="text-sm font-semibold">삭제 확인</span>
-              </div>
-              <button onClick={() => setPwTarget(null)} className="text-[var(--muted)] hover:text-[var(--fg)]">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <p className="text-xs text-[var(--muted)]">
-              <span className="text-[var(--fg)]">{pwTarget.title}</span> 을(를) 삭제하려면 비밀번호를 입력하세요. 되돌릴 수 없어요.
-            </p>
-            <input
-              type="password"
-              inputMode="numeric"
-              value={pwInput}
-              onChange={(e) => { setPwInput(e.target.value); setPwError(false); }}
-              onKeyDown={(e) => { if (e.key === "Enter" && pwTarget) doDelete(pwTarget, pwInput); }}
-              placeholder="비밀번호"
-              autoFocus
-              className={`w-full glass rounded-xl px-4 py-3 text-sm text-center tracking-widest outline-none ${pwError ? "border border-red-500/50" : ""}`}
-            />
-            {pwError && <p className="text-xs text-red-400">비밀번호가 틀렸어요</p>}
-            <div className="flex gap-2">
-              <button onClick={() => setPwTarget(null)} className="flex-1 glass glass-hover rounded-xl py-2.5 text-sm text-[var(--muted)]">
-                취소
-              </button>
-              <button onClick={() => pwTarget && doDelete(pwTarget, pwInput)} disabled={deleting === pwTarget.id} className="flex-1 bg-red-600 hover:bg-red-500 rounded-xl py-2.5 text-sm text-white transition-all disabled:opacity-60">
-                {deleting === pwTarget.id ? "삭제 중..." : "삭제"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 네/아니요 삭제 확인 (비번 캐시 상태) */}
+      {/* 삭제 확인 (관리자 모드) */}
       {confirmTarget && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setConfirmTarget(null)}>
           <div className="glass-strong rounded-2xl p-6 w-full max-w-xs space-y-4 fade-up" onClick={(e) => e.stopPropagation()}>
@@ -429,15 +389,14 @@ export default function MyModels() {
               <span className="text-sm font-semibold">삭제할까요?</span>
             </div>
             <p className="text-xs text-[var(--muted)]">
-              <span className="text-[var(--fg)]">{confirmTarget.title}</span> 을(를) 삭제합니다. (비밀번호 확인됨 · 되돌릴 수 없어요)
+              <span className="text-[var(--fg)]">{confirmTarget.title}</span> 을(를) 삭제합니다. 되돌릴 수 없어요.
             </p>
             <div className="flex gap-2">
               <button onClick={() => setConfirmTarget(null)} className="flex-1 glass glass-hover rounded-xl py-2.5 text-sm text-[var(--muted)]">아니요</button>
-              <button onClick={() => confirmTarget && verifiedPw && doDelete(confirmTarget, verifiedPw)} disabled={deleting === confirmTarget.id} className="flex-1 bg-red-600 hover:bg-red-500 rounded-xl py-2.5 text-sm text-white transition-all">
+              <button onClick={() => doDelete(confirmTarget)} disabled={deleting === confirmTarget.id} className="flex-1 bg-red-600 hover:bg-red-500 rounded-xl py-2.5 text-sm text-white transition-all disabled:opacity-60">
                 {deleting === confirmTarget.id ? "삭제 중..." : "네, 삭제"}
               </button>
             </div>
-            <button onClick={() => { setVerifiedPw(null); setConfirmTarget(null); }} className="w-full text-[10px] text-[var(--muted)]/60 hover:text-[var(--muted)]">비밀번호 저장 해제</button>
           </div>
         </div>
       )}
@@ -446,7 +405,7 @@ export default function MyModels() {
 }
 
 // ── 드롭 가능한 그룹(모델) ──────────────────────────────────────────────
-function DroppableGroup({ name, count, dragging, problem, children }: { name: string; count: number; dragging: boolean; problem: boolean; children: React.ReactNode }) {
+function DroppableGroup({ name, count, dragging, admin, problem, onRename, children }: { name: string; count: number; dragging: boolean; admin: boolean; problem: boolean; onRename: () => void; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id: name });
   return (
     <div
@@ -455,14 +414,19 @@ function DroppableGroup({ name, count, dragging, problem, children }: { name: st
     >
       <div className="flex items-center gap-2 px-1">
         <Boxes className="w-4 h-4 text-[var(--purple)]" />
-        <span className="text-sm font-bold text-[var(--fg)]">{name}</span>
+        <span className="text-sm font-bold text-[var(--fg)] truncate">{name}</span>
+        {admin && (
+          <button onClick={onRename} title="모델 이름 수정" className="p-1 rounded-md text-[var(--muted)] hover:text-[var(--purple)] hover:bg-white/5 shrink-0">
+            <Pencil className="w-3 h-3" />
+          </button>
+        )}
         {problem && (
-          <span className="flex items-center gap-0.5 text-[9px] text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-full" title="이 모델에 파일이 비어있는(업로드 실패) 버전이 있어요">
+          <span className="flex items-center gap-0.5 text-[9px] text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-full shrink-0" title="이 모델에 파일이 비어있는(업로드 실패) 버전이 있어요">
             <AlertTriangle className="w-3 h-3" /> 문제
           </span>
         )}
-        <span className="text-[10px] text-[var(--muted)] bg-white/5 px-2 py-0.5 rounded-full">{count}개 버전</span>
-        {dragging && <span className="text-[9px] text-[var(--purple)]">여기로 드롭</span>}
+        <span className="text-[10px] text-[var(--muted)] bg-white/5 px-2 py-0.5 rounded-full shrink-0">{count}개 버전</span>
+        {dragging && <span className="text-[9px] text-[var(--purple)] shrink-0">여기로 드롭</span>}
       </div>
       {children}
     </div>
@@ -471,9 +435,10 @@ function DroppableGroup({ name, count, dragging, problem, children }: { name: st
 
 // ── 정렬 가능한 버전 행 ──────────────────────────────────────────────────
 function SortableVersionRow({
-  v, open, files, deleting, onToggleFiles, onCopyLink, onDelete, onSplit,
+  v, admin, open, files, deleting, onToggleFiles, onCopyLink, onDelete, onSplit, onRename,
 }: {
   v: VersionItem;
+  admin: boolean;
   open: boolean;
   files: { path: string; size: number }[] | "loading" | undefined;
   deleting: boolean;
@@ -481,8 +446,9 @@ function SortableVersionRow({
   onCopyLink: () => void;
   onDelete: () => void;
   onSplit: () => void;
+  onRename: () => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: v.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: v.id, disabled: !admin });
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -492,17 +458,18 @@ function SortableVersionRow({
   return (
     <div ref={setNodeRef} style={style} className="glass rounded-xl overflow-hidden">
       <div className="glass-hover p-3 flex items-center gap-2">
-        {/* 드래그 손잡이 */}
-        <button
-          {...attributes}
-          {...listeners}
-          aria-label="드래그해서 이동/정렬"
-          title="끌어서 순서 변경 · 다른 모델로 이동"
-          className="touch-none cursor-grab active:cursor-grabbing text-[var(--muted)]/60 hover:text-[var(--purple)] p-1 -ml-1 shrink-0"
-          style={{ touchAction: "none" }}
-        >
-          <GripVertical className="w-4 h-4" />
-        </button>
+        {admin && (
+          <button
+            {...attributes}
+            {...listeners}
+            aria-label="드래그해서 이동/정렬"
+            title="끌어서 순서 변경 · 다른 모델로 이동"
+            className="touch-none cursor-grab active:cursor-grabbing text-[var(--muted)]/60 hover:text-[var(--purple)] p-1 -ml-1 shrink-0"
+            style={{ touchAction: "none" }}
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+        )}
 
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--purple-deep)]/30 to-[var(--pink)]/20 border border-[var(--purple)]/20 flex items-center justify-center flex-shrink-0">
           <span className="text-xs font-bold text-[var(--purple)]">v{v.versionNo}</span>
@@ -510,9 +477,7 @@ function SortableVersionRow({
 
         <div className="flex-1 min-w-0">
           <p className="text-sm text-[var(--fg)] truncate flex items-center gap-1.5">
-            {v.size === 0 && (
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" aria-label="업로드 실패 가능성" />
-            )}
+            {v.size === 0 && <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" aria-label="업로드 실패 가능성" />}
             <span className="truncate">{v.title}</span>
           </p>
           <div className="flex items-center gap-2 text-[10px] text-[var(--muted)]">
@@ -531,12 +496,19 @@ function SortableVersionRow({
         <Link href={`/review/${v.id}`} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="열기">
           <ExternalLink className="w-3.5 h-3.5" />
         </Link>
-        <button onClick={onSplit} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="새 모델 이름으로 분리">
-          <Split className="w-3.5 h-3.5" />
-        </button>
-        <button onClick={onDelete} disabled={deleting} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-red-400" title="삭제">
-          {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-        </button>
+        {admin && (
+          <>
+            <button onClick={onRename} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="버전 제목 수정">
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={onSplit} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-[var(--purple)]" title="새 모델 이름으로 분리">
+              <Split className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={onDelete} disabled={deleting} className="glass glass-hover p-2 rounded-lg text-[var(--muted)] hover:text-red-400" title="삭제">
+              {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+            </button>
+          </>
+        )}
       </div>
 
       {open && (

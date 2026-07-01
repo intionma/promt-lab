@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
+import SilhouetteFilter from "./components/SilhouetteFilter";
 
 export const metadata: Metadata = {
   title: "VTuber Rigging Assistant",
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"
           strategy="beforeInteractive"
         />
+        <SilhouetteFilter />
         {children}
       </body>
     </html>

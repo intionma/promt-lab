@@ -196,6 +196,8 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
   const lastPinchDistRef  = useRef(0);
   const isDraggingRef     = useRef(false);
   const lastPtrRef        = useRef({ x: 0, y: 0 });
+  // 자유 시점에서 '탭(안 움직임)' 판정용 — 탭이면 메쉬 선택, 드래그면 카메라 조작
+  const tapRef            = useRef<{ x: number; y: number; moved: boolean } | null>(null);
 
   const [viewMode,     setViewMode]     = useState<ViewMode>("fullbody");
   const [faceTrack,    setFaceTrack]    = useState(true);
@@ -761,28 +763,35 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
 
         // 자유 시점: 드래그 이동 / 전신·상반신: 탭·드래그로 그쪽을 바라봄
         function onPtrDown(e: PointerEvent) {
-          // 메쉬 선택 모드: 클릭 지점의 ArtMesh 를 집어 부모에 알림(+깜빡임)
+          // 자유 시점: 카메라 조작(팬·줌·회전)이 최우선. 메쉬 선택은 '탭'일 때 pointerup 에서 처리.
+          // (예전엔 메쉬 선택 모드면 여기서 return 해버려 자유 시점 드래그가 아예 안 됐음)
+          if (viewModeRef.current === "free") {
+            canvas.setPointerCapture(e.pointerId);
+            activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            isDraggingRef.current = true;
+            lastPtrRef.current    = { x: e.clientX, y: e.clientY };
+            tapRef.current        = { x: e.clientX, y: e.clientY, moved: false };
+            if (camLockRef.current) setFocus(e, true);  // 카메라 잠금: 즉시 그쪽 바라봄
+            return;
+          }
+          // 비자유(전신/상반신/정면): 메쉬 선택 모드면 클릭으로 집기
           if (meshSelectRef.current) {
             const idx = pickMeshAt(e.clientX, e.clientY);
             if (idx != null) onMeshPicked?.(idx);
             return;
           }
-          if (viewModeRef.current !== "free") {
-            // 모바일: 포인터 캡처로 손가락이 살짝 벗어나도 계속 추종
-            try { canvas.setPointerCapture(e.pointerId); } catch { /* noop */ }
-            setFocus(e, true);  // 탭/터치 즉시 그 각도로 (responsive)
-            return;
-          }
-          canvas.setPointerCapture(e.pointerId);
-          activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-          isDraggingRef.current = true;
-          lastPtrRef.current    = { x: e.clientX, y: e.clientY };
-          if (camLockRef.current) setFocus(e, true);  // 카메라 잠금: 즉시 그쪽 바라봄
+          // 모바일: 포인터 캡처로 손가락이 살짝 벗어나도 계속 추종
+          try { canvas.setPointerCapture(e.pointerId); } catch { /* noop */ }
+          setFocus(e, true);  // 탭/터치 즉시 그 각도로 (responsive)
         }
 
         function onPtrMove(e: PointerEvent) {
           if (viewModeRef.current !== "free") { setFocus(e, false); return; }
           if (!activePointersRef.current.has(e.pointerId)) return;
+          // 조금이라도 움직이면 '탭'이 아님(=드래그) → 메쉬 선택 안 함
+          if (tapRef.current && (Math.abs(e.clientX - tapRef.current.x) > 6 || Math.abs(e.clientY - tapRef.current.y) > 6)) {
+            tapRef.current.moved = true;
+          }
           activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
           const ptrs = Array.from(activePointersRef.current.values());
@@ -812,6 +821,12 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
         }
 
         function onPtrUp(e: PointerEvent) {
+          // 자유 시점에서 '탭(안 움직임)' + 메쉬 선택 모드면 그 지점 ArtMesh 집기
+          if (viewModeRef.current === "free" && meshSelectRef.current && tapRef.current && !tapRef.current.moved) {
+            const idx = pickMeshAt(e.clientX, e.clientY);
+            if (idx != null) onMeshPicked?.(idx);
+          }
+          tapRef.current = null;
           activePointersRef.current.delete(e.pointerId);
           if (activePointersRef.current.size === 0) {
             isDraggingRef.current    = false;

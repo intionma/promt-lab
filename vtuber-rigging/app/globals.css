@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* 실루엣 모드: 화면 전체 무채색(흑백) — 켜진 걸 한눈에 알 수 있게 */
+html.vrr-grayscale {
+  filter: grayscale(1);
+}
+
 :root {
   --bg: #0a0a12;
   --bg-soft: #12121f;
