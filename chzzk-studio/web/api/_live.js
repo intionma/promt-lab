@@ -20,9 +20,12 @@ export const colorFor = (nick) => {
 // 피드 한 줄 HTML (id/시각 data 속성 포함 — 클릭 이동·무한 스크롤용). 서버·엔드포인트 공용.
 export const renderFeedItem = (m) => {
   const streamer = m.user_role === 'streamer' || m.user_role === 'streaming_channel_owner'
-  const badge = streamer ? '👑 ' : /manager/.test(m.user_role || '') ? '🛡 ' : ''
+  const manager = /manager/.test(m.user_role || '')
+  const badge = streamer ? '👑 ' : manager ? '🛡 ' : ''
   const mt = m.msg_time ? new Date(m.msg_time).getTime() : ''
-  return `<div data-id="${m.id ?? ''}" data-mt="${mt}"><span class="n" style="color:${colorFor(m.nickname)}">${badge}${esc(m.nickname)}</span> ${renderMsg(m.message, m.emojis)}</div>`
+  const role = streamer ? 'streamer' : manager ? 'manager' : ''
+  const hasEmoji = m.emojis && typeof m.emojis === 'object' && Object.keys(m.emojis).length ? '1' : ''
+  return `<div data-id="${m.id ?? ''}" data-mt="${mt}" data-nick="${esc(m.nickname)}" data-role="${role}" data-emoji="${hasEmoji}"><span class="n" style="color:${colorFor(m.nickname)}">${badge}${esc(m.nickname)}</span> ${renderMsg(m.message, m.emojis)}</div>`
 }
 
 export async function loadLive(supabase) {
@@ -74,6 +77,46 @@ export async function loadLive(supabase) {
   L.tlStart = start; L.tlStep = stepMs
   L.tlSeries = top4.map((nm, i) => ({ nm, color: colors[i], total: cnt.get(nm), vals: pm[i] }))
   return L
+}
+
+// 상세 뷰 데이터 (on-demand · /api/detail). 최신 live_id 기준(방송 중이면 실시간, 아니면 지난 방송).
+export async function loadDetail(supabase, view) {
+  const { data: lastSnap } = await supabase.from('chat_snapshots').select('captured_at,live_id').order('captured_at', { ascending: false }).limit(1).maybeSingle()
+  if (!lastSnap?.live_id) return { empty: true }
+  const liveId = lastSnap.live_id
+  const isLive = (Date.now() - new Date(lastSnap.captured_at).getTime()) < 90 * 1000
+  const { data: sess } = await supabase.from('chat_snapshots').select('captured_at,chat_count').eq('live_id', liveId).order('captured_at', { ascending: true }).limit(3000)
+  const rows = sess || []
+  const start = rows.length ? new Date(rows[0].captured_at).getTime() : Date.now()
+  const end = rows.length ? new Date(rows[rows.length - 1].captured_at).getTime() : Date.now()
+  const elapsedMs = Math.max(end - start, 60000)
+  const chatTotal = rows.reduce((a, r) => a + (r.chat_count || 0), 0)
+  const { data: lm } = await supabase.from('chat_messages').select('id,nickname,message,emojis,msg_type,msg_time,user_role').eq('live_id', liveId).order('id', { ascending: false }).limit(6000)
+  const msgs = (lm || []).filter((m) => m.nickname)
+  const cnt = new Map(), uinfo = new Map()
+  for (const m of msgs) {
+    cnt.set(m.nickname, (cnt.get(m.nickname) || 0) + 1)
+    const t = m.msg_time ? new Date(m.msg_time).getTime() : null
+    if (t != null) { const u = uinfo.get(m.nickname) || { first: t, last: t }; u.first = Math.min(u.first, t); u.last = Math.max(u.last, t); uinfo.set(m.nickname, u) }
+  }
+  if (view === 'live-chat') {
+    const feed = msgs.filter((m) => m.msg_type === 'chat' && m.message).slice(0, 300).reverse().map(renderFeedItem)
+    return { isLive, chatTotal, unique: cnt.size, cpm: Math.round((chatTotal / Math.max(1 / 60, elapsedMs / 60000)) * 10) / 10, elapsed: fmtDur(elapsedMs), feed, cpmSeries: sample(rows.map((r) => r.chat_count || 0), 60), start, step: 60000 }
+  }
+  // viewer-activity
+  const { data: past } = await supabase.from('chat_messages').select('nickname').neq('live_id', liveId).limit(6000)
+  const pastSet = new Set((past || []).map((p) => p.nickname))
+  const top = [...cnt.entries()].sort((a, b) => b[1] - a[1])
+  const colors = ['#16a34a', '#f5a623', '#e5484d', '#3b82f6', '#a855f7', '#0891b2', '#db2777', '#65a30d', '#ea580c', '#6366f1']
+  const topN = top.slice(0, 10).map((t) => t[0])
+  const stepMs = 60000, nb = Math.max(1, Math.ceil(elapsedMs / stepMs))
+  const pm = topN.map(() => new Array(nb).fill(0))
+  for (const m of msgs) { const ui = topN.indexOf(m.nickname); if (ui < 0) continue; const t = m.msg_time ? new Date(m.msg_time).getTime() : null; if (t == null) continue; let bi = Math.floor((t - start) / stepMs); if (bi < 0) bi = 0; if (bi >= nb) bi = nb - 1; pm[ui][bi]++ }
+  return {
+    isLive, unique: cnt.size, tlStart: start, tlStep: stepMs,
+    tlSeries: topN.map((nm, i) => ({ nm, color: colors[i % colors.length], total: cnt.get(nm), vals: pm[i] })),
+    list: top.slice(0, 20).map(([nm, c]) => ({ nm, c, first: uinfo.get(nm)?.first ?? null, last: uinfo.get(nm)?.last ?? null, isNew: !pastSet.has(nm) })),
+  }
 }
 
 // 방송 종료 시: 가장 최근 방송의 시청자별 타임라인/랭킹/요약 (신선도 무관, 최신 live_id 기준)
