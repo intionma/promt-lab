@@ -1,13 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
+import { getAdminClient, MISSING_KEY_MSG } from "@/lib/supabaseAdmin";
 import { checkAdminPassword } from "@/lib/auth";
 
-function adminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  );
-}
 
 type Update = { id: string; model_name: string; sort_order: number };
 
@@ -21,7 +14,8 @@ export async function POST(request: Request) {
   if (!Array.isArray(updates) || updates.length === 0) return Response.json({ error: "변경 내용이 없어요" }, { status: 400 });
 
   try {
-    const sb = adminClient();
+    const sb = getAdminClient();
+    if (!sb) return Response.json({ error: MISSING_KEY_MSG }, { status: 500 });
     for (const u of updates) {
       if (!u || typeof u.id !== "string" || typeof u.model_name !== "string" || typeof u.sort_order !== "number") continue;
       const { error } = await sb

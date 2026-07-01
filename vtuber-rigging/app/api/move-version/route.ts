@@ -1,13 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
+import { getAdminClient, MISSING_KEY_MSG } from "@/lib/supabaseAdmin";
 import { checkAdminPassword } from "@/lib/auth";
 
-function adminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  );
-}
 
 // 세션(버전)을 다른 모델로 이동 — model_name 변경
 export async function POST(request: Request) {
@@ -27,7 +20,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const supabase = adminClient();
+    const supabase = getAdminClient();
+    if (!supabase) return Response.json({ error: MISSING_KEY_MSG }, { status: 500 });
     const { error } = await supabase
       .from("sessions")
       .update({ model_name: modelName })

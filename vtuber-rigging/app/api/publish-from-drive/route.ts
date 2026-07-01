@@ -1,13 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
+import { getAdminClient, MISSING_KEY_MSG } from "@/lib/supabaseAdmin";
 import { checkAdminPassword } from "@/lib/auth";
 
-function adminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  );
-}
 
 function safeSeg(s: string) { return s.replace(/[^A-Za-z0-9._-]+/g, "_"); }
 function safePath(p: string) { return p.replace(/\\/g, "/").replace(/^\.\//, "").split("/").map(safeSeg).join("/"); }
@@ -32,7 +25,7 @@ function rewriteFileReferences(refs: any) {
   }
 }
 
-async function listAll(sb: ReturnType<typeof adminClient>, prefix: string): Promise<string[]> {
+async function listAll(sb: NonNullable<ReturnType<typeof getAdminClient>>, prefix: string): Promise<string[]> {
   const { data } = await sb.storage.from("models").list(prefix, { limit: 1000 });
   if (!data) return [];
   let out: string[] = [];
@@ -54,7 +47,8 @@ export async function POST(request: Request) {
   if (!folder) return Response.json({ error: "폴더가 없어요" }, { status: 400 });
 
   try {
-    const sb = adminClient();
+    const sb = getAdminClient();
+    if (!sb) return Response.json({ error: MISSING_KEY_MSG }, { status: 500 });
     const basePrefix = `drive/${folder}`;
     const files = await listAll(sb, basePrefix);
     if (files.length === 0) return Response.json({ error: "폴더에 파일이 없어요" }, { status: 400 });

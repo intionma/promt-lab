@@ -1,14 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
+import { getAdminClient, MISSING_KEY_MSG } from "@/lib/supabaseAdmin";
 import { checkAdminPassword } from "@/lib/auth";
 
 // 서버 전용 클라이언트 (service_role — 브라우저 노출 안 됨)
-function adminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  );
-}
 
 // 메쉬 그룹/숨김 설정을 세션에 저장 → 모두에게 공유 반영
 export async function POST(request: Request) {
@@ -28,7 +21,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const supabase = adminClient();
+    const supabase = getAdminClient();
+    if (!supabase) return Response.json({ error: MISSING_KEY_MSG }, { status: 500 });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cfg = config as any;
     const groups = cfg?.groups ?? [];

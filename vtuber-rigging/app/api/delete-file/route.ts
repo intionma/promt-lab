@@ -1,14 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
+import { getAdminClient, MISSING_KEY_MSG } from "@/lib/supabaseAdmin";
 import { checkAdminPassword } from "@/lib/auth";
 
 // 서버 전용 클라이언트 (service_role — 브라우저 노출 안 됨)
-function adminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  );
-}
 
 // 드라이브(백업) 파일 삭제 — drive/ 경로만 허용
 export async function POST(request: Request) {
@@ -28,7 +21,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const supabase = adminClient();
+    const supabase = getAdminClient();
+    if (!supabase) return Response.json({ error: MISSING_KEY_MSG }, { status: 500 });
     const { error } = await supabase.storage.from("models").remove([path]);
     if (error) throw error;
     return Response.json({ ok: true });

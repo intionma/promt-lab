@@ -1,13 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
+import { getAdminClient, MISSING_KEY_MSG } from "@/lib/supabaseAdmin";
 import { checkAdminPassword } from "@/lib/auth";
 
-function adminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  );
-}
 
 // 이름 수정 — scope="model"(그룹의 여러 세션 model_name 일괄) / "version"(단일 세션 title)
 export async function POST(request: Request) {
@@ -20,7 +13,8 @@ export async function POST(request: Request) {
   if (!name) return Response.json({ error: "이름이 비었어요" }, { status: 400 });
 
   try {
-    const sb = adminClient();
+    const sb = getAdminClient();
+    if (!sb) return Response.json({ error: MISSING_KEY_MSG }, { status: 500 });
     if (scope === "model") {
       if (!Array.isArray(ids) || ids.length === 0) return Response.json({ error: "대상이 없어요" }, { status: 400 });
       const { error } = await sb.from("sessions").update({ model_name: name }).in("id", ids);
