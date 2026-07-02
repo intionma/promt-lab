@@ -25,6 +25,8 @@ export type Session = {
   mesh_config?: MeshConfig | null;
   // 갤러리 내 수동 정렬 순서 (작을수록 위, 컬럼 없으면 undefined)
   sort_order?: number | null;
+  // 모델(그룹) 표시 순서 — 같은 그룹의 모든 세션이 동일 값(작을수록 위, 모두에게 공유. 컬럼 없으면 undefined)
+  group_order?: number | null;
   // 이 버전의 아트메쉬 id 목록 (버전 간 메쉬 차이 비교용, 컬럼 없으면 undefined)
   mesh_ids?: string[] | null;
 };

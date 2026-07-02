@@ -54,17 +54,31 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [paramSweep, setParamSweep] = useState(false);
   const [panelTab, setPanelTab] = useState<PanelTab>("comments");
 
-  // ── 두 모델 비교(분할) ──────────────────────────────────────────────────
+  // ── 여러 모델 비교(분할, 최대 3개: A + 비교 B·C) ─────────────────────────
+  type Pane = "A" | "B" | "C";
   const viewerControlB = useRef<ViewerHandle | null>(null);
-  const [compareId, setCompareId] = useState<string | null>(null);
+  const viewerControlC = useRef<ViewerHandle | null>(null);
+  const [compareId, setCompareId] = useState<string | null>(null);   // B 슬롯
+  const [compareId2, setCompareId2] = useState<string | null>(null); // C 슬롯
   const [compareSession, setCompareSession] = useState<Session | null>(null);
+  const [compareSession2, setCompareSession2] = useState<Session | null>(null);
   const [metaB, setMetaB] = useState<ModelMeta | null>(null);
-  const [activePane, setActivePane] = useState<"A" | "B">("A");
+  const [metaC, setMetaC] = useState<ModelMeta | null>(null);
+  const [activePane, setActivePane] = useState<Pane>("A");
   const [showPicker, setShowPicker] = useState(false);
   const [pickerModels, setPickerModels] = useState<{ name: string; versions: Session[] }[]>([]);
-  const compareOn = !!compareId;
-  const activeSessionId = activePane === "B" && compareId ? compareId : id;
-  const activeViewer = () => (activePane === "B" ? viewerControlB : viewerControl);
+  const compareOn = !!compareId || !!compareId2;
+  const activeSessionId = activePane === "C" && compareId2 ? compareId2 : activePane === "B" && compareId ? compareId : id;
+  const activeViewer = () => (activePane === "C" ? viewerControlC : activePane === "B" ? viewerControlB : viewerControl);
+  // 현재 살아있는 비교 창(B·C)의 뷰어 ref 목록 — 파라미터·실루엣 등 '전체 동기화'용
+  function compareViewers() {
+    const arr: (typeof viewerControl)[] = [];
+    if (compareId) arr.push(viewerControlB);
+    if (compareId2) arr.push(viewerControlC);
+    return arr;
+  }
+  // A 포함 살아있는 모든 창 — 시점 체인 등 '함께 조작'용
+  function allViewers() { return [viewerControl, ...compareViewers()]; }
 
   // 비교 대상 목록 로드(같은 모델 버전 먼저, 그다음 다른 모델)
   async function openPicker() {
@@ -72,8 +86,9 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     const { data } = await supabase.from("sessions").select("*").order("created_at", { ascending: false });
     if (!data) return;
     const map = new Map<string, Session[]>();
+    const taken = new Set([id, compareId, compareId2].filter(Boolean) as string[]);
     for (const s of data as Session[]) {
-      if (s.id === id) continue; // 자기 자신 제외
+      if (taken.has(s.id)) continue; // 자기 자신·이미 띄운 것 제외
       const key = s.model_name || s.title;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(s);
@@ -85,21 +100,30 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     setPickerModels(list);
   }
   function pickCompare(s: Session) {
-    setCompareId(s.id);
-    setCompareSession(s);
-    setMetaB(null);
-    setActivePane("A");
+    // 빈 슬롯을 채움: B 먼저, 그다음 C. 둘 다 차면 현재 활성 비교 창을 교체.
+    if (!compareId && activePane !== "B") { setCompareId(s.id); setCompareSession(s); setMetaB(null); }
+    else if (!compareId2) { setCompareId2(s.id); setCompareSession2(s); setMetaC(null); }
+    else if (activePane === "C") { setCompareId2(s.id); setCompareSession2(s); setMetaC(null); }
+    else { setCompareId(s.id); setCompareSession(s); setMetaB(null); }
     setShowPicker(false);
+    requestAnimationFrame(() => requestAnimationFrame(() => { if (chain) syncComparesFromA(); }));
   }
-  function closeCompare() {
-    setCompareId(null);
-    setCompareSession(null);
-    setMetaB(null);
-    setActivePane("A");
+  function closeCompare() {   // B 닫기
+    setCompareId(null); setCompareSession(null); setMetaB(null);
+    if (activePane === "B") setActivePane("A");
   }
-  // 시선 동기화(한 창 → 다른 창)
-  function gazeToB(gx: number, gy: number, instant: boolean) { if (compareId) viewerControlB.current?.gazeTo(gx, gy, instant); }
-  function gazeToA(gx: number, gy: number, instant: boolean) { if (compareId) viewerControl.current?.gazeTo(gx, gy, instant); }
+  function closeCompare2() {  // C 닫기
+    setCompareId2(null); setCompareSession2(null); setMetaC(null);
+    if (activePane === "C") setActivePane("A");
+  }
+  // 시선 동기화(한 창 → 나머지 살아있는 창들)
+  function gazeFrom(src: Pane) {
+    return (gx: number, gy: number, instant: boolean) => {
+      if (src !== "A") viewerControl.current?.gazeTo(gx, gy, instant);
+      if (src !== "B" && compareId) viewerControlB.current?.gazeTo(gx, gy, instant);
+      if (src !== "C" && compareId2) viewerControlC.current?.gazeTo(gx, gy, instant);
+    };
+  }
 
   // ── 시점 체인(동시 조작) ─────────────────────────────────────────────────
   // 기본값: 묶임(chain=true) → 두 창의 시점 전환·자유시점 카메라가 함께 움직임.
@@ -108,31 +132,38 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   type VState = { viewMode: ViewMode; faceTrack: boolean; camLock: boolean; adjustMode: boolean };
   const [viewStateA, setViewStateA] = useState<VState>({ viewMode: "fullbody", faceTrack: true, camLock: false, adjustMode: false });
   const [viewStateB, setViewStateB] = useState<VState>({ viewMode: "fullbody", faceTrack: true, camLock: false, adjustMode: false });
-  const activeViewState = activePane === "B" ? viewStateB : viewStateA;
+  const [viewStateC, setViewStateC] = useState<VState>({ viewMode: "fullbody", faceTrack: true, camLock: false, adjustMode: false });
+  const activeViewState = activePane === "C" ? viewStateC : activePane === "B" ? viewStateB : viewStateA;
 
-  // 자유 시점 카메라 팬·줌 동기화 (체인 연결 시)
-  function cameraToB(free: { offsetX: number; offsetY: number; zoom: number }) { if (compareId && chain) viewerControlB.current?.setCamera(free); }
-  function cameraToA(free: { offsetX: number; offsetY: number; zoom: number }) { if (compareId && chain) viewerControl.current?.setCamera(free); }
+  // 자유 시점 카메라 팬·줌 동기화 (체인 연결 시) — 출처 창을 뺀 나머지에 전파
+  function cameraFrom(src: Pane) {
+    return (free: { offsetX: number; offsetY: number; zoom: number }) => {
+      if (!chain) return;
+      if (src !== "A") viewerControl.current?.setCamera(free);
+      if (src !== "B" && compareId) viewerControlB.current?.setCamera(free);
+      if (src !== "C" && compareId2) viewerControlC.current?.setCamera(free);
+    };
+  }
 
-  // 통합 시점 바 조작 — 체인이면 두 창 모두, 아니면 활성 창만
+  // 통합 시점 바 조작 — 체인이면 모든 창, 아니면 활성 창만
   function applyViewMode(mode: ViewMode) {
-    if (chain) { viewerControl.current?.setViewMode(mode); viewerControlB.current?.setViewMode(mode); }
+    if (chain) allViewers().forEach((v) => v.current?.setViewMode(mode));
     else activeViewer().current?.setViewMode(mode);
   }
   function applyFaceTrack(on: boolean) {
-    if (chain) { viewerControl.current?.setFaceTrack(on); viewerControlB.current?.setFaceTrack(on); }
+    if (chain) allViewers().forEach((v) => v.current?.setFaceTrack(on));
     else activeViewer().current?.setFaceTrack(on);
   }
   function applyCamLock(on: boolean) {
-    if (chain) { viewerControl.current?.setCamLock(on); viewerControlB.current?.setCamLock(on); }
+    if (chain) allViewers().forEach((v) => v.current?.setCamLock(on));
     else activeViewer().current?.setCamLock(on);
   }
   function applyCenterFace() {
-    if (chain) { viewerControl.current?.centerGaze(); viewerControlB.current?.centerGaze(); }
+    if (chain) allViewers().forEach((v) => v.current?.centerGaze());
     else activeViewer().current?.centerGaze();
   }
   function applyResetFree() {
-    if (chain) { viewerControl.current?.resetFreeView(); viewerControlB.current?.resetFreeView(); }
+    if (chain) allViewers().forEach((v) => v.current?.resetFreeView());
     else activeViewer().current?.resetFreeView();
   }
   // 전신/상반신 프레이밍 조정 — 모델별이라 체인과 무관하게 '활성 창'만 조정
@@ -145,8 +176,8 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     const vh = activeViewer().current;
     if (!vh) return;
     const frame = vh.getViewFrame();
-    const modelName = activePane === "B" ? (compareSession?.model_name ?? null) : (session?.model_name ?? null);
-    const sid = activePane === "B" ? compareId : id;
+    const modelName = activePane === "C" ? (compareSession2?.model_name ?? null) : activePane === "B" ? (compareSession?.model_name ?? null) : (session?.model_name ?? null);
+    const sid = activePane === "C" ? compareId2 : activePane === "B" ? compareId : id;
     const pw = admin.active ? admin.pin : (await promptDialog("전신/상반신 카메라 위치를 이 모델에 저장", "", "비밀번호"));
     if (!pw) return;
     try {
@@ -156,35 +187,41 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
       toast("이 모델의 전신·상반신 카메라 위치를 저장했어요 (모든 버전·모두에게 공유)", "success");
     } catch { toast("저장 중 오류가 났어요", "error"); }
   }
-  // A의 현재 시점·카메라를 B에 그대로 맞춤 (비교 시작·체인 재연결 시)
-  function syncBFromA() {
+  // A의 현재 시점·카메라를 비교 창들(B·C)에 그대로 맞춤 (비교 시작·체인 재연결 시)
+  function syncComparesFromA() {
     const st = viewerControl.current?.getState();
     if (!st) return;
-    viewerControlB.current?.setViewMode(st.viewMode);
-    viewerControlB.current?.setFaceTrack(st.faceTrack);
-    viewerControlB.current?.setCamLock(viewStateA.camLock);
-    viewerControlB.current?.setCamera(st.free);
+    compareViewers().forEach((v) => {
+      v.current?.setViewMode(st.viewMode);
+      v.current?.setFaceTrack(st.faceTrack);
+      v.current?.setCamLock(viewStateA.camLock);
+      v.current?.setCamera(st.free);
+    });
   }
   function toggleChain() {
     const next = !chain;
     setChain(next);
-    if (next && compareId) syncBFromA(); // 다시 묶으면 B를 A에 맞춤
+    if (next && compareOn) syncComparesFromA(); // 다시 묶으면 비교 창을 A에 맞춤
   }
   function handleMetaB(m: ModelMeta) {
     setMetaB(m);
-    if (chain) requestAnimationFrame(() => syncBFromA()); // B 준비되면 A에 맞춤
+    if (chain) requestAnimationFrame(() => syncComparesFromA()); // B 준비되면 A에 맞춤
+  }
+  function handleMetaC(m: ModelMeta) {
+    setMetaC(m);
+    if (chain) requestAnimationFrame(() => syncComparesFromA()); // C 준비되면 A에 맞춤
   }
 
   function toggleSweep(on: boolean) {
     setParamSweep(on);
     viewerControl.current?.setParamSweep(on);
-    if (compareId) viewerControlB.current?.setParamSweep(on);
+    compareViewers().forEach((v) => v.current?.setParamSweep(on));
     if (!on) { setOverrideIds(new Set()); setParamList(defaultParams.current.map((p) => ({ ...p }))); }
   }
 
   // 연출(모션/표정/배경/아이들) 상태
   const [meta, setMeta] = useState<ModelMeta | null>(null);
-  const activeMeta = activePane === "B" ? metaB : meta; // 비교 시 하단 패널이 대상으로 하는 창의 메타
+  const activeMeta = activePane === "C" ? metaC : activePane === "B" ? metaB : meta; // 비교 시 하단 패널이 대상으로 하는 창의 메타
   const [autoIdle, setAutoIdle] = useState(true);
   const [bgKey, setBgKey] = useState("transparent");
   // 실루엣 모드(회사 등에서 캐릭터 아트 대신 단색 형체만)
@@ -199,7 +236,8 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   // 창별 메쉬 상태(폴더 포함) — A: 현재 모델, B: 비교 대상. 활성 창 것이 하단 패널에 보임.
   const meshA = usePaneMesh({ sessionId: id, meta, viewerRef: viewerControl, isPC, sharePassword: sharePw, onPicked: () => { setActivePane("A"); setPanelTab("mesh"); } });
   const meshB = usePaneMesh({ sessionId: compareId, meta: metaB, viewerRef: viewerControlB, isPC, sharePassword: sharePw, onPicked: () => { setActivePane("B"); setPanelTab("mesh"); } });
-  const activeMesh = activePane === "B" ? meshB : meshA;
+  const meshC = usePaneMesh({ sessionId: compareId2, meta: metaC, viewerRef: viewerControlC, isPC, sharePassword: sharePw, onPicked: () => { setActivePane("C"); setPanelTab("mesh"); } });
+  const activeMesh = activePane === "C" ? meshC : activePane === "B" ? meshB : meshA;
 
   function handleModelMeta(m: ModelMeta) { setMeta(m); } // 메쉬 설정 적용은 usePaneMesh 가 처리
 
@@ -247,13 +285,13 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   function toggleSilhouette(on: boolean) {
     setSilhouette(on);
     viewerControl.current?.setSilhouette(on, silhouetteColor);
-    if (compareId) viewerControlB.current?.setSilhouette(on, silhouetteColor);
+    compareViewers().forEach((v) => v.current?.setSilhouette(on, silhouetteColor));
     setSilhouettePref(on, silhouetteColor);
   }
   function changeSilhouetteColor(color: number) {
     setSilhouetteColor(color);
     viewerControl.current?.setSilhouette(silhouette, color);
-    if (compareId) viewerControlB.current?.setSilhouette(silhouette, color);
+    compareViewers().forEach((v) => v.current?.setSilhouette(silhouette, color));
     setSilhouettePref(silhouette, color);
   }
 
@@ -275,14 +313,14 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
 
   function handleSetParam(pid: string, value: number) {
     viewerControl.current?.setParam(pid, value);
-    if (compareId) viewerControlB.current?.setParam(pid, value); // 두 모델 동일 적용
+    compareViewers().forEach((v) => v.current?.setParam(pid, value)); // 모든 모델 동일 적용
     setParamList((prev) => prev.map((p) => (p.id === pid ? { ...p, value } : p)));
     setOverrideIds((prev) => (prev.has(pid) ? prev : new Set(prev).add(pid)));
     setCurrentParam({ id: pid, value });
   }
   function handleRelease(pid: string) {
     viewerControl.current?.releaseParam(pid);
-    if (compareId) viewerControlB.current?.releaseParam(pid);
+    compareViewers().forEach((v) => v.current?.releaseParam(pid));
     setOverrideIds((prev) => {
       if (!prev.has(pid)) return prev;
       const next = new Set(prev);
@@ -292,7 +330,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   }
   function handleResetAll() {
     viewerControl.current?.resetAll();
-    if (compareId) viewerControlB.current?.resetAll();
+    compareViewers().forEach((v) => v.current?.resetAll());
     setOverrideIds(new Set());
     setParamList(defaultParams.current.map((p) => ({ ...p })));
   }
@@ -339,9 +377,10 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     const raf = requestAnimationFrame(() => requestAnimationFrame(() => {
       viewerControl.current?.resize();
       viewerControlB.current?.resize();
+      viewerControlC.current?.resize();
     }));
     return () => cancelAnimationFrame(raf);
-  }, [compareOn]);
+  }, [compareOn, compareId, compareId2]);
 
   if (notFound) {
     return (
@@ -372,13 +411,13 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
         {/* 두 모델 비교 */}
         <button
           onClick={openPicker}
-          title="다른 모델을 옆에 띄워 나란히 비교"
+          title={(!!compareId && !!compareId2) ? "비교 창이 꽉 찼어요 — 누르면 활성 창을 다른 모델로 교체" : "다른 모델을 옆에 띄워 나란히 비교 (최대 3개)"}
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold shrink-0 transition-all ${
             compareOn ? "bg-[var(--purple)] text-white shadow-lg shadow-[var(--purple)]/30" : "glass glass-hover text-[var(--muted)]"
           }`}
         >
           <Columns2 className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">{compareOn ? "비교 중" : "비교"}</span>
+          <span className="hidden sm:inline">{compareOn ? `비교 ${1 + (compareId ? 1 : 0) + (compareId2 ? 1 : 0)}개` : "비교"}</span>
         </button>
         {/* 항상 보이는 실루엣 빠른 토글 — 옆에서 누가 오면 한 번에 가리기 */}
         <button
@@ -500,10 +539,10 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                   onParamsLoaded={handleParamsLoaded}
                   onModelMeta={handleModelMeta}
                   onMeshPicked={meshA.handleMeshPicked}
-                  onGaze={gazeToB}
+                  onGaze={gazeFrom("A")}
                   showViewBar={!compareOn}
                   onViewState={setViewStateA}
-                  onCameraChange={cameraToB}
+                  onCameraChange={cameraFrom("A")}
                   initialViewFrame={session?.mesh_config?.viewFrame ?? null}
                   onSaveFrame={saveViewFrame}
                 />
@@ -511,7 +550,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               <FolderHotToggles groups={meshA.groups} hiddenIds={meshA.hiddenIds} onToggle={meshA.toggleGroup} />
             </div>
             {/* Pane B (비교) */}
-            {compareOn && (
+            {compareId && (
               <div
                 onPointerDownCapture={() => setActivePane("B")}
                 className={`flex-1 min-h-0 overflow-hidden rounded-xl relative transition-colors ${activePane === "B" ? "border-2 border-[var(--purple)]" : "border-2 border-white/10"}`}
@@ -520,17 +559,40 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                   <X className="w-4 h-4" />
                 </button>
                 <ModelViewer
-                  sessionId={compareId!}
+                  sessionId={compareId}
                   controlRef={viewerControlB}
                   onModelMeta={handleMetaB}
                   onMeshPicked={meshB.handleMeshPicked}
-                  onGaze={gazeToA}
+                  onGaze={gazeFrom("B")}
                   showViewBar={false}
                   onViewState={setViewStateB}
-                  onCameraChange={cameraToA}
+                  onCameraChange={cameraFrom("B")}
                   initialViewFrame={compareSession?.mesh_config?.viewFrame ?? null}
                 />
                 <FolderHotToggles groups={meshB.groups} hiddenIds={meshB.hiddenIds} onToggle={meshB.toggleGroup} />
+              </div>
+            )}
+            {/* Pane C (비교) */}
+            {compareId2 && (
+              <div
+                onPointerDownCapture={() => setActivePane("C")}
+                className={`flex-1 min-h-0 overflow-hidden rounded-xl relative transition-colors ${activePane === "C" ? "border-2 border-[var(--purple)]" : "border-2 border-white/10"}`}
+              >
+                <button onClick={closeCompare2} title="비교 닫기" className="absolute top-2 right-2 z-30 glass-strong p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--fg)]">
+                  <X className="w-4 h-4" />
+                </button>
+                <ModelViewer
+                  sessionId={compareId2}
+                  controlRef={viewerControlC}
+                  onModelMeta={handleMetaC}
+                  onMeshPicked={meshC.handleMeshPicked}
+                  onGaze={gazeFrom("C")}
+                  showViewBar={false}
+                  onViewState={setViewStateC}
+                  onCameraChange={cameraFrom("C")}
+                  initialViewFrame={compareSession2?.mesh_config?.viewFrame ?? null}
+                />
+                <FolderHotToggles groups={meshC.groups} hiddenIds={meshC.hiddenIds} onToggle={meshC.toggleGroup} />
               </div>
             )}
           </div>
@@ -542,11 +604,18 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
           {compareOn && (
             <div className="flex gap-1 p-1 border-b border-white/5 flex-shrink-0 text-[10px]">
               <button onClick={() => setActivePane("A")} className={`flex-1 truncate px-2 py-1 rounded-md font-medium ${activePane === "A" ? "bg-[var(--purple)]/25 text-[var(--purple)]" : "text-[var(--muted)] hover:bg-white/5"}`} title={session?.title}>
-                A · {session?.title ?? "왼쪽"}
+                A · {session?.title ?? "1번"}
               </button>
-              <button onClick={() => setActivePane("B")} className={`flex-1 truncate px-2 py-1 rounded-md font-medium ${activePane === "B" ? "bg-[var(--purple)]/25 text-[var(--purple)]" : "text-[var(--muted)] hover:bg-white/5"}`} title={compareSession?.title}>
-                B · {compareSession?.title ?? "오른쪽"}
-              </button>
+              {compareId && (
+                <button onClick={() => setActivePane("B")} className={`flex-1 truncate px-2 py-1 rounded-md font-medium ${activePane === "B" ? "bg-[var(--purple)]/25 text-[var(--purple)]" : "text-[var(--muted)] hover:bg-white/5"}`} title={compareSession?.title}>
+                  B · {compareSession?.title ?? "2번"}
+                </button>
+              )}
+              {compareId2 && (
+                <button onClick={() => setActivePane("C")} className={`flex-1 truncate px-2 py-1 rounded-md font-medium ${activePane === "C" ? "bg-[var(--purple)]/25 text-[var(--purple)]" : "text-[var(--muted)] hover:bg-white/5"}`} title={compareSession2?.title}>
+                  C · {compareSession2?.title ?? "3번"}
+                </button>
+              )}
             </div>
           )}
           {/* 탭 헤더 */}

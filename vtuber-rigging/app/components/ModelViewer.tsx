@@ -832,18 +832,30 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
           // 자유시점: 마우스 커서(hover)를 시선이 항상 따라감 / 비자유: 얼굴반응 ON 일 때만
           if (!free && !faceTrackRef.current) return;
           const rect = canvas.getBoundingClientRect();
-          const nx = ((e.clientX - rect.left) / rect.width)  * 2 - 1;  // -1(좌)~+1(우)
-          const ny = ((e.clientY - rect.top)  / rect.height) * 2 - 1;  // -1(상)~+1(하)
+          // 커서가 캔버스 밖이면 값이 ±1을 넘음 → 가장자리(최대 방향)로 clamp 해서
+          // '화면 밖으로 나가도 그쪽을 계속 바라보게' 한다(중앙 복귀 없음).
+          const clamp = (v: number) => (v < -1 ? -1 : v > 1 ? 1 : v);
+          const nx = clamp(((e.clientX - rect.left) / rect.width)  * 2 - 1);  // -1(좌)~+1(우)
+          const ny = clamp(((e.clientY - rect.top)  / rect.height) * 2 - 1);  // -1(상)~+1(하)
           internalModel.focusController.focus(nx, -ny, instant);
           onGazeRef.current?.(nx, -ny, instant); // 다른 창에 같은 시선 전달
         }
         focusFnRef.current = (nx: number, ny: number, instant: boolean) =>
           internalModel.focusController.focus(nx, ny, instant);
 
-        function onFaceLeave(e: PointerEvent) {
-          // 마우스 hover 가 캔버스를 벗어나면 정면 복귀.
-          // 터치/펜은 손을 떼도 마지막 각도를 '유지'(탭으로 각도 테스트 가능)
-          if (e.pointerType === "mouse") { internalModel.focusController.focus(0, 0); onGazeRef.current?.(0, 0, false); }
+        // 캔버스를 벗어나도 시선은 '중앙 복귀'하지 않고 마지막(또는 창 전역) 커서 방향을 유지.
+        // 실제 추적은 window 의 pointermove(onWinMove)가 캔버스 밖 구간을 이어받는다.
+        function onFaceLeave(_e: PointerEvent) { /* 중앙 복귀 제거 — 항상 커서를 따라감 */ }
+
+        // 창 전역 마우스 추적 — 커서가 캔버스 밖(창 다른 곳)에 있어도 그 방향을 계속 바라봄.
+        function onWinMove(e: PointerEvent) {
+          if (e.pointerType !== "mouse") return;      // 터치/펜은 떼면 마지막 각도 유지(기존 동작)
+          if (isDraggingRef.current) return;          // 드래그(팬/조정) 중엔 개입 안 함
+          if (activePointersRef.current.size > 0) return;
+          const rect = canvas.getBoundingClientRect();
+          const inside = e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
+          if (inside) return;                          // 캔버스 위는 canvas 핸들러가 처리
+          setFocus(e, false);                          // 캔버스 밖 → 그래도 커서를 따라봄
         }
 
         // ── 메쉬 선택(클릭한 지점의 ArtMesh 집기) ───────────────────────────
@@ -1039,6 +1051,8 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
         canvas.addEventListener("pointercancel",onPtrUp);
         canvas.addEventListener("pointerleave", onFaceLeave);
         canvas.addEventListener("wheel",        onWheel, { passive: false });
+        // 창 전역 추적(캔버스 밖에서도 커서를 따라봄)
+        window.addEventListener("pointermove",  onWinMove);
 
         // 화면 회전·리사이즈 시 모델 재정렬 (모바일 가로↔세로 대응)
         const onResize = () => { recomputeBase(); applyView(viewModeRef.current); };
@@ -1069,6 +1083,7 @@ export default function ModelViewer({ sessionId, onParamsLoaded, onModelMeta, on
           canvas.removeEventListener("pointercancel",onPtrUp);
           canvas.removeEventListener("pointerleave", onFaceLeave);
           canvas.removeEventListener("wheel",        onWheel);
+          window.removeEventListener("pointermove",  onWinMove);
           ro?.disconnect();
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (app.renderer as any)?.off?.("resize", onResize);
