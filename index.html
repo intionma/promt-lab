@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.19 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.20 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.19 &nbsp;·&nbsp; 2026-07-01 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.20 &nbsp;·&nbsp; 2026-07-04 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1604,7 +1604,17 @@
                         </div>
                     </div>
                     <button class="action-btn" onclick="comfyLoadCheckpoints()" style="color:#38bdf8; border-color:#38bdf8; height:38px;"><i class="fa-solid fa-rotate"></i> 연결 확인 · 모델 불러오기</button>
-                    <span id="comfy-conn-status" style="font-size:12px; color:var(--text-dim); align-self:center;"></span>
+                    <span id="comfy-conn-status" style="font-size:12px; color:var(--text-dim); align-self:center; flex:1 1 140px; min-width:0;"></span>
+                </div>
+
+                <!-- https 페이지 → 내부망 http 차단 안내 (해당 조합에서 연결 실패 시에만 표시) -->
+                <div id="comfy-mixed-help" style="display:none; border:1px solid rgba(245,158,11,0.45); background:rgba(245,158,11,0.08); border-radius:10px; padding:12px 14px; font-size:12px; line-height:1.8; color:var(--text-main);">
+                    <b style="color:#f59e0b;"><i class="fa-solid fa-shield-halved"></i> 브라우저가 연결을 차단하고 있어요</b><br>
+                    보안 페이지(https)에서 같은 공유기 안 PC(<code>http://192.168…</code>)로 보내는 요청은 브라우저가 기본으로 막습니다. 이 사이트에 한해 허용해주세요:<br>
+                    ① 주소창의 <b>자물쇠 🔒 → 권한(사이트 설정)</b> 열기<br>
+                    ② <b>"안전하지 않은 콘텐츠"</b> → <b>허용</b><br>
+                    ③ <b>"로컬 네트워크 기기 접근"</b> 항목이 있으면 → <b>허용</b><br>
+                    ④ 페이지 새로고침 후 다시 <b>[연결 확인]</b>을 누르세요. <span style="color:var(--text-dim);">(ComfyUI와 같은 PC에서 쓸 때는 <code>127.0.0.1</code> 주소가 설정 없이 동작합니다)</span>
                 </div>
 
                 <!-- 워크플로우 소스 선택 -->
@@ -1957,9 +1967,18 @@
         // 토스트 알림
         // ── 업데이트 내역 ────────────────────────────────────────────────────
         const CHANGELOG = [
+            // ── 2026-07-04 ──────────────────────────────────────────────────
+            {
+                version: 'v9.10.20', date: '2026-07-04', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[ComfyUI] 휴대폰(보안 페이지)에서 PC의 ComfyUI로 연결이 차단될 때, 이제 원인과 해결 방법(브라우저에서 허용 설정 2가지)을 화면에 바로 안내 — 이전에는 원인과 무관한 "연결 실패" 문구만 표시됨',
+                    '[갤러리] 이미지 목록·다중 생성 그리드를 축소판(경량)으로 불러와 휴대폰에서 훨씬 빠르게 표시 — 눌러서 크게 볼 때는 기존처럼 원본을 보여줌',
+                ]
+            },
             // ── 2026-07-01 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.19', date: '2026-07-01', time: '최신',
+                version: 'v9.10.19', date: '2026-07-01', time: '이전',
                 tag: 'fix',
                 items: [
                     '[레이아웃] 휴대폰 화면 전반 재점검 — "태그 카탈로그" 창 제목이 두 줄로 쪼개지던 문제 수정. 태그·에디터·결과 화면과 DB 검사·간편 조합·ComfyUI 창 모두 휴대폰 폭에서 정상 표시 확인',
@@ -4001,6 +4020,20 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (_comfySocket) { try { _comfySocket.close(); } catch (e) {} _comfySocket = null; }
         }
 
+        // HTTPS 페이지 → 내부망 http 주소 조합이면 브라우저가 요청 자체를 차단(혼합 콘텐츠). 인자는 테스트 주입용
+        function _comfyMixedBlocked(pageProto, base) {
+            try {
+                if ((pageProto || location.protocol) !== 'https:') return false;
+                const u = new URL(base || _comfyBase());
+                return u.protocol === 'http:' && !/^(127\.0\.0\.1|localhost|\[::1\]|::1)$/i.test(u.hostname);
+            } catch (e) { return false; }
+        }
+        function _comfyMixedHelp(show) {
+            const el = document.getElementById('comfy-mixed-help');
+            if (el) el.style.display = show ? 'block' : 'none';
+        }
+        const _COMFY_MIXED_TOAST = '⚠️ 브라우저가 ComfyUI 연결을 차단했습니다 (보안 페이지 → 내부망 http).\n주소창 자물쇠 🔒 → 사이트 설정에서 "안전하지 않은 콘텐츠"와 "로컬 네트워크 기기" 접근을 허용한 뒤 새로고침하세요.';
+
         async function comfyLoadCheckpoints() {
             const statusEl = document.getElementById('comfy-conn-status');
             statusEl.textContent = '연결 중...';
@@ -4021,11 +4054,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }
                 statusEl.textContent = `✅ 연결됨 · 모델 ${names.length}개`;
                 statusEl.style.color = 'var(--accent-green)';
+                _comfyMixedHelp(false);
                 _comfyConnectedOnce = true;
                 comfyUpdateQuickButtons();
                 _comfySaveSettings();
             } catch (e) {
-                statusEl.innerHTML = '❌ 연결 실패 — ComfyUI를 <code>--enable-cors-header</code> 로 실행했는지 확인';
+                if (_comfyMixedBlocked()) {
+                    statusEl.textContent = '❌ 브라우저가 연결을 차단함 — 아래 안내를 확인하세요';
+                    _comfyMixedHelp(true);
+                } else {
+                    statusEl.innerHTML = '❌ 연결 실패 — ComfyUI를 <code>--enable-cors-header</code> 로 실행했는지 확인';
+                }
                 statusEl.style.color = 'var(--accent-danger)';
                 _comfyConnectedOnce = false;
                 comfyUpdateQuickButtons();
@@ -4982,11 +5021,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             });
 
             window.openLightboxFromEl = function (el) {
-                const url = el.src || el.dataset.src || '';
+                const url = el.dataset.full || el.src || el.dataset.src || ''; // 크게 보기는 항상 원본
                 if (!url) return;
                 const parent = el.closest('#result-gallery-grid, #comfy-live-thumbs, #comfy-gallery, #comfy-inline-thumbs-pos, #comfy-inline-thumbs-neg, .lb-group') || el.parentNode;
                 const siblings = parent ? Array.from(parent.querySelectorAll('img[src]')).filter(i => i.src) : [];
-                const urls = siblings.length > 1 ? siblings.map(i => i.src) : [url];
+                const urls = siblings.length > 1 ? siblings.map(i => i.dataset.full || i.src) : [url];
                 const idx  = siblings.length > 1 ? Math.max(0, siblings.indexOf(el)) : 0;
                 openLightbox(url, urls, idx);
                 _lbParent = parent; // 생성 중 새 미리보기 실시간 반영용 (openLightbox가 null로 초기화한 뒤 설정)
@@ -5004,6 +5043,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return `${_comfyBase()}/view?filename=${encodeURIComponent(img.filename)}&subfolder=${encodeURIComponent(img.subfolder || '')}&type=${encodeURIComponent(img.type || 'output')}`;
         }
 
+        // 목록용 축소판 주소 — ComfyUI /view 의 preview 파라미터로 webp 재압축(전송량 대폭 감소).
+        // preview 파라미터를 모르는 구버전 ComfyUI는 무시하고 원본을 반환하므로 안전. 크게 보기는 원본(dataset.full) 사용
+        function _comfyPreviewUrl(url) {
+            if (!url || url.indexOf('/view?') === -1 || url.indexOf('preview=') !== -1) return url;
+            return url + '&preview=webp;80';
+        }
+
         // 라이브 단계 미리보기 초기화 (모달 + 해당 인라인 탭)
         function _comfyClearLive(inline) {
             const lw = document.getElementById('comfy-live-wrap');
@@ -5017,7 +5063,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _comfyThumb(url, maxH, caption) {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display:flex; flex-direction:column; gap:3px; align-items:center;';
-            const im = document.createElement('img'); im.src = url;
+            const im = document.createElement('img'); im.src = _comfyPreviewUrl(url); im.dataset.full = url;
+            im.onerror = () => { if (im.src !== url) im.src = url; }; // 축소판 실패 시 원본 재시도
             // 가로/세로 모두 같은 박스로 제한 → 정사각 얼굴 크롭이 과도하게 커지지 않음. 슬라이더(--lb-h)로 조절
             im.style.cssText = `max-height:var(--lb-h, ${maxH}px); max-width:var(--lb-h, ${maxH}px); width:auto; height:auto; border-radius:8px; border:1px solid var(--border-dim); cursor:zoom-in; display:block;`;
             im.onclick = () => openLightboxFromEl(im);
@@ -5143,7 +5190,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 } catch (e) {
                     statusEl.innerHTML = '❌ 연결 안 됨';
                     statusEl.style.color = 'var(--accent-danger)';
-                    showToast('⚠️ ComfyUI에 연결할 수 없습니다.\n주소를 확인하고 [연결 확인·모델 불러오기] 버튼을 눌러보세요.', 'error', 6000);
+                    showToast(_comfyMixedBlocked() ? _COMFY_MIXED_TOAST : '⚠️ ComfyUI에 연결할 수 없습니다.\n주소를 확인하고 [연결 확인·모델 불러오기] 버튼을 눌러보세요.', 'error', 7000);
                     _comfyAbortInline('연결 안 됨');
                     return;
                 }
@@ -5190,7 +5237,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     _comfyAbortInline('전송 실패');
                     const stEl = document.getElementById('comfy-status');
                     if (stEl) stEl.textContent = '전송 실패';
-                    showToast('전송 실패: ' + e.message + ' (CORS/주소 확인)', 'error', 5000);
+                    showToast(_comfyMixedBlocked() ? _COMFY_MIXED_TOAST : ('전송 실패: ' + e.message + ' (CORS/주소 확인)'), 'error', 6000);
                 }
             } finally {
                 _comfySendingFor.delete(lockKey);
@@ -5232,10 +5279,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const wrap = document.createElement('div');
             wrap.style.cssText = 'position:relative; display:block;';
             const el = document.createElement('img');
-            el.src = url; el.loading = 'lazy';
+            el.src = _comfyPreviewUrl(url); el.dataset.full = url; el.loading = 'lazy';
             el.style.cssText = 'width:100%; border-radius:10px; border:1px solid var(--border-dim); cursor:zoom-in; display:block;';
             el.onclick = () => openLightboxFromEl(el);
-            el.onerror = () => { el.style.opacity = '0.35'; el.alt = '이미지를 불러올 수 없음 (ComfyUI 종료됨?)'; };
+            el.onerror = () => {
+                if (el.src !== url) { el.src = url; return; } // 축소판 실패 시 원본 재시도
+                el.style.opacity = '0.35'; el.alt = '이미지를 불러올 수 없음 (ComfyUI 종료됨?)';
+            };
             wrap.appendChild(el);
             if (sec != null) {
                 const b = document.createElement('span');
@@ -5739,10 +5789,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 card.style.cssText = `position:relative; aspect-ratio:3/4; background:#000; border-radius:10px; overflow:hidden; cursor:pointer; border:2px solid ${sel ? '#22c55e' : 'transparent'}; transition:border-color .15s;`;
                 card.onclick = () => multiGenToggleSel(idx);
                 const img = document.createElement('img');
-                img.src = im.url; img.loading = 'lazy';
+                img.src = _comfyPreviewUrl(im.url); img.dataset.full = im.url; img.loading = 'lazy';
                 img.style.cssText = 'width:100%; height:100%; object-fit:contain; display:block;';
                 // 새로고침 후 ComfyUI가 재시작됐으면 temp 이미지가 사라져 로드 실패 → '만료' 표시
                 img.onerror = () => {
+                    if (img.src !== im.url) { img.src = im.url; return; } // 축소판 실패 시 원본 재시도
                     if (im.broken) return;
                     im.broken = true;
                     if (_mgSelected.has(idx)) { _mgSelected.delete(idx); _mgUpdateSelCount(); }
