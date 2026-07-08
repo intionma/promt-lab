@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.26 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.27 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.26 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.27 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1976,7 +1976,14 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.26', date: '2026-07-08', time: '최신',
+                version: 'v9.10.27', date: '2026-07-08', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[추천] 추천·보완이 훨씬 똑똑해졌습니다 — 실제 인기 이미지 2만여 장의 태그 조합을 학습해서, 지금 고른 태그에 진짜로 잘 어울리는 태그를 추천합니다 (예: 체육복 → 부르마·체육관, 메이드 → 앞치마·머리장식). 온라인에서 자동 적용되고, 오프라인에서는 기존 추천으로 동작합니다',
+                ]
+            },
+            {
+                version: 'v9.10.26', date: '2026-07-08', time: '이전',
                 tag: 'feat',
                 items: [
                     '[결과] "고정 접두 태그" 추가 — score_9 같은 품질 태그를 항상 최종 프롬프트 맨 앞에 넣어줍니다. 추천·조합을 담아 계층이 바뀌어도 이 태그들은 빠지지 않습니다(기본값: Pony score 6단 체인, 결과창에서 켜고 끄거나 직접 수정 가능)',
@@ -6845,6 +6852,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // 실내/실외 상충 판단 (한쪽이 있으면 반대쪽 추천 억제)
         const _REC_OUTDOOR = new Set(['outdoors', 'beach', 'ocean', 'forest', 'park', 'garden', 'sky', 'cityscape', 'street', 'mountain', 'field', 'rooftop', 'cherry blossoms', 'night sky', 'starry sky', 'sunset', 'sunrise', 'city lights', 'flower field', 'snowscape', 'meadow', 'desert']);
         const _REC_INDOOR = new Set(['indoors', 'classroom', 'bedroom', 'kitchen', 'bathroom', 'cafe', 'library', 'office', 'chair', 'bed', 'sofa', 'desk', 'restaurant', 'bar', 'living room']);
+        // 실제 danbooru 게시물에서 집계한 동시출현·계층 빈출 데이터 (온라인이면 로드, 오프라인이면 내장값 폴백)
+        let _DATA_AFF = {}, _DATA_LC = {};
+        (function _loadDataAffinity() {
+            try {
+                fetch('./data/affinity-danbooru.json').then(r => { if (!r.ok) throw 0; return r.json(); })
+                    .then(d => { _DATA_AFF = d.affinity || {}; _DATA_LC = d.layerCommon || {}; if (_recommendOn) renderRecommendArea(true); })
+                    .catch(() => {});
+            } catch (e) {}
+        })();
+
         function _recSuggest(limit) {
             limit = limit || 8;
             const active = _recActive();
@@ -6854,8 +6871,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const hasOutdoor = [...active].some(t => _REC_OUTDOOR.has(t));
             const hasIndoor = [...active].some(t => _REC_INDOOR.has(t));
 
-            // ① 동시출현(affinity): 활성 태그의 어울림 목록
+            // ① 동시출현(affinity): 활성 태그의 어울림 목록 (내장 + 실제 danbooru 집계 데이터)
             active.forEach(t => { (TAG_AFFINITY[t] || []).forEach((rel, i) => bump(rel, 1.0 - i * 0.05)); });
+            active.forEach(t => { (_DATA_AFF[t] || []).forEach((rel, i) => bump(rel, 0.9 - i * 0.05)); });
             // ② 레시피 겹침: 활성 태그가 포함된 테마 레시피의 나머지 태그 (강력한 커버리지)
             TAG_RECIPES.forEach(r => {
                 const rset = r.tags.map(x => x.toLowerCase());
@@ -6875,7 +6893,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const layerOrder = [...empty, ...[3, 4, 5, 6, 7, 2, 1].filter(L => !empty.has(L))];
             for (const L of layerOrder) {
                 if (valid().length >= limit) break;
-                (_REC_COMMON[L] || []).forEach((t, i) => {
+                [...(_REC_COMMON[L] || []), ...(_DATA_LC[L] || [])].forEach((t, i) => {
                     const lc = t.toLowerCase();
                     if (active.has(lc) || scores[lc] > 0) return;
                     if (hasOutdoor && _REC_INDOOR.has(lc)) return;
