@@ -1,0 +1,3396 @@
+{
+  "id": "danbooru-general",
+  "name": "Danbooru 대형 일반팩",
+  "description": "danbooru 계열 캐릭터·의상·포즈·배경·조명 태그 대량 확장 (한글 번역 포함, SFW)",
+  "version": 1,
+  "tags": {
+    "absurdly long hair": {
+      "k": "엄청나게 긴 머리",
+      "l": 3
+    },
+    "short hair with long locks": {
+      "k": "짧지만 옆머리는 긴 머리",
+      "l": 3
+    },
+    "big hair": {
+      "k": "풍성하게 부풀린 머리",
+      "l": 3
+    },
+    "parted bangs": {
+      "k": "가르마 탄 앞머리",
+      "l": 3
+    },
+    "asymmetrical bangs": {
+      "k": "비대칭 앞머리",
+      "l": 3
+    },
+    "diagonal bangs": {
+      "k": "사선 앞머리",
+      "l": 3
+    },
+    "hair over eyes": {
+      "k": "눈을 가린 앞머리",
+      "l": 3
+    },
+    "blunt ends": {
+      "k": "일자로 자른 머리 끝",
+      "l": 3
+    },
+    "crossed bangs": {
+      "k": "이마에서 교차된 앞머리",
+      "l": 3
+    },
+    "hair pulled back": {
+      "k": "뒤로 넘긴 머리",
+      "l": 3
+    },
+    "hair slicked back": {
+      "k": "올백으로 넘긴 머리",
+      "l": 3
+    },
+    "curtained hair": {
+      "k": "가운데 가르마 커튼 앞머리",
+      "l": 3
+    },
+    "asymmetrical sidelocks": {
+      "k": "비대칭 옆머리",
+      "l": 3
+    },
+    "single sidelock": {
+      "k": "한쪽만 내린 옆머리",
+      "l": 3
+    },
+    "drill sidelocks": {
+      "k": "드릴형 옆머리",
+      "l": 3
+    },
+    "heart ahoge": {
+      "k": "하트 모양 삐친 머리",
+      "l": 3
+    },
+    "short ponytail": {
+      "k": "짧은 포니테일",
+      "l": 3
+    },
+    "front ponytail": {
+      "k": "앞으로 늘어뜨린 포니테일",
+      "l": 3
+    },
+    "short twintails": {
+      "k": "짧은 양갈래",
+      "l": 3
+    },
+    "sidetail": {
+      "k": "한쪽으로 묶은 사이드테일",
+      "l": 3
+    },
+    "single braid": {
+      "k": "한 갈래로 땋은 머리",
+      "l": 3
+    },
+    "braided bangs": {
+      "k": "땋은 앞머리",
+      "l": 3
+    },
+    "front braid": {
+      "k": "앞쪽으로 땋은 머리",
+      "l": 3
+    },
+    "braided ponytail": {
+      "k": "땋아 묶은 포니테일",
+      "l": 3
+    },
+    "low-braided long hair": {
+      "k": "낮게 땋아 내린 긴 머리",
+      "l": 3
+    },
+    "doughnut hair bun": {
+      "k": "도넛형 경단 머리",
+      "l": 3
+    },
+    "hair loops": {
+      "k": "고리를 만든 머리",
+      "l": 3
+    },
+    "spiked hair": {
+      "k": "삐죽삐죽 세운 머리",
+      "l": 3
+    },
+    "ringlets": {
+      "k": "돌돌 말린 곱슬 다발",
+      "l": 3
+    },
+    "fluffy hair": {
+      "k": "폭신폭신한 머리",
+      "l": 3
+    },
+    "colored tips": {
+      "k": "끝부분만 염색한 머리",
+      "l": 3
+    },
+    "print hair": {
+      "k": "무늬가 들어간 머리",
+      "l": 3
+    },
+    "inverted bob": {
+      "k": "뒤가 짧은 보브컷",
+      "l": 3
+    },
+    "buzz cut": {
+      "k": "짧게 민 머리(버즈컷)",
+      "l": 3
+    },
+    "shaved head": {
+      "k": "삭발 머리",
+      "l": 3
+    },
+    "hair over shoulder": {
+      "k": "어깨 앞으로 넘긴 머리",
+      "l": 3
+    },
+    "hair pulled up": {
+      "k": "위로 올려 묶은 머리",
+      "l": 3
+    },
+    "two side up": {
+      "k": "양쪽 위로 묶은 머리",
+      "l": 3
+    },
+    "hair spread out": {
+      "k": "펼쳐진 머리",
+      "l": 3
+    },
+    "topknot": {
+      "k": "정수리에 올려 묶은 상투머리",
+      "l": 3
+    },
+    "chignon": {
+      "k": "목덜미 낮은 시뇽",
+      "l": 3
+    },
+    "lone nape hair": {
+      "k": "목덜미에 남긴 잔머리",
+      "l": 3
+    },
+    "bun cover": {
+      "k": "경단 머리 덮개 장식",
+      "l": 3
+    },
+    "sanpaku": {
+      "k": "삼백안",
+      "l": 3
+    },
+    "narrowed eyes": {
+      "k": "가늘게 뜬 눈",
+      "l": 3
+    },
+    "dilated pupils": {
+      "k": "확장된 동공",
+      "l": 3
+    },
+    "glowing eye": {
+      "k": "빛나는 한쪽 눈",
+      "l": 3
+    },
+    "crazy eyes": {
+      "k": "광기 어린 눈",
+      "l": 3
+    },
+    "rolling eyes": {
+      "k": "치켜뜬 흰자위",
+      "l": 3
+    },
+    "crossed eyes": {
+      "k": "사시",
+      "l": 3
+    },
+    "uneven eyes": {
+      "k": "짝짝이 눈",
+      "l": 3
+    },
+    "flaming eyes": {
+      "k": "불타는 눈",
+      "l": 3
+    },
+    "bright pupils": {
+      "k": "밝은 동공",
+      "l": 3
+    },
+    "diamond-shaped pupils": {
+      "k": "마름모 동공",
+      "l": 3
+    },
+    "symbol-shaped pupils": {
+      "k": "기호 모양 동공",
+      "l": 3
+    },
+    "horizontal pupils": {
+      "k": "가로 동공",
+      "l": 3
+    },
+    "extra pupils": {
+      "k": "여러 개의 동공",
+      "l": 3
+    },
+    "multicolored eyes": {
+      "k": "다색 눈",
+      "l": 3
+    },
+    "white eyes": {
+      "k": "흰 눈동자",
+      "l": 3
+    },
+    "mole under mouth": {
+      "k": "입가 점",
+      "l": 3
+    },
+    "mole on cheek": {
+      "k": "볼 점",
+      "l": 3
+    },
+    "mole on neck": {
+      "k": "목의 점",
+      "l": 3
+    },
+    "mole on breast": {
+      "k": "가슴 위 점",
+      "l": 3
+    },
+    "facial mark": {
+      "k": "얼굴 문양",
+      "l": 3
+    },
+    "forehead mark": {
+      "k": "이마 문양",
+      "l": 3
+    },
+    "facepaint": {
+      "k": "페이스 페인트",
+      "l": 3
+    },
+    "scar across eye": {
+      "k": "눈을 가로지르는 흉터",
+      "l": 3
+    },
+    "scar on cheek": {
+      "k": "볼 흉터",
+      "l": 3
+    },
+    "scar on nose": {
+      "k": "코 흉터",
+      "l": 3
+    },
+    "scar on forehead": {
+      "k": "이마 흉터",
+      "l": 3
+    },
+    "birthmark": {
+      "k": "모반",
+      "l": 3
+    },
+    "single fang": {
+      "k": "한쪽 송곳니",
+      "l": 3
+    },
+    "snaggletooth": {
+      "k": "덧니",
+      "l": 3
+    },
+    "buck teeth": {
+      "k": "뻐드렁니",
+      "l": 3
+    },
+    "crooked teeth": {
+      "k": "고르지 않은 치아",
+      "l": 3
+    },
+    "red lips": {
+      "k": "붉은 입술",
+      "l": 3
+    },
+    "black lips": {
+      "k": "검은 입술",
+      "l": 3
+    },
+    "lipstick mark": {
+      "k": "립스틱 자국",
+      "l": 3
+    },
+    "colored eyelashes": {
+      "k": "컬러 속눈썹",
+      "l": 3
+    },
+    "fake eyelashes": {
+      "k": "인조 속눈썹",
+      "l": 3
+    },
+    "blush stickers": {
+      "k": "볼터치 스티커",
+      "l": 3
+    },
+    "tanlines": {
+      "k": "선탠 자국",
+      "l": 3
+    },
+    "dark-skinned female": {
+      "k": "가무잡잡한 여성",
+      "l": 3
+    },
+    "dark-skinned male": {
+      "k": "가무잡잡한 남성",
+      "l": 3
+    },
+    "freckled body": {
+      "k": "몸의 주근깨",
+      "l": 3
+    },
+    "blue skin": {
+      "k": "푸른 피부",
+      "l": 3
+    },
+    "grey skin": {
+      "k": "회색 피부",
+      "l": 3
+    },
+    "green skin": {
+      "k": "초록 피부",
+      "l": 3
+    },
+    "muscular female": {
+      "k": "근육질 여성",
+      "l": 3
+    },
+    "muscular male": {
+      "k": "근육질 남성",
+      "l": 3
+    },
+    "colored eyebrows": {
+      "k": "컬러 눈썹",
+      "l": 3
+    },
+    "eyebrows visible through hair": {
+      "k": "머리카락 사이로 보이는 눈썹",
+      "l": 3
+    },
+    "scar on arm": {
+      "k": "팔 흉터",
+      "l": 3
+    },
+    "scar on chest": {
+      "k": "가슴 흉터",
+      "l": 3
+    },
+    "body markings": {
+      "k": "몸의 문양",
+      "l": 3
+    },
+    "veins": {
+      "k": "도드라진 혈관",
+      "l": 3
+    },
+    "wrinkled skin": {
+      "k": "주름진 피부",
+      "l": 3
+    },
+    "droopy eyes": {
+      "k": "축 처진 눈",
+      "l": 3
+    },
+    "cow ears": {
+      "k": "소 귀",
+      "l": 3
+    },
+    "mouse ears": {
+      "k": "쥐 귀",
+      "l": 3
+    },
+    "bear ears": {
+      "k": "곰 귀",
+      "l": 3
+    },
+    "tiger ears": {
+      "k": "호랑이 귀",
+      "l": 3
+    },
+    "raccoon ears": {
+      "k": "너구리 귀",
+      "l": 3
+    },
+    "deer ears": {
+      "k": "사슴 귀",
+      "l": 3
+    },
+    "sheep ears": {
+      "k": "양 귀",
+      "l": 3
+    },
+    "goat ears": {
+      "k": "염소 귀",
+      "l": 3
+    },
+    "lion ears": {
+      "k": "사자 귀",
+      "l": 3
+    },
+    "leopard ears": {
+      "k": "표범 귀",
+      "l": 3
+    },
+    "monkey ears": {
+      "k": "원숭이 귀",
+      "l": 3
+    },
+    "panda ears": {
+      "k": "판다 귀",
+      "l": 3
+    },
+    "pig ears": {
+      "k": "돼지 귀",
+      "l": 3
+    },
+    "squirrel ears": {
+      "k": "다람쥐 귀",
+      "l": 3
+    },
+    "ferret ears": {
+      "k": "족제비 귀",
+      "l": 3
+    },
+    "jackal ears": {
+      "k": "자칼 귀",
+      "l": 3
+    },
+    "animal ear fluff": {
+      "k": "동물 귀 솜털",
+      "l": 3
+    },
+    "fake animal ears": {
+      "k": "가짜 동물 귀",
+      "l": 3
+    },
+    "extra ears": {
+      "k": "여분의 귀",
+      "l": 3
+    },
+    "long pointy ears": {
+      "k": "길고 뾰족한 귀",
+      "l": 3
+    },
+    "horse tail": {
+      "k": "말 꼬리",
+      "l": 3
+    },
+    "cow tail": {
+      "k": "소 꼬리",
+      "l": 3
+    },
+    "mouse tail": {
+      "k": "쥐 꼬리",
+      "l": 3
+    },
+    "bear tail": {
+      "k": "곰 꼬리",
+      "l": 3
+    },
+    "tiger tail": {
+      "k": "호랑이 꼬리",
+      "l": 3
+    },
+    "raccoon tail": {
+      "k": "너구리 꼬리",
+      "l": 3
+    },
+    "deer tail": {
+      "k": "사슴 꼬리",
+      "l": 3
+    },
+    "squirrel tail": {
+      "k": "다람쥐 꼬리",
+      "l": 3
+    },
+    "leopard tail": {
+      "k": "표범 꼬리",
+      "l": 3
+    },
+    "lion tail": {
+      "k": "사자 꼬리",
+      "l": 3
+    },
+    "snake tail": {
+      "k": "뱀 꼬리",
+      "l": 3
+    },
+    "dragon tail": {
+      "k": "용 꼬리",
+      "l": 3
+    },
+    "demon tail": {
+      "k": "악마 꼬리",
+      "l": 3
+    },
+    "fish tail": {
+      "k": "물고기 꼬리",
+      "l": 3
+    },
+    "multiple tails": {
+      "k": "여러 개의 꼬리",
+      "l": 3
+    },
+    "tail through clothes": {
+      "k": "옷을 뚫고 나온 꼬리",
+      "l": 3
+    },
+    "tail raised": {
+      "k": "치켜든 꼬리",
+      "l": 3
+    },
+    "tail wagging": {
+      "k": "흔들리는 꼬리",
+      "l": 3
+    },
+    "prehensile tail": {
+      "k": "잡을 수 있는 꼬리",
+      "l": 3
+    },
+    "fluffy tail": {
+      "k": "복슬복슬한 꼬리",
+      "l": 3
+    },
+    "tail bell": {
+      "k": "꼬리 방울",
+      "l": 3
+    },
+    "tail ornament": {
+      "k": "꼬리 장식",
+      "l": 3
+    },
+    "curled horns": {
+      "k": "말린 뿔",
+      "l": 3
+    },
+    "curved horns": {
+      "k": "휘어진 뿔",
+      "l": 3
+    },
+    "dragon horns": {
+      "k": "용 뿔",
+      "l": 3
+    },
+    "oni horns": {
+      "k": "오니 뿔",
+      "l": 3
+    },
+    "pointy horns": {
+      "k": "뾰족한 뿔",
+      "l": 3
+    },
+    "single horn": {
+      "k": "외뿔",
+      "l": 3
+    },
+    "antlers": {
+      "k": "사슴뿔",
+      "l": 3
+    },
+    "goat horns": {
+      "k": "염소 뿔",
+      "l": 3
+    },
+    "broken horn": {
+      "k": "부러진 뿔",
+      "l": 3
+    },
+    "dragon wings": {
+      "k": "용 날개",
+      "l": 3
+    },
+    "fairy wings": {
+      "k": "요정 날개",
+      "l": 3
+    },
+    "butterfly wings": {
+      "k": "나비 날개",
+      "l": 3
+    },
+    "insect wings": {
+      "k": "곤충 날개",
+      "l": 3
+    },
+    "low wings": {
+      "k": "낮게 달린 날개",
+      "l": 3
+    },
+    "energy wings": {
+      "k": "에너지 날개",
+      "l": 3
+    },
+    "ice wings": {
+      "k": "얼음 날개",
+      "l": 3
+    },
+    "mechanical wings": {
+      "k": "기계 날개",
+      "l": 3
+    },
+    "multiple wings": {
+      "k": "여러 쌍의 날개",
+      "l": 3
+    },
+    "white wings": {
+      "k": "하얀 날개",
+      "l": 3
+    },
+    "black wings": {
+      "k": "검은 날개",
+      "l": 3
+    },
+    "sharp fingernails": {
+      "k": "날카로운 손톱",
+      "l": 3
+    },
+    "webbed hands": {
+      "k": "물갈퀴 손",
+      "l": 3
+    },
+    "sleeveless shirt": {
+      "k": "민소매 셔츠",
+      "l": 4
+    },
+    "sleeveless dress": {
+      "k": "민소매 드레스",
+      "l": 4
+    },
+    "sweatshirt": {
+      "k": "맨투맨",
+      "l": 4
+    },
+    "crop top overhang": {
+      "k": "늘어진 크롭 탑",
+      "l": 4
+    },
+    "undershirt": {
+      "k": "속셔츠",
+      "l": 4
+    },
+    "puffy short sleeves": {
+      "k": "퍼프 반소매",
+      "l": 4
+    },
+    "puffy long sleeves": {
+      "k": "퍼프 긴소매",
+      "l": 4
+    },
+    "sleeves past wrists": {
+      "k": "손목 덮는 소매",
+      "l": 4
+    },
+    "sleeves past fingers": {
+      "k": "손가락 덮는 소매",
+      "l": 4
+    },
+    "sleeves rolled up": {
+      "k": "걷어올린 소매",
+      "l": 4
+    },
+    "popped collar": {
+      "k": "세운 칼라",
+      "l": 4
+    },
+    "juliet sleeves": {
+      "k": "줄리엣 소매",
+      "l": 4
+    },
+    "flared sleeves": {
+      "k": "플레어 소매",
+      "l": 4
+    },
+    "detached collar": {
+      "k": "탈부착 칼라",
+      "l": 4
+    },
+    "frilled sleeves": {
+      "k": "프릴 소매",
+      "l": 4
+    },
+    "layered sleeves": {
+      "k": "레이어드 소매",
+      "l": 4
+    },
+    "sweater dress": {
+      "k": "스웨터 드레스",
+      "l": 4
+    },
+    "layered dress": {
+      "k": "레이어드 드레스",
+      "l": 4
+    },
+    "frilled dress": {
+      "k": "프릴 드레스",
+      "l": 4
+    },
+    "pencil dress": {
+      "k": "펜슬 드레스",
+      "l": 4
+    },
+    "halter gown": {
+      "k": "홀터 가운",
+      "l": 4
+    },
+    "chima": {
+      "k": "치마 저고리",
+      "l": 4
+    },
+    "japanese clothes": {
+      "k": "일본 전통 의상",
+      "l": 4
+    },
+    "chinese clothes": {
+      "k": "중국 전통 의상",
+      "l": 4
+    },
+    "korean clothes": {
+      "k": "한국 전통 의상",
+      "l": 4
+    },
+    "kariginu": {
+      "k": "카리기누",
+      "l": 4
+    },
+    "jiangshi costume": {
+      "k": "강시 복장",
+      "l": 4
+    },
+    "plaid skirt": {
+      "k": "체크 치마",
+      "l": 4
+    },
+    "frilled skirt": {
+      "k": "프릴 스커트",
+      "l": 4
+    },
+    "hakama skirt": {
+      "k": "하카마 치마",
+      "l": 4
+    },
+    "short shorts": {
+      "k": "핫팬츠",
+      "l": 4
+    },
+    "bermuda shorts": {
+      "k": "버뮤다 팬츠",
+      "l": 4
+    },
+    "gaucho pants": {
+      "k": "가우초 팬츠",
+      "l": 4
+    },
+    "shawl": {
+      "k": "숄",
+      "l": 4
+    },
+    "winter coat": {
+      "k": "겨울 코트",
+      "l": 4
+    },
+    "hooded coat": {
+      "k": "후드 코트",
+      "l": 4
+    },
+    "hooded jacket": {
+      "k": "후드 재킷",
+      "l": 4
+    },
+    "parka": {
+      "k": "파카",
+      "l": 4
+    },
+    "fur-trimmed coat": {
+      "k": "털 장식 코트",
+      "l": 4
+    },
+    "fur-trimmed jacket": {
+      "k": "털 장식 재킷",
+      "l": 4
+    },
+    "double-breasted": {
+      "k": "더블브레스트",
+      "l": 4
+    },
+    "gakuran": {
+      "k": "가쿠란 교복",
+      "l": 4
+    },
+    "surcoat": {
+      "k": "서코트",
+      "l": 4
+    },
+    "capelet": {
+      "k": "케이플릿",
+      "l": 4
+    },
+    "fur-trimmed cape": {
+      "k": "털 장식 케이프",
+      "l": 4
+    },
+    "hooded cloak": {
+      "k": "후드 망토",
+      "l": 4
+    },
+    "pinafore": {
+      "k": "피나포어",
+      "l": 4
+    },
+    "kilt": {
+      "k": "킬트",
+      "l": 4
+    },
+    "toga": {
+      "k": "토가",
+      "l": 4
+    },
+    "over-kneehighs": {
+      "k": "오버니 삭스",
+      "l": 4
+    },
+    "bobby socks": {
+      "k": "발목 접은 양말",
+      "l": 4
+    },
+    "fishnet thighhighs": {
+      "k": "망사 허벅지 스타킹",
+      "l": 4
+    },
+    "fishnet pantyhose": {
+      "k": "망사 팬티스타킹",
+      "l": 4
+    },
+    "striped socks": {
+      "k": "줄무늬 양말",
+      "l": 4
+    },
+    "vertical-striped thighhighs": {
+      "k": "세로줄 허벅지 스타킹",
+      "l": 4
+    },
+    "single kneehigh": {
+      "k": "한쪽 무릎 양말",
+      "l": 4
+    },
+    "single sock": {
+      "k": "한쪽 양말",
+      "l": 4
+    },
+    "tabi": {
+      "k": "다비 버선",
+      "l": 4
+    },
+    "white pantyhose": {
+      "k": "흰색 팬티스타킹",
+      "l": 4
+    },
+    "white socks": {
+      "k": "흰색 양말",
+      "l": 4
+    },
+    "lace-trimmed thighhighs": {
+      "k": "레이스 장식 허벅지 스타킹",
+      "l": 4
+    },
+    "polka dot socks": {
+      "k": "물방울무늬 양말",
+      "l": 4
+    },
+    "cross-laced footwear": {
+      "k": "끈 교차 신발",
+      "l": 4
+    },
+    "rubber boots": {
+      "k": "고무장화",
+      "l": 4
+    },
+    "high tops": {
+      "k": "하이탑 운동화",
+      "l": 4
+    },
+    "okobo": {
+      "k": "오코보 굽나막신",
+      "l": 4
+    },
+    "uwabaki": {
+      "k": "실내화",
+      "l": 4
+    },
+    "pointe shoes": {
+      "k": "토슈즈",
+      "l": 4
+    },
+    "pumps": {
+      "k": "펌프스 구두",
+      "l": 4
+    },
+    "wizard hat": {
+      "k": "마법사 모자",
+      "l": 4
+    },
+    "bowler hat": {
+      "k": "중산모",
+      "l": 4
+    },
+    "cabbie hat": {
+      "k": "헌팅캡",
+      "l": 4
+    },
+    "chef hat": {
+      "k": "요리사 모자",
+      "l": 4
+    },
+    "mob cap": {
+      "k": "모브캡",
+      "l": 4
+    },
+    "garrison cap": {
+      "k": "개리슨 모자",
+      "l": 4
+    },
+    "peaked cap": {
+      "k": "정모",
+      "l": 4
+    },
+    "ushanka": {
+      "k": "우샨카 방한모",
+      "l": 4
+    },
+    "hat ribbon": {
+      "k": "모자 리본",
+      "l": 4
+    },
+    "single earring": {
+      "k": "한쪽 귀걸이",
+      "l": 4
+    },
+    "waist apron": {
+      "k": "허리 앞치마",
+      "l": 4
+    },
+    "locket": {
+      "k": "로켓 목걸이",
+      "l": 4
+    },
+    "armlet": {
+      "k": "팔 장식띠",
+      "l": 4
+    },
+    "round eyewear": {
+      "k": "동그란 안경",
+      "l": 4
+    },
+    "semi-rimless eyewear": {
+      "k": "반테 안경",
+      "l": 4
+    },
+    "track suit": {
+      "k": "트레이닝복",
+      "l": 4
+    },
+    "waitress": {
+      "k": "웨이트리스 복장",
+      "l": 4
+    },
+    "kigurumi": {
+      "k": "동물 잠옷",
+      "l": 4
+    },
+    "plate armor": {
+      "k": "판금 갑옷",
+      "l": 4
+    },
+    "knight armor": {
+      "k": "기사 갑옷",
+      "l": 4
+    },
+    "band uniform": {
+      "k": "악단 제복",
+      "l": 4
+    },
+    "arm behind back": {
+      "k": "한 팔을 뒤로",
+      "l": 5
+    },
+    "arm behind head": {
+      "k": "한 손을 머리 뒤로",
+      "l": 5
+    },
+    "indian style": {
+      "k": "책상다리",
+      "l": 5
+    },
+    "all fours": {
+      "k": "네발 자세",
+      "l": 5
+    },
+    "knees to chest": {
+      "k": "무릎을 가슴으로",
+      "l": 5
+    },
+    "lying on person": {
+      "k": "사람 위에 눕기",
+      "l": 5
+    },
+    "reclining": {
+      "k": "비스듬히 기대 눕기",
+      "l": 5
+    },
+    "legs together": {
+      "k": "다리 모으기",
+      "l": 5
+    },
+    "legs apart": {
+      "k": "다리 벌리기",
+      "l": 5
+    },
+    "standing on one leg": {
+      "k": "한 발로 서기",
+      "l": 5
+    },
+    "twisted torso": {
+      "k": "상체 비틀기",
+      "l": 5
+    },
+    "spread arms": {
+      "k": "양팔 벌리기",
+      "l": 5
+    },
+    "outstretched arms": {
+      "k": "양팔 뻗기",
+      "l": 5
+    },
+    "hand on own chest": {
+      "k": "손을 가슴에",
+      "l": 5
+    },
+    "hand on own knee": {
+      "k": "손을 무릎에",
+      "l": 5
+    },
+    "hand on own thigh": {
+      "k": "손을 허벅지에",
+      "l": 5
+    },
+    "hands up": {
+      "k": "양손 들기",
+      "l": 5
+    },
+    "hand on own arm": {
+      "k": "손을 팔에",
+      "l": 5
+    },
+    "arms at sides": {
+      "k": "팔을 옆으로 내리기",
+      "l": 5
+    },
+    "v": {
+      "k": "브이 사인",
+      "l": 5
+    },
+    "double v": {
+      "k": "양손 브이 사인",
+      "l": 5
+    },
+    "v over eye": {
+      "k": "눈에 브이 사인",
+      "l": 5
+    },
+    "ok sign": {
+      "k": "오케이 사인",
+      "l": 5
+    },
+    "heart hands duo": {
+      "k": "둘이 손 하트",
+      "l": 5
+    },
+    "claw pose": {
+      "k": "발톱 포즈",
+      "l": 5
+    },
+    "outstretched hand": {
+      "k": "손 뻗기",
+      "l": 5
+    },
+    "reaching towards viewer": {
+      "k": "보는 사람에게 손 뻗기",
+      "l": 5
+    },
+    "clenched hands": {
+      "k": "양 주먹 쥐기",
+      "l": 5
+    },
+    "fist": {
+      "k": "주먹",
+      "l": 5
+    },
+    "shaka sign": {
+      "k": "샤카 사인",
+      "l": 5
+    },
+    "spread fingers": {
+      "k": "손가락 펴기",
+      "l": 5
+    },
+    "index finger raised": {
+      "k": "검지 세우기",
+      "l": 5
+    },
+    "steepled fingers": {
+      "k": "손가락 맞대기",
+      "l": 5
+    },
+    "air quotes": {
+      "k": "따옴표 손짓",
+      "l": 5
+    },
+    "chin rest": {
+      "k": "턱 괴기",
+      "l": 5
+    },
+    "head rest": {
+      "k": "머리 기대기",
+      "l": 5
+    },
+    "cheek puff": {
+      "k": "볼 부풀리기",
+      "l": 5
+    },
+    "gritted teeth": {
+      "k": "이 악물기",
+      "l": 5
+    },
+    "hand over eyes": {
+      "k": "손으로 눈 가리기",
+      "l": 5
+    },
+    "holding stuffed toy": {
+      "k": "인형 안기",
+      "l": 5
+    },
+    "hugging object": {
+      "k": "물건 껴안기",
+      "l": 5
+    },
+    "headpat": {
+      "k": "머리 쓰다듬기",
+      "l": 5
+    },
+    "hug": {
+      "k": "포옹",
+      "l": 5
+    },
+    "hug from behind": {
+      "k": "뒤에서 안기",
+      "l": 5
+    },
+    "dojo": {
+      "k": "도장",
+      "l": 6
+    },
+    "stairs": {
+      "k": "계단",
+      "l": 6
+    },
+    "kitchen counter": {
+      "k": "주방 카운터",
+      "l": 6
+    },
+    "infirmary": {
+      "k": "양호실",
+      "l": 6
+    },
+    "prison": {
+      "k": "감옥",
+      "l": 6
+    },
+    "workshop": {
+      "k": "작업장",
+      "l": 6
+    },
+    "seaside": {
+      "k": "바닷가",
+      "l": 6
+    },
+    "hot spring": {
+      "k": "노천 온천",
+      "l": 6
+    },
+    "forest clearing": {
+      "k": "숲속 빈터",
+      "l": 6
+    },
+    "grassland": {
+      "k": "풀밭",
+      "l": 6
+    },
+    "tree": {
+      "k": "나무",
+      "l": 6
+    },
+    "waterfront": {
+      "k": "물가",
+      "l": 6
+    },
+    "market": {
+      "k": "시장",
+      "l": 6
+    },
+    "construction site": {
+      "k": "공사장",
+      "l": 6
+    },
+    "factory": {
+      "k": "공장",
+      "l": 6
+    },
+    "playground": {
+      "k": "놀이터",
+      "l": 6
+    },
+    "road": {
+      "k": "도로",
+      "l": 6
+    },
+    "fence": {
+      "k": "울타리",
+      "l": 6
+    },
+    "power lines": {
+      "k": "전선",
+      "l": 6
+    },
+    "railroad tracks": {
+      "k": "철길",
+      "l": 6
+    },
+    "cloud": {
+      "k": "구름",
+      "l": 6
+    },
+    "floating island": {
+      "k": "떠 있는 섬",
+      "l": 6
+    },
+    "abstract background": {
+      "k": "추상적 배경",
+      "l": 6
+    },
+    "floral background": {
+      "k": "꽃무늬 배경",
+      "l": 6
+    },
+    "full shot": {
+      "k": "인물 전체를 담는 풀 샷",
+      "l": 2
+    },
+    "profile view": {
+      "k": "완전 측면 옆모습",
+      "l": 2
+    },
+    "side-by-side": {
+      "k": "나란히 선 구도",
+      "l": 2
+    },
+    "letterboxed": {
+      "k": "레터박스 시네마 비율",
+      "l": 2
+    },
+    "centered composition": {
+      "k": "정중앙 배치 구도",
+      "l": 2
+    },
+    "sparkles": {
+      "k": "반짝이는 빛",
+      "l": 7
+    },
+    "electricity": {
+      "k": "번쩍이는 전기",
+      "l": 7
+    },
+    "fire": {
+      "k": "불꽃",
+      "l": 7
+    },
+    "ice crystals": {
+      "k": "얼음 결정",
+      "l": 7
+    },
+    "halftone": {
+      "k": "하프톤 망점 질감",
+      "l": 7
+    },
+    "glitch": {
+      "k": "글리치 효과",
+      "l": 7
+    },
+    "heart background": {
+      "k": "하트 배경 효과",
+      "l": 7
+    },
+    "emphasis lines": {
+      "k": "만화식 집중선",
+      "l": 7
+    },
+    "motion lines": {
+      "k": "속도감 표현선",
+      "l": 7
+    },
+    "wallpaper": {
+      "k": "월페이퍼 퀄리티",
+      "l": 1
+    },
+    "professional": {
+      "k": "프로페셔널 퀄리티",
+      "l": 1
+    },
+    "sword": {
+      "k": "검",
+      "l": 5
+    },
+    "katana": {
+      "k": "카타나(일본도)",
+      "l": 5
+    },
+    "dagger": {
+      "k": "단검",
+      "l": 5
+    },
+    "knife": {
+      "k": "나이프",
+      "l": 5
+    },
+    "rapier": {
+      "k": "레이피어",
+      "l": 5
+    },
+    "greatsword": {
+      "k": "대검",
+      "l": 5
+    },
+    "spear": {
+      "k": "창",
+      "l": 5
+    },
+    "lance": {
+      "k": "랜스",
+      "l": 5
+    },
+    "polearm": {
+      "k": "장병기",
+      "l": 5
+    },
+    "halberd": {
+      "k": "할버드",
+      "l": 5
+    },
+    "naginata": {
+      "k": "나기나타",
+      "l": 5
+    },
+    "bow (weapon)": {
+      "k": "활",
+      "l": 5
+    },
+    "arrow (projectile)": {
+      "k": "화살",
+      "l": 5
+    },
+    "crossbow": {
+      "k": "석궁",
+      "l": 5
+    },
+    "gun": {
+      "k": "총",
+      "l": 5
+    },
+    "handgun": {
+      "k": "권총",
+      "l": 5
+    },
+    "revolver": {
+      "k": "리볼버",
+      "l": 5
+    },
+    "rifle": {
+      "k": "소총",
+      "l": 5
+    },
+    "assault rifle": {
+      "k": "돌격소총",
+      "l": 5
+    },
+    "sniper rifle": {
+      "k": "저격총",
+      "l": 5
+    },
+    "machine gun": {
+      "k": "기관총",
+      "l": 5
+    },
+    "shotgun": {
+      "k": "산탄총",
+      "l": 5
+    },
+    "cannon": {
+      "k": "대포",
+      "l": 5
+    },
+    "staff": {
+      "k": "지팡이(스태프)",
+      "l": 5
+    },
+    "wand": {
+      "k": "마법봉",
+      "l": 5
+    },
+    "scythe": {
+      "k": "낫",
+      "l": 5
+    },
+    "axe": {
+      "k": "도끼",
+      "l": 5
+    },
+    "war hammer": {
+      "k": "워해머",
+      "l": 5
+    },
+    "hammer": {
+      "k": "망치",
+      "l": 5
+    },
+    "mace": {
+      "k": "철퇴",
+      "l": 5
+    },
+    "club (weapon)": {
+      "k": "곤봉",
+      "l": 5
+    },
+    "shield": {
+      "k": "방패",
+      "l": 5
+    },
+    "chain": {
+      "k": "쇠사슬",
+      "l": 5
+    },
+    "whip": {
+      "k": "채찍",
+      "l": 5
+    },
+    "kunai": {
+      "k": "쿠나이",
+      "l": 5
+    },
+    "shuriken": {
+      "k": "수리검",
+      "l": 5
+    },
+    "trident": {
+      "k": "삼지창",
+      "l": 5
+    },
+    "gauntlets": {
+      "k": "건틀릿",
+      "l": 5
+    },
+    "energy sword": {
+      "k": "에너지 소드",
+      "l": 5
+    },
+    "sword on back": {
+      "k": "등에 멘 검",
+      "l": 5
+    },
+    "sheath": {
+      "k": "칼집",
+      "l": 5
+    },
+    "grenade": {
+      "k": "수류탄",
+      "l": 5
+    },
+    "bomb": {
+      "k": "폭탄",
+      "l": 5
+    },
+    "oil-paper umbrella": {
+      "k": "유지 우산",
+      "l": 5
+    },
+    "book": {
+      "k": "책",
+      "l": 5
+    },
+    "open book": {
+      "k": "펼친 책",
+      "l": 5
+    },
+    "phone": {
+      "k": "전화기",
+      "l": 5
+    },
+    "smartphone": {
+      "k": "스마트폰",
+      "l": 5
+    },
+    "cellphone": {
+      "k": "휴대폰",
+      "l": 5
+    },
+    "camera": {
+      "k": "카메라",
+      "l": 5
+    },
+    "cup": {
+      "k": "컵",
+      "l": 5
+    },
+    "teacup": {
+      "k": "찻잔",
+      "l": 5
+    },
+    "mug": {
+      "k": "머그컵",
+      "l": 5
+    },
+    "bottle": {
+      "k": "병",
+      "l": 5
+    },
+    "water bottle": {
+      "k": "물병",
+      "l": 5
+    },
+    "wine glass": {
+      "k": "와인잔",
+      "l": 5
+    },
+    "cup ramen": {
+      "k": "컵라면",
+      "l": 5
+    },
+    "plate": {
+      "k": "접시",
+      "l": 5
+    },
+    "tray": {
+      "k": "쟁반",
+      "l": 5
+    },
+    "basket": {
+      "k": "바구니",
+      "l": 5
+    },
+    "suitcase": {
+      "k": "여행가방",
+      "l": 5
+    },
+    "lantern": {
+      "k": "랜턴",
+      "l": 5
+    },
+    "candle": {
+      "k": "양초",
+      "l": 5
+    },
+    "torch": {
+      "k": "횃불",
+      "l": 5
+    },
+    "key": {
+      "k": "열쇠",
+      "l": 5
+    },
+    "letter": {
+      "k": "편지",
+      "l": 5
+    },
+    "envelope": {
+      "k": "봉투",
+      "l": 5
+    },
+    "map": {
+      "k": "지도",
+      "l": 5
+    },
+    "scroll": {
+      "k": "두루마리",
+      "l": 5
+    },
+    "clipboard": {
+      "k": "클립보드",
+      "l": 5
+    },
+    "pen": {
+      "k": "펜",
+      "l": 5
+    },
+    "pencil": {
+      "k": "연필",
+      "l": 5
+    },
+    "paintbrush": {
+      "k": "붓",
+      "l": 5
+    },
+    "quill": {
+      "k": "깃펜",
+      "l": 5
+    },
+    "hand fan": {
+      "k": "부채",
+      "l": 5
+    },
+    "folding fan": {
+      "k": "쥘부채",
+      "l": 5
+    },
+    "paper fan": {
+      "k": "종이 부채",
+      "l": 5
+    },
+    "balloon": {
+      "k": "풍선",
+      "l": 5
+    },
+    "teddy bear": {
+      "k": "테디베어",
+      "l": 5
+    },
+    "stuffed animal": {
+      "k": "봉제 인형",
+      "l": 5
+    },
+    "doll": {
+      "k": "인형",
+      "l": 5
+    },
+    "pillow": {
+      "k": "베개",
+      "l": 5
+    },
+    "blanket": {
+      "k": "담요",
+      "l": 5
+    },
+    "hand mirror": {
+      "k": "손거울",
+      "l": 5
+    },
+    "pocket watch": {
+      "k": "회중시계",
+      "l": 5
+    },
+    "hourglass": {
+      "k": "모래시계",
+      "l": 5
+    },
+    "acoustic guitar": {
+      "k": "어쿠스틱 기타",
+      "l": 5
+    },
+    "electric guitar": {
+      "k": "일렉기타",
+      "l": 5
+    },
+    "bass guitar": {
+      "k": "베이스 기타",
+      "l": 5
+    },
+    "violin": {
+      "k": "바이올린",
+      "l": 5
+    },
+    "cello": {
+      "k": "첼로",
+      "l": 5
+    },
+    "keyboard (instrument)": {
+      "k": "키보드(건반)",
+      "l": 5
+    },
+    "flute": {
+      "k": "플루트",
+      "l": 5
+    },
+    "recorder (instrument)": {
+      "k": "리코더",
+      "l": 5
+    },
+    "saxophone": {
+      "k": "색소폰",
+      "l": 5
+    },
+    "trumpet": {
+      "k": "트럼펫",
+      "l": 5
+    },
+    "drum": {
+      "k": "드럼",
+      "l": 5
+    },
+    "taiko drum": {
+      "k": "타이코(북)",
+      "l": 5
+    },
+    "harp": {
+      "k": "하프",
+      "l": 5
+    },
+    "ukulele": {
+      "k": "우쿨렐레",
+      "l": 5
+    },
+    "microphone": {
+      "k": "마이크",
+      "l": 5
+    },
+    "ice cream": {
+      "k": "아이스크림",
+      "l": 5
+    },
+    "ice cream cone": {
+      "k": "아이스크림 콘",
+      "l": 5
+    },
+    "popsicle": {
+      "k": "아이스바",
+      "l": 5
+    },
+    "lollipop": {
+      "k": "막대사탕",
+      "l": 5
+    },
+    "candy": {
+      "k": "사탕",
+      "l": 5
+    },
+    "cupcake": {
+      "k": "컵케이크",
+      "l": 5
+    },
+    "doughnut": {
+      "k": "도넛",
+      "l": 5
+    },
+    "cookie": {
+      "k": "쿠키",
+      "l": 5
+    },
+    "chocolate": {
+      "k": "초콜릿",
+      "l": 5
+    },
+    "apple": {
+      "k": "사과",
+      "l": 5
+    },
+    "strawberry": {
+      "k": "딸기",
+      "l": 5
+    },
+    "watermelon": {
+      "k": "수박",
+      "l": 5
+    },
+    "banana": {
+      "k": "바나나",
+      "l": 5
+    },
+    "ramen": {
+      "k": "라멘",
+      "l": 5
+    },
+    "onigiri": {
+      "k": "주먹밥",
+      "l": 5
+    },
+    "bread": {
+      "k": "빵",
+      "l": 5
+    },
+    "baguette": {
+      "k": "바게트",
+      "l": 5
+    },
+    "hamburger": {
+      "k": "햄버거",
+      "l": 5
+    },
+    "pizza": {
+      "k": "피자",
+      "l": 5
+    },
+    "pocky": {
+      "k": "포키",
+      "l": 5
+    },
+    "coffee": {
+      "k": "커피",
+      "l": 5
+    },
+    "tea": {
+      "k": "차",
+      "l": 5
+    },
+    "bubble tea": {
+      "k": "버블티",
+      "l": 5
+    },
+    "juice": {
+      "k": "주스",
+      "l": 5
+    },
+    "cola": {
+      "k": "콜라",
+      "l": 5
+    },
+    "sake": {
+      "k": "사케(청주)",
+      "l": 5
+    },
+    "sake bottle": {
+      "k": "술병(도쿠리)",
+      "l": 5
+    },
+    "wine": {
+      "k": "와인",
+      "l": 5
+    },
+    "beer": {
+      "k": "맥주",
+      "l": 5
+    },
+    "milkshake": {
+      "k": "밀크셰이크",
+      "l": 5
+    },
+    "cat": {
+      "k": "고양이",
+      "l": 6
+    },
+    "black cat": {
+      "k": "검은 고양이",
+      "l": 6
+    },
+    "white cat": {
+      "k": "흰 고양이",
+      "l": 6
+    },
+    "orange cat": {
+      "k": "주황색 고양이",
+      "l": 6
+    },
+    "calico cat": {
+      "k": "삼색 고양이",
+      "l": 6
+    },
+    "kitten": {
+      "k": "새끼 고양이",
+      "l": 6
+    },
+    "dog": {
+      "k": "개",
+      "l": 6
+    },
+    "puppy": {
+      "k": "강아지",
+      "l": 6
+    },
+    "shiba inu": {
+      "k": "시바견",
+      "l": 6
+    },
+    "bird": {
+      "k": "새",
+      "l": 6
+    },
+    "crow": {
+      "k": "까마귀",
+      "l": 6
+    },
+    "dove": {
+      "k": "비둘기",
+      "l": 6
+    },
+    "owl": {
+      "k": "부엉이",
+      "l": 6
+    },
+    "parrot": {
+      "k": "앵무새",
+      "l": 6
+    },
+    "chick": {
+      "k": "병아리",
+      "l": 6
+    },
+    "chicken": {
+      "k": "닭",
+      "l": 6
+    },
+    "duck": {
+      "k": "오리",
+      "l": 6
+    },
+    "swan": {
+      "k": "백조",
+      "l": 6
+    },
+    "seagull": {
+      "k": "갈매기",
+      "l": 6
+    },
+    "crane (animal)": {
+      "k": "두루미",
+      "l": 6
+    },
+    "penguin": {
+      "k": "펭귄",
+      "l": 6
+    },
+    "peacock": {
+      "k": "공작새",
+      "l": 6
+    },
+    "sparrow": {
+      "k": "참새",
+      "l": 6
+    },
+    "moth": {
+      "k": "나방",
+      "l": 6
+    },
+    "bee": {
+      "k": "벌",
+      "l": 6
+    },
+    "ladybug": {
+      "k": "무당벌레",
+      "l": 6
+    },
+    "firefly": {
+      "k": "반딧불이",
+      "l": 6
+    },
+    "spider": {
+      "k": "거미",
+      "l": 6
+    },
+    "snail": {
+      "k": "달팽이",
+      "l": 6
+    },
+    "fish": {
+      "k": "물고기",
+      "l": 6
+    },
+    "goldfish": {
+      "k": "금붕어",
+      "l": 6
+    },
+    "koi": {
+      "k": "잉어",
+      "l": 6
+    },
+    "shark": {
+      "k": "상어",
+      "l": 6
+    },
+    "dolphin": {
+      "k": "돌고래",
+      "l": 6
+    },
+    "whale": {
+      "k": "고래",
+      "l": 6
+    },
+    "octopus": {
+      "k": "문어",
+      "l": 6
+    },
+    "squid": {
+      "k": "오징어",
+      "l": 6
+    },
+    "crab": {
+      "k": "게",
+      "l": 6
+    },
+    "shrimp": {
+      "k": "새우",
+      "l": 6
+    },
+    "starfish": {
+      "k": "불가사리",
+      "l": 6
+    },
+    "seahorse": {
+      "k": "해마",
+      "l": 6
+    },
+    "frog": {
+      "k": "개구리",
+      "l": 6
+    },
+    "snake": {
+      "k": "뱀",
+      "l": 6
+    },
+    "lizard": {
+      "k": "도마뱀",
+      "l": 6
+    },
+    "gecko": {
+      "k": "도마뱀붙이",
+      "l": 6
+    },
+    "turtle": {
+      "k": "거북이",
+      "l": 6
+    },
+    "rabbit": {
+      "k": "토끼",
+      "l": 6
+    },
+    "squirrel": {
+      "k": "다람쥐",
+      "l": 6
+    },
+    "fox": {
+      "k": "여우",
+      "l": 6
+    },
+    "wolf": {
+      "k": "늑대",
+      "l": 6
+    },
+    "cow": {
+      "k": "소",
+      "l": 6
+    },
+    "sheep": {
+      "k": "양",
+      "l": 6
+    },
+    "goat": {
+      "k": "염소",
+      "l": 6
+    },
+    "pig": {
+      "k": "돼지",
+      "l": 6
+    },
+    "mouse": {
+      "k": "쥐",
+      "l": 6
+    },
+    "hamster": {
+      "k": "햄스터",
+      "l": 6
+    },
+    "raccoon": {
+      "k": "너구리",
+      "l": 6
+    },
+    "panda": {
+      "k": "판다",
+      "l": 6
+    },
+    "bear": {
+      "k": "곰",
+      "l": 6
+    },
+    "tiger": {
+      "k": "호랑이",
+      "l": 6
+    },
+    "lion": {
+      "k": "사자",
+      "l": 6
+    },
+    "elephant": {
+      "k": "코끼리",
+      "l": 6
+    },
+    "monkey": {
+      "k": "원숭이",
+      "l": 6
+    },
+    "hedgehog": {
+      "k": "고슴도치",
+      "l": 6
+    },
+    "bat": {
+      "k": "박쥐",
+      "l": 6
+    },
+    "dragon": {
+      "k": "용",
+      "l": 6
+    },
+    "phoenix": {
+      "k": "불사조",
+      "l": 6
+    },
+    "unicorn": {
+      "k": "유니콘",
+      "l": 6
+    },
+    "slime (creature)": {
+      "k": "슬라임",
+      "l": 6
+    },
+    "ghost": {
+      "k": "유령",
+      "l": 6
+    },
+    "rose": {
+      "k": "장미",
+      "l": 6
+    },
+    "red rose": {
+      "k": "빨간 장미",
+      "l": 6
+    },
+    "white rose": {
+      "k": "흰 장미",
+      "l": 6
+    },
+    "blue rose": {
+      "k": "파란 장미",
+      "l": 6
+    },
+    "sunflower": {
+      "k": "해바라기",
+      "l": 6
+    },
+    "tulip": {
+      "k": "튤립",
+      "l": 6
+    },
+    "lily": {
+      "k": "백합",
+      "l": 6
+    },
+    "lily (flower)": {
+      "k": "나리꽃",
+      "l": 6
+    },
+    "plum blossoms": {
+      "k": "매화",
+      "l": 6
+    },
+    "dandelion": {
+      "k": "민들레",
+      "l": 6
+    },
+    "daisy": {
+      "k": "데이지",
+      "l": 6
+    },
+    "chrysanthemum": {
+      "k": "국화",
+      "l": 6
+    },
+    "camellia": {
+      "k": "동백꽃",
+      "l": 6
+    },
+    "poppy": {
+      "k": "양귀비꽃",
+      "l": 6
+    },
+    "orchid": {
+      "k": "난초",
+      "l": 6
+    },
+    "lavender": {
+      "k": "라벤더",
+      "l": 6
+    },
+    "carnation": {
+      "k": "카네이션",
+      "l": 6
+    },
+    "marigold": {
+      "k": "금잔화",
+      "l": 6
+    },
+    "spider lily": {
+      "k": "석산",
+      "l": 6
+    },
+    "vines": {
+      "k": "덩굴",
+      "l": 6
+    },
+    "fern": {
+      "k": "고사리",
+      "l": 6
+    },
+    "moss": {
+      "k": "이끼",
+      "l": 6
+    },
+    "bamboo": {
+      "k": "대나무",
+      "l": 6
+    },
+    "pine tree": {
+      "k": "소나무",
+      "l": 6
+    },
+    "willow": {
+      "k": "버드나무",
+      "l": 6
+    },
+    "cactus": {
+      "k": "선인장",
+      "l": 6
+    },
+    "mushroom": {
+      "k": "버섯",
+      "l": 6
+    },
+    "clover": {
+      "k": "클로버",
+      "l": 6
+    },
+    "four-leaf clover": {
+      "k": "네잎클로버",
+      "l": 6
+    },
+    "grass": {
+      "k": "풀",
+      "l": 6
+    },
+    "reeds": {
+      "k": "갈대",
+      "l": 6
+    },
+    "lotus leaf": {
+      "k": "연잎",
+      "l": 6
+    },
+    "lily pad": {
+      "k": "수련잎",
+      "l": 6
+    },
+    "flower bud": {
+      "k": "꽃봉오리",
+      "l": 6
+    },
+    "bouquet": {
+      "k": "꽃다발",
+      "l": 6
+    },
+    "flower wreath": {
+      "k": "꽃 화관",
+      "l": 6
+    },
+    "berry": {
+      "k": "산딸기",
+      "l": 6
+    },
+    "acorn": {
+      "k": "도토리",
+      "l": 6
+    },
+    "pinecone": {
+      "k": "솔방울",
+      "l": 6
+    },
+    "seedling": {
+      "k": "새싹",
+      "l": 6
+    },
+    "checkered clothes": {
+      "k": "체크무늬 옷",
+      "l": 4
+    },
+    "cow print": {
+      "k": "젖소 무늬",
+      "l": 4
+    },
+    "zebra print": {
+      "k": "얼룩말 무늬",
+      "l": 4
+    },
+    "tiger print": {
+      "k": "호랑이 무늬",
+      "l": 4
+    },
+    "snake print": {
+      "k": "뱀 무늬",
+      "l": 4
+    },
+    "cherry blossom print": {
+      "k": "벚꽃 무늬",
+      "l": 4
+    },
+    "fruit print": {
+      "k": "과일 무늬",
+      "l": 4
+    },
+    "strawberry print": {
+      "k": "딸기 무늬",
+      "l": 4
+    },
+    "striped dress": {
+      "k": "줄무늬 원피스",
+      "l": 4
+    },
+    "diagonal stripes": {
+      "k": "대각선 줄무늬",
+      "l": 4
+    },
+    "geometric pattern": {
+      "k": "기하학 무늬",
+      "l": 4
+    },
+    "print dress": {
+      "k": "프린트 원피스",
+      "l": 4
+    },
+    "print shirt": {
+      "k": "프린트 셔츠",
+      "l": 4
+    },
+    "plaid vest": {
+      "k": "체크무늬 조끼",
+      "l": 4
+    },
+    "plaid shirt": {
+      "k": "체크무늬 셔츠",
+      "l": 4
+    },
+    "frilled collar": {
+      "k": "프릴 칼라",
+      "l": 4
+    },
+    "ribbon trim": {
+      "k": "리본 장식",
+      "l": 4
+    },
+    "fur-trimmed collar": {
+      "k": "모피 장식 칼라",
+      "l": 4
+    },
+    "piping": {
+      "k": "파이핑 테두리",
+      "l": 4
+    },
+    "zipper pull tab": {
+      "k": "지퍼 손잡이",
+      "l": 4
+    },
+    "belt buckle": {
+      "k": "벨트 버클",
+      "l": 4
+    },
+    "buckle": {
+      "k": "버클",
+      "l": 4
+    },
+    "studded belt": {
+      "k": "징 박힌 벨트",
+      "l": 4
+    },
+    "multiple belts": {
+      "k": "여러 개의 벨트",
+      "l": 4
+    },
+    "straps": {
+      "k": "끈 스트랩",
+      "l": 4
+    },
+    "shoulder strap": {
+      "k": "어깨끈",
+      "l": 4
+    },
+    "cross-laced clothes": {
+      "k": "교차 끈 여밈 옷",
+      "l": 4
+    },
+    "lace-up": {
+      "k": "끈으로 묶는 여밈",
+      "l": 4
+    },
+    "drawstring": {
+      "k": "조임끈",
+      "l": 4
+    },
+    "pocket": {
+      "k": "주머니",
+      "l": 4
+    },
+    "chest pocket": {
+      "k": "가슴 주머니",
+      "l": 4
+    },
+    "hood down": {
+      "k": "내린 후드",
+      "l": 4
+    },
+    "hood up": {
+      "k": "뒤집어쓴 후드",
+      "l": 4
+    },
+    "cuffs": {
+      "k": "소맷단",
+      "l": 4
+    },
+    "wrist cuffs": {
+      "k": "손목 커프스",
+      "l": 4
+    },
+    "collar chain": {
+      "k": "칼라 체인",
+      "l": 4
+    },
+    "o-ring": {
+      "k": "O링 장식",
+      "l": 4
+    },
+    "d-ring": {
+      "k": "D링 장식",
+      "l": 4
+    },
+    "spaulders": {
+      "k": "견갑",
+      "l": 4
+    },
+    "collarbone cutout": {
+      "k": "쇄골 트임",
+      "l": 4
+    },
+    "back cutout": {
+      "k": "등 트임",
+      "l": 4
+    },
+    "corset lacing": {
+      "k": "코르셋 끈 조임",
+      "l": 4
+    },
+    "hem": {
+      "k": "옷단",
+      "l": 4
+    },
+    "scalloped hem": {
+      "k": "물결 옷단",
+      "l": 4
+    },
+    "sleeveless turtleneck": {
+      "k": "민소매 터틀넥",
+      "l": 4
+    },
+    "open jacket": {
+      "k": "열어젖힌 재킷",
+      "l": 4
+    },
+    "open coat": {
+      "k": "열어젖힌 코트",
+      "l": 4
+    },
+    "open vest": {
+      "k": "열어젖힌 조끼",
+      "l": 4
+    },
+    "unzipped": {
+      "k": "지퍼 내린 상태",
+      "l": 4
+    },
+    "tucked-in shirt": {
+      "k": "넣어입은 셔츠",
+      "l": 4
+    },
+    "loosened necktie": {
+      "k": "느슨하게 푼 넥타이",
+      "l": 4
+    },
+    "loose necktie": {
+      "k": "헐렁한 넥타이",
+      "l": 4
+    },
+    "sleeves pushed up": {
+      "k": "밀어올린 소매",
+      "l": 4
+    },
+    "jacket on shoulders": {
+      "k": "어깨에 걸친 재킷",
+      "l": 4
+    },
+    "clothes around waist": {
+      "k": "허리에 두른 옷",
+      "l": 4
+    },
+    "jacket around waist": {
+      "k": "허리에 두른 재킷",
+      "l": 4
+    },
+    "sweater around waist": {
+      "k": "허리에 두른 스웨터",
+      "l": 4
+    },
+    "front-tie top": {
+      "k": "앞으로 묶은 상의",
+      "l": 4
+    },
+    "knotted shirt": {
+      "k": "매듭지은 셔츠",
+      "l": 4
+    },
+    "layered clothing": {
+      "k": "레이어드 옷차림",
+      "l": 4
+    },
+    "mismatched clothes": {
+      "k": "짝 안 맞는 옷차림",
+      "l": 4
+    },
+    "dirty clothes": {
+      "k": "더러워진 옷",
+      "l": 4
+    },
+    "oversized clothes": {
+      "k": "오버사이즈 옷",
+      "l": 4
+    },
+    "baggy clothes": {
+      "k": "헐렁한 옷",
+      "l": 4
+    },
+    "form-fitting": {
+      "k": "몸에 딱 붙는 옷",
+      "l": 4
+    },
+    "adjusting clothes": {
+      "k": "옷 매만지는 동작",
+      "l": 4
+    },
+    "adjusting necktie": {
+      "k": "넥타이 매만지는 동작",
+      "l": 4
+    },
+    "buttoned up": {
+      "k": "단추 다 채운 상태",
+      "l": 4
+    },
+    "rolled up pants": {
+      "k": "걷어올린 바지",
+      "l": 4
+    },
+    "red nails": {
+      "k": "빨간 손톱",
+      "l": 3
+    },
+    "black nails": {
+      "k": "검은 손톱",
+      "l": 3
+    },
+    "blue nails": {
+      "k": "파란 손톱",
+      "l": 3
+    },
+    "pink nails": {
+      "k": "분홍 손톱",
+      "l": 3
+    },
+    "purple nails": {
+      "k": "보라 손톱",
+      "l": 3
+    },
+    "french manicure": {
+      "k": "프렌치 매니큐어",
+      "l": 3
+    },
+    "toenail polish": {
+      "k": "발톱 매니큐어",
+      "l": 3
+    },
+    "colored nails": {
+      "k": "색칠한 손톱",
+      "l": 3
+    },
+    "chipped nail polish": {
+      "k": "벗겨진 매니큐어",
+      "l": 3
+    },
+    "multiple ear piercings": {
+      "k": "여러 귀 피어싱",
+      "l": 3
+    },
+    "eyebrow piercing": {
+      "k": "눈썹 피어싱",
+      "l": 3
+    },
+    "nose piercing": {
+      "k": "코 피어싱",
+      "l": 3
+    },
+    "industrial piercing": {
+      "k": "인더스트리얼 피어싱",
+      "l": 3
+    },
+    "tongue piercing": {
+      "k": "혀 피어싱",
+      "l": 3
+    },
+    "septum piercing": {
+      "k": "셉텀 피어싱",
+      "l": 3
+    },
+    "facial piercing": {
+      "k": "얼굴 피어싱",
+      "l": 3
+    },
+    "arm tattoo": {
+      "k": "팔 문신",
+      "l": 3
+    },
+    "back tattoo": {
+      "k": "등 문신",
+      "l": 3
+    },
+    "shoulder tattoo": {
+      "k": "어깨 문신",
+      "l": 3
+    },
+    "neck tattoo": {
+      "k": "목 문신",
+      "l": 3
+    },
+    "leg tattoo": {
+      "k": "다리 문신",
+      "l": 3
+    },
+    "chest tattoo": {
+      "k": "가슴 문신",
+      "l": 3
+    },
+    "facial tattoo": {
+      "k": "얼굴 문신",
+      "l": 3
+    },
+    "tribal tattoo": {
+      "k": "부족 문양 문신",
+      "l": 3
+    },
+    "henna": {
+      "k": "헤나",
+      "l": 3
+    },
+    "body writing": {
+      "k": "몸에 쓴 글씨",
+      "l": 3
+    },
+    "magic tattoo": {
+      "k": "마법 문신",
+      "l": 3
+    },
+    "glowing tattoo": {
+      "k": "빛나는 문신",
+      "l": 3
+    },
+    "number tattoo": {
+      "k": "숫자 문신",
+      "l": 3
+    },
+    "seal (marking)": {
+      "k": "봉인 문양",
+      "l": 3
+    },
+    "hand tattoo": {
+      "k": "손 문신",
+      "l": 3
+    },
+    "stomach tattoo": {
+      "k": "배 문신",
+      "l": 3
+    },
+    "thigh tattoo": {
+      "k": "허벅지 문신",
+      "l": 3
+    },
+    "spine tattoo": {
+      "k": "척추 문신",
+      "l": 3
+    },
+    "bandages": {
+      "k": "붕대",
+      "l": 3
+    },
+    "bandaid on face": {
+      "k": "얼굴에 반창고",
+      "l": 3
+    },
+    "bandaid on nose": {
+      "k": "코에 반창고",
+      "l": 3
+    },
+    "bandaged arm": {
+      "k": "붕대 감은 팔",
+      "l": 3
+    },
+    "bandaged leg": {
+      "k": "붕대 감은 다리",
+      "l": 3
+    },
+    "bandaged hand": {
+      "k": "붕대 감은 손",
+      "l": 3
+    },
+    "bandaged head": {
+      "k": "붕대 감은 머리",
+      "l": 3
+    },
+    "bandaged neck": {
+      "k": "붕대 감은 목",
+      "l": 3
+    },
+    "medical eyepatch": {
+      "k": "의료용 안대",
+      "l": 3
+    },
+    "cast": {
+      "k": "깁스",
+      "l": 3
+    },
+    "arm sling": {
+      "k": "팔 삼각건",
+      "l": 3
+    },
+    "crutch": {
+      "k": "목발",
+      "l": 3
+    },
+    "stitches": {
+      "k": "꿰맨 자국",
+      "l": 3
+    },
+    "burn scar": {
+      "k": "화상 흉터",
+      "l": 3
+    },
+    "beard": {
+      "k": "턱수염",
+      "l": 3
+    },
+    "mustache": {
+      "k": "콧수염",
+      "l": 3
+    },
+    "goatee": {
+      "k": "염소수염",
+      "l": 3
+    },
+    "stubble": {
+      "k": "까칠한 수염",
+      "l": 3
+    },
+    "sideburns": {
+      "k": "구레나룻",
+      "l": 3
+    },
+    "full beard": {
+      "k": "덥수룩한 수염",
+      "l": 3
+    },
+    "facial hair": {
+      "k": "얼굴 털",
+      "l": 3
+    },
+    "mechanical arms": {
+      "k": "기계 팔",
+      "l": 3
+    },
+    "mechanical legs": {
+      "k": "기계 다리",
+      "l": 3
+    },
+    "single mechanical arm": {
+      "k": "한쪽 기계 팔",
+      "l": 3
+    },
+    "single mechanical leg": {
+      "k": "한쪽 기계 다리",
+      "l": 3
+    },
+    "prosthesis": {
+      "k": "의족·의수",
+      "l": 3
+    },
+    "mechanical hands": {
+      "k": "기계 손",
+      "l": 3
+    },
+    "cyborg": {
+      "k": "사이보그",
+      "l": 3
+    },
+    "mechanical parts": {
+      "k": "기계 부품",
+      "l": 3
+    },
+    "glowing lines": {
+      "k": "빛나는 선",
+      "l": 3
+    },
+    "circuit board": {
+      "k": "회로 문양",
+      "l": 3
+    },
+    "robot joints": {
+      "k": "로봇 관절",
+      "l": 3
+    },
+    "mechanical tail": {
+      "k": "기계 꼬리",
+      "l": 3
+    },
+    "short (stature)": {
+      "k": "키 작음",
+      "l": 3
+    },
+    "veiny arms": {
+      "k": "핏줄 선 팔",
+      "l": 3
+    },
+    "wet": {
+      "k": "젖은 몸",
+      "l": 3
+    },
+    "dripping": {
+      "k": "물방울 떨어짐",
+      "l": 3
+    },
+    "aged skin": {
+      "k": "나이 든 피부",
+      "l": 3
+    },
+    "old man": {
+      "k": "노인 남성",
+      "l": 3
+    },
+    "old woman": {
+      "k": "노인 여성",
+      "l": 3
+    },
+    "ribs": {
+      "k": "갈비뼈",
+      "l": 3
+    },
+    "wide shoulders": {
+      "k": "넓은 어깨",
+      "l": 3
+    },
+    "elf": {
+      "k": "엘프",
+      "l": 3
+    },
+    "dark elf": {
+      "k": "다크 엘프",
+      "l": 3
+    },
+    "high elf": {
+      "k": "하이 엘프",
+      "l": 3
+    },
+    "dwarf": {
+      "k": "드워프",
+      "l": 3
+    },
+    "fairy": {
+      "k": "요정",
+      "l": 3
+    },
+    "angel": {
+      "k": "천사",
+      "l": 3
+    },
+    "fallen angel": {
+      "k": "타락천사",
+      "l": 3
+    },
+    "demon": {
+      "k": "악마",
+      "l": 3
+    },
+    "devil": {
+      "k": "데빌(악마)",
+      "l": 3
+    },
+    "succubus": {
+      "k": "서큐버스(몽마)",
+      "l": 3
+    },
+    "vampire": {
+      "k": "뱀파이어(흡혈귀)",
+      "l": 3
+    },
+    "werewolf": {
+      "k": "늑대인간",
+      "l": 3
+    },
+    "oni": {
+      "k": "오니(도깨비)",
+      "l": 3
+    },
+    "kitsune": {
+      "k": "여우 요괴(키츠네)",
+      "l": 3
+    },
+    "kappa": {
+      "k": "갓파(물의 요괴)",
+      "l": 3
+    },
+    "tengu": {
+      "k": "덴구(까마귀 요괴)",
+      "l": 3
+    },
+    "dragon girl": {
+      "k": "드래곤 소녀",
+      "l": 3
+    },
+    "dragon boy": {
+      "k": "드래곤 소년",
+      "l": 3
+    },
+    "lamia": {
+      "k": "라미아(뱀 여인)",
+      "l": 3
+    },
+    "harpy": {
+      "k": "하피(새 여인)",
+      "l": 3
+    },
+    "mermaid": {
+      "k": "인어",
+      "l": 3
+    },
+    "merman": {
+      "k": "남자 인어",
+      "l": 3
+    },
+    "centaur": {
+      "k": "켄타우로스",
+      "l": 3
+    },
+    "slime girl": {
+      "k": "슬라임 소녀",
+      "l": 3
+    },
+    "plant girl": {
+      "k": "식물 소녀",
+      "l": 3
+    },
+    "insect girl": {
+      "k": "곤충 소녀",
+      "l": 3
+    },
+    "gynoid": {
+      "k": "여성형 로봇",
+      "l": 3
+    },
+    "zombie": {
+      "k": "좀비",
+      "l": 3
+    },
+    "skeleton": {
+      "k": "해골",
+      "l": 3
+    },
+    "mummy": {
+      "k": "미라",
+      "l": 3
+    },
+    "jiangshi": {
+      "k": "강시",
+      "l": 3
+    },
+    "monster boy": {
+      "k": "몬스터 보이",
+      "l": 3
+    },
+    "dullahan": {
+      "k": "듈라한(목 없는 기사)",
+      "l": 3
+    },
+    "valkyrie": {
+      "k": "발키리",
+      "l": 3
+    },
+    "siren": {
+      "k": "세이렌",
+      "l": 3
+    },
+    "nymph": {
+      "k": "님프",
+      "l": 3
+    },
+    "dryad": {
+      "k": "드리아드(나무 요정)",
+      "l": 3
+    },
+    "golem": {
+      "k": "골렘",
+      "l": 3
+    },
+    "orc": {
+      "k": "오크",
+      "l": 3
+    },
+    "goblin": {
+      "k": "고블린",
+      "l": 3
+    },
+    "giant": {
+      "k": "거인",
+      "l": 3
+    },
+    "cyclops": {
+      "k": "키클롭스(외눈 거인)",
+      "l": 3
+    },
+    "yuki-onna": {
+      "k": "유키온나(설녀)",
+      "l": 3
+    },
+    "gargoyle": {
+      "k": "가고일",
+      "l": 3
+    },
+    "minotaur": {
+      "k": "미노타우로스",
+      "l": 3
+    },
+    "arachne": {
+      "k": "아라크네(거미 여인)",
+      "l": 3
+    },
+    "witch": {
+      "k": "마녀",
+      "l": 3
+    },
+    "nun": {
+      "k": "수녀",
+      "l": 3
+    },
+    "priest": {
+      "k": "사제",
+      "l": 3
+    },
+    "butler": {
+      "k": "집사",
+      "l": 3
+    },
+    "knight": {
+      "k": "기사",
+      "l": 3
+    },
+    "samurai": {
+      "k": "사무라이",
+      "l": 3
+    },
+    "ninja": {
+      "k": "닌자",
+      "l": 3
+    },
+    "shinobi": {
+      "k": "시노비(닌자)",
+      "l": 3
+    },
+    "pirate": {
+      "k": "해적",
+      "l": 3
+    },
+    "cowboy": {
+      "k": "카우보이",
+      "l": 3
+    },
+    "soldier": {
+      "k": "군인",
+      "l": 3
+    },
+    "sailor": {
+      "k": "선원",
+      "l": 3
+    },
+    "police": {
+      "k": "경찰",
+      "l": 3
+    },
+    "detective": {
+      "k": "탐정",
+      "l": 3
+    },
+    "doctor": {
+      "k": "의사",
+      "l": 3
+    },
+    "teacher": {
+      "k": "교사",
+      "l": 3
+    },
+    "princess": {
+      "k": "공주",
+      "l": 3
+    },
+    "queen": {
+      "k": "여왕",
+      "l": 3
+    },
+    "king": {
+      "k": "왕",
+      "l": 3
+    },
+    "prince": {
+      "k": "왕자",
+      "l": 3
+    },
+    "noble": {
+      "k": "귀족",
+      "l": 3
+    },
+    "adventurer": {
+      "k": "모험가",
+      "l": 3
+    },
+    "mage": {
+      "k": "메이지(마법사)",
+      "l": 3
+    },
+    "wizard": {
+      "k": "위저드(마법사)",
+      "l": 3
+    },
+    "sorceress": {
+      "k": "여자 마법사",
+      "l": 3
+    },
+    "cleric": {
+      "k": "클레릭(성직자)",
+      "l": 3
+    },
+    "archer": {
+      "k": "궁수",
+      "l": 3
+    },
+    "assassin": {
+      "k": "암살자",
+      "l": 3
+    },
+    "gladiator": {
+      "k": "검투사",
+      "l": 3
+    },
+    "chef": {
+      "k": "요리사",
+      "l": 3
+    },
+    "scientist": {
+      "k": "과학자",
+      "l": 3
+    },
+    "astronaut": {
+      "k": "우주비행사",
+      "l": 3
+    },
+    "mechanic": {
+      "k": "정비사",
+      "l": 3
+    },
+    "farmer": {
+      "k": "농부",
+      "l": 3
+    },
+    "gunslinger": {
+      "k": "총잡이",
+      "l": 3
+    },
+    "evil smile": {
+      "k": "사악한 미소",
+      "l": 3
+    },
+    "sadistic": {
+      "k": "가학적인 표정",
+      "l": 3
+    },
+    "scowl": {
+      "k": "노려보며 찌푸린 표정",
+      "l": 3
+    },
+    "sulking": {
+      "k": "뿌루퉁한 표정",
+      "l": 3
+    },
+    "crying with eyes open": {
+      "k": "눈 뜨고 우는 표정",
+      "l": 3
+    },
+    "streaming tears": {
+      "k": "주르륵 흐르는 눈물",
+      "l": 3
+    },
+    "teary eyes": {
+      "k": "눈물 그렁그렁한 눈",
+      "l": 3
+    },
+    "sobbing": {
+      "k": "흐느껴 우는 표정",
+      "l": 3
+    },
+    "giggling": {
+      "k": "킥킥 웃는 표정",
+      "l": 3
+    },
+    "screaming": {
+      "k": "비명 지르는 표정",
+      "l": 3
+    },
+    "shouting": {
+      "k": "소리치는 표정",
+      "l": 3
+    },
+    "heavy blush": {
+      "k": "진한 홍조",
+      "l": 3
+    },
+    "drowsy": {
+      "k": "나른하게 졸린 표정",
+      "l": 3
+    },
+    "soft smile": {
+      "k": "은은한 미소",
+      "l": 3
+    },
+    "wince": {
+      "k": "움찔 찡그린 표정",
+      "l": 3
+    },
+    "disgust": {
+      "k": "역겨워하는 표정",
+      "l": 3
+    },
+    "contempt": {
+      "k": "경멸하는 표정",
+      "l": 3
+    },
+    "exhausted": {
+      "k": "기진맥진한 표정",
+      "l": 3
+    },
+    "dreamy": {
+      "k": "몽롱한 표정",
+      "l": 3
+    },
+    "mischievous": {
+      "k": "장난기 어린 표정",
+      "l": 3
+    },
+    "teasing smile": {
+      "k": "놀리는 듯한 미소",
+      "l": 3
+    },
+    "lip biting": {
+      "k": "입술 깨물기",
+      "l": 3
+    },
+    "nose bubble": {
+      "k": "콧방울 (졸음)",
+      "l": 3
+    },
+    "wavy mouth": {
+      "k": "물결 모양 입",
+      "l": 3
+    },
+    "grimace": {
+      "k": "찡그린 얼굴",
+      "l": 3
+    },
+    "furrowed brow": {
+      "k": "찌푸린 눈썹",
+      "l": 3
+    },
+    "happy": {
+      "k": "행복한 표정",
+      "l": 3
+    },
+    "hail": {
+      "k": "우박",
+      "l": 7
+    },
+    "wind": {
+      "k": "바람",
+      "l": 7
+    },
+    "sandstorm": {
+      "k": "모래폭풍",
+      "l": 7
+    },
+    "falling feathers": {
+      "k": "흩날리는 깃털",
+      "l": 7
+    },
+    "dust cloud": {
+      "k": "먼지 구름",
+      "l": 7
+    },
+    "sunshower": {
+      "k": "여우비",
+      "l": 7
+    },
+    "double rainbow": {
+      "k": "쌍무지개",
+      "l": 7
+    },
+    "sun glare": {
+      "k": "눈부신 햇빛",
+      "l": 7
+    },
+    "floating lights": {
+      "k": "떠다니는 빛",
+      "l": 7
+    },
+    "energy": {
+      "k": "에너지 파동",
+      "l": 7
+    },
+    "explosion": {
+      "k": "폭발",
+      "l": 7
+    },
+    "shockwave": {
+      "k": "충격파",
+      "l": 7
+    },
+    "splash": {
+      "k": "물보라",
+      "l": 7
+    },
+    "ripples": {
+      "k": "잔물결",
+      "l": 7
+    },
+    "foam": {
+      "k": "물거품",
+      "l": 7
+    },
+    "ash": {
+      "k": "재",
+      "l": 7
+    },
+    "falling ash": {
+      "k": "떨어지는 재",
+      "l": 7
+    }
+  }
+}

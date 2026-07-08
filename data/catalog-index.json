@@ -1,7 +1,15 @@
 {
   "schema": 1,
-  "updated": "2026-07-01",
+  "updated": "2026-07-08",
   "packs": [
+    {
+      "id": "danbooru-general",
+      "name": "Danbooru 대형 일반팩",
+      "description": "danbooru 계열 캐릭터·의상·포즈·배경·조명 태그 대량 확장 (한글 번역 포함, SFW)",
+      "file": "danbooru-general.json",
+      "count": 847,
+      "nsfw": false
+    },
     {
       "id": "expressions-plus",
       "name": "표정·감정 확장",
