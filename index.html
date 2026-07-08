@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.30 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.31 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.30 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.31 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1975,7 +1975,15 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.30', date: '2026-07-08', time: '최신',
+                version: 'v9.10.31', date: '2026-07-08', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[추천] 의상·구도·배경 후보가 훨씬 다양해졌습니다 — 실제 인기 게시물에서 뽑은 후보를 계층당 40개→150개로 늘려, 🔄를 누를수록 새로운 조합이 나옵니다 (앱 기본 사전이 아니라 실제 사람들이 쓴 태그 기준)',
+                    '[추천] 의상 / 구도 / 배경을 각각 따로 비울 수 있는 지우개 버튼을 추가했습니다 — 전체를 지우지 않고 한 축만 새로 고를 수 있습니다',
+                ]
+            },
+            {
+                version: 'v9.10.30', date: '2026-07-08', time: '이전',
                 tag: 'feat',
                 items: [
                     '[추천] 추천을 "간편 조합" 안의 "추천" 버튼으로 옮겼습니다 — 상세 태그 화면은 깔끔해지고, 필요할 때 버튼으로 열어서 씁니다',
@@ -6933,28 +6941,39 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             '1girl', '1boy', '1other', '2girls', '3girls', '4girls', '5girls', '6+girls', '2boys', '3boys', '4boys',
             'couple', 'group', 'duo', 'trio', 'crowd', 'multiple views', 'everyone']);
         // ── 의상·구도·배경 도우미: 특정 계층의 후보를 활성 태그에 맞춰 랭킹 ──
-        // 계층은 실데이터 빈출(_DATA_LC[layer])을 기준으로 잡아 설치 팩과 무관하게 정확. 활성 태그와의 동시출현으로 가중.
+        // 후보 풀은 실제 danbooru 게시물에서 집계한 계층 빈출(_DATA_LC, 계층당 150개)만 사용 — 앱 사전(우리가 정한 것)은 섞지 않음.
+        // 오프라인 등으로 데이터가 없을 때만 내장 _REC_COMMON으로 폴백. 활성 태그와의 실제 동시출현으로 가중, jitter로 리롤 변화.
         function _recAxisRanked(layer, active, n, jitter) {
-            const pool = (_DATA_LC[layer] && _DATA_LC[layer].length) ? _DATA_LC[layer] : (_REC_COMMON[layer] || []);
+            const base = (_DATA_LC[layer] && _DATA_LC[layer].length) ? _DATA_LC[layer] : (_REC_COMMON[layer] || []);
             const hasOut = [...active].some(t => _REC_OUTDOOR.has(t));
             const hasIn = [...active].some(t => _REC_INDOOR.has(t));
             const aff = {};
             active.forEach(t => { [...(TAG_AFFINITY[t] || []), ...(_DATA_AFF[t] || [])].forEach((r, i) => { aff[r] = (aff[r] || 0) + Math.max(0, 1 - i * 0.06); }); });
             const j = jitter == null ? 0.15 : jitter;
-            return pool
+            return base
                 .filter(t => t && !active.has(t) && !_REC_PERSONCOUNT.has(t))
                 .filter(t => !(hasOut && _REC_INDOOR.has(t)) && !(hasIn && _REC_OUTDOOR.has(t)))
-                .map((t, i) => [t, (aff[t] || 0) * 2 + (1 - i * 0.02) + Math.random() * j])
+                .map((t, i) => [t, (aff[t] || 0) * 2 + (1 - i * 0.006) + Math.random() * j])
                 .sort((a, b) => b[1] - a[1]).slice(0, n).map(([t]) => t);
+        }
+        // 한 계층 전체 비우기 (의상/구도/배경 개별 리셋용)
+        // 한 계층 전체 비우기 (의상/구도/배경 개별 리셋용)
+        function _recClearLayer(L) {
+            const st = contextStates[currentContext]; if (!st) return;
+            try { saveStateToUndoStack(); } catch (e) {}
+            st[L - 1] = '';
+            const el = document.getElementById('layer-' + L); if (el) el.value = '';
+            try { syncFromManualInput(L); } catch (e) {}
+            try { updateMasterOutput(); } catch (e) {}
         }
         // 서로 어울리는 '의상+구도+배경' 완성 세트 n개 (실데이터 동시출현으로 일관성 확보)
         function _recSceneBundles(count) {
             const active = _recActive();
             const inL = (t, L) => (_DATA_LC[L] || []).includes(t);
             const seen = new Set(); const out = [];
-            for (let k = 0; k < count * 4 && out.length < count; k++) {
-                const outfits = _recAxisRanked(4, active, 10, 0.4);
-                const seed = outfits[Math.floor(Math.random() * Math.min(7, outfits.length))];
+            for (let k = 0; k < count * 5 && out.length < count; k++) {
+                const outfits = _recAxisRanked(4, active, 18, 0.5);
+                const seed = outfits[Math.floor(Math.random() * Math.min(14, outfits.length))];
                 if (!seed) break;
                 const outfit = [seed];
                 const extra = (_DATA_AFF[seed] || []).find(r => inL(r, 4) && r !== seed && !active.has(r));
@@ -7080,7 +7099,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (active.has((t || '').toLowerCase())) _recRemoveTag(t);
             else importPromptToEditor([t], 'append');
         }
-        let _recModalBundles = null;
+        let _recModalBundles = null, _recModalAxis = null;
         function openRecommendModal() {
             let ov = document.getElementById('rec-modal-overlay');
             if (!ov) {
@@ -7089,7 +7108,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 ov.onclick = (e) => { if (e.target === ov) closeRecommendModal(); };
                 document.body.appendChild(ov);
             }
-            _recModalBundles = null;
+            _recModalBundles = null; _recModalAxis = null;
             renderRecommendModal(true);
         }
         function closeRecommendModal() { const o = document.getElementById('rec-modal-overlay'); if (o) o.remove(); }
@@ -7132,6 +7151,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } else {
                 // 룩북 + 칸별 (토글)
                 if (regen || !_recModalBundles) _recModalBundles = _recSceneBundles(4);
+                if (regen || !_recModalAxis) { _recModalAxis = {}; [4, 2, 6].forEach(L => _recModalAxis[L] = _recAxisRanked(L, active, 18, 0.5)); }
                 const bundles = _recModalBundles;
                 let hi = '';
                 if (bundles.length) {
@@ -7144,13 +7164,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     });
                     hi += `</div></div>`;
                 }
-                hi += `<div><div style="font-size:11px;font-weight:800;color:var(--text-dim);margin-bottom:7px;">직접 골라담기 (담긴 건 ✓ · 다시 누르면 빠짐)</div>`;
+                hi += `<div><div style="font-size:11px;font-weight:800;color:var(--text-dim);margin-bottom:7px;">직접 골라담기 (담긴 건 ✓ · 다시 누르면 빠짐 · 🔄로 다른 후보)</div>`;
                 hi += `<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;">`;
                 [[4, '의상'], [2, '구도'], [6, '배경']].forEach(([L, name]) => {
                     const activeInL = [...active].filter(t => !_REC_PERSONCOUNT.has(t) && (_recLayerOf(t) === L || (_DATA_LC[L] || []).includes(t)));
-                    const fresh = _recAxisRanked(L, active, Math.max(4, 8 - activeInL.length), 0.12);
+                    const fresh = (_recModalAxis[L] || []).filter(t => !active.has(t)).slice(0, Math.max(6, 12 - activeInL.length));
                     const items = [...activeInL.map(t => [t, true]), ...fresh.map(t => [t, false])];
-                    hi += `<div style="min-width:0;"><div style="font-size:11px;font-weight:800;color:#a855f7;margin-bottom:6px;">${name}</div><div style="display:flex;flex-direction:column;gap:5px;">`;
+                    hi += `<div style="min-width:0;"><div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;"><span style="font-size:11px;font-weight:800;color:#a855f7;">${name}</span><button class="recm-clear" data-l="${L}" title="${name} 비우기" style="margin-left:auto;background:none;border:none;color:var(--text-dim);font-size:11px;cursor:pointer;padding:0 2px;"><i class="fa-solid fa-eraser"></i></button></div><div style="display:flex;flex-direction:column;gap:5px;">`;
                     items.forEach(([t, on]) => {
                         hi += `<button class="recm-axis" data-t="${_esc(t)}" title="${_esc(t)}" style="text-align:left;background:${on ? 'rgba(34,197,94,0.16)' : 'rgba(168,85,247,0.07)'};border:1px solid ${on ? 'rgba(34,197,94,0.55)' : 'rgba(168,85,247,0.28)'};border-radius:8px;padding:5px 8px;cursor:pointer;font-size:11px;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="fa-solid fa-${on ? 'check' : 'plus'}" style="font-size:8px;color:${on ? '#22c55e' : '#a855f7'};margin-right:4px;"></i>${_esc(_recKor(t))}</button>`;
                     });
@@ -7158,6 +7178,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 });
                 hi += `</div></div>`;
                 body.innerHTML = hi;
+                body.querySelectorAll('.recm-clear').forEach(b => b.onclick = () => { _recClearLayer(parseInt(b.dataset.l)); renderRecommendModal(false); });
                 body.querySelectorAll('.recm-bundle').forEach(b => b.onclick = () => {
                     const bd = bundles[parseInt(b.dataset.idx)]; if (!bd) return;
                     const tags = [...bd.outfit, bd.comp, ...bd.bg].filter(Boolean);
