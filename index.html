@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.25 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.26 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.25 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.26 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1271,6 +1271,7 @@
                     <button onclick="collapseAllLayers(false)"><i class="fa-solid fa-angles-down"></i> 모두 열기</button>
                     <div style="flex:1;"></div>
                     <button id="btn-folder-rec" onclick="toggleRecommend()" title="추천 조합 켜기/끄기" style="color:#a855f7; border-color:rgba(168,85,247,0.4);"><i class="fa-solid fa-bolt"></i></button>
+                    <button id="btn-fill-out" onclick="fillOutPrompt()" title="지금 태그에 어울리는 태그로 한 번에 보완" style="color:#22c55e; border-color:rgba(34,197,94,0.4);"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
                     <button onclick="focusFavRecent('fav', event)" title="즐겨찾기" style="color:#eab308; border-color:rgba(234,179,8,0.4);"><i class="fa-solid fa-star"></i></button>
                     <button onclick="focusFavRecent('recent', event)" title="최근 사용" style="color:#10b981; border-color:rgba(16,185,129,0.4);"><i class="fa-solid fa-clock-rotate-left"></i></button>
                 </div>
@@ -1358,6 +1359,12 @@
                                 <span id="pos-count" style="color:var(--text-dim); font-weight:bold; font-family:var(--font-code); transition: color 0.3s; cursor:help; font-size: 13px;">0</span>
                                 <span id="token-count" style="color:var(--text-dim); font-weight:bold; font-family:var(--font-code); transition: color 0.3s; font-size: 11px;">약 0토큰</span>
                             </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px; margin:2px 0 6px; flex-wrap:wrap;">
+                            <label style="display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-dim); cursor:pointer; white-space:nowrap;">
+                                <input type="checkbox" id="fixed-prefix-toggle" onchange="_fixedPrefixSave()"> 고정 접두 태그 항상 넣기
+                            </label>
+                            <input type="text" id="fixed-prefix-text" oninput="_fixedPrefixSave()" placeholder="score_9, score_8_up, ..." title="추천·조합을 담아도 이 태그들은 항상 최종 프롬프트 맨 앞에 포함됩니다" style="flex:1 1 180px; min-width:0; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:6px; padding:5px 9px; color:var(--text-main); font-family:var(--font-code); font-size:12px; outline:none;">
                         </div>
                         <textarea class="result-textarea" id="final-positive" readonly></textarea>
                         <div id="syntax-warning" style="display:none; margin-top:4px;">
@@ -1969,7 +1976,15 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.25', date: '2026-07-08', time: '최신',
+                version: 'v9.10.26', date: '2026-07-08', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[결과] "고정 접두 태그" 추가 — score_9 같은 품질 태그를 항상 최종 프롬프트 맨 앞에 넣어줍니다. 추천·조합을 담아 계층이 바뀌어도 이 태그들은 빠지지 않습니다(기본값: Pony score 6단 체인, 결과창에서 켜고 끄거나 직접 수정 가능)',
+                    '[에디터] "한 번에 보완" 버튼(✨) 추가 — 태그를 몇 개만 골라도(예: 큰 키·운동복) 어울리는 태그를 자동으로 여러 개 채워 프롬프트를 풍성하게 만들어 줍니다. 빈 계층 위주로, 실내·실외 충돌은 피해서 채웁니다',
+                ]
+            },
+            {
+                version: 'v9.10.25', date: '2026-07-08', time: '이전',
                 tag: 'fix',
                 items: [
                     '[ComfyUI] 여러 장 한꺼번에 생성("빠르게 생성")할 때도 연결 확인이 와이파이 순간 끊김에 한 번 걸렸다고 통째로 취소되지 않도록 재시도하게 개선 — 단일 생성과 동일하게 안정적으로 동작합니다',
@@ -6594,6 +6609,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const area = document.getElementById('rec-combo-area');
                 if (area) area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
+        }
+        // 한 번에 보완: 지금 태그에 어울리는 태그를 추천 엔진으로 뽑아 빈 계층 위주로 채움
+        function fillOutPrompt() {
+            let active; try { active = _recActive(); } catch (e) { active = new Set(); }
+            const sugg = _recSuggest(active.size === 0 ? 10 : 12);
+            if (!sugg || !sugg.length) { showToast('보완할 태그를 찾지 못했어요. 태그를 몇 개 더 넣어보세요.', 'warning', 3000); return; }
+            importPromptToEditor(sugg.map(s => s.t), 'append');
+            showToast(`✨ 어울리는 태그 ${sugg.length}개를 채웠어요`, 'success', 2200);
+            if (_recommendOn) renderRecommendArea(true);
         }
         function _recUpdateBtn() {
             const btn = document.getElementById('btn-folder-rec');
@@ -12887,9 +12911,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const c = _clipCountText(text);
             return { tokens: c !== null ? c : _estTokens(text), exact: c !== null };
         }
-        // 부팅 시 CLIP 준비 (온라인이면 정확 토큰)
-        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(_clipInit, 400));
-        else setTimeout(_clipInit, 400);
+        // 부팅 시 CLIP 준비 (온라인이면 정확 토큰) + 고정 접두 태그 UI 초기화
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { setTimeout(_clipInit, 400); _fixedPrefixInit(); });
+        else { setTimeout(_clipInit, 400); _fixedPrefixInit(); }
 
         // 토큰 초과 경고 배너 (75토큰/청크)
         function updateTokenWarning(maxChunkTok, chunkCount) {
@@ -12924,6 +12948,37 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); } catch (e) {}
         }
 
+        // ── 고정 접두 태그: 추천·조합으로 계층이 바뀌어도 score 등 필수 태그를 최종 프롬프트에 항상 포함 ──
+        let _fixedPrefix = { enabled: true, text: 'score_9, score_8_up, score_7_up, score_6_up, score_5_up, score_4_up' };
+        try { const s = JSON.parse(localStorage.getItem('fixed_prefix_v1')); if (s && typeof s === 'object') _fixedPrefix = { enabled: s.enabled !== false, text: typeof s.text === 'string' ? s.text : _fixedPrefix.text }; } catch (e) {}
+        function _fixedPrefixInit() {
+            const c = document.getElementById('fixed-prefix-toggle'); const t = document.getElementById('fixed-prefix-text');
+            if (c) c.checked = _fixedPrefix.enabled;
+            if (t) t.value = _fixedPrefix.text;
+        }
+        function _fixedPrefixSave() {
+            const c = document.getElementById('fixed-prefix-toggle'); const t = document.getElementById('fixed-prefix-text');
+            if (c) _fixedPrefix.enabled = c.checked;
+            if (t) _fixedPrefix.text = t.value;
+            try { localStorage.setItem('fixed_prefix_v1', JSON.stringify(_fixedPrefix)); } catch (e) {}
+            if (typeof updateMasterOutput === 'function') updateMasterOutput();
+        }
+        // 최종 문자열 맨 앞에 프리픽스를 붙이되, 본문에 이미 있는 같은 태그는 제거해 중복 방지 (라벨/BREAK 줄 보존)
+        function _applyFixedPrefix(out, fmt, useBreak) {
+            if (!_fixedPrefix.enabled) return out;
+            const pfx = (_fixedPrefix.text || '').trim();
+            if (!pfx) return out;
+            const pfxSet = new Set(pfx.split(',').map(s => s.trim().toLowerCase()).filter(Boolean));
+            let cleaned = out.split('\n').map(line => {
+                const tl = line.trim();
+                if (!tl || tl === 'BREAK' || tl.startsWith('[')) return line; // 구분자·라벨 보존
+                return line.split(',').map(s => s.trim()).filter(t => t && !pfxSet.has(t.toLowerCase())).join(', ');
+            }).join('\n').replace(/\n{3,}/g, '\n\n').trim().replace(/^\s*,\s*/, '').replace(/\s*,\s*$/, '');
+            if (!cleaned) return pfx;
+            if (fmt === 'labeled') return `[품질]\n${pfx}${useBreak ? '\n\nBREAK\n\n' : '\n\n'}${cleaned}`;
+            return `${pfx}, ${cleaned}`;
+        }
+
         function updateMasterOutput() {
             // 동적 탭 기반으로 각 탭의 내용 수집
             const tabStrings = contextTabs.map(tab => {
@@ -12945,7 +13000,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } else {
                 finalOutput = validBlocks.map(b => b.content).join(useBreak ? ", BREAK, " : ", ");
             }
-            document.getElementById('final-positive').value = finalOutput.trim() || "";
+            finalOutput = _applyFixedPrefix(finalOutput.trim(), outputFormat, useBreak);
+            document.getElementById('final-positive').value = finalOutput || "";
 
             // 각 BREAK 청크별로 토큰을 세어 최대 청크 기준으로 판정 (SD는 75토큰/청크)
             const _chunks = finalOutput.split(/\bBREAK\b/).map(s => s.trim()).filter(Boolean);
