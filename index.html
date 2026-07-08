@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.32 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.33 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.32 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.33 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1975,7 +1975,14 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.32', date: '2026-07-08', time: '최신',
+                version: 'v9.10.33', date: '2026-07-08', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[추천] 의상·구도·배경 각 칸마다 "다른 제안" 버튼을 따로 넣었습니다 — 이제 그 칸만 새 후보로 바꿀 수 있어, 마음에 드는 칸은 그대로 두고 원하는 칸만 다시 굴릴 수 있습니다',
+                ]
+            },
+            {
+                version: 'v9.10.32', date: '2026-07-08', time: '이전',
                 tag: 'fix',
                 items: [
                     '[추천] 새 제안(리롤) 버튼이 아이콘만 있어 안 보이던 문제 수정 — 이제 "🔄 다른 제안"이라고 글자까지 또렷하게 표시됩니다',
@@ -7177,7 +7184,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const activeInL = [...active].filter(t => !_REC_PERSONCOUNT.has(t) && (_recLayerOf(t) === L || (_DATA_LC[L] || []).includes(t)));
                     const fresh = (_recModalAxis[L] || []).filter(t => !active.has(t)).slice(0, Math.max(6, 12 - activeInL.length));
                     const items = [...activeInL.map(t => [t, true]), ...fresh.map(t => [t, false])];
-                    hi += `<div style="min-width:0;"><div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;"><span style="font-size:11px;font-weight:800;color:#a855f7;">${name}</span><button class="recm-clear" data-l="${L}" title="${name} 비우기" style="margin-left:auto;background:none;border:none;color:var(--text-dim);font-size:11px;cursor:pointer;padding:0 2px;"><i class="fa-solid fa-eraser"></i></button></div><div style="display:flex;flex-direction:column;gap:5px;">`;
+                    hi += `<div style="min-width:0;"><div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;"><span style="font-size:11px;font-weight:800;color:#a855f7;">${name}</span><button class="recm-reroll" data-l="${L}" title="${name}만 다른 제안" style="margin-left:auto;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.35);color:#a855f7;font-size:10px;cursor:pointer;padding:2px 6px;border-radius:6px;"><i class="fa-solid fa-arrows-rotate"></i></button><button class="recm-clear" data-l="${L}" title="${name} 비우기" style="background:none;border:none;color:var(--text-dim);font-size:11px;cursor:pointer;padding:0 2px;"><i class="fa-solid fa-eraser"></i></button></div><div style="display:flex;flex-direction:column;gap:5px;">`;
                     items.forEach(([t, on]) => {
                         hi += `<button class="recm-axis" data-t="${_esc(t)}" title="${_esc(t)}" style="text-align:left;background:${on ? 'rgba(34,197,94,0.16)' : 'rgba(168,85,247,0.07)'};border:1px solid ${on ? 'rgba(34,197,94,0.55)' : 'rgba(168,85,247,0.28)'};border-radius:8px;padding:5px 8px;cursor:pointer;font-size:11px;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="fa-solid fa-${on ? 'check' : 'plus'}" style="font-size:8px;color:${on ? '#22c55e' : '#a855f7'};margin-right:4px;"></i>${_esc(_recKor(t))}</button>`;
                     });
@@ -7185,6 +7192,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 });
                 hi += `</div></div>`;
                 body.innerHTML = hi;
+                body.querySelectorAll('.recm-reroll').forEach(b => b.onclick = () => { const L = parseInt(b.dataset.l); _recModalAxis[L] = _recAxisRanked(L, _recActive(), 18, 0.55); renderRecommendModal(false); });
                 body.querySelectorAll('.recm-clear').forEach(b => b.onclick = () => { _recClearLayer(parseInt(b.dataset.l)); renderRecommendModal(false); });
                 body.querySelectorAll('.recm-bundle').forEach(b => b.onclick = () => {
                     const bd = bundles[parseInt(b.dataset.idx)]; if (!bd) return;
