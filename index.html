@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.20 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.21 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.20 &nbsp;·&nbsp; 2026-07-04 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.21 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1967,9 +1967,17 @@
         // 토스트 알림
         // ── 업데이트 내역 ────────────────────────────────────────────────────
         const CHANGELOG = [
+            // ── 2026-07-08 ──────────────────────────────────────────────────
+            {
+                version: 'v9.10.21', date: '2026-07-08', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[ComfyUI] 와이파이가 느릴 때 생성이 끝난 이미지가 결과에 안 뜨고 사라지던 문제 수정 — 이제 결과를 못 받아오면 즉시 포기하지 않고 다시 시도해서, 느린 연결에서도 완성된 이미지를 놓치지 않습니다',
+                ]
+            },
             // ── 2026-07-04 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.20', date: '2026-07-04', time: '최신',
+                version: 'v9.10.20', date: '2026-07-04', time: '이전',
                 tag: 'feat',
                 items: [
                     '[ComfyUI] 휴대폰(보안 페이지)에서 PC의 ComfyUI로 연결이 차단될 때, 이제 원인과 해결 방법(브라우저에서 허용 설정 2가지)을 화면에 바로 안내 — 이전에는 원인과 무관한 "연결 실패" 문구만 표시됨',
@@ -4340,14 +4348,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     if (_comfyJobs[pid].done) continue;
                     if (_comfyJobs[pid]._mock) continue; // 가상(테스트) 작업은 서버 동기화 대상 아님
                     if (!livePids.has(pid)) {
-                        // history 확인해서 완료면 finalize, 아니면 조용히 제거
+                        // history 확인해서 완료면 finalize, 아니면 제거 — 단, 네트워크 실패 시엔 지우지 않고 보류
+                        let h;
                         try {
-                            const hr = await fetch(_comfyBase() + '/history/' + pid, { signal: AbortSignal.timeout(3000) });
-                            if (hr.ok) {
-                                const h = await hr.json();
-                                if (h[pid]?.outputs && Object.keys(h[pid].outputs).length) { _comfyFinalize(pid); continue; }
-                            }
+                            const hr = await fetch(_comfyBase() + '/history/' + pid, { signal: AbortSignal.timeout(8000) });
+                            if (hr.ok) h = await hr.json();
                         } catch (e) {}
+                        if (h && h[pid]?.outputs && Object.keys(h[pid].outputs).length) { _comfyFinalize(pid, h); continue; }
+                        if (!h) continue; // 히스토리 조회 실패(느린 와이파이) → 삭제 보류, 다음 싱크에서 재시도
+                        // 히스토리는 받았으나 결과 없음 → 취소/중단. 단 큐→기록 지연 대비 한 사이클 유예 후 제거
+                        if ((_comfyJobs[pid]._emptyHits = (_comfyJobs[pid]._emptyHits || 0) + 1) < 2) continue;
                         delete _comfyJobs[pid];
                         _comfyQueueCount = Math.max(0, _comfyQueueCount - 1);
                         _comfyBatchTotal = Math.max(0, _comfyBatchTotal - 1);
@@ -5097,16 +5107,33 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         // 실행 종료 → 저장본(type:output)만 영구 갤러리에 추가
-        async function _comfyFinalize(pid) {
+        // preHist: 호출부가 이미 받아둔 히스토리(중복 fetch 방지). 없으면 여기서 타임아웃+재시도로 확보
+        async function _comfyFinalize(pid, preHist) {
             const job = _comfyJobs[pid];
-            if (!job || job.done) return;
+            if (!job || job.done || job._finalizing) return; // 웹소켓·폴링·싱크 동시 호출 중복 방지
+            job._finalizing = true;
+            // 히스토리 확보 — 느린 네트워크 대비 타임아웃+재시도. 끝내 못 받으면 완료 처리 보류(다음 폴링에서 재시도)
+            let hist = preHist;
+            if (!hist || !hist[pid]) {
+                for (let a = 0; a < 3 && (!hist || !hist[pid]); a++) {
+                    try {
+                        const res = await fetch(_comfyBase() + '/history/' + pid, { signal: AbortSignal.timeout(15000) });
+                        if (res.ok) hist = await res.json();
+                    } catch (e) {}
+                    if ((!hist || !hist[pid]) && a < 2) await new Promise(r => setTimeout(r, 2000));
+                }
+            }
+            if (!hist || !hist[pid]) {
+                // 네트워크 지연/끊김으로 결과를 못 받음 → 지금 지우면 이미지 유실. 완료 처리하지 않고 폴링에 재시도 위임
+                job._finalizing = false;
+                _comfyPollResult(pid, 0);
+                return;
+            }
             job.done = true;
             const jobInline = job.inline; // 삭제 전에 저장
             // 생성 소요 시간(초)
             const elapsedSec = job._runStart ? (Date.now() - job._runStart) / 1000 : null;
             try {
-                const res = await fetch(_comfyBase() + '/history/' + pid);
-                const hist = await res.json();
                 const outputs = (hist[pid] && hist[pid].outputs) || {};
                 const gallery = document.getElementById('comfy-gallery');
                 let sawStage = !!(job && job.cleared); // job.cleared는 이 pid의 websocket stage 이벤트를 받았을 때만 true
@@ -5252,12 +5279,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (tries > 1200) { _comfyPollActive.delete(pid); return; } // 최대 ~10분
             if (!_comfyJobs[pid] || _comfyJobs[pid].done) { _comfyPollActive.delete(pid); return; }
             try {
-                const res = await fetch(_comfyBase() + '/history/' + pid);
+                const res = await fetch(_comfyBase() + '/history/' + pid, { signal: AbortSignal.timeout(20000) });
                 if (res.ok) {
                     const hist = await res.json();
                     if (hist[pid] && hist[pid].outputs && Object.keys(hist[pid].outputs).length) {
                         _comfyPollActive.delete(pid);
-                        _comfyFinalize(pid); return;
+                        _comfyFinalize(pid, hist); return; // 이미 받은 히스토리 재사용 → 재fetch 실패로 인한 유실 방지
                     }
                 }
             } catch (e) {}
