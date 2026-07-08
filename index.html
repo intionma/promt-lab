@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.29 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.30 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.29 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.30 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1270,8 +1270,6 @@
                     <button onclick="collapseAllLayers(true)"><i class="fa-solid fa-angles-up"></i> 모두 닫기</button>
                     <button onclick="collapseAllLayers(false)"><i class="fa-solid fa-angles-down"></i> 모두 열기</button>
                     <div style="flex:1;"></div>
-                    <button id="btn-folder-rec" onclick="toggleRecommend()" title="추천 조합 켜기/끄기" style="color:#a855f7; border-color:rgba(168,85,247,0.4);"><i class="fa-solid fa-bolt"></i></button>
-                    <button id="btn-fill-out" onclick="fillOutPrompt()" title="지금 태그에 어울리는 태그로 한 번에 보완" style="color:#22c55e; border-color:rgba(34,197,94,0.4);"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
                     <button onclick="focusFavRecent('fav', event)" title="즐겨찾기" style="color:#eab308; border-color:rgba(234,179,8,0.4);"><i class="fa-solid fa-star"></i></button>
                     <button onclick="focusFavRecent('recent', event)" title="최근 사용" style="color:#10b981; border-color:rgba(16,185,129,0.4);"><i class="fa-solid fa-clock-rotate-left"></i></button>
                 </div>
@@ -1286,6 +1284,7 @@
                         <button class="action-btn" onclick="collapseAllComboFolders()" style="color:var(--text-dim);border-color:var(--border-dim);padding:5px 10px;font-size:12px;white-space:nowrap;" title="폴더 모두 닫기"><i class="fa-solid fa-folder-minus"></i> 모두 닫기</button>
                         <button class="action-btn" onclick="openComboCreateModal()" style="background:var(--accent-green);color:#fff;border:none;padding:6px 12px;font-size:12px;white-space:nowrap;" title="새 조합 추가"><i class="fa-solid fa-plus"></i> 조합 추가</button>
                         <button class="action-btn" onclick="createComboFolder()" style="color:var(--accent-blue);border-color:var(--accent-blue);padding:6px 12px;font-size:12px;white-space:nowrap;" title="새 폴더 만들기"><i class="fa-solid fa-folder-plus"></i></button>
+                        <button class="action-btn" onclick="openRecommendModal()" style="color:#a855f7;border-color:rgba(168,85,247,0.5);padding:6px 12px;font-size:12px;white-space:nowrap;" title="의상·구도·배경 추천"><i class="fa-solid fa-bolt"></i> 추천</button>
                     </div>
                     <div class="combo-grid" id="combo-list-container"></div>
                 </div>
@@ -1976,7 +1975,16 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.29', date: '2026-07-08', time: '최신',
+                version: 'v9.10.30', date: '2026-07-08', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[추천] 추천을 "간편 조합" 안의 "추천" 버튼으로 옮겼습니다 — 상세 태그 화면은 깔끔해지고, 필요할 때 버튼으로 열어서 씁니다',
+                    '[추천] 이제 추천이 인물 태그(1girl·solo 등)를 절대 제안하지 않습니다 — 화풍·인물은 이미 정한 것으로 보고 의상·구도·배경만 다룹니다',
+                    '[추천] 제안된 의상·구도·배경 태그를 누르면 담기고, 이미 담긴 것은 ✓로 표시되며 다시 누르면 빠집니다 — 고르고 무르기가 자유롭습니다',
+                ]
+            },
+            {
+                version: 'v9.10.29', date: '2026-07-08', time: '이전',
                 tag: 'feat',
                 items: [
                     '[추천] 낱개로 뜨던 "어울리는 태그"를 없애고, 늘 고민되는 "의상·구도·배경 도우미"로 바꿨습니다. 화풍·인물은 그대로 두고 ① 서로 어울리는 완성 세트(의상+구도+배경)를 카드로 제안(🔄로 계속 새 제안) ② 의상/구도/배경 3칸에서 직접 골라담기 — 둘 다 실제 인기 조합 데이터 기반입니다',
@@ -6880,7 +6888,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             limit = limit || 8;
             const active = _recActive();
             const scores = {}; // tag -> score
-            const bump = (t, s) => { const lc = (t || '').toLowerCase(); if (!lc || active.has(lc)) return; scores[lc] = (scores[lc] || 0) + s; };
+            const bump = (t, s) => { const lc = (t || '').toLowerCase(); if (!lc || active.has(lc) || (typeof _REC_PERSONCOUNT !== 'undefined' && _REC_PERSONCOUNT.has(lc))) return; scores[lc] = (scores[lc] || 0) + s; };
             const empty = new Set(_recEmptyLayers(active));
             const hasOutdoor = [...active].some(t => _REC_OUTDOOR.has(t));
             const hasIndoor = [...active].some(t => _REC_INDOOR.has(t));
@@ -7053,6 +7061,119 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const rb = document.getElementById('rec-refresh-btn');
             if (rb) rb.onclick = () => renderRecommendArea(true);
           } catch (e) { console.warn('추천 렌더 실패(무시):', e); }
+        }
+
+        // ── 추천 모달 (간편 조합의 "추천" 버튼으로 열림) ──
+        // 편집기에서 태그 추가/제거 토글
+        function _recRemoveTag(t) {
+            const lc = (t || '').toLowerCase(); const st = contextStates[currentContext]; if (!st) return;
+            try { saveStateToUndoStack(); } catch (e) {}
+            for (let i = 0; i < 7; i++) {
+                st[i] = (st[i] || '').split(',').map(s => s.trim()).filter(x => x && x.toLowerCase() !== lc).join(', ');
+                const el = document.getElementById('layer-' + (i + 1)); if (el) el.value = st[i];
+            }
+            for (let i = 1; i <= 7; i++) { try { syncFromManualInput(i); } catch (e) {} }
+            try { updateMasterOutput(); } catch (e) {}
+        }
+        function _recToggleTag(t) {
+            const active = _recActive();
+            if (active.has((t || '').toLowerCase())) _recRemoveTag(t);
+            else importPromptToEditor([t], 'append');
+        }
+        let _recModalBundles = null;
+        function openRecommendModal() {
+            let ov = document.getElementById('rec-modal-overlay');
+            if (!ov) {
+                ov = document.createElement('div'); ov.id = 'rec-modal-overlay';
+                ov.style.cssText = 'position:fixed;inset:0;z-index:10002;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;';
+                ov.onclick = (e) => { if (e.target === ov) closeRecommendModal(); };
+                document.body.appendChild(ov);
+            }
+            _recModalBundles = null;
+            renderRecommendModal(true);
+        }
+        function closeRecommendModal() { const o = document.getElementById('rec-modal-overlay'); if (o) o.remove(); }
+        function renderRecommendModal(regen) {
+          try {
+            const ov = document.getElementById('rec-modal-overlay'); if (!ov) return;
+            const active = _recActive();
+            const btn = (id, txt, color) => `<button id="${id}" style="background:${color};border:none;color:#fff;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">${txt}</button>`;
+            let h = `<div class="modal-content" style="width:min(700px,96vw);max-height:88vh;padding:20px;border-radius:18px;display:flex;flex-direction:column;gap:12px;overflow:hidden;">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;">
+                    <h3 style="margin:0;font-size:16px;font-family:var(--font-heading);white-space:nowrap;"><i class="fa-solid fa-bolt" style="color:#a855f7;margin-right:6px;"></i>추천</h3>
+                    <span style="font-size:10px;color:var(--text-dim);flex:1 1 100px;min-width:0;">화풍·인물은 그대로, 의상·구도·배경만 · 누르면 담김/다시 누르면 빠짐</span>
+                    ${btn('recm-fill', '✨ 한 번에 보완', 'rgba(34,197,94,0.85)')}
+                    <button id="recm-refresh" title="다른 제안" style="background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#a855f7;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;"><i class="fa-solid fa-rotate"></i></button>
+                    <button id="recm-close" style="background:none;border:none;color:var(--text-dim);font-size:22px;cursor:pointer;line-height:1;">&times;</button>
+                </div>
+                <div id="recm-body" style="overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-right:2px;"></div>
+            </div>`;
+            ov.innerHTML = h;
+            const body = ov.querySelector('#recm-body');
+
+            if (active.size === 0) {
+                // 콜드스타트: 테마 레시피 (인물 태그는 담을 때 제외)
+                const shuffled = TAG_RECIPES.slice().sort(() => Math.random() - 0.5).slice(0, 9);
+                let hi = `<div style="font-size:11px;font-weight:800;color:var(--text-dim);">테마로 시작 — 하나 고르면 조합이 채워져요</div>`;
+                hi += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">`;
+                shuffled.forEach((r, idx) => {
+                    const badge = r.nsfw ? `<span style="position:absolute;top:6px;right:6px;font-size:8px;font-weight:800;color:#f87171;background:rgba(248,113,113,0.14);border:1px solid rgba(248,113,113,0.4);border-radius:5px;padding:1px 5px;">19+</span>` : '';
+                    hi += `<button class="recm-recipe" data-idx="${idx}" style="position:relative;text-align:left;background:${r.nsfw ? 'rgba(248,113,113,0.06)' : 'rgba(168,85,247,0.06)'};border:1px solid ${r.nsfw ? 'rgba(248,113,113,0.3)' : 'rgba(168,85,247,0.3)'};border-radius:10px;padding:10px;cursor:pointer;">${badge}<span style="font-size:18px;">${r.e}</span><span style="display:block;font-size:12px;font-weight:700;color:var(--text-main);margin-top:3px;">${_esc(r.n)}</span></button>`;
+                });
+                hi += `</div>`;
+                body.innerHTML = hi;
+                body._recipes = shuffled;
+                body.querySelectorAll('.recm-recipe').forEach(b => b.onclick = () => {
+                    const r = body._recipes[parseInt(b.dataset.idx)]; if (!r) return;
+                    importPromptToEditor(r.tags.filter(t => !_REC_PERSONCOUNT.has((t || '').toLowerCase())), 'append');
+                    showToast(`'${r.n}' 조합을 담았어요`, 'success', 1600);
+                    renderRecommendModal(true);
+                });
+            } else {
+                // 룩북 + 칸별 (토글)
+                if (regen || !_recModalBundles) _recModalBundles = _recSceneBundles(4);
+                const bundles = _recModalBundles;
+                let hi = '';
+                if (bundles.length) {
+                    hi += `<div><div style="font-size:11px;font-weight:800;color:var(--text-dim);margin-bottom:7px;">완성 세트 (누르면 통째로 담김)</div>`;
+                    hi += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px;">`;
+                    bundles.forEach((bd, idx) => {
+                        const parts = [bd.outfit.map(_recKor).join(' + '), _recKor(bd.comp), bd.bg.map(_recKor).join('')].filter(Boolean);
+                        const cnt = [...bd.outfit, bd.comp, ...bd.bg].filter(Boolean).length;
+                        hi += `<button class="recm-bundle" data-idx="${idx}" style="text-align:left;background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.3);border-radius:10px;padding:9px 10px;cursor:pointer;"><span style="display:block;font-size:11px;font-weight:700;color:var(--text-main);line-height:1.55;">${_esc(parts.join(' · '))}</span><span style="display:block;font-size:9px;color:var(--text-dim);margin-top:3px;">의상·구도·배경 ${cnt}개</span></button>`;
+                    });
+                    hi += `</div></div>`;
+                }
+                hi += `<div><div style="font-size:11px;font-weight:800;color:var(--text-dim);margin-bottom:7px;">직접 골라담기 (담긴 건 ✓ · 다시 누르면 빠짐)</div>`;
+                hi += `<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;">`;
+                [[4, '의상'], [2, '구도'], [6, '배경']].forEach(([L, name]) => {
+                    const activeInL = [...active].filter(t => !_REC_PERSONCOUNT.has(t) && (_recLayerOf(t) === L || (_DATA_LC[L] || []).includes(t)));
+                    const fresh = _recAxisRanked(L, active, Math.max(4, 8 - activeInL.length), 0.12);
+                    const items = [...activeInL.map(t => [t, true]), ...fresh.map(t => [t, false])];
+                    hi += `<div style="min-width:0;"><div style="font-size:11px;font-weight:800;color:#a855f7;margin-bottom:6px;">${name}</div><div style="display:flex;flex-direction:column;gap:5px;">`;
+                    items.forEach(([t, on]) => {
+                        hi += `<button class="recm-axis" data-t="${_esc(t)}" title="${_esc(t)}" style="text-align:left;background:${on ? 'rgba(34,197,94,0.16)' : 'rgba(168,85,247,0.07)'};border:1px solid ${on ? 'rgba(34,197,94,0.55)' : 'rgba(168,85,247,0.28)'};border-radius:8px;padding:5px 8px;cursor:pointer;font-size:11px;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="fa-solid fa-${on ? 'check' : 'plus'}" style="font-size:8px;color:${on ? '#22c55e' : '#a855f7'};margin-right:4px;"></i>${_esc(_recKor(t))}</button>`;
+                    });
+                    hi += `</div></div>`;
+                });
+                hi += `</div></div>`;
+                body.innerHTML = hi;
+                body.querySelectorAll('.recm-bundle').forEach(b => b.onclick = () => {
+                    const bd = bundles[parseInt(b.dataset.idx)]; if (!bd) return;
+                    const tags = [...bd.outfit, bd.comp, ...bd.bg].filter(Boolean);
+                    importPromptToEditor(tags, 'append');
+                    showToast(`세트를 담았어요 — ${tags.length}개`, 'success', 1600);
+                    renderRecommendModal(false);
+                });
+                body.querySelectorAll('.recm-axis').forEach(b => b.onclick = () => {
+                    if (b.dataset.t) _recToggleTag(b.dataset.t);
+                    renderRecommendModal(false);
+                });
+            }
+            ov.querySelector('#recm-close').onclick = closeRecommendModal;
+            ov.querySelector('#recm-refresh').onclick = () => { _recModalBundles = null; renderRecommendModal(true); };
+            ov.querySelector('#recm-fill').onclick = () => { fillOutPrompt(); renderRecommendModal(false); };
+          } catch (e) { console.warn('추천 모달 렌더 실패:', e); }
         }
         let recents = [];
 
