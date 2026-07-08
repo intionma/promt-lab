@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.34 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.35 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.34 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.35 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1975,7 +1975,14 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.34', date: '2026-07-08', time: '최신',
+                version: 'v9.10.35', date: '2026-07-08', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[에디터] 룩·추천으로 담은 태그가 영어로 표시되던 문제 수정 — 이제 wet hair·gyaru·bathroom 같은 태그도 캡슐에 한글(젖은 머리·갸루·욕실)로 보입니다. 팩을 설치하지 않았거나 사전에만 있던 번역까지 3,700여 개를 항상 적용합니다',
+                ]
+            },
+            {
+                version: 'v9.10.34', date: '2026-07-08', time: '이전',
                 tag: 'feat',
                 items: [
                     '[추천] 의상 칸이 낱개 태그 대신 "이름 붙은 룩" 158종으로 바뀌었습니다 — 젖소 비키니·역바니걸·에로 웨딩·메이드·세일러 교복·멘헤라 등, 하나를 누르면 그 룩을 이루는 태그가 통째로 담기고 다시 누르면 빠집니다. "다른 제안"으로 새 룩들을 계속 볼 수 있고, 19+ 룩은 배지로 표시됩니다',
@@ -6868,6 +6875,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (activeTagsMap[lc] && activeTagsMap[lc].kor) return activeTagsMap[lc].kor;
             const d = (typeof _tagDictLookup === 'function') ? _tagDictLookup(lc) : null;
             if (d && d.k) return d.k;
+            if (typeof _DATA_KO !== 'undefined' && _DATA_KO[lc]) return _DATA_KO[lc];
             return t;
         }
         function _recLayerOf(t) {
@@ -6918,6 +6926,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try {
                 fetch('./data/looks-danbooru.json').then(r => { if (!r.ok) throw 0; return r.json(); })
                     .then(d => { _DATA_LOOKS = (d && d.outfits) || []; })
+                    .catch(() => {});
+            } catch (e) {}
+        })();
+        // 태그 한글 오버레이 — 룩·추천이 넣는 danbooru 태그를 캡슐에서 한글로 표시 (팩 미설치·사전 미검색 문제 해결)
+        let _DATA_KO = {};
+        (function _loadTagKo() {
+            try {
+                fetch('./data/tag-ko.json').then(r => { if (!r.ok) throw 0; return r.json(); })
+                    .then(d => { _DATA_KO = d || {}; try { if (typeof currentViewMode !== 'undefined' && currentViewMode === 'visual') for (let i = 1; i <= 7; i++) renderChips(i); } catch (e) {} })
                     .catch(() => {});
             } catch (e) {}
         })();
@@ -11580,7 +11597,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     else if (w < 1.0) chip.classList.add('weight-low');
                 }
 
-                const korLabel = tagData ? tagData.kor : (customKorMap[mapKey] || null);
+                const korLabel = tagData ? tagData.kor : (customKorMap[mapKey] || _DATA_KO[mapKey] || (typeof _tagDictLookup === 'function' && _tagDictLookup(mapKey) ? _tagDictLookup(mapKey).k : null) || null);
                 const baseLabel = korLabel || mapKey;
                 const weightSuffix = weightMatch ? `(${parseFloat(weightMatch[2]).toFixed(1)})` : '';
                 const displayLabel = weightSuffix ? `${baseLabel}${weightSuffix}` : baseLabel;
