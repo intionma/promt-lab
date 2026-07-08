@@ -553,6 +553,110 @@
       "k": "바니 포즈",
       "l": 5
     },
+    "pregnant": {
+      "k": "임신",
+      "l": 3
+    },
+    "big belly": {
+      "k": "불룩한 배",
+      "l": 3
+    },
+    "huge belly": {
+      "k": "만삭 배",
+      "l": 3
+    },
+    "very pregnant": {
+      "k": "만삭",
+      "l": 3
+    },
+    "third trimester": {
+      "k": "임신 후기",
+      "l": 3
+    },
+    "swollen belly": {
+      "k": "부푼 배",
+      "l": 3
+    },
+    "full-term pregnancy": {
+      "k": "만삭 임신",
+      "l": 3
+    },
+    "twin pregnancy": {
+      "k": "쌍둥이 임신",
+      "l": 3
+    },
+    "outie belly button": {
+      "k": "튀어나온 배꼽",
+      "l": 3
+    },
+    "linea nigra": {
+      "k": "임신선",
+      "l": 3
+    },
+    "stretch marks": {
+      "k": "튼살",
+      "l": 3
+    },
+    "engorged breasts": {
+      "k": "불어난 가슴",
+      "l": 3
+    },
+    "leaking milk": {
+      "k": "새어나오는 모유",
+      "l": 3
+    },
+    "mother": {
+      "k": "어머니",
+      "l": 3
+    },
+    "maternal": {
+      "k": "모성적인 분위기",
+      "l": 3
+    },
+    "onaka": {
+      "k": "배(오나카)",
+      "l": 3
+    },
+    "maternity dress": {
+      "k": "임부복 원피스",
+      "l": 4
+    },
+    "maternity clothes": {
+      "k": "임부복",
+      "l": 4
+    },
+    "impregnation": {
+      "k": "임신시키기",
+      "l": 5
+    },
+    "insemination": {
+      "k": "수정",
+      "l": 5
+    },
+    "cum in womb": {
+      "k": "자궁 내 사정",
+      "l": 5
+    },
+    "womb": {
+      "k": "자궁",
+      "l": 5
+    },
+    "cross-section": {
+      "k": "단면도 시점",
+      "l": 5
+    },
+    "x-ray": {
+      "k": "엑스레이 시점",
+      "l": 5
+    },
+    "ultrasound": {
+      "k": "초음파 사진",
+      "l": 5
+    },
+    "pregnancy test": {
+      "k": "임신 테스트기",
+      "l": 5
+    },
     "teddy": {
       "k": "테디 란제리",
       "l": 4
