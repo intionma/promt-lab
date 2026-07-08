@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.33 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.34 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.33 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.34 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1975,7 +1975,14 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.33', date: '2026-07-08', time: '최신',
+                version: 'v9.10.34', date: '2026-07-08', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[추천] 의상 칸이 낱개 태그 대신 "이름 붙은 룩" 158종으로 바뀌었습니다 — 젖소 비키니·역바니걸·에로 웨딩·메이드·세일러 교복·멘헤라 등, 하나를 누르면 그 룩을 이루는 태그가 통째로 담기고 다시 누르면 빠집니다. "다른 제안"으로 새 룩들을 계속 볼 수 있고, 19+ 룩은 배지로 표시됩니다',
+                ]
+            },
+            {
+                version: 'v9.10.33', date: '2026-07-08', time: '이전',
                 tag: 'feat',
                 items: [
                     '[추천] 의상·구도·배경 각 칸마다 "다른 제안" 버튼을 따로 넣었습니다 — 이제 그 칸만 새 후보로 바꿀 수 있어, 마음에 드는 칸은 그대로 두고 원하는 칸만 다시 굴릴 수 있습니다',
@@ -6905,6 +6912,28 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     .catch(() => {});
             } catch (e) {}
         })();
+        // 이름 붙은 의상 룩 라이브러리 (젖소비키니·역바니걸·에로웨딩 등) — 의상 칸에 표시
+        let _DATA_LOOKS = [];
+        (function _loadLooks() {
+            try {
+                fetch('./data/looks-danbooru.json').then(r => { if (!r.ok) throw 0; return r.json(); })
+                    .then(d => { _DATA_LOOKS = (d && d.outfits) || []; })
+                    .catch(() => {});
+            } catch (e) {}
+        })();
+        // 룩이 지금 전부 담겨있나 / 담기·빼기 토글
+        function _recLookOn(lk) { const a = _recActive(); return lk && lk.tags && lk.tags.length && lk.tags.every(t => a.has(t.toLowerCase())); }
+        function _recToggleLook(lk) {
+            if (!lk || !lk.tags) return;
+            if (_recLookOn(lk)) lk.tags.forEach(t => _recRemoveTag(t));
+            else importPromptToEditor(lk.tags, 'append');
+        }
+        // 룩 목록 셔플 (표시용 n개)
+        function _recPickLooks(n) {
+            const arr = _DATA_LOOKS.slice();
+            for (let i = arr.length - 1; i > 0; i--) { const k = Math.floor(Math.random() * (i + 1)); [arr[i], arr[k]] = [arr[k], arr[i]]; }
+            return arr.slice(0, n);
+        }
 
         function _recSuggest(limit) {
             limit = limit || 8;
@@ -7113,7 +7142,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (active.has((t || '').toLowerCase())) _recRemoveTag(t);
             else importPromptToEditor([t], 'append');
         }
-        let _recModalBundles = null, _recModalAxis = null;
+        let _recModalBundles = null, _recModalAxis = null, _recModalLooks = null;
         function openRecommendModal() {
             let ov = document.getElementById('rec-modal-overlay');
             if (!ov) {
@@ -7122,7 +7151,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 ov.onclick = (e) => { if (e.target === ov) closeRecommendModal(); };
                 document.body.appendChild(ov);
             }
-            _recModalBundles = null; _recModalAxis = null;
+            _recModalBundles = null; _recModalAxis = null; _recModalLooks = null;
             renderRecommendModal(true);
         }
         function closeRecommendModal() { const o = document.getElementById('rec-modal-overlay'); if (o) o.remove(); }
@@ -7165,7 +7194,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } else {
                 // 룩북 + 칸별 (토글)
                 if (regen || !_recModalBundles) _recModalBundles = _recSceneBundles(4);
-                if (regen || !_recModalAxis) { _recModalAxis = {}; [4, 2, 6].forEach(L => _recModalAxis[L] = _recAxisRanked(L, active, 18, 0.5)); }
+                if (regen || !_recModalLooks) _recModalLooks = _recPickLooks(12);
+                if (regen || !_recModalAxis) { _recModalAxis = {}; [2, 6].forEach(L => _recModalAxis[L] = _recAxisRanked(L, active, 18, 0.5)); }
                 const bundles = _recModalBundles;
                 let hi = '';
                 if (bundles.length) {
@@ -7180,20 +7210,30 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }
                 hi += `<div><div style="font-size:11px;font-weight:800;color:var(--text-dim);margin-bottom:7px;">직접 골라담기 (담긴 건 ✓ · 다시 누르면 빠짐 · 위 "다른 제안"으로 새 후보)</div>`;
                 hi += `<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;">`;
-                [[4, '의상'], [2, '구도'], [6, '배경']].forEach(([L, name]) => {
-                    const activeInL = [...active].filter(t => !_REC_PERSONCOUNT.has(t) && (_recLayerOf(t) === L || (_DATA_LC[L] || []).includes(t)));
-                    const fresh = (_recModalAxis[L] || []).filter(t => !active.has(t)).slice(0, Math.max(6, 12 - activeInL.length));
-                    const items = [...activeInL.map(t => [t, true]), ...fresh.map(t => [t, false])];
+                [[4, '의상(룩)'], [2, '구도'], [6, '배경']].forEach(([L, name]) => {
                     hi += `<div style="min-width:0;"><div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;"><span style="font-size:11px;font-weight:800;color:#a855f7;">${name}</span><button class="recm-reroll" data-l="${L}" title="${name}만 다른 제안" style="margin-left:auto;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.35);color:#a855f7;font-size:10px;cursor:pointer;padding:2px 6px;border-radius:6px;"><i class="fa-solid fa-arrows-rotate"></i></button><button class="recm-clear" data-l="${L}" title="${name} 비우기" style="background:none;border:none;color:var(--text-dim);font-size:11px;cursor:pointer;padding:0 2px;"><i class="fa-solid fa-eraser"></i></button></div><div style="display:flex;flex-direction:column;gap:5px;">`;
-                    items.forEach(([t, on]) => {
-                        hi += `<button class="recm-axis" data-t="${_esc(t)}" title="${_esc(t)}" style="text-align:left;background:${on ? 'rgba(34,197,94,0.16)' : 'rgba(168,85,247,0.07)'};border:1px solid ${on ? 'rgba(34,197,94,0.55)' : 'rgba(168,85,247,0.28)'};border-radius:8px;padding:5px 8px;cursor:pointer;font-size:11px;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="fa-solid fa-${on ? 'check' : 'plus'}" style="font-size:8px;color:${on ? '#22c55e' : '#a855f7'};margin-right:4px;"></i>${_esc(_recKor(t))}</button>`;
-                    });
+                    if (L === 4) {
+                        // 의상 = 이름 붙은 룩 (누르면 그 룩 태그 전체 담김/다시 누르면 전체 빠짐)
+                        (_recModalLooks || []).forEach((lk, li) => {
+                            const on = _recLookOn(lk);
+                            const badge = lk.nsfw ? `<span style="font-size:8px;font-weight:800;color:#f87171;margin-left:3px;">19+</span>` : '';
+                            hi += `<button class="recm-look" data-li="${li}" title="${_esc(lk.tags.join(', '))}" style="text-align:left;background:${on ? 'rgba(34,197,94,0.16)' : 'rgba(168,85,247,0.07)'};border:1px solid ${on ? 'rgba(34,197,94,0.55)' : 'rgba(168,85,247,0.28)'};border-radius:8px;padding:5px 8px;cursor:pointer;font-size:11px;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="fa-solid fa-${on ? 'check' : 'plus'}" style="font-size:8px;color:${on ? '#22c55e' : '#a855f7'};margin-right:4px;"></i>${_esc(lk.n)}${badge}</button>`;
+                        });
+                    } else {
+                        const activeInL = [...active].filter(t => !_REC_PERSONCOUNT.has(t) && (_recLayerOf(t) === L || (_DATA_LC[L] || []).includes(t)));
+                        const fresh = (_recModalAxis[L] || []).filter(t => !active.has(t)).slice(0, Math.max(6, 12 - activeInL.length));
+                        const items = [...activeInL.map(t => [t, true]), ...fresh.map(t => [t, false])];
+                        items.forEach(([t, on]) => {
+                            hi += `<button class="recm-axis" data-t="${_esc(t)}" title="${_esc(t)}" style="text-align:left;background:${on ? 'rgba(34,197,94,0.16)' : 'rgba(168,85,247,0.07)'};border:1px solid ${on ? 'rgba(34,197,94,0.55)' : 'rgba(168,85,247,0.28)'};border-radius:8px;padding:5px 8px;cursor:pointer;font-size:11px;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="fa-solid fa-${on ? 'check' : 'plus'}" style="font-size:8px;color:${on ? '#22c55e' : '#a855f7'};margin-right:4px;"></i>${_esc(_recKor(t))}</button>`;
+                        });
+                    }
                     hi += `</div></div>`;
                 });
                 hi += `</div></div>`;
                 body.innerHTML = hi;
-                body.querySelectorAll('.recm-reroll').forEach(b => b.onclick = () => { const L = parseInt(b.dataset.l); _recModalAxis[L] = _recAxisRanked(L, _recActive(), 18, 0.55); renderRecommendModal(false); });
+                body.querySelectorAll('.recm-reroll').forEach(b => b.onclick = () => { const L = parseInt(b.dataset.l); if (L === 4) _recModalLooks = _recPickLooks(12); else _recModalAxis[L] = _recAxisRanked(L, _recActive(), 18, 0.55); renderRecommendModal(false); });
                 body.querySelectorAll('.recm-clear').forEach(b => b.onclick = () => { _recClearLayer(parseInt(b.dataset.l)); renderRecommendModal(false); });
+                body.querySelectorAll('.recm-look').forEach(b => b.onclick = () => { const lk = (_recModalLooks || [])[parseInt(b.dataset.li)]; if (lk) _recToggleLook(lk); renderRecommendModal(false); });
                 body.querySelectorAll('.recm-bundle').forEach(b => b.onclick = () => {
                     const bd = bundles[parseInt(b.dataset.idx)]; if (!bd) return;
                     const tags = [...bd.outfit, bd.comp, ...bd.bg].filter(Boolean);
