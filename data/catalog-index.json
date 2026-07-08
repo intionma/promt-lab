@@ -11,6 +11,14 @@
       "nsfw": false
     },
     {
+      "id": "nsfw-adult",
+      "name": "NSFW 성인팩 (19+)",
+      "description": "합의 성인 태그 — 노출·란제리·체형·행위·상황 (한글 번역 포함). 미성년·비동의·극단물 제외",
+      "file": "nsfw-adult.json",
+      "count": 221,
+      "nsfw": true
+    },
+    {
       "id": "expressions-plus",
       "name": "표정·감정 확장",
       "description": "세밀한 표정·감정 태그 모음 (얼굴 계층)",

@@ -1,0 +1,893 @@
+{
+  "id": "nsfw-adult",
+  "name": "NSFW 성인팩 (19+)",
+  "description": "합의 성인 태그 — 노출·란제리·체형·행위·상황 (한글 번역 포함). 미성년·비동의·극단물 제외",
+  "version": 1,
+  "nsfw": true,
+  "tags": {
+    "backboob": {
+      "k": "백붑(등 뒤로 보이는 가슴)",
+      "l": 3
+    },
+    "areolae": {
+      "k": "유륜",
+      "l": 3
+    },
+    "dark nipples": {
+      "k": "짙은 유두",
+      "l": 3
+    },
+    "stomach": {
+      "k": "배",
+      "l": 3
+    },
+    "huge ass": {
+      "k": "매우 큰 엉덩이",
+      "l": 3
+    },
+    "ass focus": {
+      "k": "엉덩이 강조",
+      "l": 3
+    },
+    "groin": {
+      "k": "사타구니",
+      "l": 3
+    },
+    "hip bones": {
+      "k": "골반뼈 라인",
+      "l": 3
+    },
+    "shaved": {
+      "k": "제모함",
+      "l": 3
+    },
+    "wet body": {
+      "k": "젖은 몸",
+      "l": 3
+    },
+    "oiled body": {
+      "k": "오일 바른 몸",
+      "l": 3
+    },
+    "glistening skin": {
+      "k": "윤기 도는 피부",
+      "l": 3
+    },
+    "steaming body": {
+      "k": "김이 오르는 몸",
+      "l": 3
+    },
+    "back dimples": {
+      "k": "허리 보조개",
+      "l": 3
+    },
+    "completely nude": {
+      "k": "완전 나체",
+      "l": 4
+    },
+    "partially nude": {
+      "k": "부분 노출",
+      "l": 4
+    },
+    "undressing": {
+      "k": "옷을 벗는 중",
+      "l": 4
+    },
+    "shirt lift": {
+      "k": "셔츠 들어올리기",
+      "l": 4
+    },
+    "clothes pull": {
+      "k": "옷 잡아당기기",
+      "l": 4
+    },
+    "panty pull": {
+      "k": "팬티 당기기",
+      "l": 4
+    },
+    "bra lift": {
+      "k": "브라 들어올리기",
+      "l": 4
+    },
+    "breasts out": {
+      "k": "가슴 노출",
+      "l": 4
+    },
+    "one breast out": {
+      "k": "한쪽 가슴 노출",
+      "l": 4
+    },
+    "no panties": {
+      "k": "노팬티",
+      "l": 4
+    },
+    "underwear only": {
+      "k": "속옷만 착용",
+      "l": 4
+    },
+    "bra and panties": {
+      "k": "브라와 팬티",
+      "l": 4
+    },
+    "swimsuit aside": {
+      "k": "수영복을 옆으로 젖힘",
+      "l": 4
+    },
+    "teddy (clothing)": {
+      "k": "테디 란제리",
+      "l": 4
+    },
+    "microbikini": {
+      "k": "마이크로 비키니",
+      "l": 4
+    },
+    "nipple pasties": {
+      "k": "유두 스티커",
+      "l": 4
+    },
+    "bunnysuit": {
+      "k": "바니걸 의상",
+      "l": 4
+    },
+    "naked ribbon": {
+      "k": "알몸에 리본만",
+      "l": 4
+    },
+    "naked shirt": {
+      "k": "셔츠만 걸친 알몸",
+      "l": 4
+    },
+    "cleavage cutout": {
+      "k": "가슴골 트임",
+      "l": 4
+    },
+    "see-through silhouette": {
+      "k": "비치는 실루엣",
+      "l": 4
+    },
+    "lace lingerie": {
+      "k": "레이스 란제리",
+      "l": 4
+    },
+    "sheer legwear": {
+      "k": "비치는 스타킹",
+      "l": 4
+    },
+    "shelf bra": {
+      "k": "셸프 브라",
+      "l": 4
+    },
+    "micro shorts": {
+      "k": "초미니 반바지",
+      "l": 4
+    },
+    "revealing clothes": {
+      "k": "노출이 심한 옷",
+      "l": 4
+    },
+    "highleg panties": {
+      "k": "하이레그 팬티",
+      "l": 4
+    },
+    "vaginal": {
+      "k": "질 삽입",
+      "l": 5
+    },
+    "oral": {
+      "k": "구강 행위",
+      "l": 5
+    },
+    "female masturbation": {
+      "k": "여성 자위",
+      "l": 5
+    },
+    "cowgirl position": {
+      "k": "기승위",
+      "l": 5
+    },
+    "girl on top": {
+      "k": "여성 상위",
+      "l": 5
+    },
+    "doggystyle": {
+      "k": "후배위",
+      "l": 5
+    },
+    "reverse cowgirl position": {
+      "k": "역기승위",
+      "l": 5
+    },
+    "spooning": {
+      "k": "옆으로 누운 체위",
+      "l": 5
+    },
+    "ass grab": {
+      "k": "엉덩이 만지기",
+      "l": 5
+    },
+    "kiss": {
+      "k": "키스",
+      "l": 5
+    },
+    "french kiss": {
+      "k": "딥 키스",
+      "l": 5
+    },
+    "hug": {
+      "k": "포옹",
+      "l": 5
+    },
+    "cuddling": {
+      "k": "껴안고 애무",
+      "l": 5
+    },
+    "undressing another": {
+      "k": "상대 옷 벗기기",
+      "l": 5
+    },
+    "clothed sex": {
+      "k": "옷 입은 채 성행위",
+      "l": 5
+    },
+    "cum on body": {
+      "k": "몸에 정액",
+      "l": 5
+    },
+    "cumdrip": {
+      "k": "흘러내리는 정액",
+      "l": 5
+    },
+    "ejaculation": {
+      "k": "사정",
+      "l": 5
+    },
+    "saliva": {
+      "k": "침",
+      "l": 5
+    },
+    "moaning": {
+      "k": "신음",
+      "l": 5
+    },
+    "seductive pose": {
+      "k": "유혹적인 포즈",
+      "l": 5
+    },
+    "all fours": {
+      "k": "네발 자세",
+      "l": 5
+    },
+    "arm behind back": {
+      "k": "팔을 뒤로",
+      "l": 5
+    },
+    "blindfold": {
+      "k": "눈가리개",
+      "l": 5
+    },
+    "handcuffs": {
+      "k": "수갑",
+      "l": 5
+    },
+    "ball gag": {
+      "k": "볼 개그",
+      "l": 5
+    },
+    "love hotel": {
+      "k": "러브호텔",
+      "l": 6
+    },
+    "bathhouse": {
+      "k": "목욕탕",
+      "l": 6
+    },
+    "front-tie bikini top": {
+      "k": "앞에서 묶는 비키니 상의",
+      "l": 4
+    },
+    "side-tie bikini bottom": {
+      "k": "옆에서 묶는 비키니 하의",
+      "l": 4
+    },
+    "o-ring bikini": {
+      "k": "O링 비키니",
+      "l": 4
+    },
+    "micro bra": {
+      "k": "마이크로 브라",
+      "l": 4
+    },
+    "underboob cutout": {
+      "k": "언더붑 트임",
+      "l": 4
+    },
+    "navel cutout": {
+      "k": "배꼽 트임",
+      "l": 4
+    },
+    "pelvic curtain": {
+      "k": "골반 가리개 천",
+      "l": 4
+    },
+    "loincloth": {
+      "k": "로인클로스",
+      "l": 4
+    },
+    "fundoshi": {
+      "k": "훈도시(일본 전통 하의)",
+      "l": 4
+    },
+    "sarashi": {
+      "k": "사라시(가슴 붕대)",
+      "l": 4
+    },
+    "bandeau": {
+      "k": "밴도 탑",
+      "l": 4
+    },
+    "hip vent": {
+      "k": "골반 트임",
+      "l": 4
+    },
+    "reverse bunnysuit": {
+      "k": "리버스 바니슈트",
+      "l": 4
+    },
+    "meme attire": {
+      "k": "밈 의상(노출형)",
+      "l": 4
+    },
+    "virgin killer sweater": {
+      "k": "버진킬러 스웨터",
+      "l": 4
+    },
+    "sweater lift": {
+      "k": "스웨터 들어올리기",
+      "l": 4
+    },
+    "bandeau bikini": {
+      "k": "밴도 비키니",
+      "l": 4
+    },
+    "thong bikini": {
+      "k": "끈 비키니 하의",
+      "l": 4
+    },
+    "highleg bikini": {
+      "k": "하이레그 비키니",
+      "l": 4
+    },
+    "wet swimsuit": {
+      "k": "젖은 수영복",
+      "l": 4
+    },
+    "sheer dress": {
+      "k": "비치는 드레스",
+      "l": 4
+    },
+    "bodypaint": {
+      "k": "바디페인트",
+      "l": 4
+    },
+    "strap slip": {
+      "k": "흘러내린 어깨끈",
+      "l": 4
+    },
+    "single strap": {
+      "k": "한쪽 어깨끈",
+      "l": 4
+    },
+    "backless outfit": {
+      "k": "등이 파인 의상",
+      "l": 4
+    },
+    "clothes between breasts": {
+      "k": "가슴 사이로 낀 옷",
+      "l": 4
+    },
+    "breast slip": {
+      "k": "가슴 노출됨",
+      "l": 4
+    },
+    "areola slip": {
+      "k": "유륜 노출",
+      "l": 4
+    },
+    "wardrobe malfunction": {
+      "k": "옷이 흘러내린 상태",
+      "l": 4
+    },
+    "exposed nipples": {
+      "k": "드러난 유두",
+      "l": 3
+    },
+    "bare back": {
+      "k": "드러난 등",
+      "l": 3
+    },
+    "torn legwear": {
+      "k": "찢어진 스타킹",
+      "l": 4
+    },
+    "pokies": {
+      "k": "옷 위로 도드라진 유두",
+      "l": 3
+    },
+    "erect nipples under clothes": {
+      "k": "옷 위로 선 유두",
+      "l": 3
+    },
+    "veiny breasts": {
+      "k": "혈관 비치는 가슴",
+      "l": 3
+    },
+    "milk": {
+      "k": "모유",
+      "l": 3
+    },
+    "puffy areolae": {
+      "k": "봉긋한 유륜",
+      "l": 3
+    },
+    "flushed": {
+      "k": "상기된 얼굴",
+      "l": 3
+    },
+    "torogao": {
+      "k": "녹아내리는 표정",
+      "l": 3
+    },
+    "thighjob": {
+      "k": "허벅지 애무",
+      "l": 5
+    },
+    "irrumatio": {
+      "k": "이루마치오",
+      "l": 5
+    },
+    "sixty-nine": {
+      "k": "69 자세",
+      "l": 5
+    },
+    "cum on hair": {
+      "k": "머리에 정액",
+      "l": 5
+    },
+    "cum string": {
+      "k": "정액 실",
+      "l": 5
+    },
+    "precum": {
+      "k": "쿠퍼액",
+      "l": 5
+    },
+    "wet panties": {
+      "k": "젖은 팬티",
+      "l": 5
+    },
+    "fucked silly": {
+      "k": "넋 나간 표정",
+      "l": 5
+    },
+    "heart censor": {
+      "k": "하트 검열",
+      "l": 5
+    },
+    "steam censor": {
+      "k": "김 검열",
+      "l": 5
+    },
+    "mosaic censoring": {
+      "k": "모자이크 검열",
+      "l": 5
+    },
+    "censored": {
+      "k": "검열됨",
+      "l": 5
+    },
+    "uncensored": {
+      "k": "무검열",
+      "l": 5
+    },
+    "hair censor": {
+      "k": "머리카락 가림",
+      "l": 5
+    },
+    "convenient censoring": {
+      "k": "절묘한 가림",
+      "l": 5
+    },
+    "light censor": {
+      "k": "약한 검열",
+      "l": 5
+    },
+    "breast focus": {
+      "k": "가슴 강조",
+      "l": 5
+    },
+    "crotch focus": {
+      "k": "사타구니 강조",
+      "l": 5
+    },
+    "pov crotch": {
+      "k": "시점: 사타구니",
+      "l": 5
+    },
+    "spread": {
+      "k": "벌린 자세",
+      "l": 5
+    },
+    "self-fondle": {
+      "k": "스스로 만지기",
+      "l": 5
+    },
+    "nipple tweak": {
+      "k": "유두 자극",
+      "l": 5
+    },
+    "licking": {
+      "k": "핥기",
+      "l": 5
+    },
+    "biting": {
+      "k": "깨물기",
+      "l": 5
+    },
+    "hickey": {
+      "k": "키스 마크",
+      "l": 5
+    },
+    "arms tied": {
+      "k": "묶인 팔(합의)",
+      "l": 5
+    },
+    "ring gag": {
+      "k": "링 개그",
+      "l": 5
+    },
+    "cat lingerie": {
+      "k": "고양이 란제리",
+      "l": 4
+    },
+    "bunny pose": {
+      "k": "바니 포즈",
+      "l": 5
+    },
+    "teddy": {
+      "k": "테디 란제리",
+      "l": 4
+    },
+    "garter": {
+      "k": "가터",
+      "l": 4
+    },
+    "arm garter": {
+      "k": "팔 가터",
+      "l": 4
+    },
+    "leg garter": {
+      "k": "다리 가터",
+      "l": 4
+    },
+    "catsuit": {
+      "k": "캣슈트",
+      "l": 4
+    },
+    "latex catsuit": {
+      "k": "라텍스 캣슈트",
+      "l": 4
+    },
+    "front-zip": {
+      "k": "앞 지퍼 여밈",
+      "l": 4
+    },
+    "cupless bra": {
+      "k": "컵리스 브라",
+      "l": 4
+    },
+    "peek-a-boo": {
+      "k": "살짝 비치는 노출",
+      "l": 4
+    },
+    "shrug (clothing)": {
+      "k": "볼레로 슈러그",
+      "l": 4
+    },
+    "bikini top only": {
+      "k": "비키니 상의만",
+      "l": 4
+    },
+    "bikini bottom only": {
+      "k": "비키니 하의만",
+      "l": 4
+    },
+    "untied bikini": {
+      "k": "풀린 비키니",
+      "l": 4
+    },
+    "unhooked bra": {
+      "k": "후크 푼 브라",
+      "l": 4
+    },
+    "bra pull": {
+      "k": "브라 당기기",
+      "l": 4
+    },
+    "panties around one leg": {
+      "k": "한쪽 다리에 걸친 팬티",
+      "l": 4
+    },
+    "panties around ankles": {
+      "k": "발목에 걸친 팬티",
+      "l": 4
+    },
+    "clothes removed": {
+      "k": "벗어둔 옷",
+      "l": 4
+    },
+    "unzipped dress": {
+      "k": "지퍼 내린 드레스",
+      "l": 4
+    },
+    "open robe": {
+      "k": "풀어헤친 로브",
+      "l": 4
+    },
+    "towel only": {
+      "k": "수건 한 장",
+      "l": 4
+    },
+    "apron only": {
+      "k": "앞치마만",
+      "l": 4
+    },
+    "bra visible through clothes": {
+      "k": "옷 위로 비치는 브라",
+      "l": 4
+    },
+    "visible nipples through clothes": {
+      "k": "옷 위로 비치는 유두",
+      "l": 4
+    },
+    "fishnet top": {
+      "k": "망사 상의",
+      "l": 4
+    },
+    "fishnet bodysuit": {
+      "k": "망사 보디슈트",
+      "l": 4
+    },
+    "chest sarashi": {
+      "k": "가슴 사라시",
+      "l": 4
+    },
+    "micro panties": {
+      "k": "마이크로 팬티",
+      "l": 4
+    },
+    "tearing clothes": {
+      "k": "옷을 찢는",
+      "l": 4
+    },
+    "clothes theft": {
+      "k": "옷을 벗기는 상황",
+      "l": 4
+    },
+    "mature female": {
+      "k": "성숙한 여성",
+      "l": 3
+    },
+    "slim waist": {
+      "k": "잘록한 허리",
+      "l": 3
+    },
+    "large thighs": {
+      "k": "큰 허벅지",
+      "l": 3
+    },
+    "soft body": {
+      "k": "부드러운 몸매",
+      "l": 3
+    },
+    "belly": {
+      "k": "볼록한 배",
+      "l": 3
+    },
+    "love handles": {
+      "k": "러브핸들",
+      "l": 3
+    },
+    "muscular female": {
+      "k": "근육질 여성",
+      "l": 3
+    },
+    "breasts apart": {
+      "k": "벌어진 가슴",
+      "l": 3
+    },
+    "breast press": {
+      "k": "눌린 가슴",
+      "l": 3
+    },
+    "grabbing own breast": {
+      "k": "자기 가슴 잡기",
+      "l": 3
+    },
+    "breasts squeezed together": {
+      "k": "모아 눌린 가슴",
+      "l": 3
+    },
+    "pussy juice": {
+      "k": "애액",
+      "l": 3
+    },
+    "wet crotch": {
+      "k": "젖은 사타구니",
+      "l": 3
+    },
+    "gap between thighs": {
+      "k": "허벅지 틈",
+      "l": 3
+    },
+    "amazon position": {
+      "k": "아마조네스 체위",
+      "l": 5
+    },
+    "on couch": {
+      "k": "소파 위에서",
+      "l": 5
+    },
+    "leg lock": {
+      "k": "다리로 감기",
+      "l": 5
+    },
+    "legs over head": {
+      "k": "다리를 머리 위로",
+      "l": 5
+    },
+    "cum overflow": {
+      "k": "넘치는 정액",
+      "l": 5
+    },
+    "cum pool": {
+      "k": "고인 정액",
+      "l": 5
+    },
+    "swallowing": {
+      "k": "삼키기",
+      "l": 5
+    },
+    "throat bulge": {
+      "k": "목 부풀음",
+      "l": 5
+    },
+    "climax": {
+      "k": "절정",
+      "l": 5
+    },
+    "curled toes": {
+      "k": "오므린 발가락",
+      "l": 5
+    },
+    "toe scrunch": {
+      "k": "발가락 힘주기",
+      "l": 5
+    },
+    "grabbing sheets": {
+      "k": "시트 움켜쥐기",
+      "l": 5
+    },
+    "imminent penetration": {
+      "k": "삽입 직전",
+      "l": 5
+    },
+    "just the tip": {
+      "k": "끝만 넣은",
+      "l": 5
+    },
+    "penis awe": {
+      "k": "성기 응시",
+      "l": 5
+    },
+    "anus focus": {
+      "k": "항문 강조",
+      "l": 5
+    },
+    "clothed male nude female": {
+      "k": "남성 착의·여성 나체(CMNF)",
+      "l": 5
+    },
+    "clothed female nude male": {
+      "k": "여성 착의·남성 나체(CFNM)",
+      "l": 5
+    },
+    "sex heart": {
+      "k": "하트 이펙트",
+      "l": 7
+    },
+    "spoken heart": {
+      "k": "하트 말풍선",
+      "l": 7
+    },
+    "female pov": {
+      "k": "여성 시점",
+      "l": 5
+    },
+    "lap sitting": {
+      "k": "무릎에 앉기",
+      "l": 5
+    },
+    "carried": {
+      "k": "안겨 있는",
+      "l": 5
+    },
+    "nipple licking": {
+      "k": "유두 핥기",
+      "l": 5
+    },
+    "pussy peek": {
+      "k": "살짝 보이는 성기",
+      "l": 5
+    },
+    "clothes in mouth": {
+      "k": "옷을 입에 문",
+      "l": 5
+    },
+    "mouth hold": {
+      "k": "입에 물기",
+      "l": 5
+    },
+    "erection under clothes": {
+      "k": "옷 위로 드러난 발기",
+      "l": 5
+    },
+    "grinding on leg": {
+      "k": "다리에 비비기",
+      "l": 5
+    },
+    "egg vibrator": {
+      "k": "에그 바이브",
+      "l": 5
+    },
+    "nipple clamps": {
+      "k": "니플 클램프",
+      "l": 5
+    },
+    "condom": {
+      "k": "콘돔",
+      "l": 5
+    },
+    "condom wrapper": {
+      "k": "콘돔 포장",
+      "l": 5
+    },
+    "lube": {
+      "k": "러브젤",
+      "l": 5
+    },
+    "onahole": {
+      "k": "오나홀",
+      "l": 5
+    },
+    "remote control vibrator": {
+      "k": "리모컨 바이브",
+      "l": 5
+    },
+    "vibrator under clothes": {
+      "k": "옷 속 바이브",
+      "l": 5
+    },
+    "restraints": {
+      "k": "구속구(합의)",
+      "l": 5
+    },
+    "wrist cuffs": {
+      "k": "손목 수갑",
+      "l": 5
+    },
+    "thigh cuffs": {
+      "k": "허벅지 구속(합의)",
+      "l": 5
+    }
+  }
+}
