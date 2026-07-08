@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.37 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.38 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1222,7 +1222,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.37 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.38 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1416,7 +1416,7 @@
                     </div>
                     <div id="pos-action-row" style="padding:8px 0 4px; display:flex; gap:8px; flex-wrap:wrap;">
                         <button class="btn-copy pos" style="flex:1 1 110px;" onclick="copyPrompt('pos')"><i class="fa-solid fa-copy"></i> 긍정 복사</button>
-                        <button class="btn-copy" style="flex:1 1 110px; background:#1f2937; border-color:#4b5563;" onclick="openInGrok('pos')" title="Grok으로 프롬프트를 들고 열기 (복사도 함께)"><i class="fa-solid fa-arrow-up-right-from-square"></i> Grok으로 열기</button>
+                        <button id="btn-grok-pos" class="btn-copy" style="flex:1 1 110px; background:#1f2937; border-color:#4b5563;" onclick="openInGrok('pos')" title="Grok으로 프롬프트를 들고 열기 (복사도 함께)"><i class="fa-solid fa-arrow-up-right-from-square"></i> Grok으로 열기</button>
                         <button id="btn-comfy-send-pos" class="btn-copy" style="flex:1 1 110px; display:none; background:#38bdf8; border-color:#38bdf8;" onclick="comfyQuickSend('pos')"><i class="fa-solid fa-paper-plane"></i> ComfyUI 전송</button>
                         <button id="btn-multigen-pos" class="btn-copy" style="flex:0 0 auto; display:none; background:#a855f7; border-color:#a855f7; padding-left:14px; padding-right:14px;" onclick="openMultiGen()" title="다중 결과 생성"><i class="fa-solid fa-bolt"></i> 다중</button>
                     </div>
@@ -1987,7 +1987,14 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.37', date: '2026-07-08', time: '최신',
+                version: 'v9.10.38', date: '2026-07-08', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[결과] ComfyUI가 연결돼 있으면 "Grok으로 열기" 버튼을 숨깁니다 — ComfyUI를 안 쓸 때만 Grok 버튼이 나타납니다',
+                ]
+            },
+            {
+                version: 'v9.10.37', date: '2026-07-08', time: '이전',
                 tag: 'fix',
                 items: [
                     '[DB 관리] 휴대폰에서 "표 편집" 표가 화면 밖으로 잘리고 "계층" 글자가 세로로 찌부러지던 문제 수정 — 이제 표가 가로로 스크롤되어 온전히 보입니다',
@@ -3715,6 +3722,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (n) { n.style.display = show ? '' : 'none'; n.innerHTML = label; }
             const mg = document.getElementById('btn-multigen-pos');
             if (mg) mg.style.display = show ? '' : 'none';
+            // ComfyUI가 연결(또는 가상)됐으면 Grok 버튼은 숨김 — ComfyUI 미연결일 때만 노출
+            const gk = document.getElementById('btn-grok-pos');
+            if (gk) gk.style.display = show ? 'none' : '';
         }
 
         // 메뉴에서 호출 — 개발자 모드 전체 토글
