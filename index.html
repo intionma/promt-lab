@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.31 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.32 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.31 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.32 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1975,7 +1975,14 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.31', date: '2026-07-08', time: '최신',
+                version: 'v9.10.32', date: '2026-07-08', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[추천] 새 제안(리롤) 버튼이 아이콘만 있어 안 보이던 문제 수정 — 이제 "🔄 다른 제안"이라고 글자까지 또렷하게 표시됩니다',
+                ]
+            },
+            {
+                version: 'v9.10.31', date: '2026-07-08', time: '이전',
                 tag: 'feat',
                 items: [
                     '[추천] 의상·구도·배경 후보가 훨씬 다양해졌습니다 — 실제 인기 게시물에서 뽑은 후보를 계층당 40개→150개로 늘려, 🔄를 누를수록 새로운 조합이 나옵니다 (앱 기본 사전이 아니라 실제 사람들이 쓴 태그 기준)',
@@ -7122,7 +7129,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     <h3 style="margin:0;font-size:16px;font-family:var(--font-heading);white-space:nowrap;"><i class="fa-solid fa-bolt" style="color:#a855f7;margin-right:6px;"></i>추천</h3>
                     <span style="font-size:10px;color:var(--text-dim);flex:1 1 100px;min-width:0;">화풍·인물은 그대로, 의상·구도·배경만 · 누르면 담김/다시 누르면 빠짐</span>
                     ${btn('recm-fill', '✨ 한 번에 보완', 'rgba(34,197,94,0.85)')}
-                    <button id="recm-refresh" title="다른 제안" style="background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#a855f7;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;"><i class="fa-solid fa-rotate"></i></button>
+                    <button id="recm-refresh" title="완성 세트·후보를 새로 제안" style="background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#a855f7;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;"><i class="fa-solid fa-arrows-rotate"></i> 다른 제안</button>
                     <button id="recm-close" style="background:none;border:none;color:var(--text-dim);font-size:22px;cursor:pointer;line-height:1;">&times;</button>
                 </div>
                 <div id="recm-body" style="overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-right:2px;"></div>
@@ -7164,7 +7171,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     });
                     hi += `</div></div>`;
                 }
-                hi += `<div><div style="font-size:11px;font-weight:800;color:var(--text-dim);margin-bottom:7px;">직접 골라담기 (담긴 건 ✓ · 다시 누르면 빠짐 · 🔄로 다른 후보)</div>`;
+                hi += `<div><div style="font-size:11px;font-weight:800;color:var(--text-dim);margin-bottom:7px;">직접 골라담기 (담긴 건 ✓ · 다시 누르면 빠짐 · 위 "다른 제안"으로 새 후보)</div>`;
                 hi += `<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;">`;
                 [[4, '의상'], [2, '구도'], [6, '배경']].forEach(([L, name]) => {
                     const activeInL = [...active].filter(t => !_REC_PERSONCOUNT.has(t) && (_recLayerOf(t) === L || (_DATA_LC[L] || []).includes(t)));
