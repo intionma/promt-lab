@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.35 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.36 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1211,7 +1211,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.35 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.36 &nbsp;·&nbsp; 2026-07-08 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1403,9 +1403,10 @@
                         </div>
                         <div class="preview-box" id="korean-preview">태그의 한글 뜻이 표시됩니다.</div>
                     </div>
-                    <div id="pos-action-row" style="padding:8px 0 4px; display:flex; gap:8px;">
-                        <button class="btn-copy pos" style="flex:1;" onclick="copyPrompt('pos')"><i class="fa-solid fa-copy"></i> 긍정 복사</button>
-                        <button id="btn-comfy-send-pos" class="btn-copy" style="flex:1; display:none; background:#38bdf8; border-color:#38bdf8;" onclick="comfyQuickSend('pos')"><i class="fa-solid fa-paper-plane"></i> ComfyUI 전송</button>
+                    <div id="pos-action-row" style="padding:8px 0 4px; display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn-copy pos" style="flex:1 1 110px;" onclick="copyPrompt('pos')"><i class="fa-solid fa-copy"></i> 긍정 복사</button>
+                        <button class="btn-copy" style="flex:1 1 110px; background:#1f2937; border-color:#4b5563;" onclick="openInGrok('pos')" title="Grok으로 프롬프트를 들고 열기 (복사도 함께)"><i class="fa-solid fa-arrow-up-right-from-square"></i> Grok으로 열기</button>
+                        <button id="btn-comfy-send-pos" class="btn-copy" style="flex:1 1 110px; display:none; background:#38bdf8; border-color:#38bdf8;" onclick="comfyQuickSend('pos')"><i class="fa-solid fa-paper-plane"></i> ComfyUI 전송</button>
                         <button id="btn-multigen-pos" class="btn-copy" style="flex:0 0 auto; display:none; background:#a855f7; border-color:#a855f7; padding-left:14px; padding-right:14px;" onclick="openMultiGen()" title="다중 결과 생성"><i class="fa-solid fa-bolt"></i> 다중</button>
                     </div>
                     <div id="comfy-inline-pos" style="display:none; padding-top:10px;">
@@ -1975,7 +1976,14 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.35', date: '2026-07-08', time: '최신',
+                version: 'v9.10.36', date: '2026-07-08', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[결과] "Grok으로 열기" 버튼 추가 — ComfyUI가 없어도 지금 프롬프트를 들고 grok.com이 새 탭으로 열리며 자동으로 채워집니다(안 되면 붙여넣기 한 번, 프롬프트는 복사도 함께 됩니다). 무료·API 키 불필요 — Grok에서 바로 이미지를 뽑을 수 있습니다',
+                ]
+            },
+            {
+                version: 'v9.10.35', date: '2026-07-08', time: '이전',
                 tag: 'fix',
                 items: [
                     '[에디터] 룩·추천으로 담은 태그가 영어로 표시되던 문제 수정 — 이제 wet hair·gyaru·bathroom 같은 태그도 캡슐에 한글(젖은 머리·갸루·욕실)로 보입니다. 팩을 설치하지 않았거나 사전에만 있던 번역까지 3,700여 개를 항상 적용합니다',
@@ -13251,6 +13259,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         function _fallbackCopy(text) {
             try { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); } catch (e) {}
+        }
+        // Grok(grok.com)으로 프롬프트를 들고 새 탭 열기 + 클립보드 복사(자동 채움 실패 대비)
+        function openInGrok(which) {
+            const id = which === 'neg' ? 'final-negative' : 'final-positive';
+            const el = document.getElementById(id);
+            const prompt = ((el && el.value) || '').replace(/\bBREAK\b/g, ',').replace(/\s+/g, ' ').replace(/(\s*,\s*)+/g, ', ').replace(/^[\s,]+|[\s,]+$/g, '').trim();
+            if (!prompt) { showToast('프롬프트가 비어 있습니다.', 'warning'); return; }
+            try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(prompt).catch(() => _fallbackCopy(prompt)); else _fallbackCopy(prompt); } catch (e) { _fallbackCopy(prompt); }
+            try { window.open('https://grok.com/?q=' + encodeURIComponent(prompt), '_blank', 'noopener'); } catch (e) {}
+            showToast('Grok을 열었어요 — 프롬프트가 자동으로 채워집니다. 안 되면 붙여넣기(Ctrl/Cmd+V) 하세요.', 'success', 4000);
         }
 
         // ── 고정 접두 태그: 추천·조합으로 계층이 바뀌어도 score 등 필수 태그를 최종 프롬프트에 항상 포함 ──
