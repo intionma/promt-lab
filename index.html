@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.42 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.43 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1222,7 +1222,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.42 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.43 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1987,7 +1987,15 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.42', date: '2026-07-09', time: '최신',
+                version: 'v9.10.43', date: '2026-07-09', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[추천 창] 디자인을 새로 했습니다 — 어둡고 답답하던 골라담기 창을 밝고 깔끔한 카드형으로 바꿨습니다 (의상·구도·배경 색 구분, 이름 2줄 표시, 선택 시 초록 강조)',
+                    '[추천 창] "완성 세트"와 "테마 고르기"를 없앴습니다 — 창을 열면 바로 의상·구도·배경 3칸에서 고를 수 있습니다',
+                ]
+            },
+            {
+                version: 'v9.10.42', date: '2026-07-09', time: '이전',
                 tag: 'feat',
                 items: [
                     '[구도 추천] 좌식·와식 기본 포즈 18종을 보강했습니다 — 정좌 · 와리자 · 체육좌 · 의자 앉기 · 침대에 눕기 등, 총 70종으로 늘었습니다',
@@ -7262,9 +7270,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             let h = `<div class="modal-content" style="width:min(700px,96vw);max-height:88vh;padding:20px;border-radius:18px;display:flex;flex-direction:column;gap:12px;overflow:hidden;">
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;">
                     <h3 style="margin:0;font-size:16px;font-family:var(--font-heading);white-space:nowrap;"><i class="fa-solid fa-bolt" style="color:#a855f7;margin-right:6px;"></i>추천</h3>
-                    <span style="font-size:10px;color:var(--text-dim);flex:1 1 100px;min-width:0;">화풍·인물은 그대로, 의상·구도·배경만 · 누르면 담김/다시 누르면 빠짐</span>
+                    <span style="font-size:10px;color:var(--text-dim);flex:1 1 80px;min-width:0;">화풍·인물은 그대로 · 의상/구도/배경만</span>
                     ${btn('recm-fill', '✨ 한 번에 보완', 'rgba(34,197,94,0.85)')}
-                    <button id="recm-refresh" title="완성 세트·후보를 새로 제안" style="background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#a855f7;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;"><i class="fa-solid fa-arrows-rotate"></i> 다른 제안</button>
+                    <button id="recm-refresh" title="후보를 새로 제안" style="background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#a855f7;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;"><i class="fa-solid fa-arrows-rotate"></i> 다른 제안</button>
                     <button id="recm-close" style="background:none;border:none;color:var(--text-dim);font-size:22px;cursor:pointer;line-height:1;">&times;</button>
                 </div>
                 <div id="recm-body" style="overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-right:2px;"></div>
@@ -7272,90 +7280,57 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             ov.innerHTML = h;
             const body = ov.querySelector('#recm-body');
 
-            if (active.size === 0) {
-                // 콜드스타트: 테마 레시피 (인물 태그는 담을 때 제외)
-                const shuffled = TAG_RECIPES.slice().sort(() => Math.random() - 0.5).slice(0, 9);
-                let hi = `<div style="font-size:11px;font-weight:800;color:var(--text-dim);">테마로 시작 — 하나 고르면 조합이 채워져요</div>`;
-                hi += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">`;
-                shuffled.forEach((r, idx) => {
-                    const badge = r.nsfw ? `<span style="position:absolute;top:6px;right:6px;font-size:8px;font-weight:800;color:#f87171;background:rgba(248,113,113,0.14);border:1px solid rgba(248,113,113,0.4);border-radius:5px;padding:1px 5px;">19+</span>` : '';
-                    hi += `<button class="recm-recipe" data-idx="${idx}" style="position:relative;text-align:left;background:${r.nsfw ? 'rgba(248,113,113,0.06)' : 'rgba(168,85,247,0.06)'};border:1px solid ${r.nsfw ? 'rgba(248,113,113,0.3)' : 'rgba(168,85,247,0.3)'};border-radius:10px;padding:10px;cursor:pointer;">${badge}<span style="font-size:18px;">${r.e}</span><span style="display:block;font-size:12px;font-weight:700;color:var(--text-main);margin-top:3px;">${_esc(r.n)}</span></button>`;
-                });
-                hi += `</div>`;
-                body.innerHTML = hi;
-                body._recipes = shuffled;
-                body.querySelectorAll('.recm-recipe').forEach(b => b.onclick = () => {
-                    const r = body._recipes[parseInt(b.dataset.idx)]; if (!r) return;
-                    importPromptToEditor(r.tags.filter(t => !_REC_PERSONCOUNT.has((t || '').toLowerCase())), 'append');
-                    showToast(`'${r.n}' 조합을 담았어요`, 'success', 1600);
-                    renderRecommendModal(true);
-                });
-            } else {
-                // 룩북 + 칸별 (토글)
-                if (regen || !_recModalBundles) _recModalBundles = _recSceneBundles(4);
+            // 항상 골라담기 3칸 (완성 세트·테마 콜드스타트 제거 · 프로 디자인 리뉴얼)
+            {
                 if (regen || !_recModalLooks) _recModalLooks = _recPickLooks(12);
                 if (regen || !_recModalPoses) _recModalPoses = _recPickPoses(12);
                 if (regen || !_recModalAxis) { _recModalAxis = {}; [2, 6].forEach(L => _recModalAxis[L] = _recAxisRanked(L, active, 18, 0.5)); }
-                const bundles = _recModalBundles;
-                let hi = '';
-                if (bundles.length) {
-                    hi += `<div><div style="font-size:11px;font-weight:800;color:var(--text-dim);margin-bottom:7px;">완성 세트 (누르면 통째로 담김)</div>`;
-                    hi += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px;">`;
-                    bundles.forEach((bd, idx) => {
-                        const parts = [bd.outfit.map(_recKor).join(' + '), _recKor(bd.comp), bd.bg.map(_recKor).join('')].filter(Boolean);
-                        const cnt = [...bd.outfit, bd.comp, ...bd.bg].filter(Boolean).length;
-                        hi += `<button class="recm-bundle" data-idx="${idx}" style="text-align:left;background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.3);border-radius:10px;padding:9px 10px;cursor:pointer;"><span style="display:block;font-size:11px;font-weight:700;color:var(--text-main);line-height:1.55;">${_esc(parts.join(' · '))}</span><span style="display:block;font-size:9px;color:var(--text-dim);margin-top:3px;">의상·구도·배경 ${cnt}개</span></button>`;
-                    });
-                    hi += `</div></div>`;
-                }
-                hi += `<div><div style="font-size:11px;font-weight:800;color:var(--text-dim);margin-bottom:7px;">직접 골라담기 (담긴 건 ✓ · 다시 누르면 빠짐 · 위 "다른 제안"으로 새 후보)</div>`;
-                hi += `<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;">`;
-                [[4, '의상(룩)'], [2, '구도'], [6, '배경']].forEach(([L, name]) => {
-                    hi += `<div style="min-width:0;"><div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;"><span style="font-size:11px;font-weight:800;color:#a855f7;">${name}</span><button class="recm-reroll" data-l="${L}" title="${name}만 다른 제안" style="margin-left:auto;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.35);color:#a855f7;font-size:10px;cursor:pointer;padding:2px 6px;border-radius:6px;"><i class="fa-solid fa-arrows-rotate"></i></button><button class="recm-clear" data-l="${L}" title="${name} 비우기" style="background:none;border:none;color:var(--text-dim);font-size:11px;cursor:pointer;padding:0 2px;"><i class="fa-solid fa-eraser"></i></button></div><div style="display:flex;flex-direction:column;gap:5px;">`;
+                const chip = (cls, attr, on, label, titleStr, nsfw) => `<button class="${cls} recm-chip${on ? ' on' : ''}" ${attr} title="${_esc(titleStr)}"><i class="rc-ic fa-solid fa-${on ? 'check' : 'plus'}"></i><span class="rc-lbl">${_esc(label)}</span>${nsfw ? '<span class="rc-19">19+</span>' : ''}</button>`;
+                let hi = `<style>
+                  #rec-modal-overlay .recm-hint{font-size:11px;font-weight:600;color:var(--text-dim);margin:-2px 2px 0;}
+                  #rec-modal-overlay .recm-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+                  #rec-modal-overlay .recm-col{background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:14px;padding:11px 9px 10px;display:flex;flex-direction:column;min-width:0;box-shadow:0 1px 3px var(--shadow-color);}
+                  #rec-modal-overlay .recm-col-head{display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:0 3px;}
+                  #rec-modal-overlay .recm-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+                  #rec-modal-overlay .recm-col-name{font-size:12px;font-weight:800;color:var(--text-main);letter-spacing:-.01em;white-space:nowrap;}
+                  #rec-modal-overlay .recm-col-actions{margin-left:auto;display:flex;gap:3px;}
+                  #rec-modal-overlay .recm-ibtn{width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border-dim);background:var(--chip-bg);color:var(--text-dim);font-size:10px;cursor:pointer;transition:all .12s;padding:0;}
+                  #rec-modal-overlay .recm-ibtn:hover{color:var(--text-main);border-color:var(--text-dim);transform:translateY(-1px);}
+                  #rec-modal-overlay .recm-list{display:flex;flex-direction:column;gap:5px;min-width:0;}
+                  #rec-modal-overlay .recm-chip{display:flex;align-items:center;gap:6px;width:100%;text-align:left;background:var(--chip-bg);border:1px solid var(--border-dim);border-radius:10px;padding:7px 8px;cursor:pointer;font-size:12px;color:var(--text-main);overflow:hidden;transition:all .12s;min-height:34px;}
+                  #rec-modal-overlay .recm-chip:hover{border-color:var(--accent-blue);background:color-mix(in srgb,var(--accent-blue) 9%,var(--chip-bg));transform:translateY(-1px);}
+                  #rec-modal-overlay .recm-chip .rc-ic{font-size:9px;color:var(--text-dim);flex-shrink:0;width:10px;text-align:center;}
+                  #rec-modal-overlay .recm-chip .rc-lbl{flex:1 1 auto;min-width:0;line-height:1.22;word-break:keep-all;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+                  #rec-modal-overlay .recm-chip.on{background:color-mix(in srgb,var(--accent-green) 16%,var(--chip-bg));border-color:var(--accent-green);font-weight:600;}
+                  #rec-modal-overlay .recm-chip.on .rc-ic{color:var(--accent-green);}
+                  #rec-modal-overlay .rc-19{margin-left:auto;font-size:8px;font-weight:800;color:var(--accent-danger);flex-shrink:0;}
+                </style>`;
+                hi += `<div class="recm-hint">각 칸에서 골라 담으세요 · 다시 누르면 빠져요 · <i class="fa-solid fa-arrows-rotate"></i> 로 새 후보</div>`;
+                hi += `<div class="recm-cols">`;
+                [[4, '의상', '--color-l4'], [2, '구도', '--color-l2'], [6, '배경', '--color-l6']].forEach(([L, name, cvar]) => {
+                    hi += `<div class="recm-col"><div class="recm-col-head"><span class="recm-dot" style="background:var(${cvar});"></span><span class="recm-col-name">${name}</span><span class="recm-col-actions"><button class="recm-reroll recm-ibtn" data-l="${L}" title="${name} 다른 제안"><i class="fa-solid fa-arrows-rotate"></i></button><button class="recm-clear recm-ibtn" data-l="${L}" title="${name} 비우기"><i class="fa-solid fa-eraser"></i></button></span></div><div class="recm-list">`;
                     if (L === 4) {
-                        // 의상 = 이름 붙은 룩 (누르면 그 룩 태그 전체 담김/다시 누르면 전체 빠짐)
-                        (_recModalLooks || []).forEach((lk, li) => {
-                            const on = _recLookOn(lk);
-                            const badge = lk.nsfw ? `<span style="font-size:8px;font-weight:800;color:#f87171;margin-left:3px;">19+</span>` : '';
-                            hi += `<button class="recm-look" data-li="${li}" title="${_esc(lk.tags.join(', '))}" style="text-align:left;background:${on ? 'rgba(34,197,94,0.16)' : 'rgba(168,85,247,0.07)'};border:1px solid ${on ? 'rgba(34,197,94,0.55)' : 'rgba(168,85,247,0.28)'};border-radius:8px;padding:5px 8px;cursor:pointer;font-size:11px;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="fa-solid fa-${on ? 'check' : 'plus'}" style="font-size:8px;color:${on ? '#22c55e' : '#a855f7'};margin-right:4px;"></i>${_esc(lk.n)}${badge}</button>`;
-                        });
+                        (_recModalLooks || []).forEach((lk, li) => { hi += chip('recm-look', `data-li="${li}"`, _recLookOn(lk), lk.n, lk.tags.join(', '), lk.nsfw); });
                     } else if (L === 2 && _recModalPoses && _recModalPoses.length) {
-                        // 구도 = 이름 붙은 포즈 (카메라 앵글+몸 포즈 결합, 누르면 통째로 담김/다시 누르면 빠짐) · 포즈 데이터 없으면 아래 axis로 폴백
-                        (_recModalPoses || []).forEach((pz, pi) => {
-                            const on = _recLookOn(pz);
-                            const badge = pz.nsfw ? `<span style="font-size:8px;font-weight:800;color:#f87171;margin-left:3px;">19+</span>` : '';
-                            hi += `<button class="recm-pose" data-pi="${pi}" title="${_esc(pz.tags.join(', '))}" style="text-align:left;background:${on ? 'rgba(34,197,94,0.16)' : 'rgba(168,85,247,0.07)'};border:1px solid ${on ? 'rgba(34,197,94,0.55)' : 'rgba(168,85,247,0.28)'};border-radius:8px;padding:5px 8px;cursor:pointer;font-size:11px;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="fa-solid fa-${on ? 'check' : 'plus'}" style="font-size:8px;color:${on ? '#22c55e' : '#a855f7'};margin-right:4px;"></i>${_esc(pz.n)}${badge}</button>`;
-                        });
+                        (_recModalPoses || []).forEach((pz, pi) => { hi += chip('recm-pose', `data-pi="${pi}"`, _recLookOn(pz), pz.n, pz.tags.join(', '), pz.nsfw); });
                     } else {
                         const activeInL = [...active].filter(t => !_REC_PERSONCOUNT.has(t) && (_recLayerOf(t) === L || (_DATA_LC[L] || []).includes(t)));
                         const fresh = (_recModalAxis[L] || []).filter(t => !active.has(t)).slice(0, Math.max(6, 12 - activeInL.length));
                         const items = [...activeInL.map(t => [t, true]), ...fresh.map(t => [t, false])];
-                        items.forEach(([t, on]) => {
-                            hi += `<button class="recm-axis" data-t="${_esc(t)}" title="${_esc(t)}" style="text-align:left;background:${on ? 'rgba(34,197,94,0.16)' : 'rgba(168,85,247,0.07)'};border:1px solid ${on ? 'rgba(34,197,94,0.55)' : 'rgba(168,85,247,0.28)'};border-radius:8px;padding:5px 8px;cursor:pointer;font-size:11px;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="fa-solid fa-${on ? 'check' : 'plus'}" style="font-size:8px;color:${on ? '#22c55e' : '#a855f7'};margin-right:4px;"></i>${_esc(_recKor(t))}</button>`;
-                        });
+                        items.forEach(([t, on]) => { hi += chip('recm-axis', `data-t="${_esc(t)}"`, on, _recKor(t), t, false); });
                     }
                     hi += `</div></div>`;
                 });
-                hi += `</div></div>`;
+                hi += `</div>`;
                 body.innerHTML = hi;
                 body.querySelectorAll('.recm-reroll').forEach(b => b.onclick = () => { const L = parseInt(b.dataset.l); if (L === 4) _recModalLooks = _recPickLooks(12); else if (L === 2 && _DATA_POSES.length) _recModalPoses = _recPickPoses(12); else _recModalAxis[L] = _recAxisRanked(L, _recActive(), 18, 0.55); renderRecommendModal(false); });
                 body.querySelectorAll('.recm-clear').forEach(b => b.onclick = () => { const L = parseInt(b.dataset.l); _recClearLayer(L); if (L === 2) _recClearLayer(5); renderRecommendModal(false); });
                 body.querySelectorAll('.recm-look').forEach(b => b.onclick = () => { const lk = (_recModalLooks || [])[parseInt(b.dataset.li)]; if (lk) _recToggleLook(lk); renderRecommendModal(false); });
                 body.querySelectorAll('.recm-pose').forEach(b => b.onclick = () => { const pz = (_recModalPoses || [])[parseInt(b.dataset.pi)]; if (pz) _recToggleLook(pz); renderRecommendModal(false); });
-                body.querySelectorAll('.recm-bundle').forEach(b => b.onclick = () => {
-                    const bd = bundles[parseInt(b.dataset.idx)]; if (!bd) return;
-                    const tags = [...bd.outfit, bd.comp, ...bd.bg].filter(Boolean);
-                    importPromptToEditor(tags, 'append');
-                    showToast(`세트를 담았어요 — ${tags.length}개`, 'success', 1600);
-                    renderRecommendModal(false);
-                });
-                body.querySelectorAll('.recm-axis').forEach(b => b.onclick = () => {
-                    if (b.dataset.t) _recToggleTag(b.dataset.t);
-                    renderRecommendModal(false);
-                });
+                body.querySelectorAll('.recm-axis').forEach(b => b.onclick = () => { if (b.dataset.t) _recToggleTag(b.dataset.t); renderRecommendModal(false); });
             }
             ov.querySelector('#recm-close').onclick = closeRecommendModal;
-            ov.querySelector('#recm-refresh').onclick = () => { _recModalBundles = null; renderRecommendModal(true); };
+            ov.querySelector('#recm-refresh').onclick = () => { renderRecommendModal(true); };
             ov.querySelector('#recm-fill').onclick = () => { fillOutPrompt(); renderRecommendModal(false); };
           } catch (e) { console.warn('추천 모달 렌더 실패:', e); }
         }
