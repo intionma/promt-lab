@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.48 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.49 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1222,7 +1222,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.48 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.49 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1987,7 +1987,14 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.48', date: '2026-07-09', time: '최신',
+                version: 'v9.10.49', date: '2026-07-09', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[자동완성] 상세태그 검색창과 에디터의 태그 입력에 자동완성을 추가했습니다 — 영문이든 한글이든 몇 글자만 치면 관련 태그가 구글처럼 드롭다운으로 뜹니다 (한글명+영문 병기, ↑↓·엔터로 선택). 상세태그 목록에 안 보이는 팩/프리셋 태그도 검색해서 바로 담을 수 있습니다',
+                ]
+            },
+            {
+                version: 'v9.10.48', date: '2026-07-09', time: '이전',
                 tag: 'feat',
                 items: [
                     '[추천 창] "완성 모드"를 추가했습니다 — 🧩 버튼을 켜면 화풍·인원·인물(외형) 칸이 추가로 나와, 추천만으로 프롬프트를 완성할 수 있습니다',
@@ -7090,13 +7097,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _DATA_POSES = _DATA_POSES.filter(x => !x.nsfw);
                 _DATA_BG = _DATA_BG.filter(x => !x.nsfw);
                 _recModalPick = null;
+                try { _acInvalidate(); } catch (e) {}
                 if (typeof showToast === 'function') showToast('성인 팩(19+)을 해제했어요', 'info', 1500);
                 renderRecommendModal(true);
             } else {
                 _adultPackOn = true;
                 try { localStorage.setItem(ADULT_PACK_KEY, '1'); } catch (e) {}
                 if (typeof showToast === 'function') showToast('성인 팩(19+) 다운로드 중…', 'info', 1500);
-                _loadAdultPack(() => { _recModalPick = null; if (typeof showToast === 'function') showToast('성인 팩(19+) 적용 완료', 'success', 1600); renderRecommendModal(true); });
+                _loadAdultPack(() => { _recModalPick = null; try { _acInvalidate(); } catch (e) {} if (typeof showToast === 'function') showToast('성인 팩(19+) 적용 완료', 'success', 1600); renderRecommendModal(true); });
             }
         }
         // 태그 한글 오버레이 — 룩·추천이 넣는 danbooru 태그를 캡슐에서 한글로 표시 (팩 미설치·사전 미검색 문제 해결)
@@ -11350,6 +11358,92 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }
             });
         }
+
+        // ══ 태그 자동완성 (검색창 + 에디터 입력) — 영문/한글 매칭, 사전·팩·프리셋 태그 포함 ══
+        let _AC_INDEX = null;
+        function _acInvalidate() { _AC_INDEX = null; }
+        function _acBuildIndex() {
+            const map = new Map();
+            const koOf = en => (typeof _DATA_KO !== 'undefined' && _DATA_KO[en]) || (TAG_DICT[en] && TAG_DICT[en].k) || '';
+            try { for (const en in TAG_DICT) { if (en && !map.has(en)) map.set(en, (TAG_DICT[en] && TAG_DICT[en].k) || ''); } } catch (e) {}
+            const addP = arr => (arr || []).forEach(o => ((o && o.tags) || []).forEach(t => { const en = (t || '').toLowerCase().trim(); if (!en || map.has(en)) return; map.set(en, koOf(en)); }));
+            try { addP(_DATA_LOOKS); addP(_DATA_POSES); addP(_DATA_BG); addP(_DATA_CHARS); } catch (e) {}
+            try { const ko = (typeof _DATA_KO !== 'undefined') ? _DATA_KO : {}; for (const en in ko) { if (!map.has(en)) map.set(en, ko[en]); } } catch (e) {}
+            _AC_INDEX = [];
+            map.forEach((ko, en) => _AC_INDEX.push({ en, ko, enn: en.replace(/\s+/g, ''), kon: (ko || '').toLowerCase().replace(/\s+/g, '') }));
+            return _AC_INDEX;
+        }
+        function _acSuggest(q, limit) {
+            q = (q || '').toLowerCase().replace(/\s+/g, ''); if (q.length < 1) return [];
+            const idx = _AC_INDEX || _acBuildIndex(); const pre = [], sub = [];
+            for (const it of idx) {
+                if (it.enn.startsWith(q) || (it.kon && it.kon.startsWith(q))) pre.push(it);
+                else if (it.enn.includes(q) || (it.kon && it.kon.includes(q))) sub.push(it);
+            }
+            pre.sort((a, b) => a.en.length - b.en.length); sub.sort((a, b) => a.en.length - b.en.length);
+            return pre.concat(sub).slice(0, limit || 10);
+        }
+        let _acState = { input: null, mode: null, items: [], sel: -1 };
+        function _acEl() {
+            let el = document.getElementById('tag-ac');
+            if (!el) {
+                el = document.createElement('div'); el.id = 'tag-ac';
+                el.style.cssText = 'position:fixed;z-index:99999;background:var(--bg-panel);border:1px solid var(--border-dim);border-radius:10px;box-shadow:0 12px 40px var(--shadow-color);max-height:264px;overflow-y:auto;display:none;padding:4px;min-width:200px;';
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+        function _acHide() { const el = document.getElementById('tag-ac'); if (el) el.style.display = 'none'; _acState.items = []; _acState.sel = -1; }
+        function _acRenderList() {
+            const el = _acEl();
+            el.innerHTML = _acState.items.map((it, i) => `<div class="aci" data-i="${i}" style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;cursor:pointer;font-size:12px;${i === _acState.sel ? 'background:color-mix(in srgb,var(--accent-blue) 16%,transparent);' : ''}"><span style="color:var(--text-main);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_esc(it.ko || it.en)}</span><span style="color:var(--text-dim);font-family:var(--font-code);font-size:11px;margin-left:auto;white-space:nowrap;">${_esc(it.en)}</span></div>`).join('');
+            el.querySelectorAll('.aci').forEach(d => {
+                d.onmousedown = (e) => { e.preventDefault(); _acPick(parseInt(d.dataset.i)); };
+                d.onmouseenter = () => { _acState.sel = parseInt(d.dataset.i); _acRenderList(); };
+            });
+        }
+        function _acOpen(input, mode) {
+            const items = _acSuggest(input.value, 10);
+            if (!items.length) { _acHide(); return; }
+            _acState = { input: input, mode: mode, items: items, sel: -1 };
+            const el = _acEl(); _acRenderList();
+            const r = input.getBoundingClientRect();
+            el.style.display = 'block';
+            el.style.minWidth = Math.max(200, r.width) + 'px';
+            let left = r.left, top = r.bottom + 4;
+            const ew = el.offsetWidth, eh = el.offsetHeight;
+            if (left + ew > window.innerWidth - 8) left = Math.max(8, window.innerWidth - ew - 8);
+            if (top + eh > window.innerHeight - 8) top = Math.max(8, r.top - eh - 4);
+            el.style.left = left + 'px'; el.style.top = top + 'px';
+        }
+        function _acMove(d) { if (!_acState.items.length) return; _acState.sel = (_acState.sel + d + _acState.items.length) % _acState.items.length; _acRenderList(); const s = _acEl().querySelector('.aci:nth-child(' + (_acState.sel + 1) + ')'); if (s) s.scrollIntoView({ block: 'nearest' }); }
+        function _acPick(i) {
+            const it = _acState.items[i], input = _acState.input, mode = _acState.mode; if (!it) return;
+            _acHide();
+            if (mode === 'editor' && input) {
+                input.value = it.en;
+                input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+            } else if (mode === 'search') {
+                try { importPromptToEditor([it.en], 'append'); showToast(`'${it.ko || it.en}' 담음`, 'success', 1400); } catch (e) {}
+            }
+        }
+        document.addEventListener('input', (e) => {
+            const t = e.target; if (!t) return;
+            if (t.classList && t.classList.contains('chip-add-input')) _acOpen(t, 'editor');
+            else if (t.id === 'tag-search') _acOpen(t, 'search');
+        }, true);
+        document.addEventListener('keydown', (e) => {
+            const el = document.getElementById('tag-ac'); if (!el || el.style.display === 'none' || !_acState.items.length) return;
+            if (e.key === 'ArrowDown') { e.preventDefault(); e.stopImmediatePropagation(); _acMove(1); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); e.stopImmediatePropagation(); _acMove(-1); }
+            else if (e.key === 'Enter' && _acState.sel >= 0) { e.preventDefault(); e.stopImmediatePropagation(); _acPick(_acState.sel); }
+            else if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); _acHide(); }
+        }, true);
+        document.addEventListener('focusout', (e) => {
+            const t = e.target; if (!t || !((t.classList && t.classList.contains('chip-add-input')) || t.id === 'tag-search')) return;
+            setTimeout(() => { const a = document.activeElement; if (a && ((a.classList && a.classList.contains('chip-add-input')) || a.id === 'tag-search')) return; _acHide(); }, 160);
+        }, true);
+        window.addEventListener('scroll', _acHide, true);
 
         function applyCombo(combo) {
             saveStateToUndoStack();
