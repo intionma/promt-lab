@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.53 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.54 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1222,7 +1222,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.53 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.54 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1987,7 +1987,15 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.53', date: '2026-07-09', time: '최신',
+                version: 'v9.10.54', date: '2026-07-09', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[안정성] 추천 창 팩(성인·하드코어)을 켜고 끌 때 의상·구도·배경 칸이 잠깐 비거나, 자동완성 드롭다운이 안 닫히던 내부 버그를 수정했습니다 (코드 리뷰 반영)',
+                    '[하드코어] "후타나리끼리 페니스 크기 비교" 프리셋을 추가했습니다',
+                ]
+            },
+            {
+                version: 'v9.10.53', date: '2026-07-09', time: '이전',
                 tag: 'feat',
                 items: [
                     '[전체 보강] 모든 추천 프리셋을 하나하나 검수하고 대량 보강했습니다 — 의상·포즈·배경·인물·노출·하드코어 전 항목의 태그를 다듬고 카테고리마다 새 조합을 추가했습니다 (의상 211 · 포즈 178 · 배경 122 · 인물 44 · 노출 54 · 하드코어 42)',
@@ -7107,6 +7115,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return fetch(file).then(r => { if (!r.ok) throw 0; return r.json(); })
                 .then(d => { ((d && d[key]) || []).forEach(x => arr.push(x)); }).catch(() => {});
         }
+        // 배열 참조를 유지한 채 필터 (로딩 중 fetch가 push해도 유실 안 되게) — 재할당 금지
+        function _filterInPlace(arr, keep) { const k = arr.filter(keep); arr.length = 0; for (const x of k) arr.push(x); }
         (function _loadBasePresets() {
             _loadPreset('./data/looks-danbooru.json', 'outfits', _DATA_LOOKS);
             _loadPreset('./data/poses-danbooru.json', 'poses', _DATA_POSES);
@@ -7129,11 +7139,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (_adultPackOn) {
                 _adultPackOn = false;
                 try { localStorage.setItem(ADULT_PACK_KEY, '0'); } catch (e) {}
-                _DATA_LOOKS = _DATA_LOOKS.filter(x => !x.nsfw);
-                _DATA_POSES = _DATA_POSES.filter(x => x.hc || !x.nsfw);
-                _DATA_BG = _DATA_BG.filter(x => !x.nsfw);
-                _DATA_EXPOSURE = [];
-                _recModalPick = null;
+                _filterInPlace(_DATA_LOOKS, x => !x.nsfw);
+                _filterInPlace(_DATA_POSES, x => x.hc || !x.nsfw);
+                _filterInPlace(_DATA_BG, x => !x.nsfw);
+                _DATA_EXPOSURE.length = 0;
+                _recModalPick = null; _recCarouselIdx = 0;
                 try { _acInvalidate(); } catch (e) {}
                 if (typeof showToast === 'function') showToast('성인 팩(19+)을 해제했어요', 'info', 1500);
                 renderRecommendModal(true);
@@ -7141,7 +7151,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _adultPackOn = true;
                 try { localStorage.setItem(ADULT_PACK_KEY, '1'); } catch (e) {}
                 if (typeof showToast === 'function') showToast('성인 팩(19+) 다운로드 중…', 'info', 1500);
-                _loadAdultPack(() => { _recModalPick = null; try { _acInvalidate(); } catch (e) {} if (typeof showToast === 'function') showToast('성인 팩(19+) 적용 완료', 'success', 1600); renderRecommendModal(true); });
+                _loadAdultPack(() => { _recModalPick = null; _recCarouselIdx = 0; try { _acInvalidate(); } catch (e) {} if (typeof showToast === 'function') showToast('성인 팩(19+) 적용 완료', 'success', 1600); renderRecommendModal(true); });
             }
         }
         // 하드코어 팩 (합의된 성행위 · 남성향) — 별도 옵트인, 구도(포즈) 칸에 추가
@@ -7155,15 +7165,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (_hardcoreOn) {
                 _hardcoreOn = false;
                 try { localStorage.setItem(HARDCORE_KEY, '0'); } catch (e) {}
-                _DATA_POSES = _DATA_POSES.filter(x => !x.hc);
-                _recModalPick = null; try { _acInvalidate(); } catch (e) {}
+                _filterInPlace(_DATA_POSES, x => !x.hc);
+                _recModalPick = null; _recCarouselIdx = 0; try { _acInvalidate(); } catch (e) {}
                 if (typeof showToast === 'function') showToast('하드코어 팩을 해제했어요', 'info', 1500);
                 renderRecommendModal(true);
             } else {
                 _hardcoreOn = true;
                 try { localStorage.setItem(HARDCORE_KEY, '1'); } catch (e) {}
                 if (typeof showToast === 'function') showToast('하드코어 팩 다운로드 중…', 'info', 1500);
-                _loadHardcore(() => { _recModalPick = null; try { _acInvalidate(); } catch (e) {} if (typeof showToast === 'function') showToast('하드코어 팩 적용 완료', 'success', 1600); renderRecommendModal(true); });
+                _loadHardcore(() => { _recModalPick = null; _recCarouselIdx = 0; try { _acInvalidate(); } catch (e) {} if (typeof showToast === 'function') showToast('하드코어 팩 적용 완료', 'success', 1600); renderRecommendModal(true); });
             }
         }
         // 태그 한글 오버레이 — 룩·추천이 넣는 danbooru 태그를 캡슐에서 한글로 표시 (팩 미설치·사전 미검색 문제 해결)
@@ -11499,6 +11509,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (e.key === 'ArrowDown') { e.preventDefault(); e.stopImmediatePropagation(); _acMove(1); }
             else if (e.key === 'ArrowUp') { e.preventDefault(); e.stopImmediatePropagation(); _acMove(-1); }
             else if (e.key === 'Enter' && _acState.sel >= 0) { e.preventDefault(); e.stopImmediatePropagation(); _acPick(_acState.sel); }
+            else if (e.key === 'Enter') { _acHide(); } // 선택 없이 엔터로 커밋 시 드롭다운 닫기(입력은 그대로 진행)
             else if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); _acHide(); }
         }, true);
         document.addEventListener('focusout', (e) => {
