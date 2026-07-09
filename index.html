@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.44 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.45 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1222,7 +1222,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.44 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.45 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1987,7 +1987,18 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.44', date: '2026-07-09', time: '최신',
+                version: 'v9.10.45', date: '2026-07-09', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[배경 추천] 배경 칸도 "이름 붙은 프리셋"으로 바꿨습니다 — 장소와 조명·시간이 한 번에 정해집니다 (예: 노을 지는 해변, 네온 사이버펑크 거리). 실내·야외·도시·판타지 등 다양하게 추가',
+                    '[성인 팩] 19+ 의상·포즈·배경 프리셋을 "성인 팩"으로 분리했습니다 — 기본은 전체이용가 프리셋만 보이고, 추천 창의 🔞 성인 팩 버튼을 누르면 19+ 프리셋이 추가로 풀립니다 (선택은 기억됨)',
+                    '[추천 창] 의상·포즈 프리셋을 더 추가했습니다',
+                    '[추천 창] 담은 의상·포즈·배경이 창을 다시 열면 사라져서 뺄 수 없던 문제를 고쳤습니다 — 담긴 항목은 항상 맨 위에 고정되어 언제든 뺄 수 있습니다',
+                    '[추천 창] 모바일에서 좌우로 넘길 때 추천 창이 아니라 뒤 배경이 밀리던 문제를 고쳤습니다',
+                ]
+            },
+            {
+                version: 'v9.10.44', date: '2026-07-09', time: '이전',
                 tag: 'feat',
                 items: [
                     '[추천 창] 모바일에서 의상·구도·배경이 3칸으로 찌부러지던 문제를 해결했습니다 — 이제 한 섹션이 화면 전체 폭으로 시원하게 보이고, 좌우로 넘기거나(스와이프) 상단 탭을 눌러 전환할 수 있습니다',
@@ -7002,24 +7013,47 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     .catch(() => {});
             } catch (e) {}
         })();
-        // 이름 붙은 의상 룩 라이브러리 (젖소비키니·역바니걸·에로웨딩 등) — 의상 칸에 표시
-        let _DATA_LOOKS = [];
-        (function _loadLooks() {
-            try {
-                fetch('./data/looks-danbooru.json').then(r => { if (!r.ok) throw 0; return r.json(); })
-                    .then(d => { _DATA_LOOKS = (d && d.outfits) || []; })
-                    .catch(() => {});
-            } catch (e) {}
+        // 이름 붙은 프리셋 라이브러리 (의상=룩 / 구도=포즈 / 배경) — 기본은 SFW, 성인(19+)은 팩 다운로드 시 추가
+        let _DATA_LOOKS = [], _DATA_POSES = [], _DATA_BG = [];
+        const ADULT_PACK_KEY = 'adult_pack_v1';
+        let _adultPackOn = false, _adultPackLoading = false;
+        try { _adultPackOn = localStorage.getItem(ADULT_PACK_KEY) === '1'; } catch (e) {}
+        function _loadPreset(file, key, arr) {
+            return fetch(file).then(r => { if (!r.ok) throw 0; return r.json(); })
+                .then(d => { ((d && d[key]) || []).forEach(x => arr.push(x)); }).catch(() => {});
+        }
+        (function _loadBasePresets() {
+            _loadPreset('./data/looks-danbooru.json', 'outfits', _DATA_LOOKS);
+            _loadPreset('./data/poses-danbooru.json', 'poses', _DATA_POSES);
+            _loadPreset('./data/bg-danbooru.json', 'bg', _DATA_BG);
+            if (_adultPackOn) _loadAdultPack();
         })();
-        // 이름 붙은 포즈 라이브러리 (카메라 앵글 + 몸 포즈 결합) — 구도 칸에 표시
-        let _DATA_POSES = [];
-        (function _loadPoses() {
-            try {
-                fetch('./data/poses-danbooru.json').then(r => { if (!r.ok) throw 0; return r.json(); })
-                    .then(d => { _DATA_POSES = (d && d.poses) || []; })
-                    .catch(() => {});
-            } catch (e) {}
-        })();
+        // 성인 팩(19+) — nsfw 프리셋 파일은 다운로드할 때만 fetch해서 합침
+        function _loadAdultPack(cb) {
+            _adultPackLoading = true;
+            Promise.all([
+                _loadPreset('./data/looks-nsfw.json', 'outfits', _DATA_LOOKS),
+                _loadPreset('./data/poses-nsfw.json', 'poses', _DATA_POSES),
+                _loadPreset('./data/bg-nsfw.json', 'bg', _DATA_BG),
+            ]).then(() => { _adultPackLoading = false; if (cb) cb(); });
+        }
+        function _adultPackToggle() {
+            if (_adultPackOn) {
+                _adultPackOn = false;
+                try { localStorage.setItem(ADULT_PACK_KEY, '0'); } catch (e) {}
+                _DATA_LOOKS = _DATA_LOOKS.filter(x => !x.nsfw);
+                _DATA_POSES = _DATA_POSES.filter(x => !x.nsfw);
+                _DATA_BG = _DATA_BG.filter(x => !x.nsfw);
+                _recModalLooks = _recModalPoses = _recModalBg = null;
+                if (typeof showToast === 'function') showToast('성인 팩(19+)을 해제했어요', 'info', 1500);
+                renderRecommendModal(true);
+            } else {
+                _adultPackOn = true;
+                try { localStorage.setItem(ADULT_PACK_KEY, '1'); } catch (e) {}
+                if (typeof showToast === 'function') showToast('성인 팩(19+) 다운로드 중…', 'info', 1500);
+                _loadAdultPack(() => { _recModalLooks = _recModalPoses = _recModalBg = null; if (typeof showToast === 'function') showToast('성인 팩(19+) 적용 완료', 'success', 1600); renderRecommendModal(true); });
+            }
+        }
         // 태그 한글 오버레이 — 룩·추천이 넣는 danbooru 태그를 캡슐에서 한글로 표시 (팩 미설치·사전 미검색 문제 해결)
         let _DATA_KO = {};
         (function _loadTagKo() {
@@ -7045,6 +7079,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // 포즈 목록 셔플 (표시용 n개) — 룩과 동일 구조(n·tags·nsfw)
         function _recPickPoses(n) {
             const arr = _DATA_POSES.slice();
+            for (let i = arr.length - 1; i > 0; i--) { const k = Math.floor(Math.random() * (i + 1)); [arr[i], arr[k]] = [arr[k], arr[i]]; }
+            return arr.slice(0, n);
+        }
+        // 배경 목록 셔플 (표시용 n개) — 룩·포즈와 동일 구조(n·tags·nsfw)
+        function _recPickBg(n) {
+            const arr = _DATA_BG.slice();
             for (let i = arr.length - 1; i > 0; i--) { const k = Math.floor(Math.random() * (i + 1)); [arr[i], arr[k]] = [arr[k], arr[i]]; }
             return arr.slice(0, n);
         }
@@ -7256,19 +7296,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (active.has((t || '').toLowerCase())) _recRemoveTag(t);
             else importPromptToEditor([t], 'append');
         }
-        let _recModalBundles = null, _recModalAxis = null, _recModalLooks = null, _recModalPoses = null, _recCarouselIdx = 0;
+        let _recModalBundles = null, _recModalAxis = null, _recModalLooks = null, _recModalPoses = null, _recModalBg = null, _recCarouselIdx = 0;
         function openRecommendModal() {
             let ov = document.getElementById('rec-modal-overlay');
             if (!ov) {
                 ov = document.createElement('div'); ov.id = 'rec-modal-overlay';
-                ov.style.cssText = 'position:fixed;inset:0;z-index:10002;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;';
+                ov.style.cssText = 'position:fixed;inset:0;z-index:10002;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;overscroll-behavior:contain;touch-action:none;';
                 ov.onclick = (e) => { if (e.target === ov) closeRecommendModal(); };
                 document.body.appendChild(ov);
             }
-            _recModalBundles = null; _recModalAxis = null; _recModalLooks = null; _recModalPoses = null; _recCarouselIdx = 0;
+            // 배경(블러) 스크롤 잠금 — 가로 드래그가 뒤 페이지를 밀지 않게
+            document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden';
+            _recModalBundles = null; _recModalAxis = null; _recModalLooks = null; _recModalPoses = null; _recModalBg = null; _recCarouselIdx = 0;
             renderRecommendModal(true);
         }
-        function closeRecommendModal() { const o = document.getElementById('rec-modal-overlay'); if (o) o.remove(); }
+        function closeRecommendModal() { const o = document.getElementById('rec-modal-overlay'); if (o) o.remove(); document.documentElement.style.overflow = ''; document.body.style.overflow = ''; }
         function renderRecommendModal(regen) {
           try {
             const ov = document.getElementById('rec-modal-overlay'); if (!ov) return;
@@ -7280,6 +7322,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     <span class="recm-sub" style="font-size:10px;color:var(--text-dim);flex:1 1 80px;min-width:0;">화풍·인물은 그대로 · 의상/구도/배경만</span>
                     ${btn('recm-fill', '✨ 한 번에 보완', 'rgba(34,197,94,0.85)')}
                     <button id="recm-refresh" title="후보를 새로 제안" style="background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#a855f7;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;"><i class="fa-solid fa-arrows-rotate"></i> 다른 제안</button>
+                    <button id="recm-adult" title="성인(19+) 프리셋 팩 다운로드/해제" style="background:${_adultPackOn ? 'rgba(248,113,113,0.9)' : 'rgba(248,113,113,0.14)'};border:1px solid rgba(248,113,113,0.5);color:${_adultPackOn ? '#fff' : '#f87171'};border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">🔞 성인 팩${_adultPackOn ? ' ✓' : ''}</button>
                     <button id="recm-close" style="background:none;border:none;color:var(--text-dim);font-size:22px;cursor:pointer;line-height:1;">&times;</button>
                 </div>
                 <div id="recm-body" style="overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-right:2px;"></div>
@@ -7291,6 +7334,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             {
                 if (regen || !_recModalLooks) _recModalLooks = _recPickLooks(12);
                 if (regen || !_recModalPoses) _recModalPoses = _recPickPoses(12);
+                if (regen || !_recModalBg) _recModalBg = _recPickBg(12);
                 if (regen || !_recModalAxis) { _recModalAxis = {}; [2, 6].forEach(L => _recModalAxis[L] = _recAxisRanked(L, active, 18, 0.5)); }
                 const chip = (cls, attr, on, label, titleStr, nsfw) => `<button class="${cls} recm-chip${on ? ' on' : ''}" ${attr} title="${_esc(titleStr)}"><i class="rc-ic fa-solid fa-${on ? 'check' : 'plus'}"></i><span class="rc-lbl">${_esc(label)}</span>${nsfw ? '<span class="rc-19">19+</span>' : ''}</button>`;
                 let hi = `<style>
@@ -7318,7 +7362,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     #rec-modal-overlay .recm-tab{display:flex;align-items:center;justify-content:center;gap:5px;padding:9px 4px;border-radius:11px;border:1px solid var(--border-dim);background:var(--chip-bg);color:var(--text-dim);font-size:13px;font-weight:800;cursor:pointer;transition:all .12s;}
                     #rec-modal-overlay .recm-tab .rt-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
                     #rec-modal-overlay .recm-tab.active{color:var(--text-main);border-color:var(--accent-blue);background:color-mix(in srgb,var(--accent-blue) 12%,var(--chip-bg));box-shadow:0 1px 3px var(--shadow-color);}
-                    #rec-modal-overlay .recm-cols{display:flex;grid-template-columns:none;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+                    #rec-modal-overlay .recm-cols{display:flex;grid-template-columns:none;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior:contain;}
                     #rec-modal-overlay .recm-cols::-webkit-scrollbar{display:none;}
                     #rec-modal-overlay .recm-col{flex:0 0 100%;scroll-snap-align:start;}
                   }
@@ -7330,12 +7374,27 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     <button class="recm-tab" data-ti="2"><span class="rt-dot" style="background:var(--color-l6);"></span>배경</button>
                 </div>`;
                 hi += `<div class="recm-cols">`;
+                let _renderLooks = [], _renderPoses = [], _renderBg = [];
                 [[4, '의상', '--color-l4'], [2, '구도', '--color-l2'], [6, '배경', '--color-l6']].forEach(([L, name, cvar]) => {
                     hi += `<div class="recm-col"><div class="recm-col-head"><span class="recm-dot" style="background:var(${cvar});"></span><span class="recm-col-name">${name}</span><span class="recm-col-actions"><button class="recm-reroll recm-ibtn" data-l="${L}" title="${name} 다른 제안"><i class="fa-solid fa-arrows-rotate"></i></button><button class="recm-clear recm-ibtn" data-l="${L}" title="${name} 비우기"><i class="fa-solid fa-eraser"></i></button></span></div><div class="recm-list">`;
                     if (L === 4) {
-                        (_recModalLooks || []).forEach((lk, li) => { hi += chip('recm-look', `data-li="${li}"`, _recLookOn(lk), lk.n, lk.tags.join(', '), lk.nsfw); });
-                    } else if (L === 2 && _recModalPoses && _recModalPoses.length) {
-                        (_recModalPoses || []).forEach((pz, pi) => { hi += chip('recm-pose', `data-pi="${pi}"`, _recLookOn(pz), pz.n, pz.tags.join(', '), pz.nsfw); });
+                        // 담긴 룩을 항상 맨 위에 고정(재오픈해도 뺄 수 있게) + 랜덤 후보
+                        const onL = (_DATA_LOOKS || []).filter(lk => _recLookOn(lk));
+                        const onN = new Set(onL.map(l => l.n));
+                        _renderLooks = [...onL, ...(_recModalLooks || []).filter(l => !onN.has(l.n))];
+                        _renderLooks.forEach((lk, li) => { hi += chip('recm-look', `data-li="${li}"`, _recLookOn(lk), lk.n, lk.tags.join(', '), lk.nsfw); });
+                    } else if (L === 2 && ((_recModalPoses && _recModalPoses.length) || (_DATA_POSES || []).some(p => _recLookOn(p)))) {
+                        // 담긴 포즈를 항상 맨 위에 고정 + 랜덤 후보
+                        const onP = (_DATA_POSES || []).filter(pz => _recLookOn(pz));
+                        const onN = new Set(onP.map(p => p.n));
+                        _renderPoses = [...onP, ...(_recModalPoses || []).filter(p => !onN.has(p.n))];
+                        _renderPoses.forEach((pz, pi) => { hi += chip('recm-pose', `data-pi="${pi}"`, _recLookOn(pz), pz.n, pz.tags.join(', '), pz.nsfw); });
+                    } else if (L === 6 && ((_recModalBg && _recModalBg.length) || (_DATA_BG || []).some(b => _recLookOn(b)))) {
+                        // 배경 = 이름 붙은 프리셋 (장소+조명 결합) · 담긴 배경을 맨 위에 고정 + 랜덤 후보
+                        const onB = (_DATA_BG || []).filter(bg => _recLookOn(bg));
+                        const onN = new Set(onB.map(b => b.n));
+                        _renderBg = [...onB, ...(_recModalBg || []).filter(b => !onN.has(b.n))];
+                        _renderBg.forEach((bg, bi) => { hi += chip('recm-bg', `data-bi="${bi}"`, _recLookOn(bg), bg.n, bg.tags.join(', '), bg.nsfw); });
                     } else {
                         const activeInL = [...active].filter(t => !_REC_PERSONCOUNT.has(t) && (_recLayerOf(t) === L || (_DATA_LC[L] || []).includes(t)));
                         const fresh = (_recModalAxis[L] || []).filter(t => !active.has(t)).slice(0, Math.max(6, 12 - activeInL.length));
@@ -7357,15 +7416,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     _tabs.forEach((t, k) => t.onclick = () => { _setTab(k); const c = _cols.children[k]; if (c) _cols.scrollTo({ left: c.offsetLeft - base(), behavior: 'smooth' }); });
                     _cols.addEventListener('scroll', () => { const sl = _cols.scrollLeft, b = base(); let best = 0, bd = 1e9; [..._cols.children].forEach((c, k) => { const d = Math.abs((c.offsetLeft - b) - sl); if (d < bd) { bd = d; best = k; } }); if (best !== _recCarouselIdx) _setTab(best); });
                 }
-                body.querySelectorAll('.recm-reroll').forEach(b => b.onclick = () => { const L = parseInt(b.dataset.l); if (L === 4) _recModalLooks = _recPickLooks(12); else if (L === 2 && _DATA_POSES.length) _recModalPoses = _recPickPoses(12); else _recModalAxis[L] = _recAxisRanked(L, _recActive(), 18, 0.55); renderRecommendModal(false); });
-                body.querySelectorAll('.recm-clear').forEach(b => b.onclick = () => { const L = parseInt(b.dataset.l); _recClearLayer(L); if (L === 2) _recClearLayer(5); renderRecommendModal(false); });
-                body.querySelectorAll('.recm-look').forEach(b => b.onclick = () => { const lk = (_recModalLooks || [])[parseInt(b.dataset.li)]; if (lk) _recToggleLook(lk); renderRecommendModal(false); });
-                body.querySelectorAll('.recm-pose').forEach(b => b.onclick = () => { const pz = (_recModalPoses || [])[parseInt(b.dataset.pi)]; if (pz) _recToggleLook(pz); renderRecommendModal(false); });
+                body.querySelectorAll('.recm-reroll').forEach(b => b.onclick = () => { const L = parseInt(b.dataset.l); if (L === 4) _recModalLooks = _recPickLooks(12); else if (L === 2 && _DATA_POSES.length) _recModalPoses = _recPickPoses(12); else if (L === 6 && _DATA_BG.length) _recModalBg = _recPickBg(12); else _recModalAxis[L] = _recAxisRanked(L, _recActive(), 18, 0.55); renderRecommendModal(false); });
+                body.querySelectorAll('.recm-clear').forEach(b => b.onclick = () => { const L = parseInt(b.dataset.l); _recClearLayer(L); if (L === 2) _recClearLayer(5); if (L === 6) _recClearLayer(7); renderRecommendModal(false); });
+                body.querySelectorAll('.recm-look').forEach(b => b.onclick = () => { const lk = _renderLooks[parseInt(b.dataset.li)]; if (lk) _recToggleLook(lk); renderRecommendModal(false); });
+                body.querySelectorAll('.recm-pose').forEach(b => b.onclick = () => { const pz = _renderPoses[parseInt(b.dataset.pi)]; if (pz) _recToggleLook(pz); renderRecommendModal(false); });
+                body.querySelectorAll('.recm-bg').forEach(b => b.onclick = () => { const bg = _renderBg[parseInt(b.dataset.bi)]; if (bg) _recToggleLook(bg); renderRecommendModal(false); });
                 body.querySelectorAll('.recm-axis').forEach(b => b.onclick = () => { if (b.dataset.t) _recToggleTag(b.dataset.t); renderRecommendModal(false); });
             }
             ov.querySelector('#recm-close').onclick = closeRecommendModal;
             ov.querySelector('#recm-refresh').onclick = () => { renderRecommendModal(true); };
             ov.querySelector('#recm-fill').onclick = () => { fillOutPrompt(); renderRecommendModal(false); };
+            { const ab = ov.querySelector('#recm-adult'); if (ab) ab.onclick = () => { if (!_adultPackLoading) _adultPackToggle(); }; }
           } catch (e) { console.warn('추천 모달 렌더 실패:', e); }
         }
         let recents = [];
