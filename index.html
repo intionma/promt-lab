@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.50 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.51 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1222,7 +1222,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.50 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.51 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1361,7 +1361,7 @@
                                     <option value="labeled">구분자 포함</option>
                                     <option value="comma" selected>순수 쉼표</option>
                                 </select>
-                                <label style="display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-dim); cursor:pointer;">
+                                <label style="display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-dim); cursor:pointer;" title="켜면 복사와 ComfyUI 전송 모두 75토큰마다 BREAK로 나눠서 내보냅니다 (초과 태그도 온전히 반영). ComfyUI는 BREAK 지원 노드일 때만 효과.">
                                     <input type="checkbox" id="break-toggle" onchange="updateMasterOutput()"> BREAK
                                 </label>
                             </div>
@@ -1987,7 +1987,14 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.50', date: '2026-07-09', time: '최신',
+                version: 'v9.10.51', date: '2026-07-09', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[ComfyUI 전송] "BREAK" 체크박스가 이제 ComfyUI 전송에도 적용됩니다 — 켜두면 복사뿐 아니라 전송도 75토큰마다 BREAK로 나눠 보내서, 긴 프롬프트의 초과 태그까지 온전히 반영됩니다 (BREAK를 지원하는 노드/워크플로일 때 효과). 별도 버튼 없이 체크박스 하나로 복사·전송이 함께 동작합니다',
+                ]
+            },
+            {
+                version: 'v9.10.50', date: '2026-07-09', time: '이전',
                 tag: 'feat',
                 items: [
                     '[하드코어 팩] 추천 창에 "🔥 하드코어" 옵트인 팩을 추가했습니다 — 켜면 합의된 성행위 프리셋(이성 체위·구강·사정, 레즈비언, 2P·3P)이 구도 칸에 추가됩니다. 성인 팩과는 별도 버튼이라 원할 때만 켜면 됩니다',
@@ -5469,8 +5476,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _comfySendingFor.add(lockKey);
 
             try {
-                const pos = (document.getElementById('final-positive').value || '').trim();
-                const neg = (document.getElementById('final-negative').value || '').trim();
+                let pos = (document.getElementById('final-positive').value || '').trim();
+                let neg = (document.getElementById('final-negative').value || '').trim();
+                // BREAK 체크박스가 켜져 있으면 전송도 75토큰마다 BREAK로 분할 (복사와 동일)
+                { const _brk = document.getElementById('break-toggle'); if (_brk && _brk.checked) { pos = _breakChunks(pos) || pos; neg = _breakChunks(neg) || neg; } }
                 if (_comfyTarget !== 'neg' && !pos) { showToast('긍정 프롬프트가 비어 있습니다.', 'error'); _comfyAbortInline('긍정 비어있음'); return; }
                 if (_comfyTarget === 'neg' && !neg) { showToast('부정 프롬프트가 비어 있습니다.', 'error'); _comfyAbortInline('부정 비어있음'); return; }
 
@@ -13535,11 +13544,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 el.style.display = 'none';
             }
         }
-        // 75토큰마다 BREAK로 나눠서 복사 (태그 안 버림)
-        function copyWithBreaks() {
-            const src = (document.getElementById('final-positive').value || '').replace(/\s*\bBREAK\b\s*/g, ', ').trim();
+        // 75토큰마다 BREAK로 나눈 문자열 반환 (태그 안 버림) — 복사·ComfyUI 전송 공용
+        function _breakChunks(src) {
+            src = (src || '').replace(/\s*\bBREAK\b\s*/g, ', ').trim();
             const tags = src.split(',').map(s => s.trim()).filter(Boolean);
-            if (!tags.length) { showToast('복사할 프롬프트가 없습니다.', 'warning'); return; }
+            if (!tags.length) return '';
             const chunks = []; let cur = [], curTok = 0;
             for (const tag of tags) {
                 const tk = countPromptTokens(tag).tokens + 1; // 쉼표 ~1토큰
@@ -13547,8 +13556,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 cur.push(tag); curTok += tk;
             }
             if (cur.length) chunks.push(cur.join(', '));
-            const out = chunks.join('\nBREAK\n');
-            const done = () => showToast(`BREAK ${chunks.length}청크로 나눠 복사했어요`, 'success', 2400);
+            return chunks.join('\nBREAK\n');
+        }
+        // 75토큰마다 BREAK로 나눠서 복사
+        function copyWithBreaks() {
+            const out = _breakChunks(document.getElementById('final-positive').value || '');
+            if (!out) { showToast('복사할 프롬프트가 없습니다.', 'warning'); return; }
+            const n = out.split(/\bBREAK\b/).filter(Boolean).length;
+            const done = () => showToast(`BREAK ${n}청크로 나눠 복사했어요`, 'success', 2400);
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(out).then(done).catch(() => { _fallbackCopy(out); done(); });
             } else { _fallbackCopy(out); done(); }
