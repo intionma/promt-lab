@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.47 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.48 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1222,7 +1222,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.47 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.48 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1987,7 +1987,15 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.47', date: '2026-07-09', time: '최신',
+                version: 'v9.10.48', date: '2026-07-09', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[추천 창] "완성 모드"를 추가했습니다 — 🧩 버튼을 켜면 화풍·인원·인물(외형) 칸이 추가로 나와, 추천만으로 프롬프트를 완성할 수 있습니다',
+                    '[성인 팩] 노골 노출 프리셋을 추가했습니다 — 의상(완전 나체·토플리스·노팬츠 등)과 포즈(성기 노출·자위 등). 성인 팩(19+)에서만 표시됩니다',
+                ]
+            },
+            {
+                version: 'v9.10.47', date: '2026-07-09', time: '이전',
                 tag: 'fix',
                 items: [
                     '[상세태그] 왼쪽에 남아 있던 "의상·구도·배경 도우미"(완성 세트·직접 골라담기)를 완전히 제거했습니다 — 추천 기능은 "간편 조합"의 추천 창으로 일원화됐습니다',
@@ -7027,8 +7035,30 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     .catch(() => {});
             } catch (e) {}
         })();
-        // 이름 붙은 프리셋 라이브러리 (의상=룩 / 구도=포즈 / 배경) — 기본은 SFW, 성인(19+)은 팩 다운로드 시 추가
-        let _DATA_LOOKS = [], _DATA_POSES = [], _DATA_BG = [];
+        // 이름 붙은 프리셋 라이브러리 (의상=룩 / 구도=포즈 / 배경 / 인물) — 기본은 SFW, 성인(19+)은 팩 다운로드 시 추가
+        let _DATA_LOOKS = [], _DATA_POSES = [], _DATA_BG = [], _DATA_CHARS = [];
+        // 완성 모드: 켜면 화풍·인원·인물 축이 추가로 나와 추천만으로 프롬프트 완성 가능
+        let _recFullMode = false;
+        try { _recFullMode = localStorage.getItem('rec_full_mode') === '1'; } catch (e) {}
+        // 화풍(1) / 인원(2) 프리셋 — 단순해서 내장
+        const _STYLE_PRESETS = [
+            { n: '실사풍', tags: ['realistic', 'photorealistic'] },
+            { n: '반실사', tags: ['semi-realistic'] },
+            { n: '애니풍', tags: ['anime style', 'anime coloring'] },
+            { n: '셀식 애니', tags: ['cel shading', 'flat color'] },
+            { n: '수채화', tags: ['watercolor (medium)'] },
+            { n: '유화', tags: ['oil painting (medium)'] },
+            { n: '몽환 파스텔', tags: ['pastel colors', 'soft focus'] },
+            { n: '진한 대비 시네마틱', tags: ['cinematic', 'high contrast', 'dramatic'] },
+        ];
+        const _COUNT_PRESETS = [
+            { n: '여성 1명 (솔로)', tags: ['1girl', 'solo'] },
+            { n: '솔로 포커스', tags: ['solo focus'] },
+            { n: '남성 1명', tags: ['1boy', 'solo'] },
+            { n: '여성 2명', tags: ['2girls'] },
+            { n: '남녀', tags: ['1boy', '1girl'] },
+            { n: '여러 명', tags: ['multiple girls'] },
+        ];
         const ADULT_PACK_KEY = 'adult_pack_v1';
         let _adultPackOn = false, _adultPackLoading = false;
         try { _adultPackOn = localStorage.getItem(ADULT_PACK_KEY) === '1'; } catch (e) {}
@@ -7040,6 +7070,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _loadPreset('./data/looks-danbooru.json', 'outfits', _DATA_LOOKS);
             _loadPreset('./data/poses-danbooru.json', 'poses', _DATA_POSES);
             _loadPreset('./data/bg-danbooru.json', 'bg', _DATA_BG);
+            _loadPreset('./data/chars-danbooru.json', 'chars', _DATA_CHARS);
             if (_adultPackOn) _loadAdultPack();
         })();
         // 성인 팩(19+) — nsfw 프리셋 파일은 다운로드할 때만 fetch해서 합침
@@ -7058,14 +7089,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _DATA_LOOKS = _DATA_LOOKS.filter(x => !x.nsfw);
                 _DATA_POSES = _DATA_POSES.filter(x => !x.nsfw);
                 _DATA_BG = _DATA_BG.filter(x => !x.nsfw);
-                _recModalLooks = _recModalPoses = _recModalBg = null;
+                _recModalPick = null;
                 if (typeof showToast === 'function') showToast('성인 팩(19+)을 해제했어요', 'info', 1500);
                 renderRecommendModal(true);
             } else {
                 _adultPackOn = true;
                 try { localStorage.setItem(ADULT_PACK_KEY, '1'); } catch (e) {}
                 if (typeof showToast === 'function') showToast('성인 팩(19+) 다운로드 중…', 'info', 1500);
-                _loadAdultPack(() => { _recModalLooks = _recModalPoses = _recModalBg = null; if (typeof showToast === 'function') showToast('성인 팩(19+) 적용 완료', 'success', 1600); renderRecommendModal(true); });
+                _loadAdultPack(() => { _recModalPick = null; if (typeof showToast === 'function') showToast('성인 팩(19+) 적용 완료', 'success', 1600); renderRecommendModal(true); });
             }
         }
         // 태그 한글 오버레이 — 룩·추천이 넣는 danbooru 태그를 캡슐에서 한글로 표시 (팩 미설치·사전 미검색 문제 해결)
@@ -7093,6 +7124,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // 포즈 목록 셔플 (표시용 n개) — 룩과 동일 구조(n·tags·nsfw)
         function _recPickPoses(n) {
             const arr = _DATA_POSES.slice();
+            for (let i = arr.length - 1; i > 0; i--) { const k = Math.floor(Math.random() * (i + 1)); [arr[i], arr[k]] = [arr[k], arr[i]]; }
+            return arr.slice(0, n);
+        }
+        // 임의 프리셋 배열에서 n개 셔플 (모든 축 공통)
+        function _recPickFrom(arr, n) {
+            arr = (arr || []).slice();
             for (let i = arr.length - 1; i > 0; i--) { const k = Math.floor(Math.random() * (i + 1)); [arr[i], arr[k]] = [arr[k], arr[i]]; }
             return arr.slice(0, n);
         }
@@ -7290,7 +7327,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (active.has((t || '').toLowerCase())) _recRemoveTag(t);
             else importPromptToEditor([t], 'append');
         }
-        let _recModalBundles = null, _recModalAxis = null, _recModalLooks = null, _recModalPoses = null, _recModalBg = null, _recCarouselIdx = 0;
+        let _recModalPick = null, _recCarouselIdx = 0;
         function openRecommendModal() {
             let ov = document.getElementById('rec-modal-overlay');
             if (!ov) {
@@ -7301,7 +7338,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
             // 배경(블러) 스크롤 잠금 — 가로 드래그가 뒤 페이지를 밀지 않게
             document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden';
-            _recModalBundles = null; _recModalAxis = null; _recModalLooks = null; _recModalPoses = null; _recModalBg = null; _recCarouselIdx = 0;
+            _recModalPick = null; _recCarouselIdx = 0;
             renderRecommendModal(true);
         }
         function closeRecommendModal() { const o = document.getElementById('rec-modal-overlay'); if (o) o.remove(); document.documentElement.style.overflow = ''; document.body.style.overflow = ''; }
@@ -7313,8 +7350,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             let h = `<div class="modal-content" style="width:min(700px,96vw);max-height:88vh;padding:20px;border-radius:18px;display:flex;flex-direction:column;gap:12px;overflow:hidden;">
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;">
                     <h3 style="margin:0;font-size:16px;font-family:var(--font-heading);white-space:nowrap;"><i class="fa-solid fa-bolt" style="color:#a855f7;margin-right:6px;"></i>추천</h3>
-                    <span class="recm-sub" style="font-size:10px;color:var(--text-dim);flex:1 1 80px;min-width:0;">화풍·인물은 그대로 · 의상/구도/배경만</span>
+                    <span class="recm-sub" style="font-size:10px;color:var(--text-dim);flex:1 1 80px;min-width:0;">${_recFullMode ? '완성 모드 · 화풍·인원·인물까지' : '의상/구도/배경 · 완성 모드로 인물까지'}</span>
                     ${btn('recm-fill', '✨ 한 번에 보완', 'rgba(34,197,94,0.85)')}
+                    <button id="recm-full" title="완성 모드 — 화풍·인원·인물 축 추가/숨김" style="background:${_recFullMode ? 'rgba(59,130,246,0.9)' : 'rgba(59,130,246,0.14)'};border:1px solid rgba(59,130,246,0.5);color:${_recFullMode ? '#fff' : '#3b82f6'};border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">🧩 완성 모드${_recFullMode ? ' ✓' : ''}</button>
                     <button id="recm-refresh" title="후보를 새로 제안" style="background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#a855f7;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;"><i class="fa-solid fa-arrows-rotate"></i> 다른 제안</button>
                     <button id="recm-adult" title="성인(19+) 프리셋 팩 다운로드/해제" style="background:${_adultPackOn ? 'rgba(248,113,113,0.9)' : 'rgba(248,113,113,0.14)'};border:1px solid rgba(248,113,113,0.5);color:${_adultPackOn ? '#fff' : '#f87171'};border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">🔞 성인 팩${_adultPackOn ? ' ✓' : ''}</button>
                     <button id="recm-close" style="background:none;border:none;color:var(--text-dim);font-size:22px;cursor:pointer;line-height:1;">&times;</button>
@@ -7324,13 +7362,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             ov.innerHTML = h;
             const body = ov.querySelector('#recm-body');
 
-            // 항상 골라담기 3칸 (완성 세트·테마 콜드스타트 제거 · 프로 디자인 리뉴얼)
+            // 축(axis) 데이터 기반 골라담기 — 완성 모드 시 화풍·인원·인물 추가
             {
-                if (regen || !_recModalLooks) _recModalLooks = _recPickLooks(12);
-                if (regen || !_recModalPoses) _recModalPoses = _recPickPoses(12);
-                if (regen || !_recModalBg) _recModalBg = _recPickBg(12);
-                if (regen || !_recModalAxis) { _recModalAxis = {}; [2, 6].forEach(L => _recModalAxis[L] = _recAxisRanked(L, active, 18, 0.5)); }
-                const chip = (cls, attr, on, label, titleStr, nsfw) => `<button class="${cls} recm-chip${on ? ' on' : ''}" ${attr} title="${_esc(titleStr)}"><i class="rc-ic fa-solid fa-${on ? 'check' : 'plus'}"></i><span class="rc-lbl">${_esc(label)}</span>${nsfw ? '<span class="rc-19">19+</span>' : ''}</button>`;
+                const axes = [];
+                if (_recFullMode) {
+                    axes.push({ key: 'style', name: '화풍', cvar: '--color-l1', data: _STYLE_PRESETS });
+                    axes.push({ key: 'count', name: '인원', cvar: '--color-l7', data: _COUNT_PRESETS });
+                    axes.push({ key: 'char', name: '인물', cvar: '--color-l3', data: _DATA_CHARS });
+                }
+                axes.push({ key: 'looks', name: '의상', cvar: '--color-l4', data: _DATA_LOOKS });
+                axes.push({ key: 'pose', name: '구도', cvar: '--color-l2', data: _DATA_POSES });
+                axes.push({ key: 'bg', name: '배경', cvar: '--color-l6', data: _DATA_BG });
+                if (regen || !_recModalPick) _recModalPick = {};
+                axes.forEach(ax => { if (regen || !_recModalPick[ax.key]) _recModalPick[ax.key] = _recPickFrom(ax.data, 12); });
+                if (_recCarouselIdx >= axes.length) _recCarouselIdx = 0;
+                const chip = (attr, on, label, titleStr, nsfw) => `<button class="recm-item recm-chip${on ? ' on' : ''}" ${attr} title="${_esc(titleStr)}"><i class="rc-ic fa-solid fa-${on ? 'check' : 'plus'}"></i><span class="rc-lbl">${_esc(label)}</span>${nsfw ? '<span class="rc-19">19+</span>' : ''}</button>`;
                 let hi = `<style>
                   #rec-modal-overlay .recm-hint{font-size:11px;font-weight:600;color:var(--text-dim);margin:-2px 2px 0;}
                   #rec-modal-overlay .recm-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
@@ -7362,39 +7408,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                   }
                 </style>`;
                 hi += `<div class="recm-hint">각 칸에서 골라 담으세요 · 다시 누르면 빠져요 · <i class="fa-solid fa-arrows-rotate"></i> 로 새 후보</div>`;
-                hi += `<div class="recm-tabs">
-                    <button class="recm-tab" data-ti="0"><span class="rt-dot" style="background:var(--color-l4);"></span>의상</button>
-                    <button class="recm-tab" data-ti="1"><span class="rt-dot" style="background:var(--color-l2);"></span>구도</button>
-                    <button class="recm-tab" data-ti="2"><span class="rt-dot" style="background:var(--color-l6);"></span>배경</button>
-                </div>`;
+                hi += `<div class="recm-tabs">` + axes.map((ax, i) => `<button class="recm-tab" data-ti="${i}"><span class="rt-dot" style="background:var(${ax.cvar});"></span>${ax.name}</button>`).join('') + `</div>`;
                 hi += `<div class="recm-cols">`;
-                let _renderLooks = [], _renderPoses = [], _renderBg = [];
-                [[4, '의상', '--color-l4'], [2, '구도', '--color-l2'], [6, '배경', '--color-l6']].forEach(([L, name, cvar]) => {
-                    hi += `<div class="recm-col"><div class="recm-col-head"><span class="recm-dot" style="background:var(${cvar});"></span><span class="recm-col-name">${name}</span><span class="recm-col-actions"><button class="recm-reroll recm-ibtn" data-l="${L}" title="${name} 다른 제안"><i class="fa-solid fa-arrows-rotate"></i></button><button class="recm-clear recm-ibtn" data-l="${L}" title="${name} 비우기"><i class="fa-solid fa-eraser"></i></button></span></div><div class="recm-list">`;
-                    if (L === 4) {
-                        // 담긴 룩을 항상 맨 위에 고정(재오픈해도 뺄 수 있게) + 랜덤 후보
-                        const onL = (_DATA_LOOKS || []).filter(lk => _recLookOn(lk));
-                        const onN = new Set(onL.map(l => l.n));
-                        _renderLooks = [...onL, ...(_recModalLooks || []).filter(l => !onN.has(l.n))];
-                        _renderLooks.forEach((lk, li) => { hi += chip('recm-look', `data-li="${li}"`, _recLookOn(lk), lk.n, lk.tags.join(', '), lk.nsfw); });
-                    } else if (L === 2 && ((_recModalPoses && _recModalPoses.length) || (_DATA_POSES || []).some(p => _recLookOn(p)))) {
-                        // 담긴 포즈를 항상 맨 위에 고정 + 랜덤 후보
-                        const onP = (_DATA_POSES || []).filter(pz => _recLookOn(pz));
-                        const onN = new Set(onP.map(p => p.n));
-                        _renderPoses = [...onP, ...(_recModalPoses || []).filter(p => !onN.has(p.n))];
-                        _renderPoses.forEach((pz, pi) => { hi += chip('recm-pose', `data-pi="${pi}"`, _recLookOn(pz), pz.n, pz.tags.join(', '), pz.nsfw); });
-                    } else if (L === 6 && ((_recModalBg && _recModalBg.length) || (_DATA_BG || []).some(b => _recLookOn(b)))) {
-                        // 배경 = 이름 붙은 프리셋 (장소+조명 결합) · 담긴 배경을 맨 위에 고정 + 랜덤 후보
-                        const onB = (_DATA_BG || []).filter(bg => _recLookOn(bg));
-                        const onN = new Set(onB.map(b => b.n));
-                        _renderBg = [...onB, ...(_recModalBg || []).filter(b => !onN.has(b.n))];
-                        _renderBg.forEach((bg, bi) => { hi += chip('recm-bg', `data-bi="${bi}"`, _recLookOn(bg), bg.n, bg.tags.join(', '), bg.nsfw); });
-                    } else {
-                        const activeInL = [...active].filter(t => !_REC_PERSONCOUNT.has(t) && (_recLayerOf(t) === L || (_DATA_LC[L] || []).includes(t)));
-                        const fresh = (_recModalAxis[L] || []).filter(t => !active.has(t)).slice(0, Math.max(6, 12 - activeInL.length));
-                        const items = [...activeInL.map(t => [t, true]), ...fresh.map(t => [t, false])];
-                        items.forEach(([t, on]) => { hi += chip('recm-axis', `data-t="${_esc(t)}"`, on, _recKor(t), t, false); });
-                    }
+                const rendered = {};
+                axes.forEach(ax => {
+                    hi += `<div class="recm-col"><div class="recm-col-head"><span class="recm-dot" style="background:var(${ax.cvar});"></span><span class="recm-col-name">${ax.name}</span><span class="recm-col-actions"><button class="recm-reroll recm-ibtn" data-ax="${ax.key}" title="${ax.name} 다른 제안"><i class="fa-solid fa-arrows-rotate"></i></button><button class="recm-clear recm-ibtn" data-ax="${ax.key}" title="${ax.name} 비우기"><i class="fa-solid fa-eraser"></i></button></span></div><div class="recm-list">`;
+                    // 담긴 프리셋을 항상 맨 위에 고정(재오픈해도 뺄 수 있게) + 랜덤 후보
+                    const onP = (ax.data || []).filter(p => _recLookOn(p));
+                    const onN = new Set(onP.map(p => p.n));
+                    const list = [...onP, ...(_recModalPick[ax.key] || []).filter(p => !onN.has(p.n))];
+                    rendered[ax.key] = list;
+                    list.forEach((p, idx) => { hi += chip(`data-ax="${ax.key}" data-idx="${idx}"`, _recLookOn(p), p.n, p.tags.join(', '), p.nsfw); });
                     hi += `</div></div>`;
                 });
                 hi += `</div>`;
@@ -7410,17 +7434,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     _tabs.forEach((t, k) => t.onclick = () => { _setTab(k); const c = _cols.children[k]; if (c) _cols.scrollTo({ left: c.offsetLeft - base(), behavior: 'smooth' }); });
                     _cols.addEventListener('scroll', () => { const sl = _cols.scrollLeft, b = base(); let best = 0, bd = 1e9; [..._cols.children].forEach((c, k) => { const d = Math.abs((c.offsetLeft - b) - sl); if (d < bd) { bd = d; best = k; } }); if (best !== _recCarouselIdx) _setTab(best); });
                 }
-                body.querySelectorAll('.recm-reroll').forEach(b => b.onclick = () => { const L = parseInt(b.dataset.l); if (L === 4) _recModalLooks = _recPickLooks(12); else if (L === 2 && _DATA_POSES.length) _recModalPoses = _recPickPoses(12); else if (L === 6 && _DATA_BG.length) _recModalBg = _recPickBg(12); else _recModalAxis[L] = _recAxisRanked(L, _recActive(), 18, 0.55); renderRecommendModal(false); });
-                body.querySelectorAll('.recm-clear').forEach(b => b.onclick = () => { const L = parseInt(b.dataset.l); _recClearLayer(L); if (L === 2) _recClearLayer(5); if (L === 6) _recClearLayer(7); renderRecommendModal(false); });
-                body.querySelectorAll('.recm-look').forEach(b => b.onclick = () => { const lk = _renderLooks[parseInt(b.dataset.li)]; if (lk) _recToggleLook(lk); renderRecommendModal(false); });
-                body.querySelectorAll('.recm-pose').forEach(b => b.onclick = () => { const pz = _renderPoses[parseInt(b.dataset.pi)]; if (pz) _recToggleLook(pz); renderRecommendModal(false); });
-                body.querySelectorAll('.recm-bg').forEach(b => b.onclick = () => { const bg = _renderBg[parseInt(b.dataset.bi)]; if (bg) _recToggleLook(bg); renderRecommendModal(false); });
-                body.querySelectorAll('.recm-axis').forEach(b => b.onclick = () => { if (b.dataset.t) _recToggleTag(b.dataset.t); renderRecommendModal(false); });
+                body.querySelectorAll('.recm-reroll').forEach(b => b.onclick = () => { const ax = axes.find(a => a.key === b.dataset.ax); if (ax) _recModalPick[ax.key] = _recPickFrom(ax.data, 12); renderRecommendModal(false); });
+                body.querySelectorAll('.recm-clear').forEach(b => b.onclick = () => { const ax = axes.find(a => a.key === b.dataset.ax); if (ax) (ax.data || []).filter(p => _recLookOn(p)).forEach(p => p.tags.forEach(t => _recRemoveTag(t))); renderRecommendModal(false); });
+                body.querySelectorAll('.recm-item').forEach(b => b.onclick = () => { const p = (rendered[b.dataset.ax] || [])[parseInt(b.dataset.idx)]; if (p) _recToggleLook(p); renderRecommendModal(false); });
             }
             ov.querySelector('#recm-close').onclick = closeRecommendModal;
             ov.querySelector('#recm-refresh').onclick = () => { renderRecommendModal(true); };
             ov.querySelector('#recm-fill').onclick = () => { fillOutPrompt(); renderRecommendModal(false); };
             { const ab = ov.querySelector('#recm-adult'); if (ab) ab.onclick = () => { if (!_adultPackLoading) _adultPackToggle(); }; }
+            { const fb = ov.querySelector('#recm-full'); if (fb) fb.onclick = () => { _recFullMode = !_recFullMode; try { localStorage.setItem('rec_full_mode', _recFullMode ? '1' : '0'); } catch (e) {} _recModalPick = null; _recCarouselIdx = 0; renderRecommendModal(true); }; }
           } catch (e) { console.warn('추천 모달 렌더 실패:', e); }
         }
         let recents = [];
