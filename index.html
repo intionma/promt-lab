@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.51 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.52 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1222,7 +1222,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.51 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.52 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1987,7 +1987,15 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.51', date: '2026-07-09', time: '최신',
+                version: 'v9.10.52', date: '2026-07-09', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[노출 축] 성인 팩(🔞)을 켜면 추천 창에 "노출" 칸이 생깁니다 — 고른 의상 위에 얹어 반드시 가슴·성기·항문을 드러내는 프리셋 36종 (후타나리 남성기 노출 포함). 의상은 그대로 두고 노출만 강제할 수 있습니다',
+                    '[인원] 거의 안 쓰는 "남성 1명(솔로)"을 빼고 "여성 3명"을 추가했습니다',
+                ]
+            },
+            {
+                version: 'v9.10.51', date: '2026-07-09', time: '이전',
                 tag: 'feat',
                 items: [
                     '[ComfyUI 전송] "BREAK" 체크박스가 이제 ComfyUI 전송에도 적용됩니다 — 켜두면 복사뿐 아니라 전송도 75토큰마다 BREAK로 나눠 보내서, 긴 프롬프트의 초과 태그까지 온전히 반영됩니다 (BREAK를 지원하는 노드/워크플로일 때 효과). 별도 버튼 없이 체크박스 하나로 복사·전송이 함께 동작합니다',
@@ -7059,7 +7067,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } catch (e) {}
         })();
         // 이름 붙은 프리셋 라이브러리 (의상=룩 / 구도=포즈 / 배경 / 인물) — 기본은 SFW, 성인(19+)은 팩 다운로드 시 추가
-        let _DATA_LOOKS = [], _DATA_POSES = [], _DATA_BG = [], _DATA_CHARS = [];
+        let _DATA_LOOKS = [], _DATA_POSES = [], _DATA_BG = [], _DATA_CHARS = [], _DATA_EXPOSURE = [];
         // 완성 모드: 켜면 화풍·인원·인물 축이 추가로 나와 추천만으로 프롬프트 완성 가능
         let _recFullMode = false;
         try { _recFullMode = localStorage.getItem('rec_full_mode') === '1'; } catch (e) {}
@@ -7077,9 +7085,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         const _COUNT_PRESETS = [
             { n: '여성 1명 (솔로)', tags: ['1girl', 'solo'] },
             { n: '솔로 포커스', tags: ['solo focus'] },
-            { n: '남성 1명', tags: ['1boy', 'solo'] },
             { n: '여성 2명', tags: ['2girls'] },
-            { n: '남녀', tags: ['1boy', '1girl'] },
+            { n: '여성 3명', tags: ['3girls'] },
+            { n: '남녀 (커플)', tags: ['1boy', '1girl'] },
             { n: '여러 명', tags: ['multiple girls'] },
         ];
         const ADULT_PACK_KEY = 'adult_pack_v1', HARDCORE_KEY = 'hardcore_pack_v1';
@@ -7105,6 +7113,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _loadPreset('./data/looks-nsfw.json', 'outfits', _DATA_LOOKS),
                 _loadPreset('./data/poses-nsfw.json', 'poses', _DATA_POSES),
                 _loadPreset('./data/bg-nsfw.json', 'bg', _DATA_BG),
+                _loadPreset('./data/exposure-nsfw.json', 'exposure', _DATA_EXPOSURE),
             ]).then(() => { _adultPackLoading = false; if (cb) cb(); });
         }
         function _adultPackToggle() {
@@ -7114,6 +7123,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _DATA_LOOKS = _DATA_LOOKS.filter(x => !x.nsfw);
                 _DATA_POSES = _DATA_POSES.filter(x => x.hc || !x.nsfw);
                 _DATA_BG = _DATA_BG.filter(x => !x.nsfw);
+                _DATA_EXPOSURE = [];
                 _recModalPick = null;
                 try { _acInvalidate(); } catch (e) {}
                 if (typeof showToast === 'function') showToast('성인 팩(19+)을 해제했어요', 'info', 1500);
@@ -7420,6 +7430,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     axes.push({ key: 'char', name: '인물', cvar: '--color-l3', data: _DATA_CHARS });
                 }
                 axes.push({ key: 'looks', name: '의상', cvar: '--color-l4', data: _DATA_LOOKS });
+                if (_adultPackOn) axes.push({ key: 'expo', name: '노출', cvar: '--color-l5', data: _DATA_EXPOSURE });
                 axes.push({ key: 'pose', name: '구도', cvar: '--color-l2', data: _DATA_POSES });
                 axes.push({ key: 'bg', name: '배경', cvar: '--color-l6', data: _DATA_BG });
                 if (regen || !_recModalPick) _recModalPick = {};
@@ -11409,7 +11420,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const koOf = en => (typeof _DATA_KO !== 'undefined' && _DATA_KO[en]) || (TAG_DICT[en] && TAG_DICT[en].k) || '';
             try { for (const en in TAG_DICT) { if (en && !map.has(en)) map.set(en, (TAG_DICT[en] && TAG_DICT[en].k) || ''); } } catch (e) {}
             const addP = arr => (arr || []).forEach(o => ((o && o.tags) || []).forEach(t => { const en = (t || '').toLowerCase().trim(); if (!en || map.has(en)) return; map.set(en, koOf(en)); }));
-            try { addP(_DATA_LOOKS); addP(_DATA_POSES); addP(_DATA_BG); addP(_DATA_CHARS); } catch (e) {}
+            try { addP(_DATA_LOOKS); addP(_DATA_POSES); addP(_DATA_BG); addP(_DATA_CHARS); addP(_DATA_EXPOSURE); } catch (e) {}
             try { const ko = (typeof _DATA_KO !== 'undefined') ? _DATA_KO : {}; for (const en in ko) { if (!map.has(en)) map.set(en, ko[en]); } } catch (e) {}
             _AC_INDEX = [];
             map.forEach((ko, en) => _AC_INDEX.push({ en, ko, enn: en.replace(/\s+/g, ''), kon: (ko || '').toLowerCase().replace(/\s+/g, '') }));
