@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.49 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.50 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1222,7 +1222,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.49 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.50 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1987,7 +1987,14 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.49', date: '2026-07-09', time: '최신',
+                version: 'v9.10.50', date: '2026-07-09', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[하드코어 팩] 추천 창에 "🔥 하드코어" 옵트인 팩을 추가했습니다 — 켜면 합의된 성행위 프리셋(이성 체위·구강·사정, 레즈비언, 2P·3P)이 구도 칸에 추가됩니다. 성인 팩과는 별도 버튼이라 원할 때만 켜면 됩니다',
+                ]
+            },
+            {
+                version: 'v9.10.49', date: '2026-07-09', time: '이전',
                 tag: 'feat',
                 items: [
                     '[자동완성] 상세태그 검색창과 에디터의 태그 입력에 자동완성을 추가했습니다 — 영문이든 한글이든 몇 글자만 치면 관련 태그가 구글처럼 드롭다운으로 뜹니다 (한글명+영문 병기, ↑↓·엔터로 선택). 상세태그 목록에 안 보이는 팩/프리셋 태그도 검색해서 바로 담을 수 있습니다',
@@ -7066,9 +7073,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { n: '남녀', tags: ['1boy', '1girl'] },
             { n: '여러 명', tags: ['multiple girls'] },
         ];
-        const ADULT_PACK_KEY = 'adult_pack_v1';
-        let _adultPackOn = false, _adultPackLoading = false;
+        const ADULT_PACK_KEY = 'adult_pack_v1', HARDCORE_KEY = 'hardcore_pack_v1';
+        let _adultPackOn = false, _adultPackLoading = false, _hardcoreOn = false, _hardcoreLoading = false;
         try { _adultPackOn = localStorage.getItem(ADULT_PACK_KEY) === '1'; } catch (e) {}
+        try { _hardcoreOn = localStorage.getItem(HARDCORE_KEY) === '1'; } catch (e) {}
         function _loadPreset(file, key, arr) {
             return fetch(file).then(r => { if (!r.ok) throw 0; return r.json(); })
                 .then(d => { ((d && d[key]) || []).forEach(x => arr.push(x)); }).catch(() => {});
@@ -7079,6 +7087,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _loadPreset('./data/bg-danbooru.json', 'bg', _DATA_BG);
             _loadPreset('./data/chars-danbooru.json', 'chars', _DATA_CHARS);
             if (_adultPackOn) _loadAdultPack();
+            if (_hardcoreOn) _loadHardcore();
         })();
         // 성인 팩(19+) — nsfw 프리셋 파일은 다운로드할 때만 fetch해서 합침
         function _loadAdultPack(cb) {
@@ -7094,7 +7103,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _adultPackOn = false;
                 try { localStorage.setItem(ADULT_PACK_KEY, '0'); } catch (e) {}
                 _DATA_LOOKS = _DATA_LOOKS.filter(x => !x.nsfw);
-                _DATA_POSES = _DATA_POSES.filter(x => !x.nsfw);
+                _DATA_POSES = _DATA_POSES.filter(x => x.hc || !x.nsfw);
                 _DATA_BG = _DATA_BG.filter(x => !x.nsfw);
                 _recModalPick = null;
                 try { _acInvalidate(); } catch (e) {}
@@ -7105,6 +7114,28 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 try { localStorage.setItem(ADULT_PACK_KEY, '1'); } catch (e) {}
                 if (typeof showToast === 'function') showToast('성인 팩(19+) 다운로드 중…', 'info', 1500);
                 _loadAdultPack(() => { _recModalPick = null; try { _acInvalidate(); } catch (e) {} if (typeof showToast === 'function') showToast('성인 팩(19+) 적용 완료', 'success', 1600); renderRecommendModal(true); });
+            }
+        }
+        // 하드코어 팩 (합의된 성행위 · 남성향) — 별도 옵트인, 구도(포즈) 칸에 추가
+        function _loadHardcore(cb) {
+            _hardcoreLoading = true;
+            fetch('./data/sex-nsfw.json').then(r => { if (!r.ok) throw 0; return r.json(); })
+                .then(d => { ((d && d.poses) || []).forEach(x => { x.hc = true; x.nsfw = true; _DATA_POSES.push(x); }); })
+                .catch(() => {}).then(() => { _hardcoreLoading = false; if (cb) cb(); });
+        }
+        function _hardcoreToggle() {
+            if (_hardcoreOn) {
+                _hardcoreOn = false;
+                try { localStorage.setItem(HARDCORE_KEY, '0'); } catch (e) {}
+                _DATA_POSES = _DATA_POSES.filter(x => !x.hc);
+                _recModalPick = null; try { _acInvalidate(); } catch (e) {}
+                if (typeof showToast === 'function') showToast('하드코어 팩을 해제했어요', 'info', 1500);
+                renderRecommendModal(true);
+            } else {
+                _hardcoreOn = true;
+                try { localStorage.setItem(HARDCORE_KEY, '1'); } catch (e) {}
+                if (typeof showToast === 'function') showToast('하드코어 팩 다운로드 중…', 'info', 1500);
+                _loadHardcore(() => { _recModalPick = null; try { _acInvalidate(); } catch (e) {} if (typeof showToast === 'function') showToast('하드코어 팩 적용 완료', 'success', 1600); renderRecommendModal(true); });
             }
         }
         // 태그 한글 오버레이 — 룩·추천이 넣는 danbooru 태그를 캡슐에서 한글로 표시 (팩 미설치·사전 미검색 문제 해결)
@@ -7363,6 +7394,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     <button id="recm-full" title="완성 모드 — 화풍·인원·인물 축 추가/숨김" style="background:${_recFullMode ? 'rgba(59,130,246,0.9)' : 'rgba(59,130,246,0.14)'};border:1px solid rgba(59,130,246,0.5);color:${_recFullMode ? '#fff' : '#3b82f6'};border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">🧩 완성 모드${_recFullMode ? ' ✓' : ''}</button>
                     <button id="recm-refresh" title="후보를 새로 제안" style="background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#a855f7;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;"><i class="fa-solid fa-arrows-rotate"></i> 다른 제안</button>
                     <button id="recm-adult" title="성인(19+) 프리셋 팩 다운로드/해제" style="background:${_adultPackOn ? 'rgba(248,113,113,0.9)' : 'rgba(248,113,113,0.14)'};border:1px solid rgba(248,113,113,0.5);color:${_adultPackOn ? '#fff' : '#f87171'};border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">🔞 성인 팩${_adultPackOn ? ' ✓' : ''}</button>
+                    <button id="recm-hardcore" title="하드코어(합의 성행위) 팩 다운로드/해제" style="background:${_hardcoreOn ? 'rgba(217,70,70,0.95)' : 'rgba(217,70,70,0.14)'};border:1px solid rgba(217,70,70,0.55);color:${_hardcoreOn ? '#fff' : '#ef4444'};border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">🔥 하드코어${_hardcoreOn ? ' ✓' : ''}</button>
                     <button id="recm-close" style="background:none;border:none;color:var(--text-dim);font-size:22px;cursor:pointer;line-height:1;">&times;</button>
                 </div>
                 <div id="recm-body" style="overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-right:2px;"></div>
@@ -7450,6 +7482,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             ov.querySelector('#recm-refresh').onclick = () => { renderRecommendModal(true); };
             ov.querySelector('#recm-fill').onclick = () => { fillOutPrompt(); renderRecommendModal(false); };
             { const ab = ov.querySelector('#recm-adult'); if (ab) ab.onclick = () => { if (!_adultPackLoading) _adultPackToggle(); }; }
+            { const hb = ov.querySelector('#recm-hardcore'); if (hb) hb.onclick = () => { if (!_hardcoreLoading) _hardcoreToggle(); }; }
             { const fb = ov.querySelector('#recm-full'); if (fb) fb.onclick = () => { _recFullMode = !_recFullMode; try { localStorage.setItem('rec_full_mode', _recFullMode ? '1' : '0'); } catch (e) {} _recModalPick = null; _recCarouselIdx = 0; renderRecommendModal(true); }; }
           } catch (e) { console.warn('추천 모달 렌더 실패:', e); }
         }
