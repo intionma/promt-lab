@@ -20,4 +20,4 @@
 ### 위치 참고
 - `CHANGELOG` 배열: `index.html` 내 `const CHANGELOG = [` (스크립트 상단)
 - 버전 툴팁: `.app-version-tooltip` (좌상단 "프롬프트 랩" 브랜드)
-- 현재 최신 버전: **v9.10.56**
+- 현재 최신 버전: **v9.10.57**
