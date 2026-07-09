@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.55 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.56 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -204,6 +204,7 @@
             padding: 10px 16px; border-bottom: 1px solid var(--border-dim); font-size: 13px; font-weight: 800;
             display: flex; justify-content: space-between; align-items: center; background-color: var(--header-bg); flex-shrink: 0;
             font-family: var(--font-heading); transition: 0.3s;
+            flex-wrap: wrap; gap: 8px 12px; /* 좁아지면 겹치지 말고 줄바꿈 */
         }
         .header-actions { display: flex; gap: 8px; align-items: center; }
         .action-btn { background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-main); padding: 6px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 700; transition: 0.2s; font-family: var(--font-ui); white-space: nowrap;}
@@ -1222,7 +1223,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.55 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.56 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1312,7 +1313,7 @@
             </div>
 
             <div class="panel-header" style="background-color: var(--bg-base); border-bottom-color: var(--border-dim);">
-                <span style="display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-layer-group"></i> <span id="current-context-title">에디터</span>
+                <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;"><i class="fa-solid fa-layer-group"></i> <span id="current-context-title">에디터</span>
                     <button onclick="openPromptImportModal()" style="background:transparent;border:1px solid #38bdf8;color:#38bdf8;border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;font-family:var(--font-ui);" title="완성된 프롬프트를 붙여넣어 계층별로 자동 배치"><i class="fa-solid fa-file-import"></i> 가져오기</button>
                     <button onclick="clearCurrentContext()" style="background:transparent;border:1px solid var(--border-dim);color:var(--text-dim);border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;font-family:var(--font-ui);" title="현재 탭 비우기"><i class="fa-solid fa-trash"></i> 비우기</button></span>
                 <div class="view-toggle">
@@ -1987,7 +1988,14 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.55', date: '2026-07-09', time: '최신',
+                version: 'v9.10.56', date: '2026-07-09', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[레이아웃] 에디터 등 패널 헤더의 버튼들(가져오기·비우기·캡슐/텍스트/전체)이 패널을 좁히면 서로 겹쳐 뭉개지던 문제를 수정했습니다 — 이제 공간이 부족하면 자동으로 아랫줄로 줄바꿈됩니다',
+                ]
+            },
+            {
+                version: 'v9.10.55', date: '2026-07-09', time: '이전',
                 tag: 'fix',
                 items: [
                     '[레이아웃] PC에서 패널 크기 조정 바가 패널 사이가 아니라 화면 왼쪽 끝에 몰려 있던 버그를 수정했습니다 — 이제 좌·중·우 패널 경계에서 바를 드래그해 원하는 대로 크기를 조정할 수 있습니다 (모바일 스와이프는 그대로)',
