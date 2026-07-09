@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.54 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.55 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1222,7 +1222,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.54 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.55 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1987,7 +1987,14 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.54', date: '2026-07-09', time: '최신',
+                version: 'v9.10.55', date: '2026-07-09', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[레이아웃] PC에서 패널 크기 조정 바가 패널 사이가 아니라 화면 왼쪽 끝에 몰려 있던 버그를 수정했습니다 — 이제 좌·중·우 패널 경계에서 바를 드래그해 원하는 대로 크기를 조정할 수 있습니다 (모바일 스와이프는 그대로)',
+                ]
+            },
+            {
+                version: 'v9.10.54', date: '2026-07-09', time: '이전',
                 tag: 'fix',
                 items: [
                     '[안정성] 추천 창 팩(성인·하드코어)을 켜고 끌 때 의상·구도·배경 칸이 잠깐 비거나, 자동완성 드롭다운이 안 닫히던 내부 버그를 수정했습니다 (코드 리뷰 반영)',
@@ -16137,9 +16144,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!track) {
                 track = document.createElement('div');
                 track.id = 'mobile-panel-track';
-                // 패널 3개를 트랙 안으로 이동
-                PANELS.forEach(p => {
-                    const el = document.getElementById(p.id);
+                // 패널 + 리사이즈 핸들을 올바른 순서로 트랙에 이동
+                // (핸들이 패널 사이에 오도록 — 안 그러면 데스크톱에서 핸들이 맨 왼쪽에 몰림)
+                // 모바일에선 핸들이 display:none이라 스와이프에 영향 없음
+                ['panel-left', 'resize-handle-1', 'panel-mid', 'resize-handle-2', 'panel-right'].forEach(id => {
+                    const el = document.getElementById(id);
                     if (el) track.appendChild(el);
                 });
                 appContainer.appendChild(track);
