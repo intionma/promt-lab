@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.45 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.46 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1222,7 +1222,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.45 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.46 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1987,7 +1987,14 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.45', date: '2026-07-09', time: '최신',
+                version: 'v9.10.46', date: '2026-07-09', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[상세태그] 추천 영역에 남아 있던 "테마로 시작"을 삭제했습니다',
+                ]
+            },
+            {
+                version: 'v9.10.45', date: '2026-07-09', time: '이전',
                 tag: 'feat',
                 items: [
                     '[배경 추천] 배경 칸도 "이름 붙은 프리셋"으로 바꿨습니다 — 장소와 조명·시간이 한 번에 정해집니다 (예: 노을 지는 해변, 네온 사이버펑크 거리). 실내·야외·도시·판타지 등 다양하게 추가',
@@ -7207,30 +7214,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             </div>`;
 
             if (active.size === 0) {
-                // ── Cold start: 테마 레시피로 시작 ──
-                const shuffled = TAG_RECIPES.slice().sort(() => Math.random() - 0.5).slice(0, 9);
-                let html = head('테마로 시작', '하나 고르면 어울리는 조합이 채워져요');
-                html += `<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px;">`;
-                shuffled.forEach((r, idx) => {
-                    const nsfwBadge = r.nsfw ? `<span style="position:absolute; top:6px; right:6px; font-size:8px; font-weight:800; color:#f87171; background:rgba(248,113,113,0.14); border:1px solid rgba(248,113,113,0.4); border-radius:5px; padding:1px 5px;">19+</span>` : '';
-                    const cardBg = r.nsfw ? 'rgba(248,113,113,0.06)' : 'rgba(168,85,247,0.06)';
-                    const cardBorder = r.nsfw ? 'rgba(248,113,113,0.3)' : 'rgba(168,85,247,0.3)';
-                    html += `<button class="rec-recipe" data-idx="${idx}" style="position:relative; text-align:left; background:${cardBg}; border:1px solid ${cardBorder}; border-radius:10px; padding:10px; cursor:pointer;">
-                        ${nsfwBadge}
-                        <span style="font-size:18px;">${r.e}</span>
-                        <span style="display:block; font-size:12px; font-weight:700; color:var(--text-main); margin-top:3px;">${_esc(r.n)}</span>
-                        <span style="display:block; font-size:9px; color:var(--text-dim); margin-top:2px;">${r.tags.length}개 태그</span>
-                    </button>`;
-                });
-                html += `</div>`;
-                area.innerHTML = html;
-                area._recipes = shuffled;
-                area.querySelectorAll('.rec-recipe').forEach(btn => btn.onclick = () => {
-                    const r = area._recipes[parseInt(btn.dataset.idx)]; if (!r) return;
-                    importPromptToEditor(r.tags, 'append');
-                    showToast(`'${r.n}' 조합을 담았어요`, 'success', 1600);
-                    renderRecommendArea();
-                });
+                // "테마로 시작"(콜드스타트) 제거 — 태그가 없으면 도우미 영역을 숨김
+                area.style.display = 'none'; area.innerHTML = ''; return;
             } else {
                 // ── 의상 · 구도 · 배경 도우미 (화풍·인물은 그대로, 늘 고민되는 3축만 제안) ──
                 let html = head('의상 · 구도 · 배경 도우미', '🔄 누르면 다른 제안');
