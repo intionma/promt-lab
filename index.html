@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.43 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.44 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1222,7 +1222,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.43 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.44 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1987,7 +1987,14 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.43', date: '2026-07-09', time: '최신',
+                version: 'v9.10.44', date: '2026-07-09', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[추천 창] 모바일에서 의상·구도·배경이 3칸으로 찌부러지던 문제를 해결했습니다 — 이제 한 섹션이 화면 전체 폭으로 시원하게 보이고, 좌우로 넘기거나(스와이프) 상단 탭을 눌러 전환할 수 있습니다',
+                ]
+            },
+            {
+                version: 'v9.10.43', date: '2026-07-09', time: '이전',
                 tag: 'feat',
                 items: [
                     '[추천 창] 디자인을 새로 했습니다 — 어둡고 답답하던 골라담기 창을 밝고 깔끔한 카드형으로 바꿨습니다 (의상·구도·배경 색 구분, 이름 2줄 표시, 선택 시 초록 강조)',
@@ -7249,7 +7256,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (active.has((t || '').toLowerCase())) _recRemoveTag(t);
             else importPromptToEditor([t], 'append');
         }
-        let _recModalBundles = null, _recModalAxis = null, _recModalLooks = null, _recModalPoses = null;
+        let _recModalBundles = null, _recModalAxis = null, _recModalLooks = null, _recModalPoses = null, _recCarouselIdx = 0;
         function openRecommendModal() {
             let ov = document.getElementById('rec-modal-overlay');
             if (!ov) {
@@ -7258,7 +7265,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 ov.onclick = (e) => { if (e.target === ov) closeRecommendModal(); };
                 document.body.appendChild(ov);
             }
-            _recModalBundles = null; _recModalAxis = null; _recModalLooks = null; _recModalPoses = null;
+            _recModalBundles = null; _recModalAxis = null; _recModalLooks = null; _recModalPoses = null; _recCarouselIdx = 0;
             renderRecommendModal(true);
         }
         function closeRecommendModal() { const o = document.getElementById('rec-modal-overlay'); if (o) o.remove(); }
@@ -7270,7 +7277,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             let h = `<div class="modal-content" style="width:min(700px,96vw);max-height:88vh;padding:20px;border-radius:18px;display:flex;flex-direction:column;gap:12px;overflow:hidden;">
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;">
                     <h3 style="margin:0;font-size:16px;font-family:var(--font-heading);white-space:nowrap;"><i class="fa-solid fa-bolt" style="color:#a855f7;margin-right:6px;"></i>추천</h3>
-                    <span style="font-size:10px;color:var(--text-dim);flex:1 1 80px;min-width:0;">화풍·인물은 그대로 · 의상/구도/배경만</span>
+                    <span class="recm-sub" style="font-size:10px;color:var(--text-dim);flex:1 1 80px;min-width:0;">화풍·인물은 그대로 · 의상/구도/배경만</span>
                     ${btn('recm-fill', '✨ 한 번에 보완', 'rgba(34,197,94,0.85)')}
                     <button id="recm-refresh" title="후보를 새로 제안" style="background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#a855f7;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;"><i class="fa-solid fa-arrows-rotate"></i> 다른 제안</button>
                     <button id="recm-close" style="background:none;border:none;color:var(--text-dim);font-size:22px;cursor:pointer;line-height:1;">&times;</button>
@@ -7289,6 +7296,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 let hi = `<style>
                   #rec-modal-overlay .recm-hint{font-size:11px;font-weight:600;color:var(--text-dim);margin:-2px 2px 0;}
                   #rec-modal-overlay .recm-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+                  #rec-modal-overlay .recm-tabs{display:none;}
                   #rec-modal-overlay .recm-col{background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:14px;padding:11px 9px 10px;display:flex;flex-direction:column;min-width:0;box-shadow:0 1px 3px var(--shadow-color);}
                   #rec-modal-overlay .recm-col-head{display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:0 3px;}
                   #rec-modal-overlay .recm-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
@@ -7304,8 +7312,23 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                   #rec-modal-overlay .recm-chip.on{background:color-mix(in srgb,var(--accent-green) 16%,var(--chip-bg));border-color:var(--accent-green);font-weight:600;}
                   #rec-modal-overlay .recm-chip.on .rc-ic{color:var(--accent-green);}
                   #rec-modal-overlay .rc-19{margin-left:auto;font-size:8px;font-weight:800;color:var(--accent-danger);flex-shrink:0;}
+                  @media (max-width:560px){
+                    #rec-modal-overlay .recm-sub{display:none;}
+                    #rec-modal-overlay .recm-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:1px;}
+                    #rec-modal-overlay .recm-tab{display:flex;align-items:center;justify-content:center;gap:5px;padding:9px 4px;border-radius:11px;border:1px solid var(--border-dim);background:var(--chip-bg);color:var(--text-dim);font-size:13px;font-weight:800;cursor:pointer;transition:all .12s;}
+                    #rec-modal-overlay .recm-tab .rt-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+                    #rec-modal-overlay .recm-tab.active{color:var(--text-main);border-color:var(--accent-blue);background:color-mix(in srgb,var(--accent-blue) 12%,var(--chip-bg));box-shadow:0 1px 3px var(--shadow-color);}
+                    #rec-modal-overlay .recm-cols{display:flex;grid-template-columns:none;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+                    #rec-modal-overlay .recm-cols::-webkit-scrollbar{display:none;}
+                    #rec-modal-overlay .recm-col{flex:0 0 100%;scroll-snap-align:start;}
+                  }
                 </style>`;
                 hi += `<div class="recm-hint">각 칸에서 골라 담으세요 · 다시 누르면 빠져요 · <i class="fa-solid fa-arrows-rotate"></i> 로 새 후보</div>`;
+                hi += `<div class="recm-tabs">
+                    <button class="recm-tab" data-ti="0"><span class="rt-dot" style="background:var(--color-l4);"></span>의상</button>
+                    <button class="recm-tab" data-ti="1"><span class="rt-dot" style="background:var(--color-l2);"></span>구도</button>
+                    <button class="recm-tab" data-ti="2"><span class="rt-dot" style="background:var(--color-l6);"></span>배경</button>
+                </div>`;
                 hi += `<div class="recm-cols">`;
                 [[4, '의상', '--color-l4'], [2, '구도', '--color-l2'], [6, '배경', '--color-l6']].forEach(([L, name, cvar]) => {
                     hi += `<div class="recm-col"><div class="recm-col-head"><span class="recm-dot" style="background:var(${cvar});"></span><span class="recm-col-name">${name}</span><span class="recm-col-actions"><button class="recm-reroll recm-ibtn" data-l="${L}" title="${name} 다른 제안"><i class="fa-solid fa-arrows-rotate"></i></button><button class="recm-clear recm-ibtn" data-l="${L}" title="${name} 비우기"><i class="fa-solid fa-eraser"></i></button></span></div><div class="recm-list">`;
@@ -7323,6 +7346,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 });
                 hi += `</div>`;
                 body.innerHTML = hi;
+                // 모바일 가로 스와이프 캐러셀 (탭 전환 + 재렌더 시 섹션 위치 유지)
+                const _cols = body.querySelector('.recm-cols');
+                const _tabs = [...body.querySelectorAll('.recm-tab')];
+                const _setTab = i => { _recCarouselIdx = i; _tabs.forEach((t, k) => t.classList.toggle('active', k === i)); };
+                _setTab(_recCarouselIdx);
+                if (_cols) {
+                    const base = () => (_cols.children[0] ? _cols.children[0].offsetLeft : 0);
+                    requestAnimationFrame(() => { const c = _cols.children[_recCarouselIdx]; if (c) _cols.scrollLeft = c.offsetLeft - base(); });
+                    _tabs.forEach((t, k) => t.onclick = () => { _setTab(k); const c = _cols.children[k]; if (c) _cols.scrollTo({ left: c.offsetLeft - base(), behavior: 'smooth' }); });
+                    _cols.addEventListener('scroll', () => { const sl = _cols.scrollLeft, b = base(); let best = 0, bd = 1e9; [..._cols.children].forEach((c, k) => { const d = Math.abs((c.offsetLeft - b) - sl); if (d < bd) { bd = d; best = k; } }); if (best !== _recCarouselIdx) _setTab(best); });
+                }
                 body.querySelectorAll('.recm-reroll').forEach(b => b.onclick = () => { const L = parseInt(b.dataset.l); if (L === 4) _recModalLooks = _recPickLooks(12); else if (L === 2 && _DATA_POSES.length) _recModalPoses = _recPickPoses(12); else _recModalAxis[L] = _recAxisRanked(L, _recActive(), 18, 0.55); renderRecommendModal(false); });
                 body.querySelectorAll('.recm-clear').forEach(b => b.onclick = () => { const L = parseInt(b.dataset.l); _recClearLayer(L); if (L === 2) _recClearLayer(5); renderRecommendModal(false); });
                 body.querySelectorAll('.recm-look').forEach(b => b.onclick = () => { const lk = (_recModalLooks || [])[parseInt(b.dataset.li)]; if (lk) _recToggleLook(lk); renderRecommendModal(false); });
