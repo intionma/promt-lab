@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.46 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.10.47 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1222,7 +1222,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.46 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.47 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1987,7 +1987,14 @@
         const CHANGELOG = [
             // ── 2026-07-08 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.46', date: '2026-07-09', time: '최신',
+                version: 'v9.10.47', date: '2026-07-09', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[상세태그] 왼쪽에 남아 있던 "의상·구도·배경 도우미"(완성 세트·직접 골라담기)를 완전히 제거했습니다 — 추천 기능은 "간편 조합"의 추천 창으로 일원화됐습니다',
+                ]
+            },
+            {
+                version: 'v9.10.46', date: '2026-07-09', time: '이전',
                 tag: 'fix',
                 items: [
                     '[상세태그] 추천 영역에 남아 있던 "테마로 시작"을 삭제했습니다',
@@ -7199,8 +7206,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           try {
             const area = document.getElementById('rec-combo-area');
             if (!area) return;
-            _recUpdateBtn();
-            if (!_recommendOn) { area.style.display = 'none'; area.innerHTML = ''; _recLastSig = null; return; }
+            // 인라인 "의상·구도·배경 도우미" 제거 — 추천은 '간편 조합'의 추천 모달로 이동. 상세태그에선 항상 숨김.
+            _recommendOn = false;
+            area.style.display = 'none'; area.innerHTML = ''; _recLastSig = null;
+            return;
             const active = _recActive();
             // 활성 태그 변화가 없으면 재렌더 생략 (레시피가 매번 섞이는 것 방지 + 성능)
             const sig = [...active].sort().join(',') + '|' + active.size;
