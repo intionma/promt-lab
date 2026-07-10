@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.12.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.12.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -981,6 +981,14 @@
         body[data-layout="studio"] .pl-studio-fab:hover { transform:translateY(-2px); box-shadow:0 14px 36px rgba(30,40,60,0.22); }
         body[data-layout="studio"] .pl-studio-fab.rec { background:#6366f1; color:#fff; border-color:transparent; }
         body[data-layout="studio"] .pl-studio-fab.ed.on { background:#1e2530; color:#fff; border-color:transparent; }
+        /* 에디터 오버레이 닫기 X (항상 잘 보이게 · 데스크탑/모바일 공통) */
+        body[data-layout="studio"] .pl-studio-edclose { display:none; }
+        body[data-layout="studio"].pl-studio-editor .pl-studio-edclose {
+            display:flex; align-items:center; justify-content:center; position:fixed;
+            top:calc(var(--pl-topbar-h,54px) + 16px); right:18px; z-index:9700;
+            width:44px; height:44px; border-radius:50%; border:1px solid var(--border-dim);
+            background:#fff; color:#1e2530; font-size:20px; cursor:pointer; box-shadow:0 8px 24px rgba(20,28,44,0.3); }
+        body[data-layout="studio"].pl-studio-editor .pl-studio-edclose:hover { background:#1e2530; color:#fff; border-color:transparent; }
         /* 커맨드 팔레트 (ide 전용이지만 전역 단축키로도) */
         #pl-cmdk { position:fixed; inset:0; z-index:100020; display:none; align-items:flex-start; justify-content:center; background:rgba(0,0,0,0.4); backdrop-filter:blur(4px); padding-top:14vh; }
         #pl-cmdk.open { display:flex; }
@@ -1078,7 +1086,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.12.0 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.12.1 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1114,6 +1122,7 @@
             <button class="gt-menu-item" data-tool="preset" style="--gc:var(--accent-green);" onclick="closeGtMenu();openPresetManager()"><i class="fa-solid fa-floppy-disk"></i><span>프리셋 관리</span></button>
 
             <div class="gt-menu-sec">기타</div>
+            <button class="gt-menu-item" data-tool="adultoptin" style="--gc:#f87171;" onclick="closeGtMenu();toggleAdultOptIn()"><i class="fa-solid fa-user-lock"></i><span>성인 콘텐츠 (19+)</span><small>켜면 추천에 19+ 팩 버튼 표시 (기본 꺼짐)</small></button>
             <button class="gt-menu-item" data-tool="mockmode" style="--gc:#a855f7;" onclick="closeGtMenu();comfyToggleMockMode()"><i class="fa-solid fa-flask"></i><span>개발자 모드</span><small>ComfyUI 없이 가상으로 연결·생성</small></button>
             <button class="gt-menu-item" data-tool="shutdown" style="--gc:#ef4444;" onclick="closeGtMenu();openShutdownModal()"><i class="fa-solid fa-power-off"></i><span>PC 종료</span><small>도우미 스크립트 필요</small></button>
         </div>
@@ -1843,7 +1852,17 @@
         const CHANGELOG = [
             // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.12.0', date: '2026-07-10', time: '최신',
+                version: 'v9.12.1', date: '2026-07-10', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[추천] 항목을 누를 때마다 목록이 맨 위로 튀어 오르던 문제를 고쳤습니다 — 이제 누른 자리에 그대로 있고, 터치하는 즉시 선택 표시가 바로 반영됩니다(반응 지연 제거)',
+                    '[추천] 성인·하드코어(19+) 팩 버튼을 기본적으로 숨겼습니다 — 왼쪽 위 메뉴 → "성인 콘텐츠 (19+)"를 켜야 나타납니다. 처음 방문하거나 다른 사람에게 보여줄 땐 일반(SFW) 화면만 보입니다',
+                    '[에디터] 소환한 에디터 창에 닫기 "✕" 버튼을 추가했습니다 — 이제 확실하게 닫을 수 있고, 휴대폰 뒤로가기로도 에디터가 닫힙니다(다른 게 뒤로가던 문제 수정)',
+                    '[ComfyUI] 주소가 틀리거나 연결이 안 될 때 "연결 중..."에서 무한 대기하던 버그 수정 — 8초 안에 응답이 없으면 실패로 처리하고 원인을 안내합니다',
+                ]
+            },
+            {
+                version: 'v9.12.0', date: '2026-07-10', time: '이전',
                 tag: 'feat',
                 items: [
                     '[스튜디오] 휴대폰 우선으로 다시 설계했습니다 — 아래 탭이 "① 간편조합 → ② 추천 → ③ 결과" 3단계 흐름으로 바뀌어, 손가락으로 좌우로 넘기거나 탭을 눌러 순서대로 진행합니다',
@@ -4214,7 +4233,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             statusEl.textContent = '연결 중...';
             statusEl.style.color = 'var(--text-dim)';
             try {
-                const res = await fetch(_comfyBase() + '/object_info/CheckpointLoaderSimple');
+                // 타임아웃(8초) — 주소가 틀리거나 연결 안 되면 무한 "연결 중..."에 걸리지 않게
+                const res = await fetch(_comfyBase() + '/object_info/CheckpointLoaderSimple', { signal: AbortSignal.timeout(8000) });
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
                 const names = data?.CheckpointLoaderSimple?.input?.required?.ckpt_name?.[0] || [];
@@ -4235,9 +4255,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _comfySaveSettings();
                 _comfyReconnectNow(); // 수동 연결 성공 → 라이브 진행용 소켓도 즉시 (재)연결
             } catch (e) {
+                const timedOut = e && (e.name === 'TimeoutError' || e.name === 'AbortError');
                 if (_comfyMixedBlocked()) {
                     statusEl.textContent = '❌ 브라우저가 연결을 차단함 — 아래 안내를 확인하세요';
                     _comfyMixedHelp(true);
+                } else if (timedOut) {
+                    statusEl.innerHTML = '❌ 연결 실패 (응답 없음) — 주소가 맞는지, ComfyUI가 켜져 있는지 확인하세요';
                 } else {
                     statusEl.innerHTML = '❌ 연결 실패 — ComfyUI를 <code>--enable-cors-header</code> 로 실행했는지 확인';
                 }
@@ -7004,10 +7027,23 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { n: '남녀 (커플)', tags: ['1boy', '1girl'] },
             { n: '여러 명', tags: ['multiple girls'] },
         ];
-        const ADULT_PACK_KEY = 'adult_pack_v1', HARDCORE_KEY = 'hardcore_pack_v1';
-        let _adultPackOn = false, _adultPackLoading = false, _hardcoreOn = false, _hardcoreLoading = false;
+        const ADULT_PACK_KEY = 'adult_pack_v1', HARDCORE_KEY = 'hardcore_pack_v1', ADULT_OPTIN_KEY = 'adult_optin_v1';
+        let _adultPackOn = false, _adultPackLoading = false, _hardcoreOn = false, _hardcoreLoading = false, _adultOptIn = false;
         try { _adultPackOn = localStorage.getItem(ADULT_PACK_KEY) === '1'; } catch (e) {}
         try { _hardcoreOn = localStorage.getItem(HARDCORE_KEY) === '1'; } catch (e) {}
+        try { _adultOptIn = localStorage.getItem(ADULT_OPTIN_KEY) === '1'; } catch (e) {}
+        // 성인 콘텐츠 표시 opt-in — 기본 꺼짐. 켜야 추천에 🔞/🔥 팩 버튼이 보임(처음 방문/공유 시 SFW만)
+        function toggleAdultOptIn() {
+            _adultOptIn = !_adultOptIn;
+            try { localStorage.setItem(ADULT_OPTIN_KEY, _adultOptIn ? '1' : '0'); } catch (e) {}
+            if (!_adultOptIn) { // 끄면 이미 받은 팩도 내려서 깔끔한 상태로
+                try { if (_adultPackOn && !_adultPackLoading) _adultPackToggle(); } catch (e) {}
+                try { if (_hardcoreOn && !_hardcoreLoading) _hardcoreToggle(); } catch (e) {}
+            }
+            if (typeof showToast === 'function') showToast(_adultOptIn ? '성인 콘텐츠 표시 켜짐 — 추천에서 19+ 팩을 받을 수 있어요' : '성인 콘텐츠 표시 꺼짐 (기본 상태)', 'info', 2000);
+            try { renderRecommendModal(false); } catch (e) {}
+        }
+        window.toggleAdultOptIn = toggleAdultOptIn;
         function _loadPreset(file, key, arr) {
             return fetch(file).then(r => { if (!r.ok) throw 0; return r.json(); })
                 .then(d => { ((d && d[key]) || []).forEach(x => arr.push(x)); }).catch(() => {});
@@ -7339,11 +7375,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _recHost = host; _recHostOpts = opts;
             host.classList.add('recm-scope');
             host.classList.toggle('embed', !opts.modal);
+            const packBtns = _adultOptIn ? `<button class="recm-adult" title="성인(19+) 프리셋 팩 다운로드/해제" style="background:${_adultPackOn ? 'rgba(248,113,113,0.9)' : 'rgba(248,113,113,0.14)'};border:1px solid rgba(248,113,113,0.5);color:${_adultPackOn ? '#fff' : '#f87171'};border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">🔞 성인 팩${_adultPackOn ? ' ✓' : ''}</button>
+                    <button class="recm-hardcore" title="하드코어(합의 성행위) 팩 다운로드/해제" style="background:${_hardcoreOn ? 'rgba(217,70,70,0.95)' : 'rgba(217,70,70,0.14)'};border:1px solid rgba(217,70,70,0.55);color:${_hardcoreOn ? '#fff' : '#ef4444'};border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">🔥 하드코어${_hardcoreOn ? ' ✓' : ''}</button>` : '';
             const hbtns = `<button class="recm-fill" style="background:rgba(34,197,94,0.85);border:none;color:#fff;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">✨ 한 번에 보완</button>
                     <button class="recm-full" title="완성 모드 — 화풍·인원·인물 축 추가/숨김" style="background:${_recFullMode ? 'rgba(59,130,246,0.9)' : 'rgba(59,130,246,0.14)'};border:1px solid rgba(59,130,246,0.5);color:${_recFullMode ? '#fff' : '#3b82f6'};border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">🧩 완성 모드${_recFullMode ? ' ✓' : ''}</button>
                     <button class="recm-refresh" title="후보를 새로 제안" style="background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#a855f7;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;"><i class="fa-solid fa-arrows-rotate"></i> 다른 제안</button>
-                    <button class="recm-adult" title="성인(19+) 프리셋 팩 다운로드/해제" style="background:${_adultPackOn ? 'rgba(248,113,113,0.9)' : 'rgba(248,113,113,0.14)'};border:1px solid rgba(248,113,113,0.5);color:${_adultPackOn ? '#fff' : '#f87171'};border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">🔞 성인 팩${_adultPackOn ? ' ✓' : ''}</button>
-                    <button class="recm-hardcore" title="하드코어(합의 성행위) 팩 다운로드/해제" style="background:${_hardcoreOn ? 'rgba(217,70,70,0.95)' : 'rgba(217,70,70,0.14)'};border:1px solid rgba(217,70,70,0.55);color:${_hardcoreOn ? '#fff' : '#ef4444'};border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">🔥 하드코어${_hardcoreOn ? ' ✓' : ''}</button>`;
+                    ${packBtns}`;
             let h;
             if (opts.modal) {
                 h = `<div class="modal-content" style="width:min(700px,96vw);max-height:88vh;padding:20px;border-radius:18px;display:flex;flex-direction:column;gap:12px;overflow:hidden;">
@@ -7361,6 +7398,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 <div class="recm-body" style="overflow-y:auto;display:flex;flex-direction:column;gap:14px;flex:1;min-height:0;padding:0 2px 14px 0;"></div>
             </div>`;
             }
+            const _prevScroll = (host.querySelector('.recm-body') || {}).scrollTop || 0;
             host.innerHTML = h;
             const body = host.querySelector('.recm-body');
 
@@ -7430,6 +7468,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 });
                 hi += `</div>`;
                 body.innerHTML = hi;
+                try { body.scrollTop = _prevScroll; } catch (e) {} // 재렌더 시 세로 스크롤 위치 유지
                 // 모바일 가로 스와이프 캐러셀 (탭 전환 + 재렌더 시 섹션 위치 유지)
                 const _cols = body.querySelector('.recm-cols');
                 const _tabs = [...body.querySelectorAll('.recm-tab')];
@@ -7443,7 +7482,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }
                 body.querySelectorAll('.recm-reroll').forEach(b => b.onclick = () => { const ax = axes.find(a => a.key === b.dataset.ax); if (ax) _recModalPick[ax.key] = _recPickFrom(ax.data, 12); renderRecommendModal(false); });
                 body.querySelectorAll('.recm-clear').forEach(b => b.onclick = () => { const ax = axes.find(a => a.key === b.dataset.ax); if (ax) (ax.data || []).filter(p => _recLookOn(p)).forEach(p => p.tags.forEach(t => _recRemoveTag(t))); renderRecommendModal(false); });
-                body.querySelectorAll('.recm-item').forEach(b => b.onclick = () => { const p = (rendered[b.dataset.ax] || [])[parseInt(b.dataset.idx)]; if (p) _recToggleLook(p); renderRecommendModal(false); });
+                body.querySelectorAll('.recm-item').forEach(b => b.onclick = () => {
+                    const p = (rendered[b.dataset.ax] || [])[parseInt(b.dataset.idx)];
+                    if (!p) return;
+                    const wasOn = _recLookOn(p);
+                    // 터치 즉시 시각 반영 (전체 재렌더 X → 스크롤 튐 없음 · 반응 지연 없음)
+                    b.classList.toggle('on', !wasOn);
+                    const ic = b.querySelector('.rc-ic'); if (ic) ic.className = 'rc-ic fa-solid fa-' + (!wasOn ? 'check' : 'plus');
+                    // 무거운 에디터 반영은 다음 프레임에 (하이라이트가 먼저 그려지도록)
+                    setTimeout(() => { if (wasOn) p.tags.forEach(t => _recRemoveTag(t)); else importPromptToEditor(p.tags, 'append'); }, 0);
+                });
             }
             { const cb = host.querySelector('.recm-close'); if (cb) cb.onclick = closeRecommendModal; }
             host.querySelector('.recm-refresh').onclick = () => { renderRecommendModal(true); };
@@ -16371,9 +16419,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             let recPanel = null, edPill = null, mobileOn = false;
             // 왼쪽 패널을 '간편 조합' 모드로 전환
             try { if (window.switchSidebarMode) switchSidebarMode('combo'); } catch (e) {}
-            // 에디터 오버레이용 스크림 + 데스크탑 하단 FAB(추천·에디터)
+            // 에디터 오버레이용 스크림 + 닫기 X + 데스크탑 하단 FAB(추천·에디터)
+            let _edPushed = false;
             const scrim = el('div', { class: 'pl-studio-scrim', onclick: closeEditor });
             document.body.appendChild(scrim);
+            const edClose = el('button', { class: 'pl-studio-edclose', title: '에디터 닫기 (Esc)', html: '<i class="fa-solid fa-xmark"></i>', onclick: closeEditor });
+            document.body.appendChild(edClose);
             const edBtn = el('button', { class: 'pl-studio-fab ed', onclick: toggleEditor });
             const fabs = el('div', { class: 'pl-studio-fabs' },
                 el('button', { class: 'pl-studio-fab rec', html: '<i class="fa-solid fa-bolt"></i> 추천 조합', onclick: () => { try { window.openRecommendModal && openRecommendModal(); } catch (e) {} } }),
@@ -16396,18 +16447,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const track = window.__getMobileTrack && window.__getMobileTrack();
                 if (mid && track && mid.parentElement === document.body) track.appendChild(mid);
             }
-            function toggleEditor() {
-                const opening = !document.body.classList.contains('pl-studio-editor');
-                if (mobileOn && opening) _edToBody();
-                document.body.classList.toggle('pl-studio-editor');
-                if (mobileOn && !opening) _edToTrack();
-                syncEd();
+            function _applyOpen() { if (mobileOn) _edToBody(); document.body.classList.add('pl-studio-editor'); syncEd(); }
+            function _applyClose() { document.body.classList.remove('pl-studio-editor'); if (mobileOn) _edToTrack(); syncEd(); }
+            function openEditor() {
+                if (document.body.classList.contains('pl-studio-editor')) return;
+                _applyOpen();
+                try { history.pushState({ studioEd: 1 }, ''); _edPushed = true; } catch (e) {} // 뒤로가기로 닫히게
             }
             function closeEditor() {
-                document.body.classList.remove('pl-studio-editor');
-                if (mobileOn) _edToTrack();
-                syncEd();
+                if (!document.body.classList.contains('pl-studio-editor')) return;
+                if (_edPushed) { _edPushed = false; try { history.back(); return; } catch (e) {} } // 히스토리 정리 → popstate가 실제 닫음
+                _applyClose();
             }
+            function toggleEditor() { if (document.body.classList.contains('pl-studio-editor')) closeEditor(); else openEditor(); }
+            // 뒤로가기 → 에디터가 열려 있으면 닫기(패널 이동 대신)
+            const onPop = () => { if (_edPushed && document.body.classList.contains('pl-studio-editor')) { _edPushed = false; _applyClose(); } };
+            window.addEventListener('popstate', onPop);
             const onKey = (e) => { if (e.key === 'Escape') closeEditor(); };
             document.addEventListener('keydown', onKey);
 
@@ -16458,9 +16513,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
             return () => {
                 window.removeEventListener('resize', onResize);
+                window.removeEventListener('popstate', onPop);
                 document.removeEventListener('keydown', onKey);
                 teardownMobile();
-                scrim.remove(); fabs.remove();
+                scrim.remove(); fabs.remove(); edClose.remove();
                 document.body.classList.remove('pl-studio-editor');
             };
         }
