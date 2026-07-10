@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.15.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.16.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1084,7 +1084,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.15.1 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.16.0 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1849,7 +1849,14 @@
         const CHANGELOG = [
             // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.15.1', date: '2026-07-10', time: '최신',
+                version: 'v9.16.0', date: '2026-07-10', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[추천] 의상·노출·구도·배경 등 섹션 제목에 이모지 아이콘과 색상 배경을 입혀서 스크롤하면서도 지금 어느 섹션인지 한눈에 구분되도록 개선했습니다',
+                ]
+            },
+            {
+                version: 'v9.15.1', date: '2026-07-10', time: '이전',
                 tag: 'fix',
                 items: [
                     '[에디터] 소환한 에디터 창의 "✕" 버튼을 한 번만 눌러도 바로 닫히도록 수정 — 지난 버전에서 두 번 눌러야 닫히던 문제였습니다(뒤로가기·바깥터치·ESC 전부 동일하게 수정)',
@@ -7521,14 +7528,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             {
                 const axes = [];
                 if (_recFullMode) {
-                    axes.push({ key: 'style', name: '화풍', cvar: '--color-l1', data: _STYLE_PRESETS });
-                    axes.push({ key: 'count', name: '인원', cvar: '--color-l7', data: _COUNT_PRESETS });
-                    axes.push({ key: 'char', name: '인물', cvar: '--color-l3', data: _DATA_CHARS });
+                    axes.push({ key: 'style', name: '화풍', cvar: '--color-l1', icon: '🎨', data: _STYLE_PRESETS });
+                    axes.push({ key: 'count', name: '인원', cvar: '--color-l7', icon: '👥', data: _COUNT_PRESETS });
+                    axes.push({ key: 'char', name: '인물', cvar: '--color-l3', icon: '🙂', data: _DATA_CHARS });
                 }
-                axes.push({ key: 'looks', name: '의상', cvar: '--color-l4', data: _DATA_LOOKS });
-                if (_adultPackOn) axes.push({ key: 'expo', name: '노출', cvar: '--color-l5', data: _DATA_EXPOSURE });
-                axes.push({ key: 'pose', name: '구도', cvar: '--color-l2', data: _DATA_POSES });
-                axes.push({ key: 'bg', name: '배경', cvar: '--color-l6', data: _DATA_BG });
+                axes.push({ key: 'looks', name: '의상', cvar: '--color-l4', icon: '👗', data: _DATA_LOOKS });
+                if (_adultPackOn) axes.push({ key: 'expo', name: '노출', cvar: '--color-l5', icon: '🔞', data: _DATA_EXPOSURE });
+                axes.push({ key: 'pose', name: '구도', cvar: '--color-l2', icon: '📸', data: _DATA_POSES });
+                axes.push({ key: 'bg', name: '배경', cvar: '--color-l6', icon: '🏞️', data: _DATA_BG });
                 if (regen || !_recModalPick) _recModalPick = {};
                 axes.forEach(ax => { if (regen || !_recModalPick[ax.key]) _recModalPick[ax.key] = _recPickFrom(ax.data, 12); });
                 if (_recCarouselIdx >= axes.length) _recCarouselIdx = 0;
@@ -7539,6 +7546,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                   .recm-scope .recm-tabs{display:none;}
                   .recm-scope .recm-col{background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:14px;padding:11px 9px 10px;display:flex;flex-direction:column;min-width:0;box-shadow:0 1px 3px var(--shadow-color);}
                   .recm-scope .recm-col-head{display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:0 3px;}
+                  .recm-scope .recm-col-icon{font-size:15px;line-height:1;flex-shrink:0;}
                   .recm-scope .recm-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
                   .recm-scope .recm-col-name{font-size:12px;font-weight:800;color:var(--text-main);letter-spacing:-.01em;white-space:nowrap;}
                   .recm-scope .recm-col-actions{margin-left:auto;display:flex;gap:3px;}
@@ -7571,7 +7579,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                   .recm-scope.embed .recm-tabs{display:none !important;}
                   .recm-scope.embed .recm-cols{display:flex !important;flex-direction:column !important;overflow-x:visible !important;gap:0 !important;}
                   .recm-scope.embed .recm-col{flex:0 0 auto !important;background:transparent !important;border:none !important;box-shadow:none !important;padding:0 0 12px !important;}
-                  .recm-scope.embed .recm-col-head{position:sticky;top:0;background:var(--bg-panel);z-index:3;margin:0 0 8px;padding:9px 2px 8px;border-bottom:1px solid var(--border-dim);}
+                  .recm-scope.embed .recm-col-head{position:sticky;top:0;z-index:3;margin:0 6px 8px;padding:9px 8px;border-radius:10px;
+                    background:color-mix(in srgb, var(--ax-c) 20%, var(--bg-panel));border-bottom:2px solid var(--ax-c);}
+                  .recm-scope.embed .recm-col-head .recm-dot{display:none;} /* 임베드에선 아이콘+배경 틴트가 구분 역할을 대신함 */
+                  .recm-scope.embed .recm-col-name{font-size:13px;}
                   .recm-scope.embed .recm-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-content:start;}
                   .recm-scope.embed .recm-chip{min-height:38px;}
                 </style>`;
@@ -7581,7 +7592,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const rendered = {};
                 axes.forEach(ax => {
                     const collapsed = _recCollapsed.has(ax.key);
-                    hi += `<div class="recm-col${collapsed ? ' collapsed' : ''}"><div class="recm-col-head recm-collapse-toggle" data-ax="${ax.key}"><span class="recm-dot" style="background:var(${ax.cvar});"></span><span class="recm-col-name">${ax.name}</span><span class="recm-col-actions"><button class="recm-reroll recm-ibtn" data-ax="${ax.key}" title="${ax.name} 다른 제안"><i class="fa-solid fa-arrows-rotate"></i></button><button class="recm-clear recm-ibtn" data-ax="${ax.key}" title="${ax.name} 비우기"><i class="fa-solid fa-eraser"></i></button><i class="fa-solid fa-chevron-down recm-chev"></i></span></div><div class="recm-list">`;
+                    hi += `<div class="recm-col${collapsed ? ' collapsed' : ''}"><div class="recm-col-head recm-collapse-toggle" data-ax="${ax.key}" style="--ax-c:var(${ax.cvar});"><span class="recm-col-icon">${ax.icon || ''}</span><span class="recm-dot" style="background:var(${ax.cvar});"></span><span class="recm-col-name">${ax.name}</span><span class="recm-col-actions"><button class="recm-reroll recm-ibtn" data-ax="${ax.key}" title="${ax.name} 다른 제안"><i class="fa-solid fa-arrows-rotate"></i></button><button class="recm-clear recm-ibtn" data-ax="${ax.key}" title="${ax.name} 비우기"><i class="fa-solid fa-eraser"></i></button><i class="fa-solid fa-chevron-down recm-chev"></i></span></div><div class="recm-list">`;
                     // 담긴 프리셋을 항상 맨 위에 고정(재오픈해도 뺄 수 있게) + 랜덤 후보
                     const onP = (ax.data || []).filter(p => _recLookOn(p));
                     const onN = new Set(onP.map(p => p.n));
