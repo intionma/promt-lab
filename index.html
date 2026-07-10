@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.16.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.17.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1084,7 +1084,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.16.0 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.17.0 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1849,7 +1849,16 @@
         const CHANGELOG = [
             // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.16.0', date: '2026-07-10', time: '최신',
+                version: 'v9.17.0', date: '2026-07-10', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[추천/노출] 노출 섹션을 완전히 새로 만들었습니다 — 미리 짜인 노출 조합 대신, 가슴·여성기·배꼽·겨드랑이 등 원하는 부위만 골라 켜고 끌 수 있어요. 어떤 의상을 골랐든(평범한 옷이라도) 선택한 부위가 확실히 드러나도록 옷 상태를 자동으로 맞춰서 반영합니다',
+                    '[추천/노출] 후타나리 전용 설정이 추가됐습니다 — 성기·불알 노출, 옷 위 윤곽, 음모·겨드랑이 털을 켜고 끌 수 있고, "성기 상세 설정"을 펼치면 성기/불알 크기·발기 상태·포피 상태까지 단계별로 세밀하게 고를 수 있습니다. 상세 설정은 스크롤이 길어지지 않도록 기본은 접힌 상태예요',
+                    '[추천/의상] 기존 의상 조합에 미리 섞여 있던 노출 요소(노브라·노팬티 등)를 정리했습니다 — 이제 의상은 옷 자체에만 집중하고, 노출은 노출 섹션에서 원하는 만큼 따로 켜면 됩니다. 노출을 전제로 지었던 일부 조합 이름도 자연스러운 이름으로 바꿨습니다',
+                ]
+            },
+            {
+                version: 'v9.16.0', date: '2026-07-10', time: '이전',
                 tag: 'feat',
                 items: [
                     '[추천] 의상·노출·구도·배경 등 섹션 제목에 이모지 아이콘과 색상 배경을 입혀서 스크롤하면서도 지금 어느 섹션인지 한눈에 구분되도록 개선했습니다',
@@ -7091,6 +7100,97 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { n: '남녀 (커플)', tags: ['1boy', '1girl'] },
             { n: '여러 명', tags: ['multiple girls'] },
         ];
+        // ══════════════════════════════════════════════════════════════
+        //  노출 — 부위별 독립 토글 (v9.17.0) — 의상과 무관하게 부위 단위로 조합
+        //  "탈의" 태그(topless/nude) 대신 "입은 채로 그 부위만 드러나는" danbooru 실태그 위주.
+        //  가슴/여성기는 현재 선택된 의상(여밈형/풀오버형, 치마형/바지형)을 보고 노출 방식을 자동 매칭.
+        // ══════════════════════════════════════════════════════════════
+        const _EXPO_OPEN_TOP_KW = ['cardigan', 'blazer', 'shirt', 'jacket', 'coat', 'kimono', 'robe', 'yukata', 'vest'];
+        const _EXPO_PULLOVER_TOP_KW = ['sweater', 'hoodie', 'dress', 'turtleneck', 'tank top', 'camisole'];
+        const _EXPO_SKIRT_KW = ['skirt', 'dress', 'kimono', 'yukata', 'gown', 'robe'];
+        const _EXPO_PANTS_KW = ['pants', 'jeans', 'shorts', 'leggings', 'trousers'];
+        // 현재 활성 태그를 보고 노출 "방식"(어떻게 드러나는지)을 고른다 — 뭘 입었는지 몰라도 무난한 기본값으로 폴백
+        function _expoMechTags(kind) {
+            const active = [..._recActive()];
+            const hasKw = (list) => list.some(kw => active.some(t => t.includes(kw)));
+            if (kind === 'top') {
+                if (hasKw(_EXPO_OPEN_TOP_KW)) return ['open clothes', 'no bra', 'breasts out'];
+                if (hasKw(_EXPO_PULLOVER_TOP_KW)) return ['no bra', 'nipple bulge', 'clothes pull'];
+                return ['no bra', 'breasts out'];
+            }
+            if (kind === 'bottom') {
+                if (hasKw(_EXPO_SKIRT_KW)) return ['no panties'];
+                if (hasKw(_EXPO_PANTS_KW)) return ['cameltoe'];
+                return ['no panties'];
+            }
+            return [];
+        }
+        // 여성 공통 — 가슴/여성기는 tags를 비워두고 dynamicMech로 표시(클릭 시점에 의상 보고 계산)
+        const _EXPO_FEMALE = [
+            { n: '가슴 노출', tags: [], dynamicMech: 'top' },
+            { n: '여성기 노출', tags: [], dynamicMech: 'bottom' },
+            { n: '배꼽 노출', tags: ['navel'] },
+            { n: '겨드랑이 노출', tags: ['armpit'] },
+        ];
+        // 후타나리 전용 — 직접 노출 3종
+        const _EXPO_FUTA = [
+            { n: '성기 노출', tags: ['penis'] },
+            { n: '불알 노출', tags: ['testicles'] },
+            { n: '옷 위로 윤곽만', tags: ['bulge'] },
+        ];
+        // 단계형(라디오처럼 그룹 내 하나만 선택) — danbooru 실태그로 검증된 것만 사용
+        function _expoStepGroup(key, options) { return options.map(o => ({ n: o.label, tags: (o.tags || []).slice(), stepGroup: key })); }
+        const _EXPO_PENIS_SIZE = _expoStepGroup('penisSize', [
+            { label: '극초소형', tags: ['tiny penis'] }, { label: '소형', tags: ['small penis'] },
+            { label: '보통', tags: [] }, { label: '대형', tags: ['large penis'] }, { label: '극대형', tags: ['huge penis'] },
+        ]);
+        const _EXPO_BALL_SIZE = _expoStepGroup('ballSize', [
+            { label: '없음', tags: ['no testicles'] }, { label: '소형', tags: ['small testicles'] },
+            { label: '보통', tags: [] }, { label: '대형', tags: ['large testicles'] }, { label: '초대형', tags: ['huge testicles'] },
+        ]);
+        const _EXPO_ERECTION = _expoStepGroup('erection', [
+            { label: '무발기', tags: ['flaccid'] }, { label: '중간발기', tags: ['half-erect'] }, { label: '발기', tags: ['erection'] },
+        ]);
+        const _EXPO_FORESKIN = _expoStepGroup('foreskin', [
+            { label: '덮임', tags: ['foreskin'] }, { label: '반쯤 까짐', tags: ['phimosis'] }, { label: '완전히 까짐', tags: [] },
+        ]);
+        const _EXPO_PUBIC = _expoStepGroup('pubicHair', [
+            { label: '민모', tags: ['shaved pussy'] }, { label: '보통', tags: ['pubic hair'] },
+        ]);
+        // 기타 — 있음/없음 토글
+        const _EXPO_MISC = [
+            { n: '겨드랑이 털', tags: ['armpit hair'] },
+            { n: '치구', tags: ['smegma'] },
+        ];
+        // 노출 패널의 전체 순서(고정) — data-idx 정렬 기준. 매번 새 배열이지만 항목 참조(객체)는 동일해 _recPickedSet과 호환.
+        function _buildExpoFlatList() {
+            return [..._EXPO_FEMALE, ..._EXPO_FUTA, ..._EXPO_PENIS_SIZE, ..._EXPO_BALL_SIZE, ..._EXPO_ERECTION, ..._EXPO_FORESKIN, ..._EXPO_PUBIC, ..._EXPO_MISC];
+        }
+        // 후타 성기 상세(크기/발기/포피/음모) 접힘 상태 — 스크롤이 길어지지 않게 기본값은 닫힘
+        let _expoDetailOpen = false;
+        // 노출 패널 내부 HTML (여성 공통 / 후타나리 / 단계형 4종(접이식) / 기타) — flat은 _buildExpoFlatList() 결과와 순서가 같아야 함
+        function _buildExpoPanelHtml(flat) {
+            const chip = (p, idx) => {
+                const on = _recLookOn(p);
+                const titleStr = p.dynamicMech ? '의상에 맞춰 자동 선택' : (p.tags.join(', ') || '기본값(태그 없음)');
+                return `<button class="recm-item recm-chip${on ? ' on' : ''}" data-ax="expo" data-idx="${idx}" title="${_esc(titleStr)}"><i class="rc-ic fa-solid fa-${on ? 'check' : 'plus'}"></i><span class="rc-lbl">${_esc(p.n)}</span><span class="rc-19">19+</span></button>`;
+            };
+            const step = (p, idx) => {
+                const on = _recLookOn(p);
+                return `<button class="recm-item recm-step${on ? ' on' : ''}" data-ax="expo" data-idx="${idx}" title="${_esc(p.tags.join(', ') || '기본값')}">${_esc(p.n)}</button>`;
+            };
+            const group = (arr, renderFn, cls) => `<div class="recm-expo-${cls}">` + arr.map(p => renderFn(p, flat.indexOf(p))).join('') + `</div>`;
+            let out = '<div class="recm-expo-sub">여성 공통</div>' + group(_EXPO_FEMALE, chip, 'grid');
+            out += '<div class="recm-expo-sub">후타나리</div>' + group(_EXPO_FUTA, chip, 'grid');
+            let detail = '<div class="recm-expo-sub">성기 크기 (후타)</div>' + group(_EXPO_PENIS_SIZE, step, 'steps');
+            detail += '<div class="recm-expo-sub">불알 크기 (후타)</div>' + group(_EXPO_BALL_SIZE, step, 'steps');
+            detail += '<div class="recm-expo-sub">발기 상태 (후타)</div>' + group(_EXPO_ERECTION, step, 'steps');
+            detail += '<div class="recm-expo-sub">포피 상태 (후타)</div>' + group(_EXPO_FORESKIN, step, 'steps');
+            detail += '<div class="recm-expo-sub">음모</div>' + group(_EXPO_PUBIC, step, 'steps');
+            out += `<div class="recm-expo-detail${_expoDetailOpen ? ' open' : ''}"><button type="button" class="recm-expo-detail-head"><i class="fa-solid fa-chevron-right recm-expo-detail-chev"></i><span>후타 성기 상세 설정 (크기·발기·포피·음모)</span></button><div class="recm-expo-detail-body">${detail}</div></div>`;
+            out += '<div class="recm-expo-sub">기타</div>' + group(_EXPO_MISC, chip, 'grid');
+            return out;
+        }
         const ADULT_PACK_KEY = 'adult_pack_v1', HARDCORE_KEY = 'hardcore_pack_v1', ADULT_OPTIN_KEY = 'adult_optin_v1';
         let _adultPackOn = false, _adultPackLoading = false, _hardcoreOn = false, _hardcoreLoading = false, _adultOptIn = false;
         try { _adultPackOn = localStorage.getItem(ADULT_PACK_KEY) === '1'; } catch (e) {}
@@ -7202,8 +7302,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         // 태그가 바뀔 때마다(다른 경로로 지워졌어도) 더 이상 실제로 만족하지 않는 선택은 집합에서 제거
         // (새로 추가하지는 않음 — 우연한 포함관계로 유령 선택이 생기는 걸 막기 위해 "제거만" 한다)
+        // 단, 태그가 원래 없는 항목(단계형의 "보통" 등)은 포함관계로 검증할 수 없으므로 건드리지 않음
         function _recReconcilePicked() {
-            _recPickedSet.forEach(p => { if (!_recLookOnRaw(p)) _recPickedSet.delete(p); });
+            _recPickedSet.forEach(p => { if (p.tags && p.tags.length && !_recLookOnRaw(p)) _recPickedSet.delete(p); });
         }
         function _recToggleLook(lk) {
             if (!lk || !lk.tags) return;
@@ -7424,7 +7525,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 { key: 'count', data: _COUNT_PRESETS },
                 { key: 'char', data: _DATA_CHARS },
                 { key: 'looks', data: _DATA_LOOKS },
-                { key: 'expo', data: _DATA_EXPOSURE },
+                { key: 'expo', data: _buildExpoFlatList() },
                 { key: 'pose', data: _DATA_POSES },
                 { key: 'bg', data: _DATA_BG },
             ];
@@ -7533,7 +7634,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     axes.push({ key: 'char', name: '인물', cvar: '--color-l3', icon: '🙂', data: _DATA_CHARS });
                 }
                 axes.push({ key: 'looks', name: '의상', cvar: '--color-l4', icon: '👗', data: _DATA_LOOKS });
-                if (_adultPackOn) axes.push({ key: 'expo', name: '노출', cvar: '--color-l5', icon: '🔞', data: _DATA_EXPOSURE });
+                if (_adultPackOn) axes.push({ key: 'expo', name: '노출', cvar: '--color-l5', icon: '🔞', data: _buildExpoFlatList(), custom: true });
                 axes.push({ key: 'pose', name: '구도', cvar: '--color-l2', icon: '📸', data: _DATA_POSES });
                 axes.push({ key: 'bg', name: '배경', cvar: '--color-l6', icon: '🏞️', data: _DATA_BG });
                 if (regen || !_recModalPick) _recModalPick = {};
@@ -7585,6 +7686,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                   .recm-scope.embed .recm-col-name{font-size:13px;}
                   .recm-scope.embed .recm-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-content:start;}
                   .recm-scope.embed .recm-chip{min-height:38px;}
+                  /* 노출: 부위별 토글 패널 (단계형 셀렉터 포함) */
+                  .recm-scope .recm-expo-sub{grid-column:1/-1;font-size:10px;font-weight:800;color:var(--text-dim);letter-spacing:.02em;margin:8px 2px 2px;text-transform:uppercase;}
+                  .recm-scope .recm-expo-sub:first-child{margin-top:0;}
+                  .recm-scope .recm-expo-grid{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;}
+                  .recm-scope .recm-expo-steps{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:5px;}
+                  .recm-scope .recm-step{background:var(--chip-bg);border:1px solid var(--border-dim);color:var(--text-main);border-radius:16px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;transition:all .12s;white-space:nowrap;}
+                  .recm-scope .recm-step:hover{border-color:var(--accent-blue);}
+                  .recm-scope .recm-step.on{background:color-mix(in srgb,var(--accent-green) 22%,var(--chip-bg));border-color:var(--accent-green);color:var(--text-main);font-weight:800;}
+                  .recm-scope .recm-expo-detail{grid-column:1/-1;margin-top:6px;}
+                  .recm-scope .recm-expo-detail-head{width:100%;display:flex;align-items:center;gap:7px;background:var(--chip-bg);border:1px solid var(--border-dim);border-radius:8px;padding:8px 10px;font-size:11px;font-weight:800;color:var(--text-dim);cursor:pointer;transition:all .12s;}
+                  .recm-scope .recm-expo-detail-head:hover{border-color:var(--accent-blue);color:var(--text-main);}
+                  .recm-scope .recm-expo-detail-chev{font-size:10px;transition:transform .15s;}
+                  .recm-scope .recm-expo-detail.open .recm-expo-detail-chev{transform:rotate(90deg);}
+                  .recm-scope .recm-expo-detail-body{display:none;grid-template-columns:1fr;gap:0;padding-top:4px;}
+                  .recm-scope .recm-expo-detail.open .recm-expo-detail-body{display:grid;}
+                  .recm-scope .recm-expo-detail-body .recm-expo-sub:first-child{margin-top:8px;}
                 </style>`;
                 hi += `<div class="recm-hint">각 칸에서 골라 담으세요 · 다시 누르면 빠져요 · <i class="fa-solid fa-arrows-rotate"></i> 로 새 후보</div>`;
                 hi += `<div class="recm-tabs">` + axes.map((ax, i) => `<button class="recm-tab" data-ti="${i}"><span class="rt-dot" style="background:var(${ax.cvar});"></span>${ax.name}</button>`).join('') + `</div>`;
@@ -7592,13 +7709,20 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const rendered = {};
                 axes.forEach(ax => {
                     const collapsed = _recCollapsed.has(ax.key);
-                    hi += `<div class="recm-col${collapsed ? ' collapsed' : ''}"><div class="recm-col-head recm-collapse-toggle" data-ax="${ax.key}" style="--ax-c:var(${ax.cvar});"><span class="recm-col-icon">${ax.icon || ''}</span><span class="recm-dot" style="background:var(${ax.cvar});"></span><span class="recm-col-name">${ax.name}</span><span class="recm-col-actions"><button class="recm-reroll recm-ibtn" data-ax="${ax.key}" title="${ax.name} 다른 제안"><i class="fa-solid fa-arrows-rotate"></i></button><button class="recm-clear recm-ibtn" data-ax="${ax.key}" title="${ax.name} 비우기"><i class="fa-solid fa-eraser"></i></button><i class="fa-solid fa-chevron-down recm-chev"></i></span></div><div class="recm-list">`;
-                    // 담긴 프리셋을 항상 맨 위에 고정(재오픈해도 뺄 수 있게) + 랜덤 후보
-                    const onP = (ax.data || []).filter(p => _recLookOn(p));
-                    const onN = new Set(onP.map(p => p.n));
-                    const list = [...onP, ...(_recModalPick[ax.key] || []).filter(p => !onN.has(p.n))];
-                    rendered[ax.key] = list;
-                    list.forEach((p, idx) => { hi += chip(`data-ax="${ax.key}" data-idx="${idx}"`, _recLookOn(p), p.n, p.tags.join(', '), p.nsfw); });
+                    const rerollBtn = ax.custom ? '' : `<button class="recm-reroll recm-ibtn" data-ax="${ax.key}" title="${ax.name} 다른 제안"><i class="fa-solid fa-arrows-rotate"></i></button>`;
+                    hi += `<div class="recm-col${collapsed ? ' collapsed' : ''}"><div class="recm-col-head recm-collapse-toggle" data-ax="${ax.key}" style="--ax-c:var(${ax.cvar});"><span class="recm-col-icon">${ax.icon || ''}</span><span class="recm-dot" style="background:var(${ax.cvar});"></span><span class="recm-col-name">${ax.name}</span><span class="recm-col-actions">${rerollBtn}<button class="recm-clear recm-ibtn" data-ax="${ax.key}" title="${ax.name} 비우기"><i class="fa-solid fa-eraser"></i></button><i class="fa-solid fa-chevron-down recm-chev"></i></span></div><div class="recm-list">`;
+                    if (ax.custom) {
+                        // 노출: 부위별 토글 패널 — 랜덤 셔플 없이 고정 순서로 항상 전부 표시
+                        rendered[ax.key] = ax.data;
+                        hi += _buildExpoPanelHtml(ax.data);
+                    } else {
+                        // 담긴 프리셋을 항상 맨 위에 고정(재오픈해도 뺄 수 있게) + 랜덤 후보
+                        const onP = (ax.data || []).filter(p => _recLookOn(p));
+                        const onN = new Set(onP.map(p => p.n));
+                        const list = [...onP, ...(_recModalPick[ax.key] || []).filter(p => !onN.has(p.n))];
+                        rendered[ax.key] = list;
+                        list.forEach((p, idx) => { hi += chip(`data-ax="${ax.key}" data-idx="${idx}"`, _recLookOn(p), p.n, p.tags.join(', '), p.nsfw); });
+                    }
                     hi += `</div></div>`;
                 });
                 hi += `</div>`;
@@ -7622,6 +7746,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const key = h.dataset.ax; if (!key) return;
                     if (_recCollapsed.has(key)) _recCollapsed.delete(key); else _recCollapsed.add(key);
                     h.closest('.recm-col').classList.toggle('collapsed', _recCollapsed.has(key));
+                });
+                body.querySelectorAll('.recm-expo-detail-head').forEach(h => h.onclick = (e) => {
+                    e.stopPropagation();
+                    _expoDetailOpen = !_expoDetailOpen;
+                    h.closest('.recm-expo-detail').classList.toggle('open', _expoDetailOpen);
                 });
                 body.querySelectorAll('.recm-reroll').forEach(b => b.onclick = (e) => { e.stopPropagation(); const ax = axes.find(a => a.key === b.dataset.ax); if (ax) _recModalPick[ax.key] = _recPickFrom(ax.data, 12); renderRecommendModal(false); });
                 body.querySelectorAll('.recm-clear').forEach(b => b.onclick = (e) => {
@@ -7653,7 +7782,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             const protect = _recTagsProtectedExcluding(p);
                             (p.tags || []).forEach(t => { if (!protect.has((t || '').toLowerCase())) _recRemoveTag(t); });
                         } else {
+                            // 같은 단계 그룹(성기 크기/발기 상태 등)의 다른 선택은 라디오처럼 해제 대상으로 우선 수집.
+                            // 실제 태그 제거는 새 태그를 먼저 넣은 "다음"에 한다 — 순서를 바꾸면, 새 태그가
+                            // 아직 반영되기 전에 updateMasterOutput→재동기화가 끼어들어 방금 고른 항목이
+                            // "아직 조건을 만족 안 함"으로 오판되어 즉시 선택 해제돼버리는 경합이 생긴다.
+                            let siblings = [];
+                            if (p.stepGroup) {
+                                siblings = [..._recPickedSet].filter(sib => sib !== p && sib.stepGroup === p.stepGroup);
+                                siblings.forEach(sib => _recPickedSet.delete(sib));
+                            }
+                            // 의상에 맞춰 노출 방식을 지금 시점 기준으로 재계산(가슴/여성기)
+                            if (p.dynamicMech) p.tags = _expoMechTags(p.dynamicMech);
                             importPromptToEditor(p.tags, 'append');
+                            siblings.forEach(sib => {
+                                const sProtect = _recTagsProtectedExcluding(sib);
+                                (sib.tags || []).forEach(t => { if (!sProtect.has((t || '').toLowerCase())) _recRemoveTag(t); });
+                            });
                         }
                         _recSyncVisual(host); // 이번 조작으로 실제 상태가 바뀐 다른 칩들도 정확하게 재동기화
                     }, 0);
@@ -10777,6 +10921,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             "winged helmet":{"k":"날개 달린 투구","l":4},"winter coat":{"k":"겨울 코트","l":4},"witch":{"k":"마녀","l":3},"wizard hat":{"k":"마법사 모자","l":4},
             "wrist cuffs":{"k":"손목 커프스","l":4},"wrist scrunchie":{"k":"손목 스크런치","l":4},"yuri":{"k":"백합(여성 동성애)","l":5},"zipper pull":{"k":"지퍼 당기기","l":5},
         });
+        _dictMerge({
+            // ═══ v9.17.0 — 노출 부위별 토글(성기/불알 크기·발기·포피 등) 번역 ═══
+            "flaccid":{"k":"무발기(축 늘어짐)","l":5},"half-erect":{"k":"중간발기","l":5},"huge testicles":{"k":"초대형 불알","l":3},
+            "large testicles":{"k":"대형 불알","l":3},"no testicles":{"k":"불알 없음","l":3},"phimosis":{"k":"포피 반쯤 덮임","l":3},
+            "small testicles":{"k":"소형 불알","l":3},"smegma":{"k":"치구(스메그마)","l":3},"tiny penis":{"k":"극초소형 성기","l":3},
+        });
         // 기존 사전의 어색한 번역·계층만 선별 교정 (force overwrite)
         (function () {
             // 번역 교정 (모호한 한글 → 구분되게)
@@ -11771,7 +11921,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const koOf = en => (typeof _DATA_KO !== 'undefined' && _DATA_KO[en]) || (TAG_DICT[en] && TAG_DICT[en].k) || '';
             try { for (const en in TAG_DICT) { if (en && !map.has(en)) map.set(en, (TAG_DICT[en] && TAG_DICT[en].k) || ''); } } catch (e) {}
             const addP = arr => (arr || []).forEach(o => ((o && o.tags) || []).forEach(t => { const en = (t || '').toLowerCase().trim(); if (!en || map.has(en)) return; map.set(en, koOf(en)); }));
-            try { addP(_DATA_LOOKS); addP(_DATA_POSES); addP(_DATA_BG); addP(_DATA_CHARS); addP(_DATA_EXPOSURE); } catch (e) {}
+            try { addP(_DATA_LOOKS); addP(_DATA_POSES); addP(_DATA_BG); addP(_DATA_CHARS); addP(_DATA_EXPOSURE); addP(_buildExpoFlatList()); } catch (e) {}
             try { const ko = (typeof _DATA_KO !== 'undefined') ? _DATA_KO : {}; for (const en in ko) { if (!map.has(en)) map.set(en, ko[en]); } } catch (e) {}
             _AC_INDEX = [];
             map.forEach((ko, en) => _AC_INDEX.push({ en, ko, enn: en.replace(/\s+/g, ''), kon: (ko || '').toLowerCase().replace(/\s+/g, '') }));
