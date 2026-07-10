@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.18.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.18.2 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1030,6 +1030,8 @@
                 font-size:13px; font-weight:800; font-family:var(--font-ui);
                 box-shadow:0 8px 24px rgba(0,0,0,0.3); cursor:pointer; }
             body[data-layout="studio"] .pl-studio-edpill.on { background:var(--text-main); color:var(--bg-panel); border-color:transparent; }
+            /* 전송 대기열 FAB가 우하단에 떠 있으면 에디터 버튼이 겹치므로 그 위로 올림 */
+            body[data-layout="studio"].comfy-queue-active .pl-studio-edpill { bottom:138px; }
         }
         /* 태블릿 구간(모바일 단일패널이지만 폭이 넓은 700~1024px): 콘텐츠를 적정 폭으로 가운데 정렬해 빈 공간 최소화 */
         @media (min-width: 700px) and (max-width: 1024px) {
@@ -1084,7 +1086,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.18.1 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.18.2 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1849,7 +1851,14 @@
         const CHANGELOG = [
             // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.18.1', date: '2026-07-10', time: '최신',
+                version: 'v9.18.2', date: '2026-07-10', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[스튜디오/모바일] 화면 우하단에서 "에디터" 버튼과 전송 대기열 버튼이 겹쳐 보이던 문제를 수정했습니다 — 대기열이 떠 있을 때는 에디터 버튼이 그 위로 올라가 서로 겹치지 않습니다',
+                ]
+            },
+            {
+                version: 'v9.18.1', date: '2026-07-10', time: '이전',
                 tag: 'fix',
                 items: [
                     '[간편조합] 기본으로 들어있던 조합("카페 창가 스냅", "무녀", "숲 엘프" 등)을 클릭하면 태그가 엉뚱한 계층으로 흩어지던 버그를 고쳤습니다 — 이제 각 태그가 화질·구도·외형·의상·배경 등 올바른 계층으로 정확히 들어갑니다. 예전부터 쓰시던 분들의 조합도 열 때 자동으로 바로잡히며, 직접 만든 조합은 그대로 유지됩니다',
@@ -4855,6 +4864,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _comfySaveJobs();   // 작업 변동 시마다 복구 메타 갱신 (새로고침 대비)
             badge.textContent = n;
             fab.style.display = n > 0 ? 'flex' : 'none';
+            document.body.classList.toggle('comfy-queue-active', n > 0); // 스튜디오 에디터 버튼 겹침 회피용
             _comfyUpdateFabWater();
             if (n > 0) { _comfyStartSyncLoop(); } else { _comfyStopSyncLoop(); }
             if (n === 0) { _comfyQueueOpen = false; list.style.display = 'none'; list.style.transform = 'scale(0.5)'; list.style.opacity = '0'; return; }
