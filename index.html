@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.18.4 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.18.5 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1086,7 +1086,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.18.4 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.18.5 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1851,7 +1851,14 @@
         const CHANGELOG = [
             // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.18.4', date: '2026-07-10', time: '최신',
+                version: 'v9.18.5', date: '2026-07-10', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[추천] 추천 조합의 태그에 직접 가중치를 준 뒤(예: (garter belt:1.3)) 그 조합을 다시 끄면 가중치 준 태그가 안 지워지고 남아있던 버그를 고쳤습니다 — 이제 가중치가 붙어 있어도 조합을 끄면 함께 깔끔하게 제거됩니다',
+                ]
+            },
+            {
+                version: 'v9.18.4', date: '2026-07-10', time: '이전',
                 tag: 'fix',
                 items: [
                     '[노출/후타나리] 후타나리에서 성기 태그 때문에 "다른 남성의 성기"나 "붕 뜬(분리된) 성기"가 끼어들던 문제를 완화했습니다 — 후타나리가 켜져 있으면 이런 것들을 막는 부정 프롬프트를 자동으로 넣어줍니다. 단, 후타×후타나 남성이 함께 있는 장면처럼 성기가 여러 개 필요한 경우엔 알아서 빼서 충돌하지 않게 했습니다',
@@ -7108,10 +7115,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const d = (typeof _tagDictLookup === 'function') ? _tagDictLookup(lc) : null;
             return d ? d.l : null;
         }
-        // 현재 에디터의 활성 태그 (소문자)
+        // 태그 토큰에서 가중치/괄호를 벗겨 "핵심 태그"만 소문자로 — 활성 감지와 제거가 같은 기준을 쓰게 하는 공유 헬퍼
+        // (예: "(garter belt:1.2)" · "((garter belt))" → "garter belt"). 이게 없으면 가중치 준 태그가 조합 해제 시 안 지워짐.
+        function _recTagCore(x) { return (x || '').trim().toLowerCase().replace(/^\(+|\)+$/g, '').replace(/:\d*\.?\d+$/, '').replace(/^\(+|\)+$/g, '').trim(); }
+        // 현재 에디터의 활성 태그 (소문자, 가중치 제거)
         function _recActive() {
             const set = new Set();
-            try { (contextStates[currentContext] || []).forEach(s => (s || '').split(',').map(x => x.trim().toLowerCase().replace(/^\(+|\)+$/g, '').replace(/:\d*\.?\d+$/, '').trim()).filter(Boolean).forEach(x => set.add(x))); } catch (e) {}
+            try { (contextStates[currentContext] || []).forEach(s => (s || '').split(',').map(x => _recTagCore(x)).filter(Boolean).forEach(x => set.add(x))); } catch (e) {}
             return set;
         }
         // 빈 계층 목록 (2~7 중 태그 없는 계층)
@@ -7581,10 +7591,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // ── 추천 모달 (간편 조합의 "추천" 버튼으로 열림) ──
         // 편집기에서 태그 추가/제거 토글
         function _recRemoveTag(t) {
-            const lc = (t || '').toLowerCase(); const st = contextStates[currentContext]; if (!st) return;
+            const lc = _recTagCore(t); const st = contextStates[currentContext]; if (!st) return;
             try { saveStateToUndoStack(); } catch (e) {}
             for (let i = 0; i < 7; i++) {
-                st[i] = (st[i] || '').split(',').map(s => s.trim()).filter(x => x && x.toLowerCase() !== lc).join(', ');
+                // 핵심 태그가 일치하면 가중치가 붙어 있어도((tag:1.2) 등) 함께 제거
+                st[i] = (st[i] || '').split(',').map(s => s.trim()).filter(x => x && _recTagCore(x) !== lc).join(', ');
                 const el = document.getElementById('layer-' + (i + 1)); if (el) el.value = st[i];
             }
             for (let i = 1; i <= 7; i++) { try { syncFromManualInput(i); } catch (e) {} }
