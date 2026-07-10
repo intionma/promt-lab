@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.19.4 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.19.5 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1086,7 +1086,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.19.4 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.19.5 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1851,7 +1851,14 @@
         const CHANGELOG = [
             // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.19.4', date: '2026-07-10', time: '최신',
+                version: 'v9.19.5', date: '2026-07-10', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[ComfyUI] 내 워크플로우(커스텀) 모드에서도 "이 시드로 생성 고정"이 실제로 그 시드를 강제하도록 보강했습니다 — 예전엔 커스텀 모드에서 랜덤만 꺼지고 시드값이 반영되지 않았는데, 이제 시드칸에 값이 있으면(≥0) 워크플로우의 모든 시드 노드에 그 값을 넣습니다. 시드칸이 -1(랜덤)이면 워크플로우에 적힌 시드를 그대로 존중합니다',
+                ]
+            },
+            {
+                version: 'v9.19.4', date: '2026-07-10', time: '이전',
                 tag: 'feat',
                 items: [
                     '[갤러리] 시드를 고정한 뒤 다시 랜덤으로 되돌리기가 편해졌습니다 — 시드가 고정돼 있으면 이미지 우클릭/롱프레스 메뉴에 "시드 랜덤으로 되돌리기 (현재 고정: …)"가 함께 떠서, ComfyUI 전송 창을 열지 않고도 한 번에 랜덤으로 돌릴 수 있습니다',
@@ -4563,12 +4570,24 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }
             }
 
-            // 시드 랜덤 (옵션) — seed / noise_seed 필드를 가진 모든 노드
+            // 시드 처리 — seed / noise_seed 필드를 가진 모든 노드
             if (document.getElementById('comfy-wf-randseed').checked) {
+                // "매번 시드 랜덤" 켜짐 → 매번 새 랜덤
                 for (const id in wf) {
                     const inp = wf[id].inputs || {};
                     if (typeof inp.seed === 'number') inp.seed = Math.floor(Math.random() * 1e15);
                     if (typeof inp.noise_seed === 'number') inp.noise_seed = Math.floor(Math.random() * 1e15);
+                }
+            } else {
+                // 랜덤 꺼짐 + 시드칸에 고정값(≥0)이 있으면 그 시드로 강제(커스텀 모드에서도 "이 시드로 생성 고정"이 먹히게).
+                // 시드칸이 -1/빈값이면 커스텀 JSON에 적힌 시드를 그대로 존중.
+                const _sv = parseInt(document.getElementById('comfy-seed').value);
+                if (!isNaN(_sv) && _sv >= 0) {
+                    for (const id in wf) {
+                        const inp = wf[id].inputs || {};
+                        if (typeof inp.seed === 'number') inp.seed = _sv;
+                        if (typeof inp.noise_seed === 'number') inp.noise_seed = _sv;
+                    }
                 }
             }
             return wf;
