@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.17.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.17.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1037,7 +1037,7 @@
             #panel-left .sidebar-tools, #panel-left .sidebar-sticky-bar,
             #panel-left .panel-header, #panel-mid .panel-header, #panel-right .panel-header,
             #panel-mid .result-tabs, #panel-mid .result-tab-content, #panel-right .result-tabs, #panel-right .result-tab-content {
-                max-width: 760px; margin-left: auto !important; margin-right: auto !important; width: auto;
+                max-width: 760px; margin-left: auto !important; margin-right: auto !important; width: 100% !important;
             }
         }
     </style>
@@ -1084,7 +1084,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.17.0 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.17.1 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1849,7 +1849,14 @@
         const CHANGELOG = [
             // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.17.0', date: '2026-07-10', time: '최신',
+                version: 'v9.17.1', date: '2026-07-10', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[에디터] 태블릿 정도로 넓은 화면(가로 700~1024px 정도)에서 에디터 카드가 한쪽으로 쏠리고 오른쪽에 빈 공간이 크게 남던 문제 수정 — 이제 화면 폭에 맞춰 카드가 가운데로 반듯하게 정렬됩니다',
+                ]
+            },
+            {
+                version: 'v9.17.0', date: '2026-07-10', time: '이전',
                 tag: 'feat',
                 items: [
                     '[추천/노출] 노출 섹션을 완전히 새로 만들었습니다 — 미리 짜인 노출 조합 대신, 가슴·여성기·배꼽·겨드랑이 등 원하는 부위만 골라 켜고 끌 수 있어요. 어떤 의상을 골랐든(평범한 옷이라도) 선택한 부위가 확실히 드러나도록 옷 상태를 자동으로 맞춰서 반영합니다',
