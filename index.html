@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.14.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.15.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -942,14 +942,9 @@
         .pl-mini.col { flex-direction:column; }
 
         /* =========================================================
-           스튜디오 — 미니멀 라이트 · 간편 조합 + 결과/ComfyUI, 에디터는 소환식
+           스튜디오 — 모바일 우선 미니멀 재배치 · 간편 조합 + 결과/ComfyUI, 에디터는 소환식
+           (고정 색상 없음 — 앱 전역 다크/라이트 테마 변수를 그대로 따름)
            ========================================================= */
-        body[data-layout="studio"] {
-            --bg-base:#eef1f6; --bg-panel:#ffffff; --bg-surface:#f6f8fb; --border-dim:#e2e6ec;
-            --text-main:#1e2530; --text-dim:#6b7686; --accent-blue:#6366f1; --accent-green:#10b981;
-            --header-bg:#ffffff; --chip-bg:#ffffff; --input-bg:#ffffff;
-            --folder-bg:#f6f8fb; --folder-hover:#eef1f6; --shadow-color:rgba(30,40,60,0.08);
-        }
         body[data-layout="studio"] .app-container { gap:16px; padding:16px; background:var(--bg-base); }
         body[data-layout="studio"] #mobile-panel-track { display:contents; }
         body[data-layout="studio"] #resize-handle-1,
@@ -957,38 +952,38 @@
         body[data-layout="studio"] #panel-left,
         body[data-layout="studio"] #panel-right { flex:1 1 0 !important; width:auto !important; min-width:0; max-width:none;
             border:1px solid var(--border-dim); border-radius:18px; background:var(--bg-panel);
-            box-shadow:0 1px 2px var(--shadow-color), 0 8px 24px rgba(30,40,60,0.05); overflow:hidden; }
+            box-shadow:0 1px 2px var(--shadow-color), 0 8px 24px var(--shadow-color); overflow:hidden; }
         body[data-layout="studio"] .panel-header { background:var(--bg-panel); border-bottom:1px solid var(--border-dim); }
         /* 에디터: 기본 숨김 → 소환 시 가운데 카드 오버레이 */
         body[data-layout="studio"] #panel-mid { display:none; }
         body[data-layout="studio"] .pl-studio-scrim { display:none; }
         body[data-layout="studio"].pl-studio-editor .pl-studio-scrim {
             display:block; position:fixed; inset:0; top:var(--pl-topbar-h,54px); z-index:870;
-            background:rgba(20,28,44,0.30); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
+            background:rgba(0,0,0,0.45); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
         body[data-layout="studio"].pl-studio-editor #panel-mid {
             display:flex; position:fixed; z-index:875; left:50%; transform:translateX(-50%);
             top:calc(var(--pl-topbar-h,54px) + 34px); width:min(780px,94vw); height:min(74vh,860px);
             border:1px solid var(--border-dim); border-radius:18px; background:var(--bg-panel);
-            box-shadow:0 30px 90px rgba(20,28,44,0.30); overflow:hidden; }
+            box-shadow:0 30px 90px rgba(0,0,0,0.45); overflow:hidden; }
         /* 소환 FAB 클러스터 (하단 가운데) */
         body[data-layout="studio"] .pl-studio-fabs {
             position:fixed; left:50%; transform:translateX(-50%); bottom:22px; z-index:878; display:flex; gap:10px; }
         body[data-layout="studio"] .pl-studio-fab {
-            display:flex; align-items:center; gap:8px; border:1px solid var(--border-dim); background:#ffffff;
-            color:#1e2530; border-radius:26px; padding:12px 22px; font-size:14px; font-weight:800;
-            font-family:var(--font-ui); cursor:pointer; box-shadow:0 10px 30px rgba(30,40,60,0.16);
+            display:flex; align-items:center; gap:8px; border:1px solid var(--border-dim); background:var(--bg-panel);
+            color:var(--text-main); border-radius:26px; padding:12px 22px; font-size:14px; font-weight:800;
+            font-family:var(--font-ui); cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,0.22);
             transition:transform .14s, box-shadow .14s, border-color .14s; }
-        body[data-layout="studio"] .pl-studio-fab:hover { transform:translateY(-2px); box-shadow:0 14px 36px rgba(30,40,60,0.22); }
-        body[data-layout="studio"] .pl-studio-fab.rec { background:#6366f1; color:#fff; border-color:transparent; }
-        body[data-layout="studio"] .pl-studio-fab.ed.on { background:#1e2530; color:#fff; border-color:transparent; }
+        body[data-layout="studio"] .pl-studio-fab:hover { transform:translateY(-2px); box-shadow:0 14px 36px rgba(0,0,0,0.28); }
+        body[data-layout="studio"] .pl-studio-fab.rec { background:var(--accent-blue); color:#fff; border-color:transparent; }
+        body[data-layout="studio"] .pl-studio-fab.ed.on { background:var(--text-main); color:var(--bg-panel); border-color:transparent; }
         /* 에디터 오버레이 닫기 X (항상 잘 보이게 · 데스크탑/모바일 공통) */
         body[data-layout="studio"] .pl-studio-edclose { display:none; }
         body[data-layout="studio"].pl-studio-editor .pl-studio-edclose {
             display:flex; align-items:center; justify-content:center; position:fixed;
             top:calc(var(--pl-topbar-h,54px) + 16px); right:18px; z-index:9700;
             width:44px; height:44px; border-radius:50%; border:1px solid var(--border-dim);
-            background:#fff; color:#1e2530; font-size:20px; cursor:pointer; box-shadow:0 8px 24px rgba(20,28,44,0.3); }
-        body[data-layout="studio"].pl-studio-editor .pl-studio-edclose:hover { background:#1e2530; color:#fff; border-color:transparent; }
+            background:var(--bg-panel); color:var(--text-main); font-size:20px; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,0.35); }
+        body[data-layout="studio"].pl-studio-editor .pl-studio-edclose:hover { background:var(--text-main); color:var(--bg-panel); border-color:transparent; }
         /* 서브 전환(상세↔간편 · 결과↔이미지) 슬라이드 인 */
         @keyframes plSwipeInR { from { transform:translateX(-13%); opacity:.35; } to { transform:none; opacity:1; } }
         @keyframes plSwipeInL { from { transform:translateX(13%); opacity:.35; } to { transform:none; opacity:1; } }
@@ -1026,15 +1021,15 @@
                 top:calc(var(--pl-topbar-h,54px) + 12px) !important; bottom:auto !important;
                 width:94vw !important; max-width:94vw !important; height:80vh !important; min-height:0 !important;
                 border-radius:16px !important; z-index:9600 !important; overflow:hidden !important;
-                box-shadow:0 24px 70px rgba(20,28,44,0.38) !important; border:1px solid var(--border-dim) !important; }
+                box-shadow:0 24px 70px rgba(0,0,0,0.5) !important; border:1px solid var(--border-dim) !important; }
             body[data-layout="studio"].pl-studio-editor #mobile-tabbar { display:none !important; }
             body[data-layout="studio"] .pl-studio-edpill {
                 position:fixed; right:12px; bottom:68px; z-index:9500;
                 display:flex; align-items:center; gap:7px; border:1px solid var(--border-dim);
-                background:#fff; color:#1e2530; border-radius:22px; padding:10px 16px;
+                background:var(--bg-panel); color:var(--text-main); border-radius:22px; padding:10px 16px;
                 font-size:13px; font-weight:800; font-family:var(--font-ui);
-                box-shadow:0 8px 24px rgba(30,40,60,0.18); cursor:pointer; }
-            body[data-layout="studio"] .pl-studio-edpill.on { background:#1e2530; color:#fff; border-color:transparent; }
+                box-shadow:0 8px 24px rgba(0,0,0,0.3); cursor:pointer; }
+            body[data-layout="studio"] .pl-studio-edpill.on { background:var(--text-main); color:var(--bg-panel); border-color:transparent; }
         }
         /* 태블릿 구간(모바일 단일패널이지만 폭이 넓은 700~1024px): 콘텐츠를 적정 폭으로 가운데 정렬해 빈 공간 최소화 */
         @media (min-width: 700px) and (max-width: 1024px) {
@@ -1089,7 +1084,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.14.1 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.15.0 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1854,7 +1849,19 @@
         const CHANGELOG = [
             // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.14.1', date: '2026-07-10', time: '최신',
+                version: 'v9.15.0', date: '2026-07-10', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[추천] 조합을 빼고 넣을 때 한 번에 안 빠지고 두 번 눌러야 하거나, 분명 뺐는데 최종 프롬프트/에디터에 남아있거나, 에디터에서 지웠는데 추천엔 남아있던 문제를 근본적으로 고쳤습니다 — 이제 추천 선택 상태가 실제 태그 상태와 항상 정확히 일치합니다',
+                    '[추천] 여러 조합을 골랐다가 하나만 뺐는데 전부 빠지거나, 하나 골랐는데 여러 개가 함께 선택되어 보이던 문제 수정 — 다른 조합이 여전히 필요로 하는 태그는 함부로 지우지 않습니다(태그를 공유하는 조합끼리 서로 침범하지 않음)',
+                    '[추천] 의상/구도/배경 등 각 항목을 접고 펼 수 있게 됐습니다(기본은 펼쳐진 상태) — 접어도 선택 값은 그대로 유지됩니다',
+                    '[번역] 최근 추가된 프리셋·성인/하드코어 팩 태그 중 한글 번역이 비어 있던 544개를 모두 채웠습니다 — 이제 상세 태그·한글 번역 요약에서 영어 태그만 덩그러니 보이는 경우가 없습니다',
+                    '[스튜디오] 라이트/다크 모드가 적용되지 않던 문제 수정 — 스튜디오도 이제 상단 테마 전환(다크↔라이트)을 클래식과 동일하게 그대로 따릅니다',
+                    '[에디터] "비우기" 버튼이 확인창 없이 즉시 비우도록 변경 — 우측 상단 토스트 알림으로만 안내하고, 실수로 지웠다면 Ctrl+Z로 되돌릴 수 있습니다',
+                ]
+            },
+            {
+                version: 'v9.14.1', date: '2026-07-10', time: '이전',
                 tag: 'fix',
                 items: [
                     '[스튜디오] 상세 태그·이미지로 넘어간 뒤 반대 방향으로 밀면 다시 돌아오도록 고쳤습니다 — 상세 태그에서 왼쪽으로 밀면 간편 조합, 이미지에서 오른쪽으로 밀면 결과로 복귀합니다',
@@ -7373,12 +7380,50 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             for (let i = 1; i <= 7; i++) { try { syncFromManualInput(i); } catch (e) {} }
             try { updateMasterOutput(); } catch (e) {}
         }
+        // 추천 축(의상/구도/배경/노출/화풍/인원/인물) 전체 목록 — 표시 여부와 무관하게 항상 전체 참조(교차 오염 방지용)
+        function _recAllAxisData() {
+            return [
+                { key: 'style', data: _STYLE_PRESETS },
+                { key: 'count', data: _COUNT_PRESETS },
+                { key: 'char', data: _DATA_CHARS },
+                { key: 'looks', data: _DATA_LOOKS },
+                { key: 'expo', data: _DATA_EXPOSURE },
+                { key: 'pose', data: _DATA_POSES },
+                { key: 'bg', data: _DATA_BG },
+            ];
+        }
+        // excludePreset을 제외한, 현재 "선택됨"으로 판정되는 다른 모든 프리셋들의 태그 합집합
+        // → 특정 프리셋을 뺄 때 이 집합에 있는 태그(다른 선택된 프리셋이 여전히 필요로 함)는 지우지 않음(교차 오염 방지)
+        function _recTagsProtectedExcluding(excludePreset) {
+            const set = new Set();
+            _recAllAxisData().forEach(ax => (ax.data || []).forEach(p => {
+                if (p === excludePreset) return;
+                if (_recLookOn(p)) (p.tags || []).forEach(t => set.add((t || '').toLowerCase()));
+            }));
+            return set;
+        }
+        // 렌더 시점의 axis→프리셋 목록 매핑 (재동기화용 · renderRecommendInto에서 채움)
+        let _recRenderedMap = null;
+        // 현재 떠 있는 추천 host의 칩들을 실제 태그 상태(_recLookOn)로 재동기화 (재렌더 없이 class만 갱신 → 스크롤/깜빡임 없음)
+        function _recSyncVisual(host) {
+            if (!host || !host.isConnected || !_recRenderedMap) return;
+            host.querySelectorAll('.recm-item').forEach(b => {
+                const list = _recRenderedMap[b.dataset.ax]; if (!list) return;
+                const p = list[parseInt(b.dataset.idx)]; if (!p) return;
+                const on = _recLookOn(p);
+                if (b.classList.contains('on') !== on) {
+                    b.classList.toggle('on', on);
+                    const ic = b.querySelector('.rc-ic'); if (ic) ic.className = 'rc-ic fa-solid fa-' + (on ? 'check' : 'plus');
+                }
+            });
+        }
         function _recToggleTag(t) {
             const active = _recActive();
             if (active.has((t || '').toLowerCase())) _recRemoveTag(t);
             else importPromptToEditor([t], 'append');
         }
         let _recModalPick = null, _recCarouselIdx = 0;
+        const _recCollapsed = new Set(); // 접힌 축(key) — 기본은 전부 펼침. 값 선택과 무관, 표시 여부만 바꿈
         let _recHost = null, _recHostOpts = { modal: true };
         function openRecommendModal() {
             let ov = document.getElementById('rec-modal-overlay');
@@ -7478,6 +7523,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                   .recm-scope .recm-chip.on{background:color-mix(in srgb,var(--accent-green) 16%,var(--chip-bg));border-color:var(--accent-green);font-weight:600;}
                   .recm-scope .recm-chip.on .rc-ic{color:var(--accent-green);}
                   .recm-scope .rc-19{margin-left:auto;font-size:8px;font-weight:800;color:var(--accent-danger);flex-shrink:0;}
+                  .recm-scope .recm-col-head.recm-collapse-toggle{cursor:pointer;}
+                  .recm-scope .recm-chev{color:var(--text-dim);font-size:11px;margin-left:2px;transition:transform .15s;}
+                  .recm-scope .recm-col.collapsed .recm-chev{transform:rotate(-90deg);}
+                  .recm-scope .recm-col.collapsed .recm-list{display:none;}
+                  .recm-scope .recm-col.collapsed{padding-bottom:10px;}
                   @media (max-width:560px){
                     .recm-scope .recm-sub{display:none;}
                     .recm-scope .recm-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:1px;}
@@ -7501,7 +7551,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 hi += `<div class="recm-cols">`;
                 const rendered = {};
                 axes.forEach(ax => {
-                    hi += `<div class="recm-col"><div class="recm-col-head"><span class="recm-dot" style="background:var(${ax.cvar});"></span><span class="recm-col-name">${ax.name}</span><span class="recm-col-actions"><button class="recm-reroll recm-ibtn" data-ax="${ax.key}" title="${ax.name} 다른 제안"><i class="fa-solid fa-arrows-rotate"></i></button><button class="recm-clear recm-ibtn" data-ax="${ax.key}" title="${ax.name} 비우기"><i class="fa-solid fa-eraser"></i></button></span></div><div class="recm-list">`;
+                    const collapsed = _recCollapsed.has(ax.key);
+                    hi += `<div class="recm-col${collapsed ? ' collapsed' : ''}"><div class="recm-col-head recm-collapse-toggle" data-ax="${ax.key}"><span class="recm-dot" style="background:var(${ax.cvar});"></span><span class="recm-col-name">${ax.name}</span><span class="recm-col-actions"><button class="recm-reroll recm-ibtn" data-ax="${ax.key}" title="${ax.name} 다른 제안"><i class="fa-solid fa-arrows-rotate"></i></button><button class="recm-clear recm-ibtn" data-ax="${ax.key}" title="${ax.name} 비우기"><i class="fa-solid fa-eraser"></i></button><i class="fa-solid fa-chevron-down recm-chev"></i></span></div><div class="recm-list">`;
                     // 담긴 프리셋을 항상 맨 위에 고정(재오픈해도 뺄 수 있게) + 랜덤 후보
                     const onP = (ax.data || []).filter(p => _recLookOn(p));
                     const onN = new Set(onP.map(p => p.n));
@@ -7511,6 +7562,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     hi += `</div></div>`;
                 });
                 hi += `</div>`;
+                _recRenderedMap = rendered; // 재동기화(_recSyncVisual)가 참조할 axis→프리셋 매핑
                 body.innerHTML = hi;
                 try { body.scrollTop = _prevScroll; } catch (e) {} // 재렌더 시 세로 스크롤 위치 유지
                 // 모바일 가로 스와이프 캐러셀 (탭 전환 + 재렌더 시 섹션 위치 유지)
@@ -7524,8 +7576,25 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     _tabs.forEach((t, k) => t.onclick = () => { _setTab(k); const c = _cols.children[k]; if (c) _cols.scrollTo({ left: c.offsetLeft - base(), behavior: 'smooth' }); });
                     _cols.addEventListener('scroll', () => { const sl = _cols.scrollLeft, b = base(); let best = 0, bd = 1e9; [..._cols.children].forEach((c, k) => { const d = Math.abs((c.offsetLeft - b) - sl); if (d < bd) { bd = d; best = k; } }); if (best !== _recCarouselIdx) _setTab(best); });
                 }
-                body.querySelectorAll('.recm-reroll').forEach(b => b.onclick = () => { const ax = axes.find(a => a.key === b.dataset.ax); if (ax) _recModalPick[ax.key] = _recPickFrom(ax.data, 12); renderRecommendModal(false); });
-                body.querySelectorAll('.recm-clear').forEach(b => b.onclick = () => { const ax = axes.find(a => a.key === b.dataset.ax); if (ax) (ax.data || []).filter(p => _recLookOn(p)).forEach(p => p.tags.forEach(t => _recRemoveTag(t))); renderRecommendModal(false); });
+                // 축 헤더 클릭 → 접기/펼치기 (값에는 영향 없음, 표시만 토글). 리롤·비우기 버튼 클릭은 예외.
+                body.querySelectorAll('.recm-collapse-toggle').forEach(h => h.onclick = (e) => {
+                    if (e.target.closest('.recm-ibtn')) return;
+                    const key = h.dataset.ax; if (!key) return;
+                    if (_recCollapsed.has(key)) _recCollapsed.delete(key); else _recCollapsed.add(key);
+                    h.closest('.recm-col').classList.toggle('collapsed', _recCollapsed.has(key));
+                });
+                body.querySelectorAll('.recm-reroll').forEach(b => b.onclick = (e) => { e.stopPropagation(); const ax = axes.find(a => a.key === b.dataset.ax); if (ax) _recModalPick[ax.key] = _recPickFrom(ax.data, 12); renderRecommendModal(false); });
+                body.querySelectorAll('.recm-clear').forEach(b => b.onclick = (e) => {
+                    e.stopPropagation();
+                    const ax = axes.find(a => a.key === b.dataset.ax); if (!ax) return;
+                    const clearing = (ax.data || []).filter(p => _recLookOn(p));
+                    if (!clearing.length) return;
+                    // 이 축을 비우되, 다른 축에서 여전히 선택 중인 프리셋이 필요로 하는 태그는 보존(교차 오염 방지)
+                    const protect = new Set();
+                    _recAllAxisData().forEach(oax => { if (oax.key === ax.key) return; (oax.data || []).forEach(p => { if (_recLookOn(p)) (p.tags || []).forEach(t => protect.add((t || '').toLowerCase())); }); });
+                    clearing.forEach(p => (p.tags || []).forEach(t => { if (!protect.has((t || '').toLowerCase())) _recRemoveTag(t); }));
+                    renderRecommendModal(false);
+                });
                 body.querySelectorAll('.recm-item').forEach(b => b.onclick = () => {
                     const p = (rendered[b.dataset.ax] || [])[parseInt(b.dataset.idx)];
                     if (!p) return;
@@ -7534,7 +7603,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     b.classList.toggle('on', !wasOn);
                     const ic = b.querySelector('.rc-ic'); if (ic) ic.className = 'rc-ic fa-solid fa-' + (!wasOn ? 'check' : 'plus');
                     // 무거운 에디터 반영은 다음 프레임에 (하이라이트가 먼저 그려지도록)
-                    setTimeout(() => { if (wasOn) p.tags.forEach(t => _recRemoveTag(t)); else importPromptToEditor(p.tags, 'append'); }, 0);
+                    setTimeout(() => {
+                        if (wasOn) {
+                            // 다른 축에서 여전히 선택 중인 프리셋이 공유하는 태그는 지우지 않음(교차 오염 방지)
+                            const protect = _recTagsProtectedExcluding(p);
+                            (p.tags || []).forEach(t => { if (!protect.has((t || '').toLowerCase())) _recRemoveTag(t); });
+                        } else {
+                            importPromptToEditor(p.tags, 'append');
+                        }
+                        _recSyncVisual(host); // 이번 조작으로 실제 상태가 바뀐 다른 칩들도 정확하게 재동기화
+                    }, 0);
                 });
             }
             { const cb = host.querySelector('.recm-close'); if (cb) cb.onclick = closeRecommendModal; }
@@ -10516,6 +10594,145 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             "eye-level shot":{"k":"눈높이 샷","l":2},"slight high angle":{"k":"약한 하이앵글","l":2},"slight low angle":{"k":"약한 로우앵글","l":2},"centered subject":{"k":"중앙 피사체","l":2},
             "warm sunlight glow":{"k":"따스한 햇살 발광","l":7},"cool moonlight glow":{"k":"차가운 달빛 발광","l":7},"soft window light":{"k":"부드러운 창빛","l":7},"dappled shade":{"k":"얼룩진 그늘","l":7},
         });
+        _dictMerge({
+            // ═══ v9.15.0 — 스튜디오 신규 프리셋/팩 태그 일괄 번역 (544개) ═══
+            "above clouds":{"k":"구름 위","l":6},"after masturbation":{"k":"자위 후","l":5},"afternoon":{"k":"오후","l":6},"all fours":{"k":"네발 자세","l":5},
+            "anal sex":{"k":"항문 성교","l":5},"ancient":{"k":"고대풍","l":1},"anime style":{"k":"애니메이션 화풍","l":1},"arcade cabinet":{"k":"오락실 게임기","l":6},
+            "areolae":{"k":"유륜","l":3},"arm on own knee":{"k":"무릎에 팔 얹기","l":5},"arm support":{"k":"팔로 몸 지탱","l":5},"arms at sides":{"k":"팔을 옆으로 내림","l":5},
+            "arms overhead":{"k":"팔을 머리 위로","l":5},"arms under breasts":{"k":"가슴 아래로 팔짱","l":5},"ass focus":{"k":"엉덩이에 초점","l":2},"ass grab":{"k":"엉덩이 움켜쥐기","l":5},
+            "backboob":{"k":"뒤태 가슴 노출","l":4},"ballerina":{"k":"발레리나","l":3},"ballet":{"k":"발레","l":5},"bamboo":{"k":"대나무","l":6},
+            "bandages":{"k":"붕대","l":4},"banner":{"k":"현수막","l":6},"bare back":{"k":"드러난 등","l":4},"bare breasts":{"k":"드러난 가슴","l":4},
+            "bare legs":{"k":"드러난 다리","l":4},"basketball hoop":{"k":"농구 골대","l":6},"bath":{"k":"목욕","l":6},"bathhouse":{"k":"목욕탕","l":6},
+            "bed sheets":{"k":"침대 시트","l":6},"belly dancer":{"k":"벨리댄서","l":3},"bench":{"k":"벤치","l":6},"bikini armor":{"k":"비키니 아머","l":4},
+            "black angel wings":{"k":"검은 천사 날개","l":4},"black bikini":{"k":"검은 비키니","l":4},"black corset":{"k":"검은 코르셋","l":4},"black leotard":{"k":"검은 레오타드","l":4},
+            "bleachers":{"k":"관중석","l":6},"blue theme":{"k":"블루 톤","l":1},"body harness":{"k":"바디 하네스","l":4},"body writing":{"k":"바디라이팅","l":4},
+            "bodypaint":{"k":"바디페인트","l":4},"book":{"k":"책","l":6},"booth":{"k":"부스","l":6},"bottle":{"k":"병","l":6},
+            "breast bondage":{"k":"가슴 결박","l":4},"breast curtain":{"k":"가슴 가리개(커튼형)","l":4},"breast cutout":{"k":"가슴 부분 컷아웃","l":4},"breast press":{"k":"가슴 밀착","l":5},
+            "breast slip":{"k":"가슴 슬쩍 노출","l":4},"breastplate":{"k":"흉갑","l":4},"breasts out":{"k":"가슴 꺼내기","l":4},"bridal veil":{"k":"신부 베일","l":4},
+            "buckle straps":{"k":"버클 스트랩","l":4},"bush":{"k":"수풀","l":6},"by window":{"k":"창가에서","l":6},"cabaret":{"k":"카바레","l":6},
+            "cage bra":{"k":"케이지 브라","l":4},"calm expression":{"k":"차분한 표정","l":3},"candid":{"k":"캔디드 촬영풍","l":1},"candle":{"k":"촛불","l":7},
+            "canvas":{"k":"캔버스","l":6},"castle interior":{"k":"성 내부","l":6},"casual":{"k":"캐주얼한","l":4},"casual outfit":{"k":"캐주얼 복장","l":4},
+            "casual sweater":{"k":"캐주얼 스웨터","l":4},"catsuit":{"k":"캣슈트","l":4},"chain":{"k":"사슬","l":4},"chains":{"k":"사슬들","l":4},
+            "chalkboard":{"k":"칠판","l":6},"chandelier":{"k":"샹들리에","l":6},"chaps":{"k":"가죽 다리 보호구","l":4},"chef":{"k":"셰프","l":4},
+            "chef hat":{"k":"셰프 모자","l":4},"chinese clothes":{"k":"중국풍 의상","l":4},"choli":{"k":"촐리(인도 상의)","l":4},"city street":{"k":"도심 거리","l":6},
+            "clear skin":{"k":"맑은 피부","l":3},"cleavage cutout":{"k":"가슴골 컷아웃","l":4},"clothes aside":{"k":"옷을 옆으로 젖힘","l":5},"clothes pull":{"k":"옷 잡아당기기","l":5},
+            "coin bra":{"k":"코인 브라","l":4},"comparison":{"k":"비교 구도","l":2},"completely nude":{"k":"완전 나체","l":4},"concrete":{"k":"콘크리트","l":6},
+            "corridor":{"k":"복도","l":6},"corset lacing":{"k":"코르셋 끈","l":4},"counter":{"k":"카운터","l":6},"covered navel":{"k":"배꼽 가림","l":4},
+            "cow ears":{"k":"소 귀","l":4},"cow print bikini":{"k":"카우 프린트 비키니","l":4},"cow tail":{"k":"소 꼬리","l":4},"cowgirl position":{"k":"카우걸 체위","l":5},
+            "cozy atmosphere":{"k":"아늑한 분위기","l":7},"cozy outfit":{"k":"포근한 옷차림","l":4},"cropped sweater":{"k":"크롭 스웨터","l":4},"cross-legged":{"k":"다리 꼬기","l":5},
+            "crotch rope":{"k":"크로치 로프","l":4},"crotchless":{"k":"크로치리스(속옷 트임)","l":4},"cum on body":{"k":"몸에 사정","l":5},"cupless bra":{"k":"컵리스 브라","l":4},
+            "curled up":{"k":"웅크린 자세","l":5},"cutoff shorts":{"k":"컷오프 반바지","l":4},"cutout":{"k":"컷아웃","l":4},"cyber goth":{"k":"사이버고스","l":4},
+            "daisy dukes":{"k":"데이지 듀크(핫팬츠)","l":4},"dance floor":{"k":"댄스 플로어","l":6},"dark elf":{"k":"다크엘프","l":3},"dark magician girl":{"k":"다크 매지션 걸","l":3},
+            "decora":{"k":"데코라 패션","l":4},"deep cleavage":{"k":"깊게 파인 가슴골","l":4},"delicate features":{"k":"섬세한 이목구비","l":3},"demon tail":{"k":"악마 꼬리","l":4},
+            "denim overalls":{"k":"데님 오버올","l":4},"denim shirt":{"k":"데님 셔츠","l":4},"detached collar":{"k":"탈부착 카라","l":4},"dim lighting":{"k":"어두운 조명","l":7},
+            "dining room":{"k":"다이닝룸","l":6},"disco ball":{"k":"미러볼","l":6},"dock":{"k":"부두","l":6},"doggystyle":{"k":"후배위","l":5},
+            "dominatrix":{"k":"도미넌트릭스","l":4},"dorm room":{"k":"기숙사 방","l":6},"dragon":{"k":"용","l":6},"dragon horns":{"k":"용의 뿔","l":4},
+            "dragon tail":{"k":"용의 꼬리","l":4},"dragon wings":{"k":"용의 날개","l":4},"dramatic":{"k":"드라마틱한 연출","l":1},"drawstring":{"k":"드로스트링(끈)","l":4},
+            "dress aside":{"k":"드레스를 옆으로 젖힘","l":5},"dripping":{"k":"흘러내림","l":5},"easel":{"k":"이젤","l":6},"ejaculation":{"k":"사정","l":5},
+            "elegant":{"k":"우아한","l":3},"elegant dress":{"k":"우아한 드레스","l":4},"elf":{"k":"엘프","l":3},"exercise machine":{"k":"운동기구","l":6},
+            "exposed nipples":{"k":"노출된 유두","l":4},"eye focus":{"k":"눈에 초점","l":2},"face focus":{"k":"얼굴에 초점","l":2},"fake animal ears":{"k":"동물 귀 장식","l":4},
+            "fake rabbit tail":{"k":"토끼 꼬리 장식","l":4},"fantasy":{"k":"판타지풍","l":1},"feathers":{"k":"깃털","l":4},"feet up":{"k":"발을 들어올림","l":5},
+            "female masturbation":{"k":"여성 자위","l":5},"fingers":{"k":"손가락 삽입","l":5},"fire":{"k":"불","l":7},"fish":{"k":"물고기","l":6},
+            "fishnet bodysuit":{"k":"망사 바디수트","l":4},"fishnet pantyhose":{"k":"망사 팬티스타킹","l":4},"fishnet thighhighs":{"k":"망사 니하이","l":4},"floral print kimono":{"k":"꽃무늬 기모노","l":4},
+            "flower":{"k":"꽃","l":6},"fluorescent lighting":{"k":"형광등 조명","l":7},"foot focus":{"k":"발에 초점","l":2},"frilled bikini top":{"k":"프릴 비키니 상의","l":4},
+            "frilled dress":{"k":"프릴 드레스","l":4},"frilled skirt":{"k":"프릴 스커트","l":4},"from front":{"k":"정면에서","l":2},"front zipper":{"k":"앞지퍼","l":4},
+            "front-tie bikini":{"k":"앞매듭 비키니","l":4},"futa on female":{"k":"후타 x 여성","l":5},"futa on futa":{"k":"후타 x 후타","l":5},"gaping":{"k":"벌어짐","l":5},
+            "gift":{"k":"선물","l":6},"girl on top":{"k":"여성 상위 체위","l":5},"glass":{"k":"유리","l":6},"glass ceiling":{"k":"유리 천장","l":6},
+            "glossy":{"k":"광택 있는","l":4},"gold":{"k":"금색","l":1},"gold jewelry":{"k":"금 장신구","l":4},"goth fashion":{"k":"고스 패션","l":4},
+            "grabbing own breast":{"k":"자신의 가슴 움켜쥐기","l":5},"graffiti":{"k":"그래피티","l":6},"grass":{"k":"풀밭","l":6},"grassy field":{"k":"풀밭 들판","l":6},
+            "greaves":{"k":"정강이 보호구","l":4},"greek clothes":{"k":"그리스풍 의상","l":4},"green":{"k":"초록색","l":1},"green cloak":{"k":"초록 망토","l":4},
+            "habit":{"k":"수녀복","l":4},"hair between fingers":{"k":"손가락 사이 머리카락","l":5},"hair over shoulder":{"k":"어깨 위로 넘긴 머리","l":3},"hair spread out":{"k":"흩어진 머리카락","l":3},
+            "hair tie":{"k":"머리끈","l":4},"halloween costume":{"k":"할로윈 코스튬","l":4},"hand in own hair":{"k":"손으로 머리 만지기","l":5},"hand on own knee":{"k":"무릎에 손 얹기","l":5},
+            "hand on own thigh":{"k":"허벅지에 손 얹기","l":5},"hand on wall":{"k":"벽에 손 짚기","l":5},"hand over own mouth":{"k":"손으로 입 가리기","l":5},"hand to own mouth":{"k":"손을 입으로","l":5},
+            "handcuffs":{"k":"수갑","l":4},"hands on floor":{"k":"바닥에 손 짚기","l":5},"hands on own face":{"k":"얼굴에 손 대기","l":5},"hands on own knees":{"k":"무릎에 양손","l":5},
+            "hands on own lap":{"k":"무릎 위에 양손","l":5},"hands on own thighs":{"k":"허벅지에 양손","l":5},"harem outfit":{"k":"하렘 의상","l":4},"harness":{"k":"하네스","l":4},
+            "head back":{"k":"고개 젖히기","l":5},"head down":{"k":"고개 숙이기","l":5},"head rest":{"k":"머리 기대기","l":5},"head towards viewer":{"k":"얼굴을 화면 쪽으로","l":5},
+            "headgear":{"k":"머리 장식","l":4},"heart":{"k":"하트","l":4},"heart cutout":{"k":"하트 컷아웃","l":4},"heart pasties":{"k":"하트 페이스티","l":4},
+            "high slit":{"k":"하이 슬릿","l":4},"highleg leotard":{"k":"하이레그 레오타드","l":4},"highway":{"k":"고속도로","l":6},"hip focus":{"k":"골반에 초점","l":2},
+            "hologram":{"k":"홀로그램","l":6},"horizon":{"k":"수평선","l":6},"hospital bed":{"k":"병원 침대","l":6},"hot spring":{"k":"온천","l":6},
+            "hot tub":{"k":"온수 욕조","l":6},"hotel room":{"k":"호텔 방","l":6},"indian clothes":{"k":"인도풍 의상","l":4},"indian style":{"k":"가부좌(인디언 스타일)","l":5},
+            "intersection":{"k":"교차로","l":6},"jacuzzi":{"k":"자쿠지","l":6},"jersey":{"k":"저지(운동복)","l":4},"jirai kei":{"k":"지뢰계","l":4},
+            "karaoke box":{"k":"노래방","l":6},"kiss":{"k":"키스","l":5},"kneeling on bed":{"k":"침대에 무릎 꿇기","l":5},"knees together":{"k":"무릎 모으기","l":5},
+            "knees up":{"k":"무릎 세우기","l":5},"knight":{"k":"기사","l":3},"korean clothes":{"k":"한국풍 의상(한복)","l":4},"lace":{"k":"레이스","l":4},
+            "lace lingerie":{"k":"레이스 란제리","l":4},"lace panties":{"k":"레이스 팬티","l":4},"lace teddy":{"k":"레이스 테디","l":4},"lamppost":{"k":"가로등","l":6},
+            "lantern":{"k":"등롱","l":6},"latex bodysuit":{"k":"라텍스 바디수트","l":4},"latex bra":{"k":"라텍스 브라","l":4},"latex gloves":{"k":"라텍스 장갑","l":4},
+            "latex panties":{"k":"라텍스 팬티","l":4},"latex thighhighs":{"k":"라텍스 니하이","l":4},"laundry":{"k":"빨래","l":6},"laurel crown":{"k":"월계관","l":4},
+            "lava":{"k":"용암","l":6},"lavender":{"k":"라벤더색","l":1},"layered accessories":{"k":"레이어드 액세서리","l":4},"leather boots":{"k":"가죽 부츠","l":4},
+            "leather harness":{"k":"가죽 하네스","l":4},"leg up":{"k":"다리 들어올리기","l":5},"legs apart":{"k":"다리 벌리기","l":5},"legs to the side":{"k":"다리를 옆으로","l":5},
+            "leotard aside":{"k":"레오타드를 옆으로 젖힘","l":5},"locker":{"k":"사물함","l":6},"lockers":{"k":"사물함들","l":6},"logo":{"k":"로고","l":6},
+            "loincloth":{"k":"훈도시","l":4},"long black hair":{"k":"긴 흑발","l":3},"long blonde hair":{"k":"긴 금발","l":3},"long dress":{"k":"긴 드레스","l":4},
+            "long gloves":{"k":"긴 장갑","l":4},"long straight hair":{"k":"긴 생머리","l":3},"loose obi":{"k":"느슨한 오비","l":4},"loosened obi":{"k":"풀어진 오비","l":4},
+            "lounge":{"k":"라운지","l":6},"low cut":{"k":"로우컷","l":4},"lying on couch":{"k":"소파에 눕기","l":5},"magical":{"k":"마법적인","l":1},
+            "magical girl costume":{"k":"마법소녀 의상","l":4},"maple leaf":{"k":"단풍잎","l":6},"market":{"k":"시장","l":6},"massage table":{"k":"마사지 테이블","l":6},
+            "mature female":{"k":"성숙한 여성","l":3},"mecha musume":{"k":"메카무스메","l":3},"mechanical parts":{"k":"기계 부품","l":4},"meme attire":{"k":"밈 의상","l":4},
+            "menhera":{"k":"멘헤라","l":4},"messy":{"k":"헝클어진","l":3},"metal":{"k":"금속","l":4},"metal bikini":{"k":"금속 비키니","l":4},
+            "micro dress":{"k":"마이크로 드레스","l":4},"micro shorts":{"k":"마이크로 반바지","l":4},"micro skirt":{"k":"마이크로 스커트","l":4},"microskirt":{"k":"마이크로스커트","l":4},
+            "milk":{"k":"우유","l":6},"mini dress":{"k":"미니 드레스","l":4},"mixed bathing":{"k":"혼욕","l":5},"morning light":{"k":"아침 햇살","l":7},
+            "moss":{"k":"이끼","l":6},"motel":{"k":"모텔","l":6},"motion lines":{"k":"동작선","l":7},"multiple penises":{"k":"여러 개의 페니스","l":5},
+            "muscular female":{"k":"근육질 여성","l":3},"mutual masturbation":{"k":"상호 자위","l":5},"naked coat":{"k":"알몸 위 코트","l":4},"naked hoodie":{"k":"알몸 위 후드","l":4},
+            "naked necktie":{"k":"알몸 위 넥타이","l":4},"naked ribbon":{"k":"알몸 위 리본","l":4},"naked shirt":{"k":"알몸 위 셔츠","l":4},"naked towel":{"k":"알몸 위 수건","l":4},
+            "natural window light":{"k":"자연스러운 창빛","l":7},"nature":{"k":"자연","l":6},"navel cutout":{"k":"배꼽 컷아웃","l":4},"neon lighting":{"k":"네온 조명","l":7},
+            "nipple bulge":{"k":"유두 도드라짐","l":4},"nipple tape":{"k":"유두 테이프","l":4},"nipple tweak":{"k":"유두 애무","l":5},"no panties":{"k":"팬티 미착용","l":4},
+            "no pussy":{"k":"여성기 없음","l":3},"no shirt":{"k":"상의 미착용","l":4},"nun":{"k":"수녀","l":3},"o-ring":{"k":"오링","l":4},
+            "o-ring bikini":{"k":"오링 비키니","l":4},"officer cap":{"k":"사관모","l":4},"on chair":{"k":"의자 위에서","l":5},"on floor":{"k":"바닥에서","l":5},
+            "one breast out":{"k":"한쪽 가슴 노출","l":4},"one knee up":{"k":"한쪽 무릎 세우기","l":5},"open back":{"k":"백리스(등 트임)","l":4},"open blazer":{"k":"오픈 블레이저","l":4},
+            "open cardigan":{"k":"오픈 가디건","l":4},"open coat":{"k":"오픈 코트","l":4},"open cup bra":{"k":"오픈컵 브라","l":4},"open dress":{"k":"오픈 드레스","l":4},
+            "open jacket":{"k":"오픈 재킷","l":4},"open kimono":{"k":"풀어헤친 기모노","l":4},"open robe":{"k":"풀어헤친 로브","l":4},"open yukata":{"k":"풀어헤친 유카타","l":4},
+            "oral":{"k":"구강성교","l":5},"orange eyes":{"k":"주황빛 눈동자","l":3},"orange sky":{"k":"주황빛 하늘","l":6},"over the shoulder":{"k":"어깨 너머로","l":2},
+            "overbust corset":{"k":"오버버스트 코르셋","l":4},"overgrown":{"k":"무성한","l":6},"overhead line":{"k":"가공 전선","l":6},"oversized clothes":{"k":"오버사이즈 옷","l":4},
+            "oversized hoodie":{"k":"오버사이즈 후드","l":4},"oversized shirt":{"k":"오버사이즈 셔츠","l":4},"panties around one leg":{"k":"한쪽 다리에 걸린 팬티","l":4},"parking garage":{"k":"주차장","l":6},
+            "partially undressed":{"k":"반쯤 탈의","l":4},"path":{"k":"오솔길","l":6},"pathway":{"k":"통로","l":6},"paw gloves":{"k":"발볼 장갑(동물)","l":4},
+            "peaked cap":{"k":"피크트 캡","l":4},"pelvic curtain":{"k":"펠빅 커튼","l":4},"penis size difference":{"k":"페니스 크기 비교","l":5},"pillar":{"k":"기둥","l":6},
+            "pillow":{"k":"베개","l":6},"pinup pose":{"k":"핀업 포즈","l":5},"pirate":{"k":"해적","l":3},"pirate hat":{"k":"해적 모자","l":4},
+            "plaid mini skirt":{"k":"체크 미니스커트","l":4},"plaid shirt":{"k":"체크 셔츠","l":4},"plaid skirt":{"k":"체크 스커트","l":4},"plant":{"k":"식물","l":6},
+            "platform":{"k":"플랫폼","l":6},"platform footwear":{"k":"통굽 신발","l":4},"plugsuit":{"k":"플러그슈트","l":4},"plunging neckline":{"k":"깊게 파인 네크라인","l":4},
+            "police":{"k":"경찰","l":4},"police hat":{"k":"경찰모","l":4},"pom pom":{"k":"폼폼","l":4},"pom pom (cheerleading)":{"k":"치어리딩 폼폼","l":4},
+            "precum":{"k":"쿠퍼액","l":5},"priestess":{"k":"무녀","l":3},"puffy jacket":{"k":"패딩 재킷","l":4},"punk":{"k":"펑크 스타일","l":4},
+            "purple flower":{"k":"보라색 꽃","l":6},"pussy juice":{"k":"애액","l":5},"race queen":{"k":"레이스 퀸","l":4},"railing":{"k":"난간","l":6},
+            "railroad tracks":{"k":"철도 선로","l":6},"reaching towards viewer":{"k":"화면 쪽으로 손 뻗기","l":5},"reclining":{"k":"비스듬히 눕기","l":5},"red hakama":{"k":"붉은 하카마","l":4},
+            "red leaves":{"k":"단풍","l":6},"red theme":{"k":"레드 톤","l":1},"refined makeup":{"k":"세련된 메이크업","l":3},"relaxed":{"k":"편안한 자세","l":5},
+            "restraints":{"k":"구속구","l":4},"revealing clothes":{"k":"노출 심한 옷","l":4},"reverse bunnysuit":{"k":"리버스 바니슈트","l":4},"reverse cowgirl position":{"k":"리버스 카우걸 체위","l":5},
+            "ribbed sweater dress":{"k":"립 니트 원피스","l":4},"ribbed top":{"k":"립 상의","l":4},"ripped fishnet":{"k":"찢어진 망사","l":4},"rock":{"k":"바위","l":6},
+            "rolled up sleeves":{"k":"걷어올린 소매","l":4},"roller coaster":{"k":"롤러코스터","l":6},"rope":{"k":"밧줄","l":4},"rope harness":{"k":"로프 하네스","l":4},
+            "rose petals":{"k":"장미 꽃잎","l":6},"rubble":{"k":"잔해","l":6},"sand dune":{"k":"모래언덕","l":6},"santa bikini":{"k":"산타 비키니","l":4},
+            "sarashi":{"k":"사라시(가슴 감는 천)","l":4},"satin":{"k":"새틴","l":4},"scar across eye":{"k":"눈가로 이어진 흉터","l":3},"science fiction":{"k":"SF풍","l":1},
+            "screen":{"k":"스크린","l":6},"seat":{"k":"좌석","l":6},"secretary":{"k":"비서","l":4},"seductive":{"k":"유혹적인","l":3},
+            "see-through dress":{"k":"시스루 드레스","l":4},"see-through shirt":{"k":"시스루 셔츠","l":4},"see-through swimsuit":{"k":"시스루 수영복","l":4},"serene expression":{"k":"평온한 표정","l":3},
+            "shawl":{"k":"숄","l":4},"sheer dress":{"k":"얇은 시스루 드레스","l":4},"sheer fabric":{"k":"얇은 시스루 원단","l":4},"sheer legwear":{"k":"시스루 레그웨어","l":4},
+            "sheer leotard":{"k":"시스루 레오타드","l":4},"sheer robe":{"k":"시스루 가운","l":4},"sheer skirt":{"k":"시스루 스커트","l":4},"shelf":{"k":"선반","l":6},
+            "shelf bra":{"k":"셸프 브라","l":4},"shirt lift":{"k":"셔츠 들어올리기","l":5},"short robe":{"k":"짧은 가운","l":4},"short shorts":{"k":"짧은 반바지","l":4},
+            "shorts pull":{"k":"반바지 내리기","l":5},"side slit":{"k":"사이드 슬릿","l":4},"side-tie bikini":{"k":"옆끈 비키니","l":4},"sign":{"k":"표지판","l":6},
+            "size difference":{"k":"체격 차이","l":2},"skimpy":{"k":"아슬아슬한 노출","l":4},"skin tight":{"k":"몸에 밀착된","l":4},"skirt hold":{"k":"스커트 붙잡기","l":5},
+            "skirt twirl":{"k":"스커트 휘날리기","l":5},"skyline":{"k":"스카이라인","l":6},"sleeveless dress":{"k":"민소매 드레스","l":4},"sleeveless turtleneck":{"k":"민소매 터틀넥","l":4},
+            "slime":{"k":"슬라임","l":6},"slime girl":{"k":"슬라임 소녀","l":3},"slingshot swimsuit":{"k":"슬링샷 수영복","l":4},"snow pants":{"k":"스노우 팬츠","l":4},
+            "soft daylight":{"k":"부드러운 낮빛","l":7},"soft facial features":{"k":"부드러운 이목구비","l":3},"soft smile":{"k":"부드러운 미소","l":3},"spaghetti strap":{"k":"스파게티 스트랩","l":4},
+            "spandex shorts":{"k":"스판덱스 반바지","l":4},"spiked collar":{"k":"스파이크 초커","l":4},"spitroast":{"k":"스핏로스트 체위","l":5},"spooning":{"k":"옆으로 안기 체위","l":5},
+            "stall":{"k":"가판대","l":6},"standing on one leg":{"k":"한쪽 다리로 서기","l":5},"stars":{"k":"별","l":6},"steaming body":{"k":"김이 오르는 몸","l":5},
+            "stone":{"k":"돌","l":6},"stone floor":{"k":"돌바닥","l":6},"stone stairs":{"k":"돌계단","l":6},"stone wall":{"k":"돌담","l":6},
+            "stool":{"k":"스툴(의자)","l":6},"storefront":{"k":"상점 앞","l":6},"strap":{"k":"스트랩","l":4},"strapless dress":{"k":"스트랩리스 드레스","l":4},
+            "strapless leotard":{"k":"스트랩리스 레오타드","l":4},"strappy lingerie":{"k":"스트랩 란제리","l":4},"street light":{"k":"가로등 불빛","l":7},"street photography":{"k":"스트리트 포토그래피","l":1},
+            "string lights":{"k":"스트링 라이트","l":7},"stripper pole":{"k":"폴댄스 봉","l":6},"studded belt":{"k":"스터드 벨트","l":4},"studio":{"k":"스튜디오","l":6},
+            "study":{"k":"서재","l":6},"subway station":{"k":"지하철역","l":6},"succubus":{"k":"서큐버스","l":3},"sun":{"k":"태양","l":7},
+            "sunflower":{"k":"해바라기","l":6},"sweater dress":{"k":"스웨터 원피스","l":4},"swim cap":{"k":"수영모","l":4},"swimsuit aside":{"k":"수영복을 옆으로 젖힘","l":5},
+            "syringe":{"k":"주사기","l":6},"tabi":{"k":"타비(일본식 버선)","l":4},"tall female":{"k":"큰 키의 여성","l":3},"tattered cape":{"k":"해진 망토","l":4},
+            "teacher":{"k":"교사","l":4},"teddy":{"k":"테디(란제리)","l":4},"the pose":{"k":"그 포즈","l":5},"thigh armor":{"k":"허벅지 갑옷","l":4},
+            "thigh slit":{"k":"허벅지 슬릿","l":4},"thong leotard":{"k":"통 레오타드","l":4},"throne":{"k":"왕좌","l":6},"thrust chest":{"k":"가슴 내밀기","l":5},
+            "tile floor":{"k":"타일 바닥","l":6},"tile wall":{"k":"타일 벽","l":6},"tiles":{"k":"타일","l":6},"toga":{"k":"토가","l":4},
+            "top-down bottom-up":{"k":"탑다운 바텀업 헤어","l":3},"torch (object)":{"k":"횃불","l":7},"torn jeans":{"k":"찢어진 청바지","l":4},"torn pantyhose":{"k":"찢어진 팬티스타킹","l":4},
+            "track pants":{"k":"트랙 팬츠","l":4},"track suit":{"k":"트레이닝복","l":4},"traditional japanese clothes":{"k":"일본 전통 의상","l":4},"treasure":{"k":"보물","l":6},
+            "tree":{"k":"나무","l":6},"tropical":{"k":"열대풍","l":6},"turning around":{"k":"뒤돌아보기","l":5},"twisted torso":{"k":"상체 비틀기","l":5},
+            "tying hair":{"k":"머리 묶기","l":5},"uncensored":{"k":"무검열","l":4},"underbust corset":{"k":"언더버스트 코르셋","l":4},"undressing":{"k":"옷 벗는 중","l":5},
+            "unzipped":{"k":"지퍼 내림","l":4},"updo":{"k":"업스타일","l":3},"v":{"k":"V사인","l":5},"vaginal":{"k":"질 삽입","l":5},
+            "valkyrie":{"k":"발키리","l":3},"vampire":{"k":"뱀파이어","l":3},"vehicle interior":{"k":"차량 내부","l":6},"vietnamese clothes":{"k":"베트남풍 의상(아오자이)","l":4},
+            "virgin killer sweater":{"k":"버진킬러 스웨터","l":4},"visual kei":{"k":"비주얼계","l":4},"volleyball uniform":{"k":"배구 유니폼","l":4},"waist apron":{"k":"허리 앞치마","l":4},
+            "waitress":{"k":"웨이트리스","l":4},"wardrobe malfunction":{"k":"의상 사고","l":4},"warm indoor lighting":{"k":"따뜻한 실내 조명","l":7},"warm lighting":{"k":"따뜻한 조명","l":7},
+            "washing machine":{"k":"세탁기","l":6},"water":{"k":"물","l":6},"wet":{"k":"젖은","l":3},"wet pussy":{"k":"젖은 음부","l":5},
+            "wet skin":{"k":"젖은 피부","l":3},"wet t-shirt":{"k":"젖은 티셔츠","l":4},"whistle":{"k":"호루라기","l":4},"white blouse":{"k":"흰 블라우스","l":4},
+            "white collared shirt":{"k":"흰 카라 셔츠","l":4},"white kimono":{"k":"흰 기모노","l":4},"white lingerie":{"k":"흰 란제리","l":4},"white panties":{"k":"흰 팬티","l":4},
+            "white swimsuit":{"k":"흰 수영복","l":4},"white tank top":{"k":"흰 탱크톱","l":4},"white theme":{"k":"화이트 톤","l":1},"wind":{"k":"바람","l":7},
+            "winged helmet":{"k":"날개 달린 투구","l":4},"winter coat":{"k":"겨울 코트","l":4},"witch":{"k":"마녀","l":3},"wizard hat":{"k":"마법사 모자","l":4},
+            "wrist cuffs":{"k":"손목 커프스","l":4},"wrist scrunchie":{"k":"손목 스크런치","l":4},"yuri":{"k":"백합(여성 동성애)","l":5},"zipper pull":{"k":"지퍼 당기기","l":5},
+        });
         // 기존 사전의 어색한 번역·계층만 선별 교정 (force overwrite)
         (function () {
             // 번역 교정 (모호한 한글 → 구분되게)
@@ -11775,16 +11992,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         function clearCurrentContext() {
-            const tab = contextTabs.find(t => t.id === currentContext);
-            showConfirm(`[${tab ? tab.name : '에디터'}] 탭을 모두 비울까요?`, () => {
-                saveStateToUndoStack();
-                for(let i=1; i<=7; i++) {
-                    document.getElementById(`layer-${i}`).value = "";
-                    contextStates[currentContext][i-1] = "";
-                    syncFromManualInput(i);
-                }
-                showToast("탭이 비워졌습니다.", "info");
-            });
+            // 확인창 없이 즉시 비움 (되돌리기 가능하도록 undo 스택에 저장 후 토스트로만 안내)
+            saveStateToUndoStack();
+            for(let i=1; i<=7; i++) {
+                document.getElementById(`layer-${i}`).value = "";
+                contextStates[currentContext][i-1] = "";
+                syncFromManualInput(i);
+            }
+            showToast("탭이 비워졌습니다. (Ctrl+Z로 되돌리기)", "info");
         }
 
         // 토큰 하나의 계층 추정: 활성맵 → 사전 → 퍼지 → 폴백
@@ -13899,6 +14114,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
 
             updateFolderBadges();
+            try { _recSyncVisual(_recHost); } catch (e) {} // 추천 패널이 떠 있으면 실제 태그 상태로 재동기화(외부에서 지웠어도 반영)
         }
 
         function autoFixPrompt() {
@@ -16708,7 +16924,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // ════════════════════════════════════════════════════════
         const mini = {
             cols3: '<div class="pl-mini"><div style="flex:.6"></div><div style="flex:1.4"></div><div style="flex:1"></div></div>',
-            studio: '<div class="pl-mini" style="background:#e9edf3;gap:6px;padding:8px"><div style="flex:1;background:#fff;border:1px solid #dde2ea"></div><div style="flex:1;background:#fff;border:1px solid #dde2ea"></div></div>'
+            studio: '<div class="pl-mini" style="background:rgba(120,130,150,0.15);gap:6px;padding:8px"><div style="flex:1;background:var(--bg-panel);border:1px solid var(--border-dim)"></div><div style="flex:1;background:var(--bg-panel);border:1px solid var(--border-dim)"></div></div>'
         };
         const LAYOUTS = [
             { id: 'classic', name: '클래식', group: '레이아웃', icon: 'fa-table-columns', accent: '#3b82f6', desc: '기본 3분할 (상세태그 · 에디터 · 결과) · 다크 테마', mini: mini.cols3 },
