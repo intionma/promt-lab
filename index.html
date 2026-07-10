@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.11.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.12.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1005,9 +1005,25 @@
             body[data-layout] #panel-mid,
             body[data-layout] #panel-right { order:0 !important; display:flex !important; max-width:100vw !important; margin:0 !important; }
             body[data-layout] .app-container { padding:0 !important; }
-            /* 스튜디오: 모바일에선 소환 오버레이/FAB 비활성 (앱 슬라이드 트랙 사용) */
-            body[data-layout="studio"] .pl-studio-fabs, body[data-layout="studio"] .pl-studio-scrim { display:none !important; }
-            body[data-layout="studio"].pl-studio-editor #panel-mid { position:relative !important; left:auto !important; top:auto !important; transform:none !important; width:100vw !important; height:auto !important; border-radius:0 !important; box-shadow:none !important; }
+            /* 스튜디오 모바일: 3-스텝(①간편조합 ②추천 ③결과) · 에디터는 오버레이 소환 */
+            body[data-layout="studio"] .pl-studio-fabs { display:none !important; }  /* 데스크탑 FAB 숨김 */
+            body[data-layout="studio"] #panel-mid { display:none !important; }        /* 에디터는 트랙에서 제외 */
+            /* 소환 시: panel-mid를 body로 옮겨(트랙 transform 밖) 뷰포트 기준 오버레이 */
+            body[data-layout="studio"].pl-studio-editor #panel-mid {
+                display:flex !important; position:fixed !important;
+                left:50% !important; right:auto !important; transform:translateX(-50%) !important;
+                top:calc(var(--pl-topbar-h,54px) + 12px) !important; bottom:auto !important;
+                width:94vw !important; max-width:94vw !important; height:80vh !important; min-height:0 !important;
+                border-radius:16px !important; z-index:9600 !important; overflow:hidden !important;
+                box-shadow:0 24px 70px rgba(20,28,44,0.38) !important; border:1px solid var(--border-dim) !important; }
+            body[data-layout="studio"].pl-studio-editor #mobile-tabbar { display:none !important; }
+            body[data-layout="studio"] .pl-studio-edpill {
+                position:fixed; right:12px; bottom:68px; z-index:9500;
+                display:flex; align-items:center; gap:7px; border:1px solid var(--border-dim);
+                background:#fff; color:#1e2530; border-radius:22px; padding:10px 16px;
+                font-size:13px; font-weight:800; font-family:var(--font-ui);
+                box-shadow:0 8px 24px rgba(30,40,60,0.18); cursor:pointer; }
+            body[data-layout="studio"] .pl-studio-edpill.on { background:#1e2530; color:#fff; border-color:transparent; }
         }
         /* 태블릿 구간(모바일 단일패널이지만 폭이 넓은 700~1024px): 콘텐츠를 적정 폭으로 가운데 정렬해 빈 공간 최소화 */
         @media (min-width: 700px) and (max-width: 1024px) {
@@ -1062,7 +1078,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.11.0 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.12.0 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1827,7 +1843,17 @@
         const CHANGELOG = [
             // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.11.0', date: '2026-07-10', time: '최신',
+                version: 'v9.12.0', date: '2026-07-10', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[스튜디오] 휴대폰 우선으로 다시 설계했습니다 — 아래 탭이 "① 간편조합 → ② 추천 → ③ 결과" 3단계 흐름으로 바뀌어, 손가락으로 좌우로 넘기거나 탭을 눌러 순서대로 진행합니다',
+                    '[스튜디오] "추천 조합"이 이제 ② 단계 화면에 그대로 들어가 있습니다 — 매번 따로 열 필요 없이 의상·구도·배경(성인 팩 시 노출)을 바로 세로로 훑어보며 골라 담습니다',
+                    '[스튜디오] 상세 태그는 ① 간편조합 화면 상단 토글로, 에디터는 화면 오른쪽 아래 "에디터" 버튼으로 필요할 때만 큰 창으로 띄웁니다(닫기·바깥 터치로 닫힘) — 자주 안 쓰는 건 접어두고 핵심 흐름에 집중',
+                    '[스튜디오] 클래식(다크)은 그대로 두고, 스튜디오는 밝은 미니멀 테마로 휴대폰에서 매끄럽게 동작하도록 제스처·전환을 다듬었습니다',
+                ]
+            },
+            {
+                version: 'v9.11.0', date: '2026-07-10', time: '이전',
                 tag: 'feat',
                 items: [
                     '[레이아웃] 레이아웃을 대대적으로 정리했습니다 — 품질이 낮던 테마 16종(집중·세로적층·미러·인스펙터·IDE·갤러리·필름스트립·모드전환·터미널·카드덱·노드그래프·대화형·매거진·레트로·콕핏·스프레드시트)을 모두 제거하고, "클래식"과 새 "스튜디오" 두 가지만 남겼습니다',
@@ -7276,6 +7302,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             else importPromptToEditor([t], 'append');
         }
         let _recModalPick = null, _recCarouselIdx = 0;
+        let _recHost = null, _recHostOpts = { modal: true };
         function openRecommendModal() {
             let ov = document.getElementById('rec-modal-overlay');
             if (!ov) {
@@ -7287,29 +7314,55 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 배경(블러) 스크롤 잠금 — 가로 드래그가 뒤 페이지를 밀지 않게
             document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden';
             _recModalPick = null; _recCarouselIdx = 0;
-            renderRecommendModal(true);
+            renderRecommendInto(ov, true, { modal: true });
         }
-        function closeRecommendModal() { const o = document.getElementById('rec-modal-overlay'); if (o) o.remove(); document.documentElement.style.overflow = ''; document.body.style.overflow = ''; }
+        function closeRecommendModal() {
+            const o = document.getElementById('rec-modal-overlay'); if (o) o.remove();
+            document.documentElement.style.overflow = ''; document.body.style.overflow = '';
+            // 스튜디오 임베드 화면이 있으면 그쪽을 다시 활성 대상으로
+            const emb = document.querySelector('.recm-scope.embed');
+            if (emb && emb.isConnected) { _recHost = emb; _recHostOpts = { modal: false }; }
+            else _recHost = null;
+        }
+        // 추천 UI 재렌더 — 현재 활성 host(모달 오버레이 또는 스튜디오 임베드 패널)로
         function renderRecommendModal(regen) {
+            let host = (_recHost && _recHost.isConnected) ? _recHost : null;
+            if (!host) { const ov = document.getElementById('rec-modal-overlay'); if (ov) { host = ov; _recHostOpts = { modal: true }; } }
+            if (!host) return;
+            renderRecommendInto(host, regen, _recHostOpts || { modal: true });
+        }
+        // 추천 UI를 임의의 host에 렌더 (opts.modal=false → 스튜디오 임베드: 헤더 간소화·축 세로 정렬)
+        function renderRecommendInto(host, regen, opts) {
           try {
-            const ov = document.getElementById('rec-modal-overlay'); if (!ov) return;
-            const active = _recActive();
-            const btn = (id, txt, color) => `<button id="${id}" style="background:${color};border:none;color:#fff;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">${txt}</button>`;
-            let h = `<div class="modal-content" style="width:min(700px,96vw);max-height:88vh;padding:20px;border-radius:18px;display:flex;flex-direction:column;gap:12px;overflow:hidden;">
+            if (!host) return;
+            opts = opts || { modal: true };
+            _recHost = host; _recHostOpts = opts;
+            host.classList.add('recm-scope');
+            host.classList.toggle('embed', !opts.modal);
+            const hbtns = `<button class="recm-fill" style="background:rgba(34,197,94,0.85);border:none;color:#fff;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">✨ 한 번에 보완</button>
+                    <button class="recm-full" title="완성 모드 — 화풍·인원·인물 축 추가/숨김" style="background:${_recFullMode ? 'rgba(59,130,246,0.9)' : 'rgba(59,130,246,0.14)'};border:1px solid rgba(59,130,246,0.5);color:${_recFullMode ? '#fff' : '#3b82f6'};border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">🧩 완성 모드${_recFullMode ? ' ✓' : ''}</button>
+                    <button class="recm-refresh" title="후보를 새로 제안" style="background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#a855f7;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;"><i class="fa-solid fa-arrows-rotate"></i> 다른 제안</button>
+                    <button class="recm-adult" title="성인(19+) 프리셋 팩 다운로드/해제" style="background:${_adultPackOn ? 'rgba(248,113,113,0.9)' : 'rgba(248,113,113,0.14)'};border:1px solid rgba(248,113,113,0.5);color:${_adultPackOn ? '#fff' : '#f87171'};border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">🔞 성인 팩${_adultPackOn ? ' ✓' : ''}</button>
+                    <button class="recm-hardcore" title="하드코어(합의 성행위) 팩 다운로드/해제" style="background:${_hardcoreOn ? 'rgba(217,70,70,0.95)' : 'rgba(217,70,70,0.14)'};border:1px solid rgba(217,70,70,0.55);color:${_hardcoreOn ? '#fff' : '#ef4444'};border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">🔥 하드코어${_hardcoreOn ? ' ✓' : ''}</button>`;
+            let h;
+            if (opts.modal) {
+                h = `<div class="modal-content" style="width:min(700px,96vw);max-height:88vh;padding:20px;border-radius:18px;display:flex;flex-direction:column;gap:12px;overflow:hidden;">
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;">
                     <h3 style="margin:0;font-size:16px;font-family:var(--font-heading);white-space:nowrap;"><i class="fa-solid fa-bolt" style="color:#a855f7;margin-right:6px;"></i>추천</h3>
                     <span class="recm-sub" style="font-size:10px;color:var(--text-dim);flex:1 1 80px;min-width:0;">${_recFullMode ? '완성 모드 · 화풍·인원·인물까지' : '의상/구도/배경 · 완성 모드로 인물까지'}</span>
-                    ${btn('recm-fill', '✨ 한 번에 보완', 'rgba(34,197,94,0.85)')}
-                    <button id="recm-full" title="완성 모드 — 화풍·인원·인물 축 추가/숨김" style="background:${_recFullMode ? 'rgba(59,130,246,0.9)' : 'rgba(59,130,246,0.14)'};border:1px solid rgba(59,130,246,0.5);color:${_recFullMode ? '#fff' : '#3b82f6'};border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">🧩 완성 모드${_recFullMode ? ' ✓' : ''}</button>
-                    <button id="recm-refresh" title="후보를 새로 제안" style="background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#a855f7;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;"><i class="fa-solid fa-arrows-rotate"></i> 다른 제안</button>
-                    <button id="recm-adult" title="성인(19+) 프리셋 팩 다운로드/해제" style="background:${_adultPackOn ? 'rgba(248,113,113,0.9)' : 'rgba(248,113,113,0.14)'};border:1px solid rgba(248,113,113,0.5);color:${_adultPackOn ? '#fff' : '#f87171'};border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">🔞 성인 팩${_adultPackOn ? ' ✓' : ''}</button>
-                    <button id="recm-hardcore" title="하드코어(합의 성행위) 팩 다운로드/해제" style="background:${_hardcoreOn ? 'rgba(217,70,70,0.95)' : 'rgba(217,70,70,0.14)'};border:1px solid rgba(217,70,70,0.55);color:${_hardcoreOn ? '#fff' : '#ef4444'};border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">🔥 하드코어${_hardcoreOn ? ' ✓' : ''}</button>
-                    <button id="recm-close" style="background:none;border:none;color:var(--text-dim);font-size:22px;cursor:pointer;line-height:1;">&times;</button>
+                    ${hbtns}
+                    <button class="recm-close" style="background:none;border:none;color:var(--text-dim);font-size:22px;cursor:pointer;line-height:1;">&times;</button>
                 </div>
-                <div id="recm-body" style="overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-right:2px;"></div>
+                <div class="recm-body" style="overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-right:2px;"></div>
             </div>`;
-            ov.innerHTML = h;
-            const body = ov.querySelector('#recm-body');
+            } else {
+                h = `<div class="recm-embed-wrap" style="display:flex;flex-direction:column;height:100%;gap:9px;padding:10px 10px 0;overflow:hidden;">
+                <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;flex-shrink:0;">${hbtns}</div>
+                <div class="recm-body" style="overflow-y:auto;display:flex;flex-direction:column;gap:14px;flex:1;min-height:0;padding:0 2px 14px 0;"></div>
+            </div>`;
+            }
+            host.innerHTML = h;
+            const body = host.querySelector('.recm-body');
 
             // 축(axis) 데이터 기반 골라담기 — 완성 모드 시 화풍·인원·인물 추가
             {
@@ -7328,34 +7381,38 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (_recCarouselIdx >= axes.length) _recCarouselIdx = 0;
                 const chip = (attr, on, label, titleStr, nsfw) => `<button class="recm-item recm-chip${on ? ' on' : ''}" ${attr} title="${_esc(titleStr)}"><i class="rc-ic fa-solid fa-${on ? 'check' : 'plus'}"></i><span class="rc-lbl">${_esc(label)}</span>${nsfw ? '<span class="rc-19">19+</span>' : ''}</button>`;
                 let hi = `<style>
-                  #rec-modal-overlay .recm-hint{font-size:11px;font-weight:600;color:var(--text-dim);margin:-2px 2px 0;}
-                  #rec-modal-overlay .recm-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
-                  #rec-modal-overlay .recm-tabs{display:none;}
-                  #rec-modal-overlay .recm-col{background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:14px;padding:11px 9px 10px;display:flex;flex-direction:column;min-width:0;box-shadow:0 1px 3px var(--shadow-color);}
-                  #rec-modal-overlay .recm-col-head{display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:0 3px;}
-                  #rec-modal-overlay .recm-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-                  #rec-modal-overlay .recm-col-name{font-size:12px;font-weight:800;color:var(--text-main);letter-spacing:-.01em;white-space:nowrap;}
-                  #rec-modal-overlay .recm-col-actions{margin-left:auto;display:flex;gap:3px;}
-                  #rec-modal-overlay .recm-ibtn{width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border-dim);background:var(--chip-bg);color:var(--text-dim);font-size:10px;cursor:pointer;transition:all .12s;padding:0;}
-                  #rec-modal-overlay .recm-ibtn:hover{color:var(--text-main);border-color:var(--text-dim);transform:translateY(-1px);}
-                  #rec-modal-overlay .recm-list{display:flex;flex-direction:column;gap:5px;min-width:0;}
-                  #rec-modal-overlay .recm-chip{display:flex;align-items:center;gap:6px;width:100%;text-align:left;background:var(--chip-bg);border:1px solid var(--border-dim);border-radius:10px;padding:7px 8px;cursor:pointer;font-size:12px;color:var(--text-main);overflow:hidden;transition:all .12s;min-height:34px;}
-                  #rec-modal-overlay .recm-chip:hover{border-color:var(--accent-blue);background:color-mix(in srgb,var(--accent-blue) 9%,var(--chip-bg));transform:translateY(-1px);}
-                  #rec-modal-overlay .recm-chip .rc-ic{font-size:9px;color:var(--text-dim);flex-shrink:0;width:10px;text-align:center;}
-                  #rec-modal-overlay .recm-chip .rc-lbl{flex:1 1 auto;min-width:0;line-height:1.22;word-break:keep-all;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-                  #rec-modal-overlay .recm-chip.on{background:color-mix(in srgb,var(--accent-green) 16%,var(--chip-bg));border-color:var(--accent-green);font-weight:600;}
-                  #rec-modal-overlay .recm-chip.on .rc-ic{color:var(--accent-green);}
-                  #rec-modal-overlay .rc-19{margin-left:auto;font-size:8px;font-weight:800;color:var(--accent-danger);flex-shrink:0;}
+                  .recm-scope .recm-hint{font-size:11px;font-weight:600;color:var(--text-dim);margin:-2px 2px 0;}
+                  .recm-scope .recm-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+                  .recm-scope .recm-tabs{display:none;}
+                  .recm-scope .recm-col{background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:14px;padding:11px 9px 10px;display:flex;flex-direction:column;min-width:0;box-shadow:0 1px 3px var(--shadow-color);}
+                  .recm-scope .recm-col-head{display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:0 3px;}
+                  .recm-scope .recm-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+                  .recm-scope .recm-col-name{font-size:12px;font-weight:800;color:var(--text-main);letter-spacing:-.01em;white-space:nowrap;}
+                  .recm-scope .recm-col-actions{margin-left:auto;display:flex;gap:3px;}
+                  .recm-scope .recm-ibtn{width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border-dim);background:var(--chip-bg);color:var(--text-dim);font-size:10px;cursor:pointer;transition:all .12s;padding:0;}
+                  .recm-scope .recm-ibtn:hover{color:var(--text-main);border-color:var(--text-dim);transform:translateY(-1px);}
+                  .recm-scope .recm-list{display:flex;flex-direction:column;gap:5px;min-width:0;}
+                  .recm-scope .recm-chip{display:flex;align-items:center;gap:6px;width:100%;text-align:left;background:var(--chip-bg);border:1px solid var(--border-dim);border-radius:10px;padding:7px 8px;cursor:pointer;font-size:12px;color:var(--text-main);overflow:hidden;transition:all .12s;min-height:34px;}
+                  .recm-scope .recm-chip:hover{border-color:var(--accent-blue);background:color-mix(in srgb,var(--accent-blue) 9%,var(--chip-bg));transform:translateY(-1px);}
+                  .recm-scope .recm-chip .rc-ic{font-size:9px;color:var(--text-dim);flex-shrink:0;width:10px;text-align:center;}
+                  .recm-scope .recm-chip .rc-lbl{flex:1 1 auto;min-width:0;line-height:1.22;word-break:keep-all;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+                  .recm-scope .recm-chip.on{background:color-mix(in srgb,var(--accent-green) 16%,var(--chip-bg));border-color:var(--accent-green);font-weight:600;}
+                  .recm-scope .recm-chip.on .rc-ic{color:var(--accent-green);}
+                  .recm-scope .rc-19{margin-left:auto;font-size:8px;font-weight:800;color:var(--accent-danger);flex-shrink:0;}
                   @media (max-width:560px){
-                    #rec-modal-overlay .recm-sub{display:none;}
-                    #rec-modal-overlay .recm-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:1px;}
-                    #rec-modal-overlay .recm-tab{display:flex;align-items:center;justify-content:center;gap:5px;padding:9px 4px;border-radius:11px;border:1px solid var(--border-dim);background:var(--chip-bg);color:var(--text-dim);font-size:13px;font-weight:800;cursor:pointer;transition:all .12s;}
-                    #rec-modal-overlay .recm-tab .rt-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-                    #rec-modal-overlay .recm-tab.active{color:var(--text-main);border-color:var(--accent-blue);background:color-mix(in srgb,var(--accent-blue) 12%,var(--chip-bg));box-shadow:0 1px 3px var(--shadow-color);}
-                    #rec-modal-overlay .recm-cols{display:flex;grid-template-columns:none;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior:contain;}
-                    #rec-modal-overlay .recm-cols::-webkit-scrollbar{display:none;}
-                    #rec-modal-overlay .recm-col{flex:0 0 100%;scroll-snap-align:start;}
+                    .recm-scope .recm-sub{display:none;}
+                    .recm-scope .recm-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:1px;}
+                    .recm-scope .recm-tab{display:flex;align-items:center;justify-content:center;gap:5px;padding:9px 4px;border-radius:11px;border:1px solid var(--border-dim);background:var(--chip-bg);color:var(--text-dim);font-size:13px;font-weight:800;cursor:pointer;transition:all .12s;}
+                    .recm-scope .recm-tab .rt-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+                    .recm-scope .recm-tab.active{color:var(--text-main);border-color:var(--accent-blue);background:color-mix(in srgb,var(--accent-blue) 12%,var(--chip-bg));box-shadow:0 1px 3px var(--shadow-color);}
+                    .recm-scope .recm-cols{display:flex;grid-template-columns:none;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior:contain;}
+                    .recm-scope .recm-cols::-webkit-scrollbar{display:none;}
+                    .recm-scope .recm-col{flex:0 0 100%;scroll-snap-align:start;}
                   }
+                  /* 스튜디오 임베드: 캐러셀 대신 세로 스택 (바깥 스텝 스와이프와 충돌 방지) */
+                  .recm-scope.embed .recm-tabs{display:none !important;}
+                  .recm-scope.embed .recm-cols{display:flex !important;flex-direction:column !important;overflow-x:visible !important;gap:12px;}
+                  .recm-scope.embed .recm-col{flex:0 0 auto !important;}
                 </style>`;
                 hi += `<div class="recm-hint">각 칸에서 골라 담으세요 · 다시 누르면 빠져요 · <i class="fa-solid fa-arrows-rotate"></i> 로 새 후보</div>`;
                 hi += `<div class="recm-tabs">` + axes.map((ax, i) => `<button class="recm-tab" data-ti="${i}"><span class="rt-dot" style="background:var(${ax.cvar});"></span>${ax.name}</button>`).join('') + `</div>`;
@@ -7388,13 +7445,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 body.querySelectorAll('.recm-clear').forEach(b => b.onclick = () => { const ax = axes.find(a => a.key === b.dataset.ax); if (ax) (ax.data || []).filter(p => _recLookOn(p)).forEach(p => p.tags.forEach(t => _recRemoveTag(t))); renderRecommendModal(false); });
                 body.querySelectorAll('.recm-item').forEach(b => b.onclick = () => { const p = (rendered[b.dataset.ax] || [])[parseInt(b.dataset.idx)]; if (p) _recToggleLook(p); renderRecommendModal(false); });
             }
-            ov.querySelector('#recm-close').onclick = closeRecommendModal;
-            ov.querySelector('#recm-refresh').onclick = () => { renderRecommendModal(true); };
-            ov.querySelector('#recm-fill').onclick = () => { fillOutPrompt(); renderRecommendModal(false); };
-            { const ab = ov.querySelector('#recm-adult'); if (ab) ab.onclick = () => { if (!_adultPackLoading) _adultPackToggle(); }; }
-            { const hb = ov.querySelector('#recm-hardcore'); if (hb) hb.onclick = () => { if (!_hardcoreLoading) _hardcoreToggle(); }; }
-            { const fb = ov.querySelector('#recm-full'); if (fb) fb.onclick = () => { _recFullMode = !_recFullMode; try { localStorage.setItem('rec_full_mode', _recFullMode ? '1' : '0'); } catch (e) {} _recModalPick = null; _recCarouselIdx = 0; renderRecommendModal(true); }; }
-          } catch (e) { console.warn('추천 모달 렌더 실패:', e); }
+            { const cb = host.querySelector('.recm-close'); if (cb) cb.onclick = closeRecommendModal; }
+            host.querySelector('.recm-refresh').onclick = () => { renderRecommendModal(true); };
+            host.querySelector('.recm-fill').onclick = () => { fillOutPrompt(); renderRecommendModal(false); };
+            { const ab = host.querySelector('.recm-adult'); if (ab) ab.onclick = () => { if (!_adultPackLoading) _adultPackToggle(); }; }
+            { const hb = host.querySelector('.recm-hardcore'); if (hb) hb.onclick = () => { if (!_hardcoreLoading) _hardcoreToggle(); }; }
+            { const fb = host.querySelector('.recm-full'); if (fb) fb.onclick = () => { _recFullMode = !_recFullMode; try { localStorage.setItem('rec_full_mode', _recFullMode ? '1' : '0'); } catch (e) {} _recModalPick = null; _recCarouselIdx = 0; renderRecommendModal(true); }; }
+          } catch (e) { console.warn('추천 렌더 실패:', e); }
         }
         let recents = [];
 
@@ -15994,11 +16051,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // ── 모바일 탭 전환 + 스와이프 슬라이드 ─────────────────────────────
         (function initMobileNav() {
             const MOBILE_BP = 1024;
-            const PANELS = [
+            let PANELS = [
                 { id: 'panel-left',  label: '태그',   icon: 'fa-tags' },
                 { id: 'panel-mid',   label: '에디터', icon: 'fa-layer-group' },
                 { id: 'panel-right', label: '결과',   icon: 'fa-terminal' },
             ];
+            const DEFAULT_PANELS = PANELS.slice();
             const tabbar = document.getElementById('mobile-tabbar');
             if (!tabbar) return;
 
@@ -16053,13 +16111,36 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
 
             // 탭바 버튼 생성 (즉시 전환, 애니메이션 없음)
-            PANELS.forEach((p, i) => {
-                const btn = document.createElement('button');
-                btn.innerHTML = `<i class="fa-solid ${p.icon}"></i><span>${p.label}</span>`;
-                if (i === currentIdx) btn.classList.add('active');
-                btn.onclick = () => { if (isMobile) snapToIndex(i, false); };
-                tabbar.appendChild(btn);
-            });
+            function buildTabbar() {
+                tabbar.innerHTML = '';
+                PANELS.forEach((p, i) => {
+                    const btn = document.createElement('button');
+                    btn.innerHTML = `<i class="fa-solid ${p.icon}"></i><span>${p.label}</span>`;
+                    if (i === currentIdx) btn.classList.add('active');
+                    btn.onclick = () => { if (isMobile) snapToIndex(i, false); };
+                    tabbar.appendChild(btn);
+                });
+            }
+            buildTabbar();
+
+            // 레이아웃이 모바일 패널 세트를 교체 (예: 스튜디오 3-스텝). list=[{id,label,icon}] · null=기본 복원
+            window.__setMobilePanels = function (list) {
+                if (!Array.isArray(list) || !list.length) list = DEFAULT_PANELS.slice();
+                PANELS = list;
+                const ids = list.map(p => p.id);
+                // 지정 패널을 순서대로 트랙 앞으로, 나머지 알려진 자식(숨김 패널/핸들)은 뒤로
+                ids.forEach(id => { const el = document.getElementById(id); if (el) track.appendChild(el); });
+                ['panel-left', 'resize-handle-1', 'panel-mid', 'resize-handle-2', 'panel-right', 'panel-recommend'].forEach(id => {
+                    if (ids.includes(id)) return;
+                    const el = document.getElementById(id);
+                    if (el && el.parentElement === track) track.appendChild(el);
+                });
+                currentIdx = 0;
+                buildTabbar();
+                applyMobileLayout();
+                snapToIndex(0, false);
+            };
+            window.__getMobileTrack = function () { return track; };
 
             // 전역 노출 (다른 코드에서 switchMobilePanel 호출 가능하도록)
             window.switchMobilePanel = switchMobilePanel;
@@ -16284,14 +16365,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function track(fn) { cleanups.push(fn); }
         function runCleanups() { while (cleanups.length) { try { cleanups.pop()(); } catch (e) {} } }
 
-        // ── 스튜디오 (미니멀 라이트 · 간편조합+결과, 에디터 소환) ──
+        // ── 스튜디오 (모바일 우선 3-스텝: 간편조합→추천→결과, 에디터 소환) ──
         function mountStudio() {
+            const MB = 1024;
+            let recPanel = null, edPill = null, mobileOn = false;
             // 왼쪽 패널을 '간편 조합' 모드로 전환
             try { if (window.switchSidebarMode) switchSidebarMode('combo'); } catch (e) {}
-            // 에디터 오버레이용 스크림
+            // 에디터 오버레이용 스크림 + 데스크탑 하단 FAB(추천·에디터)
             const scrim = el('div', { class: 'pl-studio-scrim', onclick: closeEditor });
             document.body.appendChild(scrim);
-            // 하단 FAB: 추천 조합 · 에디터 소환
             const edBtn = el('button', { class: 'pl-studio-fab ed', onclick: toggleEditor });
             const fabs = el('div', { class: 'pl-studio-fabs' },
                 el('button', { class: 'pl-studio-fab rec', html: '<i class="fa-solid fa-bolt"></i> 추천 조합', onclick: () => { try { window.openRecommendModal && openRecommendModal(); } catch (e) {} } }),
@@ -16302,14 +16384,82 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const on = document.body.classList.contains('pl-studio-editor');
                 edBtn.classList.toggle('on', on);
                 edBtn.innerHTML = on ? '<i class="fa-solid fa-xmark"></i> 에디터 닫기' : '<i class="fa-solid fa-pen-to-square"></i> 에디터';
+                if (edPill) { edPill.classList.toggle('on', on); edPill.innerHTML = on ? '<i class="fa-solid fa-xmark"></i> 닫기' : '<i class="fa-solid fa-pen-to-square"></i> 에디터'; }
             }
-            function toggleEditor() { document.body.classList.toggle('pl-studio-editor'); syncEd(); }
-            function closeEditor() { document.body.classList.remove('pl-studio-editor'); syncEd(); }
+            // 모바일: 에디터 소환 시 panel-mid를 트랙(transform) 밖 body로 이동 → position:fixed 정상 동작
+            function _edToBody() {
+                const mid = document.getElementById('panel-mid');
+                if (mid && mid.parentElement !== document.body) document.body.appendChild(mid);
+            }
+            function _edToTrack() {
+                const mid = document.getElementById('panel-mid');
+                const track = window.__getMobileTrack && window.__getMobileTrack();
+                if (mid && track && mid.parentElement === document.body) track.appendChild(mid);
+            }
+            function toggleEditor() {
+                const opening = !document.body.classList.contains('pl-studio-editor');
+                if (mobileOn && opening) _edToBody();
+                document.body.classList.toggle('pl-studio-editor');
+                if (mobileOn && !opening) _edToTrack();
+                syncEd();
+            }
+            function closeEditor() {
+                document.body.classList.remove('pl-studio-editor');
+                if (mobileOn) _edToTrack();
+                syncEd();
+            }
             const onKey = (e) => { if (e.key === 'Escape') closeEditor(); };
             document.addEventListener('keydown', onKey);
+
+            // ── 모바일: 3-스텝 흐름 (간편조합 → 추천(임베드) → 결과) ──
+            const STUDIO_PANELS = [
+                { id: 'panel-left', label: '① 간편조합', icon: 'fa-puzzle-piece' },
+                { id: 'panel-recommend', label: '② 추천', icon: 'fa-bolt' },
+                { id: 'panel-right', label: '③ 결과', icon: 'fa-wand-magic-sparkles' }
+            ];
+            function setupMobile() {
+                if (mobileOn) return;
+                const track = window.__getMobileTrack && window.__getMobileTrack();
+                if (!track || !window.__setMobilePanels) return;
+                try { if (window.switchSidebarMode) switchSidebarMode('combo'); } catch (e) {}
+                // 추천 임베드 패널 생성 + 인라인 렌더
+                recPanel = document.getElementById('panel-recommend');
+                if (!recPanel) {
+                    recPanel = el('section', { class: 'panel', id: 'panel-recommend' });
+                    const hostDiv = el('div', { class: 'rec-embed-host', style: 'flex:1;min-height:0;display:flex;flex-direction:column;' });
+                    recPanel.appendChild(hostDiv);
+                    track.appendChild(recPanel);
+                    try { window.renderRecommendInto && renderRecommendInto(hostDiv, true, { modal: false }); } catch (e) {}
+                }
+                // 에디터 소환 pill (하단, 탭바 위)
+                if (!edPill) { edPill = el('button', { class: 'pl-studio-edpill', onclick: toggleEditor }); document.body.appendChild(edPill); }
+                window.__setMobilePanels(STUDIO_PANELS);
+                mobileOn = true;
+                syncEd();
+            }
+            function teardownMobile() {
+                if (!mobileOn) return;
+                document.body.classList.remove('pl-studio-editor');
+                _edToTrack(); // panel-mid가 body에 있으면 트랙으로 되돌림
+                if (window.__setMobilePanels) window.__setMobilePanels(null); // 기본 3패널 복원
+                if (recPanel) { recPanel.remove(); recPanel = null; }
+                if (edPill) { edPill.remove(); edPill = null; }
+                mobileOn = false;
+            }
+            function evalMode() {
+                const m = window.innerWidth <= MB;
+                if (m && !mobileOn) setupMobile();
+                else if (!m && mobileOn) teardownMobile();
+            }
+            const onResize = () => evalMode();
+            window.addEventListener('resize', onResize);
             syncEd();
+            setTimeout(evalMode, 0); // initMobileNav 초기화 이후 적용
+
             return () => {
+                window.removeEventListener('resize', onResize);
                 document.removeEventListener('keydown', onKey);
+                teardownMobile();
                 scrim.remove(); fabs.remove();
                 document.body.classList.remove('pl-studio-editor');
             };
