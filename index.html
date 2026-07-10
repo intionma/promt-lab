@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.17.2 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.18.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1084,7 +1084,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.17.2 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.18.0 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1849,7 +1849,16 @@
         const CHANGELOG = [
             // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.17.2', date: '2026-07-10', time: '최신',
+                version: 'v9.18.0', date: '2026-07-10', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[팩] 팩(성인·하드코어·태그 카탈로그)을 켜면 이제 "상세 태그" 사이드바에도 팩 전용 태그 폴더가 계층별로 생깁니다 — 예전엔 팩을 받아도 자동완성에만 반영됐는데, 이제 실제로 클릭해서 쓸 수 있는 핵심 태그(계층당 15개, 한글 라벨 포함)가 폴더로 추가돼요. 팩을 끄면 폴더도 깔끔하게 사라집니다',
+                    '[팩] 팩마다 "간편 조합" 폴더도 함께 생깁니다 — 예: 성인팩 켜면 "🔞 성인팩 조합" 폴더에 가터 란제리·침실 유혹 같은 바로 쓸 수 있는 조합이 들어있어요 (성인사전 🔞, 대형팩 📦, 표정팩 😊, 판타지팩 🐉)',
+                    '[팩] 팩 폴더는 여러분이 직접 만든 폴더·조합과 완전히 분리돼 있어서, 팩을 켜고 끄거나 반복해도 내 커스텀 폴더는 절대 건드리지 않습니다',
+                ]
+            },
+            {
+                version: 'v9.17.2', date: '2026-07-10', time: '이전',
                 tag: 'feat',
                 items: [
                     '[기본 태그] "고정 접두 태그" 기본값을 score_9~score_6_up까지 4단으로 줄였습니다 (score_5_up·score_4_up 제거) — 매번 직접 지울 필요 없이 바로 깔끔한 상태로 시작해요. 이미 커스터마이즈해서 쓰던 값은 그대로 유지되고, 기본값을 그대로 쓰던 경우만 자동으로 바뀝니다',
@@ -7270,12 +7279,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _recModalPick = null; _recCarouselIdx = 0;
                 try { _acInvalidate(); } catch (e) {}
                 if (typeof showToast === 'function') showToast('성인 팩(19+)을 해제했어요', 'info', 1500);
+                try { _packReconcileAll(true); } catch (e) {}
                 renderRecommendModal(true);
             } else {
                 _adultPackOn = true;
                 try { localStorage.setItem(ADULT_PACK_KEY, '1'); } catch (e) {}
                 if (typeof showToast === 'function') showToast('성인 팩(19+) 다운로드 중…', 'info', 1500);
-                _loadAdultPack(() => { _recModalPick = null; _recCarouselIdx = 0; try { _acInvalidate(); } catch (e) {} if (typeof showToast === 'function') showToast('성인 팩(19+) 적용 완료', 'success', 1600); renderRecommendModal(true); });
+                _loadAdultPack(() => { _recModalPick = null; _recCarouselIdx = 0; try { _acInvalidate(); } catch (e) {} try { _packReconcileAll(true); } catch (e) {} if (typeof showToast === 'function') showToast('성인 팩(19+) 적용 완료', 'success', 1600); renderRecommendModal(true); });
             }
         }
         // 하드코어 팩 (합의된 성행위 · 남성향) — 별도 옵트인, 구도(포즈) 칸에 추가
@@ -7292,12 +7302,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _filterInPlace(_DATA_POSES, x => !x.hc);
                 _recModalPick = null; _recCarouselIdx = 0; try { _acInvalidate(); } catch (e) {}
                 if (typeof showToast === 'function') showToast('하드코어 팩을 해제했어요', 'info', 1500);
+                try { _packReconcileAll(true); } catch (e) {}
                 renderRecommendModal(true);
             } else {
                 _hardcoreOn = true;
                 try { localStorage.setItem(HARDCORE_KEY, '1'); } catch (e) {}
                 if (typeof showToast === 'function') showToast('하드코어 팩 다운로드 중…', 'info', 1500);
-                _loadHardcore(() => { _recModalPick = null; _recCarouselIdx = 0; try { _acInvalidate(); } catch (e) {} if (typeof showToast === 'function') showToast('하드코어 팩 적용 완료', 'success', 1600); renderRecommendModal(true); });
+                _loadHardcore(() => { _recModalPick = null; _recCarouselIdx = 0; try { _acInvalidate(); } catch (e) {} try { _packReconcileAll(true); } catch (e) {} if (typeof showToast === 'function') showToast('하드코어 팩 적용 완료', 'success', 1600); renderRecommendModal(true); });
             }
         }
         // 태그 한글 오버레이 — 룩·추천이 넣는 danbooru 태그를 캡슐에서 한글로 표시 (팩 미설치·사전 미검색 문제 해결)
@@ -7903,6 +7914,80 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 saveComboFS();
             }
         } catch (e) {}
+
+        const _PACK_SIDEBAR_TAGS = {
+            "adult": {4:[{t:"thighhighs",k:"허벅지 양말 (니하이)"},{t:"cleavage",k:"가슴 골"},{t:"garter straps",k:"가터 스트랩"},{t:"high heels",k:"하이힐"},{t:"garter belt",k:"가터벨트"},{t:"choker",k:"초커"},{t:"thigh boots",k:"사이하이 부츠"},{t:"thong",k:"끈팬티"},{t:"highleg",k:"하이레그"},{t:"skin tight",k:"몸에 딱 붙는"},{t:"micro skirt",k:"초미니 스커트"},{t:"o-ring",k:"O링 장식"},{t:"bare shoulders",k:"드러난 어깨"},{t:"cape",k:"케이프"},{t:"revealing clothes",k:"노출이 심한 옷"}], 5:[{t:"looking at viewer",k:"정면 응시"},{t:"uncensored",k:"무검열"},{t:"pussy",k:"여성 성기"},{t:"spread legs",k:"다리 벌린"},{t:"arched back",k:"등을 젖힌"},{t:"seductive",k:"유혹적인"},{t:"from behind",k:"뒤에서"},{t:"from above",k:"위에서"},{t:"looking back",k:"뒤돌아보는"},{t:"standing",k:"서 있는"},{t:"from below",k:"아래에서"},{t:"cowboy shot",k:"허벅지 위 컷 (카우보이 샷)"},{t:"full body",k:"전신"},{t:"masturbation",k:"자위"},{t:"ass focus",k:"엉덩이 강조"}], 6:[{t:"dim lighting",k:"어두운 조명"},{t:"indoors",k:"실내"},{t:"night",k:"밤"},{t:"bed",k:"침대"},{t:"steam",k:"수증기"},{t:"neon lighting",k:"네온 조명"},{t:"water",k:"물"},{t:"curtains",k:"커튼"},{t:"window",k:"창문"},{t:"bedroom",k:"침실"},{t:"candlelight",k:"촛불"},{t:"tiles",k:"타일"},{t:"city lights",k:"도시 야경"},{t:"colored lighting",k:"컬러 조명"},{t:"bed sheets",k:"침대 시트"}] },
+            "hardcore": {5:[{t:"uncensored",k:"무검열"},{t:"sex",k:"성행위"},{t:"penis",k:"남성 성기"},{t:"vaginal",k:"질 삽입"},{t:"futanari",k:"후타나리"},{t:"cum",k:"사정"},{t:"yuri",k:"백합(여여)"},{t:"nude",k:"누드"},{t:"fellatio",k:"펠라티오"},{t:"oral",k:"구강 행위"},{t:"group sex",k:"그룹 성행위"},{t:"from behind",k:"뒤에서"},{t:"anal",k:"항문 성교"},{t:"futa on futa",k:"후타×후타"},{t:"paizuri",k:"파이즈리 (가슴 섹스)"}] },
+            "danbooru-general": {1:[{t:"wallpaper",k:"월페이퍼 퀄리티"},{t:"professional",k:"프로페셔널 퀄리티"}], 2:[{t:"letterboxed",k:"레터박스 시네마 비율"},{t:"side-by-side",k:"나란히 선 구도"},{t:"full shot",k:"인물 전체를 담는 풀 샷"},{t:"profile view",k:"완전 측면 옆모습"},{t:"centered composition",k:"정중앙 배치 구도"}], 3:[{t:"animal ear fluff",k:"동물 귀 솜털"},{t:"dark-skinned female",k:"가무잡잡한 여성"},{t:"parted bangs",k:"가르마 탄 앞머리"},{t:"wet",k:"젖은 몸"},{t:"symbol-shaped pupils",k:"기호 모양 동공"},{t:"fake animal ears",k:"가짜 동물 귀"},{t:"horse tail",k:"말 꼬리"},{t:"blush stickers",k:"볼터치 스티커"},{t:"muscular male",k:"근육질 남성"},{t:"two side up",k:"양쪽 위로 묶은 머리"},{t:"single braid",k:"한 갈래로 땋은 머리"},{t:"bright pupils",k:"밝은 동공"},{t:"crossed bangs",k:"이마에서 교차된 앞머리"},{t:"black nails",k:"검은 손톱"},{t:"facial mark",k:"얼굴 문양"}], 4:[{t:"wrist cuffs",k:"손목 커프스"},{t:"open jacket",k:"열어젖힌 재킷"},{t:"japanese clothes",k:"일본 전통 의상"},{t:"puffy short sleeves",k:"퍼프 반소매"},{t:"white socks",k:"흰색 양말"},{t:"sleeveless shirt",k:"민소매 셔츠"},{t:"sleeveless dress",k:"민소매 드레스"},{t:"detached collar",k:"탈부착 칼라"},{t:"sleeves past wrists",k:"손목 덮는 소매"},{t:"short shorts",k:"핫팬츠"},{t:"frilled skirt",k:"프릴 스커트"},{t:"frilled dress",k:"프릴 드레스"},{t:"mob cap",k:"모브캡"},{t:"capelet",k:"케이플릿"},{t:"frilled sleeves",k:"프릴 소매"}], 5:[{t:"cup",k:"컵"},{t:"pillow",k:"베개"},{t:"hands up",k:"양손 들기"},{t:"sword",k:"검"},{t:"hug",k:"포옹"},{t:"phone",k:"전화기"},{t:"gun",k:"총"},{t:"book",k:"책"},{t:"cellphone",k:"휴대폰"},{t:"standing on one leg",k:"한 발로 서기"},{t:"chain",k:"쇠사슬"},{t:"all fours",k:"네발 자세"},{t:"microphone",k:"마이크"},{t:"smartphone",k:"스마트폰"},{t:"bottle",k:"병"}], 6:[{t:"cloud",k:"구름"},{t:"tree",k:"나무"},{t:"bird",k:"새"},{t:"rose",k:"장미"},{t:"grass",k:"풀"},{t:"cat",k:"고양이"},{t:"penguin",k:"펭귄"},{t:"fish",k:"물고기"},{t:"bouquet",k:"꽃다발"},{t:"red rose",k:"빨간 장미"},{t:"sunflower",k:"해바라기"},{t:"stairs",k:"계단"},{t:"dog",k:"개"},{t:"wolf",k:"늑대"},{t:"bamboo",k:"대나무"}], 7:[{t:"motion lines",k:"속도감 표현선"},{t:"fire",k:"불꽃"},{t:"wind",k:"바람"},{t:"emphasis lines",k:"만화식 집중선"},{t:"explosion",k:"폭발"},{t:"glitch",k:"글리치 효과"},{t:"ripples",k:"잔물결"},{t:"electricity",k:"번쩍이는 전기"},{t:"halftone",k:"하프톤 망점 질감"},{t:"falling feathers",k:"흩날리는 깃털"},{t:"heart background",k:"하트 배경 효과"},{t:"dust cloud",k:"먼지 구름"},{t:"energy",k:"에너지 파동"},{t:"foam",k:"물거품"},{t:"sandstorm",k:"모래폭풍"}] },
+            "nsfw-adult": {3:[{t:"stomach",k:"배"},{t:"pussy juice",k:"애액"},{t:"groin",k:"사타구니"},{t:"huge ass",k:"매우 큰 엉덩이"},{t:"backboob",k:"백붑(등 뒤로 보이는 가슴)"},{t:"areolae",k:"유륜"},{t:"dark nipples",k:"짙은 유두"},{t:"ass focus",k:"엉덩이 강조"},{t:"hip bones",k:"골반뼈 라인"},{t:"shaved",k:"제모함"},{t:"wet body",k:"젖은 몸"},{t:"oiled body",k:"오일 바른 몸"},{t:"glistening skin",k:"윤기 도는 피부"},{t:"steaming body",k:"김이 오르는 몸"},{t:"back dimples",k:"허리 보조개"}], 4:[{t:"completely nude",k:"완전 나체"},{t:"areola slip",k:"유륜 노출"},{t:"breasts out",k:"가슴 노출"},{t:"clothes pull",k:"옷 잡아당기기"},{t:"shirt lift",k:"셔츠 들어올리기"},{t:"side-tie bikini bottom",k:"옆에서 묶는 비키니 하의"},{t:"no panties",k:"노팬티"},{t:"cleavage cutout",k:"가슴골 트임"},{t:"partially nude",k:"부분 노출"},{t:"undressing",k:"옷을 벗는 중"},{t:"panty pull",k:"팬티 당기기"},{t:"bra lift",k:"브라 들어올리기"},{t:"one breast out",k:"한쪽 가슴 노출"},{t:"underwear only",k:"속옷만 착용"},{t:"bra and panties",k:"브라와 팬티"}], 5:[{t:"censored",k:"검열됨"},{t:"mosaic censoring",k:"모자이크 검열"},{t:"vaginal",k:"질 삽입"},{t:"oral",k:"구강 행위"},{t:"uncensored",k:"무검열"},{t:"saliva",k:"침"},{t:"cum on body",k:"몸에 정액"},{t:"wrist cuffs",k:"손목 수갑"},{t:"hug",k:"포옹"},{t:"girl on top",k:"여성 상위"},{t:"kiss",k:"키스"},{t:"ejaculation",k:"사정"},{t:"cowgirl position",k:"기승위"},{t:"clothed female nude male",k:"여성 착의·남성 나체(CFNM)"},{t:"licking",k:"핥기"}], 6:[{t:"love hotel",k:"러브호텔"},{t:"bathhouse",k:"목욕탕"}], 7:[{t:"spoken heart",k:"하트 말풍선"},{t:"sex heart",k:"하트 이펙트"}] },
+            "expressions-plus": {3:[{t:"one eye closed",k:"한쪽 눈 감기"},{t:"ecstatic",k:"황홀한 표정"},{t:"gloomy",k:"우울한 표정"},{t:"melancholic expression",k:"애수 어린 표정"},{t:"determined",k:"결연한 표정"},{t:"annoyed",k:"짜증난 표정"},{t:"disgusted",k:"역겨워하는 표정"},{t:"flustered",k:"당황한 표정"},{t:"smug grin",k:"능글맞은 미소"},{t:"teary-eyed",k:"눈물 그렁그렁"},{t:"sobbing",k:"흐느낌"},{t:"pained expression",k:"고통스러운 표정"},{t:"yandere",k:"얀데레 표정"},{t:"deadpan",k:"무심한 표정"},{t:"sparkling eyes",k:"반짝이는 눈"}] },
+            "fantasy-plus": {3:[{t:"fox girl",k:"여우 소녀"},{t:"cat girl",k:"고양이 소녀"},{t:"demon horns",k:"악마 뿔"},{t:"demon girl",k:"서큐버스/마족 소녀"},{t:"elf",k:"엘프"},{t:"dark elf",k:"다크 엘프"},{t:"dwarf",k:"드워프"},{t:"angel",k:"천사"},{t:"vampire",k:"뱀파이어"},{t:"mermaid",k:"인어"},{t:"dragon girl",k:"용인 소녀"},{t:"dragon horns",k:"용 뿔"},{t:"elf ears",k:"엘프 귀"},{t:"dragon tail",k:"용 꼬리"},{t:"angel wings",k:"천사 날개"}], 4:[{t:"wizard hat",k:"마법사 모자"},{t:"wizard robe",k:"마법사 로브"},{t:"knight armor",k:"기사 갑옷"},{t:"plate armor",k:"판금 갑옷"},{t:"chainmail",k:"사슬 갑옷"},{t:"magical girl outfit",k:"마법소녀 의상"},{t:"priestess outfit",k:"무녀복"}], 5:[{t:"holding sword",k:"검 들기"},{t:"staff",k:"지팡이"},{t:"holding staff",k:"지팡이 들기"},{t:"magic wand",k:"마법봉"},{t:"casting magic",k:"마법 시전"},{t:"summoning",k:"소환"}], 6:[{t:"enchanted forest",k:"마법의 숲"},{t:"wizard tower",k:"마법사 탑"},{t:"ancient ruins",k:"고대 유적"},{t:"floating castle",k:"떠 있는 성"},{t:"crystal cave",k:"수정 동굴"},{t:"magic academy",k:"마법 학교"},{t:"dragon lair",k:"용의 둥지"},{t:"fairy tale",k:"동화풍 배경"}], 7:[{t:"glowing runes",k:"빛나는 룬"},{t:"magic aura",k:"마력 오라"},{t:"floating magic circle",k:"떠오른 마법진"},{t:"sparkling magic",k:"반짝이는 마법"},{t:"elemental fire",k:"화염 정령력"},{t:"elemental ice",k:"얼음 정령력"},{t:"divine light",k:"신성한 빛"}] },
+        };
+        const _PACK_META = {"adult":{"e":"🔞","l":"성인팩"},"hardcore":{"e":"🔥","l":"하드코어"},"danbooru-general":{"e":"📦","l":"대형팩"},"nsfw-adult":{"e":"🔞","l":"성인사전"},"expressions-plus":{"e":"😊","l":"표정팩"},"fantasy-plus":{"e":"🐉","l":"판타지팩"}};
+        const _PACK_COMBOS = {
+            "adult": [{n:"가터 란제리",g:{"4":"garter belt, garter straps, thighhighs, thong, choker","5":"looking at viewer, seductive","6":"dim lighting, bed"}},{n:"하이레그 노출",g:{"4":"highleg, revealing clothes, skin tight, thigh boots","5":"standing, arched back","6":"neon lighting, indoors"}},{n:"침실 유혹",g:{"5":"lying, spread legs, seductive, looking at viewer","6":"bed, dim lighting, candlelight"}},{n:"뒤태 강조",g:{"5":"from behind, ass focus, looking back, arched back","6":"dim lighting, indoors"}},{n:"초미니 + 하이힐",g:{"4":"micro skirt, high heels, cleavage, bare shoulders","5":"standing, looking at viewer"}}],
+            "hardcore": [{n:"기본 정사",g:{"5":"sex, vaginal, penis, uncensored"}},{n:"후타나리",g:{"5":"futanari, penis, futa on futa, uncensored"}},{n:"오랄",g:{"5":"fellatio, oral, uncensored"}},{n:"백합 (여여)",g:{"5":"yuri, uncensored"}},{n:"파이즈리",g:{"5":"paizuri, penis, uncensored"}}],
+            "danbooru-general": [{n:"스마트폰 셀카",g:{"5":"holding phone, smartphone, hands up"}},{n:"자연 야외 배경",g:{"6":"tree, cloud, grass"}},{n:"장미 배경",g:{"6":"rose, red rose, bouquet"}},{n:"불꽃 이펙트",g:{"7":"fire, explosion, motion lines"}},{n:"무기 소지",g:{"5":"sword, holding, gun"}}],
+            "nsfw-adult": [{n:"완전 노출",g:{"3":"areolae, dark nipples","4":"completely nude, no panties, breasts out"}},{n:"옷 젖힘 노출",g:{"4":"clothes pull, shirt lift, bra lift, one breast out"}},{n:"체액 · 땀",g:{"3":"pussy juice, wet body, oiled body, glistening skin","5":"saliva"}},{n:"카우걸 체위",g:{"5":"girl on top, cowgirl position, uncensored"}},{n:"언더웨어만",g:{"4":"underwear only, bra and panties, side-tie bikini bottom"}}],
+            "expressions-plus": [{n:"황홀경",g:{"3":"ecstatic, teary-eyed, one eye closed"}},{n:"우울 · 눈물",g:{"3":"gloomy, melancholic expression, sobbing"}},{n:"얀데레 미소",g:{"3":"yandere, smug grin, sparkling eyes"}},{n:"무표정 · 냉담",g:{"3":"deadpan, determined"}},{n:"당황 · 부끄",g:{"3":"flustered, annoyed"}}],
+            "fantasy-plus": [{n:"엘프 마법사",g:{"3":"elf, elf ears","4":"wizard robe, wizard hat","5":"holding staff, casting magic","7":"magic aura, glowing runes"}},{n:"드래곤 걸",g:{"3":"dragon girl, dragon horns, dragon tail"}},{n:"기사 갑옷",g:{"4":"knight armor, plate armor","5":"holding sword"}},{n:"마법 숲 배경",g:{"6":"enchanted forest, wizard tower","7":"sparkling magic, divine light"}},{n:"수인 (냥/여우)",g:{"3":"cat girl, fox girl, animal ears"}}],
+        };
+        // ══════════════════════════════════════════════════════════════
+        //  팩 설치 시 기본 태그(상세 사이드바) + 기본 간편조합 자동 추가 (v9.18.0)
+        //  - 팩 켜짐: 계층별 큐레이션 태그 폴더 + 조합 폴더를 주입 / 꺼짐: 제거
+        //  - 저장 DB에 영구 남지 않게 매 부팅/토글마다 strip→build로 정합(idempotent)
+        //  - 사용자가 직접 만든 폴더/조합은 네임스페이스(|__pack: / pack_)로 구분해 안 건드림
+        // ══════════════════════════════════════════════════════════════
+        const _PACK_LAYER_LABEL = { 1: '품질', 2: '구도', 3: '외형', 4: '의상', 5: '액션', 6: '배경', 7: '조명' };
+        function _activePackIds() {
+            const ids = [];
+            try { if (_adultPackOn) ids.push('adult'); } catch (e) {}
+            try { if (_hardcoreOn) ids.push('hardcore'); } catch (e) {}
+            try { _catalogInstalledIds.forEach(id => { if (_PACK_SIDEBAR_TAGS[id] || _PACK_COMBOS[id]) ids.push(id); }); } catch (e) {}
+            return ids;
+        }
+        function _packSidebarStrip() {
+            for (let L = 1; L <= 7; L++) { const layer = promptDB[L]; if (!layer) continue; Object.keys(layer).forEach(key => { if (key.indexOf('|__pack:') !== -1) delete layer[key]; }); }
+        }
+        function _packSidebarBuild() {
+            _activePackIds().forEach(pid => {
+                const meta = _PACK_META[pid], byLayer = _PACK_SIDEBAR_TAGS[pid];
+                if (!meta || !byLayer) return;
+                Object.keys(byLayer).forEach(L => {
+                    const layer = promptDB[L] = promptDB[L] || {};
+                    const key = meta.e + ' ' + meta.l + ' ' + (_PACK_LAYER_LABEL[L] || L) + '||__pack:' + pid + '__';
+                    layer[key] = byLayer[L].map(e => ({ t: e.t, n: '', k: e.k, c: '' }));
+                });
+            });
+        }
+        function _packComboStrip() {
+            Object.keys(comboFS.items).forEach(id => { if (id.indexOf('pack_') === 0) delete comboFS.items[id]; });
+            comboFS.root = comboFS.root.filter(id => id.indexOf('pack_') !== 0);
+            Object.values(comboFS.items).forEach(it => { if (it && it.children) it.children = it.children.filter(cid => cid.indexOf('pack_') !== 0); });
+        }
+        function _packComboBuild() {
+            _activePackIds().forEach(pid => {
+                const meta = _PACK_META[pid], combos = _PACK_COMBOS[pid];
+                if (!meta || !combos) return;
+                const rootId = 'pack_' + pid + '_root', childIds = [];
+                combos.forEach((c, idx) => {
+                    const cid = 'pack_' + pid + '_c' + idx;
+                    comboFS.items[cid] = { type: 'combo', id: cid, title: meta.e + ' ' + c.n, tags: c.g };
+                    childIds.push(cid);
+                });
+                comboFS.items[rootId] = { type: 'folder', id: rootId, title: meta.e + ' ' + meta.l + ' 조합', children: childIds };
+                comboFS.root.push(rootId);
+            });
+        }
+        function _packReconcileAll(rerender) {
+            try { _packSidebarStrip(); _packSidebarBuild(); } catch (e) {}
+            try { _packComboStrip(); _packComboBuild(); saveComboFS(); } catch (e) {}
+            if (rerender) {
+                try { initApp(); } catch (e) {}
+                try { renderCombos(); } catch (e) {}
+                try { _acInvalidate && _acInvalidate(); } catch (e) {}
+            }
+        }
 
         function countChildren(folderId) {
             const folder = comboFS.items[folderId];
@@ -11130,6 +11215,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!pack.count) { showToast('유효한 태그가 없는 팩입니다.', 'warning'); return Promise.reject(new Error('empty')); }
             return _idbPut(pack).then(() => {
                 const added = _catalogMerge(pack); _catalogInstalledIds.add(pack.id);
+                try { _packReconcileAll(true); } catch (e) {}
                 showToast(`'${pack.name}' 설치됨 — 새 태그 ${added}개`, 'success', 2600);
                 if (document.getElementById('tag-catalog-overlay')) renderTagCatalog();
                 return pack;
@@ -11142,6 +11228,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function uninstallPack(id) {
             return _idbDel(id).then(() => {
                 _catalogInstalledIds.delete(id);
+                try { _packReconcileAll(true); } catch (e) {}
                 showToast('팩을 제거했습니다. 새로고침하면 완전히 반영됩니다.', 'info', 3000);
                 if (document.getElementById('tag-catalog-overlay')) renderTagCatalog();
             });
@@ -11232,9 +11319,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             imp.onclick = _catalogImportFromFile;
             foot.appendChild(imp); box.appendChild(foot);
         }
-        // 부팅 시 설치된 팩 적용
-        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(_catalogApplyInstalled, 200));
-        else setTimeout(_catalogApplyInstalled, 200);
+        // 부팅 시 설치된 팩 적용 → 팩 상태에 맞춰 사이드바/조합 폴더 정합(이미 켜진 팩 반영, 꺼진 팩 찌꺼기 제거)
+        const _bootPacks = () => _catalogApplyInstalled().catch(() => 0).then(() => { try { _packReconcileAll(true); } catch (e) {} });
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(_bootPacks, 200));
+        else setTimeout(_bootPacks, 200);
 
         // 바이그램(2글자 쌍) 집합 생성
         function _bigrams(str) {
