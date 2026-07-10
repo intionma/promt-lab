@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.15.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.15.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1084,7 +1084,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.15.0 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.15.1 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1849,7 +1849,16 @@
         const CHANGELOG = [
             // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.15.0', date: '2026-07-10', time: '최신',
+                version: 'v9.15.1', date: '2026-07-10', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[에디터] 소환한 에디터 창의 "✕" 버튼을 한 번만 눌러도 바로 닫히도록 수정 — 지난 버전에서 두 번 눌러야 닫히던 문제였습니다(뒤로가기·바깥터치·ESC 전부 동일하게 수정)',
+                    '[추천/간편조합] 여러 조합을 켰다 껐다 반복하면 태그가 계속 남아있던 문제를 더 깊이 고쳤습니다 — "1girl"처럼 흔히 겹치는 태그 때문에, 클릭한 적도 없는 다른 조합이 우연히 "선택된 것처럼" 인식되어 태그가 영원히 안 지워지던 근본 원인을 제거했습니다. 이제 실제로 고른 것만 정확히 추적합니다',
+                    '[간편조합] 태그를 공유하는 조합 여러 개를 켠 상태에서 하나만 끌 때, 다른 조합이 여전히 쓰는 태그는 지우지 않도록 보호 로직을 추천 조합과 동일하게 적용했습니다',
+                ]
+            },
+            {
+                version: 'v9.15.0', date: '2026-07-10', time: '이전',
                 tag: 'fix',
                 items: [
                     '[추천] 조합을 빼고 넣을 때 한 번에 안 빠지고 두 번 눌러야 하거나, 분명 뺐는데 최종 프롬프트/에디터에 남아있거나, 에디터에서 지웠는데 추천엔 남아있던 문제를 근본적으로 고쳤습니다 — 이제 추천 선택 상태가 실제 태그 상태와 항상 정확히 일치합니다',
@@ -7166,12 +7175,33 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     .catch(() => {});
             } catch (e) {}
         })();
-        // 룩이 지금 전부 담겨있나 / 담기·빼기 토글
-        function _recLookOn(lk) { const a = _recActive(); return lk && lk.tags && lk.tags.length && lk.tags.every(t => a.has(t.toLowerCase())); }
+        // ── 추천 "선택됨" 판정 — 명시적 선택 집합(_recPickedSet) 기준 ──────────────
+        // 예전엔 "태그가 전부 들어있나"(포함 관계)로 on/off를 판정했는데, 서로 겹치는 태그를
+        // 가진 프리셋이 많아지면(예: "1girl","solo" 같은 흔한 태그) 클릭한 적 없는 다른 프리셋도
+        // 우연히 포함 조건을 만족해 "선택된 것처럼" 보이고, 그 프리셋의 태그까지 보호 대상에
+        // 들어가 버려서 정작 끈 프리셋의 태그가 영영 안 지워지는 문제가 있었다(반복 토글 시 누적).
+        // → 이제 사용자가 실제로 클릭한(또는 처음 열었을 때 이미 적용돼 있던) 프리셋만 "선택됨"으로
+        //   추적하고, 태그 보호도 이 집합만 기준으로 한다.
+        let _recPickedSet = new Set(); // 선택된 프리셋 객체(참조) 집합 — 축 무관 전역 1개로 충분(객체 자체가 유일 키)
+        // 원본 포함관계 판정(부트스트랩·정합성 검사 전용 — 화면 on/off 판정에는 쓰지 않음)
+        function _recLookOnRaw(lk) { const a = _recActive(); return !!(lk && lk.tags && lk.tags.length && lk.tags.every(t => a.has(t.toLowerCase()))); }
+        // 화면에 쓰는 "선택됨" 판정 — 명시적 집합 기준
+        function _recLookOn(lk) { return !!lk && _recPickedSet.has(lk); }
+        // 새 렌더 세션(모달을 처음 열거나, 스튜디오 임베드를 새로 마운트할 때)에 한 번만 —
+        // 이미 에디터에 적용돼 있는 프리셋을 "선택됨"으로 인식시켜 재오픈해도 상단에 고정되게 함.
+        // (재렌더·리롤 때마다 다시 부트스트랩하면 우연한 포함관계로 "유령 선택"이 생기므로 여기서만 호출)
+        function _recBootstrapPicked() {
+            _recAllAxisData().forEach(ax => (ax.data || []).forEach(p => { if (_recLookOnRaw(p)) _recPickedSet.add(p); }));
+        }
+        // 태그가 바뀔 때마다(다른 경로로 지워졌어도) 더 이상 실제로 만족하지 않는 선택은 집합에서 제거
+        // (새로 추가하지는 않음 — 우연한 포함관계로 유령 선택이 생기는 걸 막기 위해 "제거만" 한다)
+        function _recReconcilePicked() {
+            _recPickedSet.forEach(p => { if (!_recLookOnRaw(p)) _recPickedSet.delete(p); });
+        }
         function _recToggleLook(lk) {
             if (!lk || !lk.tags) return;
-            if (_recLookOn(lk)) lk.tags.forEach(t => _recRemoveTag(t));
-            else importPromptToEditor(lk.tags, 'append');
+            if (_recPickedSet.has(lk)) { const protect = _recTagsProtectedExcluding(lk); _recPickedSet.delete(lk); lk.tags.forEach(t => { if (!protect.has((t || '').toLowerCase())) _recRemoveTag(t); }); }
+            else { _recPickedSet.add(lk); importPromptToEditor(lk.tags, 'append'); }
         }
         // 룩 목록 셔플 (표시용 n개)
         function _recPickLooks(n) {
@@ -7392,20 +7422,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 { key: 'bg', data: _DATA_BG },
             ];
         }
-        // excludePreset을 제외한, 현재 "선택됨"으로 판정되는 다른 모든 프리셋들의 태그 합집합
+        // excludePreset을 제외한, 현재 "선택됨"(_recPickedSet)인 다른 모든 프리셋들의 태그 합집합
         // → 특정 프리셋을 뺄 때 이 집합에 있는 태그(다른 선택된 프리셋이 여전히 필요로 함)는 지우지 않음(교차 오염 방지)
         function _recTagsProtectedExcluding(excludePreset) {
             const set = new Set();
-            _recAllAxisData().forEach(ax => (ax.data || []).forEach(p => {
-                if (p === excludePreset) return;
-                if (_recLookOn(p)) (p.tags || []).forEach(t => set.add((t || '').toLowerCase()));
-            }));
+            _recPickedSet.forEach(p => { if (p === excludePreset) return; (p.tags || []).forEach(t => set.add((t || '').toLowerCase())); });
             return set;
         }
         // 렌더 시점의 axis→프리셋 목록 매핑 (재동기화용 · renderRecommendInto에서 채움)
         let _recRenderedMap = null;
-        // 현재 떠 있는 추천 host의 칩들을 실제 태그 상태(_recLookOn)로 재동기화 (재렌더 없이 class만 갱신 → 스크롤/깜빡임 없음)
+        // 현재 떠 있는 추천 host의 칩들을 실제 선택 상태(_recPickedSet)로 재동기화 (재렌더 없이 class만 갱신 → 스크롤/깜빡임 없음)
         function _recSyncVisual(host) {
+            _recReconcilePicked(); // 다른 경로로 태그가 사라진 선택은 먼저 정리
             if (!host || !host.isConnected || !_recRenderedMap) return;
             host.querySelectorAll('.recm-item').forEach(b => {
                 const list = _recRenderedMap[b.dataset.ax]; if (!list) return;
@@ -7436,6 +7464,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 배경(블러) 스크롤 잠금 — 가로 드래그가 뒤 페이지를 밀지 않게
             document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden';
             _recModalPick = null; _recCarouselIdx = 0;
+            _recBootstrapPicked(); // 이미 에디터에 적용된 프리셋을 "선택됨"으로 인식(재오픈해도 상단 고정)
             renderRecommendInto(ov, true, { modal: true });
         }
         function closeRecommendModal() {
@@ -7587,25 +7616,29 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 body.querySelectorAll('.recm-clear').forEach(b => b.onclick = (e) => {
                     e.stopPropagation();
                     const ax = axes.find(a => a.key === b.dataset.ax); if (!ax) return;
-                    const clearing = (ax.data || []).filter(p => _recLookOn(p));
+                    const clearing = (ax.data || []).filter(p => _recPickedSet.has(p));
                     if (!clearing.length) return;
-                    // 이 축을 비우되, 다른 축에서 여전히 선택 중인 프리셋이 필요로 하는 태그는 보존(교차 오염 방지)
-                    const protect = new Set();
-                    _recAllAxisData().forEach(oax => { if (oax.key === ax.key) return; (oax.data || []).forEach(p => { if (_recLookOn(p)) (p.tags || []).forEach(t => protect.add((t || '').toLowerCase())); }); });
-                    clearing.forEach(p => (p.tags || []).forEach(t => { if (!protect.has((t || '').toLowerCase())) _recRemoveTag(t); }));
+                    // 이 축을 비우되, 다른 선택된 프리셋이 여전히 필요로 하는 태그는 보존(교차 오염 방지)
+                    clearing.forEach(p => {
+                        const protect = _recTagsProtectedExcluding(p);
+                        _recPickedSet.delete(p); // 먼저 선택 해제(보호 계산에서 자기 자신 제외 효과)
+                        (p.tags || []).forEach(t => { if (!protect.has((t || '').toLowerCase())) _recRemoveTag(t); });
+                    });
                     renderRecommendModal(false);
                 });
                 body.querySelectorAll('.recm-item').forEach(b => b.onclick = () => {
                     const p = (rendered[b.dataset.ax] || [])[parseInt(b.dataset.idx)];
                     if (!p) return;
-                    const wasOn = _recLookOn(p);
+                    const wasOn = _recPickedSet.has(p);
                     // 터치 즉시 시각 반영 (전체 재렌더 X → 스크롤 튐 없음 · 반응 지연 없음)
                     b.classList.toggle('on', !wasOn);
                     const ic = b.querySelector('.rc-ic'); if (ic) ic.className = 'rc-ic fa-solid fa-' + (!wasOn ? 'check' : 'plus');
+                    // 선택 상태는 즉시 명시적으로 반영(다른 칩의 보호 판정이 이 값을 참조하므로 지연시키면 안 됨)
+                    if (wasOn) _recPickedSet.delete(p); else _recPickedSet.add(p);
                     // 무거운 에디터 반영은 다음 프레임에 (하이라이트가 먼저 그려지도록)
                     setTimeout(() => {
                         if (wasOn) {
-                            // 다른 축에서 여전히 선택 중인 프리셋이 공유하는 태그는 지우지 않음(교차 오염 방지)
+                            // 다른 선택된 프리셋이 공유하는 태그는 지우지 않음(교차 오염 방지)
                             const protect = _recTagsProtectedExcluding(p);
                             (p.tags || []).forEach(t => { if (!protect.has((t || '').toLowerCase())) _recRemoveTag(t); });
                         } else {
@@ -11806,6 +11839,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }, true);
         window.addEventListener('scroll', _acHide, true);
 
+        // excludeId를 제외한, 현재 활성(_activeComboIds)인 다른 모든 조합들의 태그 합집합
+        // → 조합을 뺄 때 다른 활성 조합이 여전히 필요로 하는(겹치는) 태그는 지우지 않음(교차 오염 방지)
+        function _comboTagsProtectedExcluding(excludeId) {
+            const set = new Set();
+            _activeComboIds.forEach(id => {
+                if (id === excludeId) return;
+                const c = comboFS.items[id] || userCombos[id];
+                if (!c || !c.tags) return;
+                Object.values(c.tags).forEach(layerStr => (layerStr || '').split(',').map(s => s.trim()).filter(Boolean).forEach(p => {
+                    const core = p.match(/^\((.+):(\d+\.?\d*)\)$/) ? p.match(/^\((.+):(\d+\.?\d*)\)$/)[1] : p;
+                    set.add(core.toLowerCase());
+                }));
+            });
+            return set;
+        }
         function applyCombo(combo) {
             saveStateToUndoStack();
 
@@ -11813,13 +11861,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const isOn = _activeComboIds.has(combo.id);
 
             if (isOn) {
-                // 해제: 조합의 태그 제거
+                // 해제: 조합의 태그 제거 (다른 활성 조합이 공유하는 태그는 보존 — 교차 오염 방지)
+                const protect = _comboTagsProtectedExcluding(combo.id);
                 Object.keys(combo.tags).forEach(layerId => {
                     const textarea = document.getElementById(`layer-${layerId}`);
                     if (!textarea) return;
                     let content = textarea.value;
                     combo.tags[layerId].split(',').map(s => s.trim()).filter(Boolean).forEach(p => {
                         const core = p.match(/^\((.+):(\d+\.?\d*)\)$/) ? p.match(/^\((.+):(\d+\.?\d*)\)$/)[1] : p;
+                        if (protect.has(core.toLowerCase())) return;
                         content = content.replace(getRegexForTag(core), '');
                     });
                     textarea.value = content.replace(/,\s*,+/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').trim();
@@ -16771,7 +16821,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
             function closeEditor() {
                 if (!document.body.classList.contains('pl-studio-editor')) return;
-                if (_edPushed) { _edPushed = false; try { history.back(); return; } catch (e) {} } // 히스토리 정리 → popstate가 실제 닫음
+                // 히스토리를 되돌려 popstate가 실제로 닫게 함 — _edPushed는 popstate 핸들러가 소비해야 하므로 여기서 먼저 꺼버리면 안 됨(2번 눌러야 닫히는 버그)
+                if (_edPushed) { try { history.back(); return; } catch (e) { _edPushed = false; } }
                 _applyClose();
             }
             function toggleEditor() { if (document.body.classList.contains('pl-studio-editor')) closeEditor(); else openEditor(); }
@@ -16799,6 +16850,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const hostDiv = el('div', { class: 'rec-embed-host', style: 'flex:1;min-height:0;display:flex;flex-direction:column;' });
                     recPanel.appendChild(hostDiv);
                     track.appendChild(recPanel);
+                    try { window._recBootstrapPicked && _recBootstrapPicked(); } catch (e) {}
                     try { window.renderRecommendInto && renderRecommendInto(hostDiv, true, { modal: false }); } catch (e) {}
                 }
                 // 에디터 소환 pill (하단, 탭바 위)
