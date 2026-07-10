@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.18.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.18.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1084,7 +1084,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.18.0 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.18.1 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1849,7 +1849,14 @@
         const CHANGELOG = [
             // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.18.0', date: '2026-07-10', time: '최신',
+                version: 'v9.18.1', date: '2026-07-10', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[간편조합] 기본으로 들어있던 조합("카페 창가 스냅", "무녀", "숲 엘프" 등)을 클릭하면 태그가 엉뚱한 계층으로 흩어지던 버그를 고쳤습니다 — 이제 각 태그가 화질·구도·외형·의상·배경 등 올바른 계층으로 정확히 들어갑니다. 예전부터 쓰시던 분들의 조합도 열 때 자동으로 바로잡히며, 직접 만든 조합은 그대로 유지됩니다',
+                ]
+            },
+            {
+                version: 'v9.18.0', date: '2026-07-10', time: '이전',
                 tag: 'feat',
                 items: [
                     '[팩] 팩(성인·하드코어·태그 카탈로그)을 켜면 이제 "상세 태그" 사이드바에도 팩 전용 태그 폴더가 계층별로 생깁니다 — 예전엔 팩을 받아도 자동완성에만 반영됐는데, 이제 실제로 클릭해서 쓸 수 있는 핵심 태그(계층당 15개, 한글 라벨 포함)가 폴더로 추가돼요. 팩을 끄면 폴더도 깔끔하게 사라집니다',
@@ -7878,30 +7885,36 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         function saveComboFS() { localStorage.setItem(FS_KEY, JSON.stringify(comboFS)); }
 
+        // 기본 조합 정의(정정) — tags는 {계층번호:'태그,태그'} 객체 형식이어야 applyCombo가 올바른 계층에 넣음
+        // (예전엔 배열로 저장돼서 클릭 시 태그가 엉뚱한 계층으로 흩어지는 버그가 있었음)
+        const _DEFAULT_COMBO_DEFS = {
+            cmb_daily_cafe: { t: "☕ 카페 창가 스냅", g: {1:"photorealistic, detailed skin, sharp focus",2:"1girl, solo, depth of field",3:"long hair, soft smile",4:"casual sweater",5:"sitting, looking at viewer",6:"cafe, by window, coffee cup",7:"natural window light, film grain"} },
+            cmb_daily_sofa: { t: "🛋️ 집 소파 릴랙스", g: {1:"photorealistic, detailed skin",2:"1girl, solo",3:"messy hair",4:"oversized shirt, bare legs",5:"lying on couch, relaxed",6:"living room",7:"warm indoor lighting, cozy atmosphere, cinematic lighting"} },
+            cmb_daily_street: { t: "🌆 도시 거리 스냅", g: {1:"candid, street photography, photorealistic, detailed skin",2:"1girl, solo",3:"floating hair",4:"denim jacket, white shirt",5:"standing",6:"city street",7:"bokeh, golden hour"} },
+            cmb_daily_out_knit: { t: "니트 원피스", g: {4:"ribbed sweater dress, long sleeves, cozy outfit",6:"autumn"} },
+            cmb_daily_out_denim: { t: "청바지 + 셔츠", g: {4:"denim pants, white collared shirt, rolled up sleeves, casual outfit"} },
+            cmb_daily_char_pure: { t: "청순 20대", g: {3:"mature female, clear skin, light makeup, black hair, medium hair, soft facial features, gentle expression"} },
+            cmb_daily_char_eleg: { t: "성숙한 분위기", g: {3:"mature female, elegant, sharp eyes, brown hair, long straight hair, refined makeup"} },
+            cmb_fan_miko: { t: "⛩️ 일본 신사 무녀", g: {1:"cinematic, photorealistic, detailed skin",2:"1girl, solo",3:"long black hair, serene expression",4:"miko, white kimono, red hakama",5:"standing",6:"shrine, torii",7:"soft daylight"} },
+            cmb_fan_sakura: { t: "🌸 벚꽃 신사 참배", g: {1:"photorealistic, detailed skin",2:"1girl, solo",3:"black hair, updo",4:"kimono, floral print kimono, hair ornament",6:"cherry blossoms, shrine, stone stairs",7:"falling petals, warm sunlight"} },
+            cmb_fan_elf: { t: "🧝 판타지 숲 엘프", g: {1:"fantasy, cinematic, photorealistic, detailed skin",2:"1girl, solo",3:"elf, pointy ears, long blonde hair, braid",4:"elegant dress, green cloak",6:"forest",7:"dappled sunlight, ethereal"} },
+            cmb_fan_out_miko: { t: "무녀복", g: {4:"miko, white kimono, red hakama, ribbon, traditional japanese clothes"} },
+            cmb_fan_out_kimono: { t: "기모노", g: {4:"kimono, floral print, wide sleeves, obi, traditional japanese clothes"} },
+            cmb_fan_char_elf: { t: "엘프 (뾰족귀)", g: {3:"elf, pointy ears, fair skin, blonde hair, long hair, delicate features"} },
+            cmb_fan_char_yamato: { t: "흑발 야마토 나데시코", g: {3:"mature female, black hair, long straight hair, hime cut, pale skin, calm expression"} },
+        };
         // 기본 간편조합 — 비어 있는(처음) 라이브러리에 한 번만 설치. ComfyUI · Pony Realism 지향.
         // (품질 접두 태그 score_9 등은 결과창에서 자동으로 붙으므로 여기엔 넣지 않음)
         function _installDefaultCombos() {
             const F = (id, title, children) => { comboFS.items[id] = { type: 'folder', id, title, children }; };
-            const C = (id, title, tags) => { comboFS.items[id] = { type: 'combo', id, title, tags }; };
+            const C = (id) => { const d = _DEFAULT_COMBO_DEFS[id]; comboFS.items[id] = { type: 'combo', id, title: d.t, tags: d.g }; };
             // ── 일상 (여성) ──
-            C('cmb_daily_cafe', '☕ 카페 창가 스냅', ['1girl', 'solo', 'sitting', 'cafe', 'by window', 'coffee cup', 'casual sweater', 'long hair', 'looking at viewer', 'soft smile', 'natural window light', 'depth of field', 'film grain', 'photorealistic', 'detailed skin', 'sharp focus']);
-            C('cmb_daily_sofa', '🛋️ 집 소파 릴랙스', ['1girl', 'solo', 'lying on couch', 'living room', 'oversized shirt', 'bare legs', 'relaxed', 'messy hair', 'warm indoor lighting', 'cozy atmosphere', 'cinematic lighting', 'photorealistic', 'detailed skin']);
-            C('cmb_daily_street', '🌆 도시 거리 스냅', ['1girl', 'solo', 'standing', 'city street', 'denim jacket', 'white shirt', 'floating hair', 'bokeh', 'golden hour', 'candid', 'street photography', 'photorealistic', 'detailed skin']);
-            C('cmb_daily_out_knit', '니트 원피스', ['ribbed sweater dress', 'long sleeves', 'autumn', 'cozy outfit']);
-            C('cmb_daily_out_denim', '청바지 + 셔츠', ['denim pants', 'white collared shirt', 'rolled up sleeves', 'casual outfit']);
-            C('cmb_daily_char_pure', '청순 20대', ['mature female', 'clear skin', 'light makeup', 'black hair', 'medium hair', 'soft facial features', 'gentle expression']);
-            C('cmb_daily_char_eleg', '성숙한 분위기', ['mature female', 'elegant', 'sharp eyes', 'brown hair', 'long straight hair', 'refined makeup']);
+            ['cmb_daily_cafe', 'cmb_daily_sofa', 'cmb_daily_street', 'cmb_daily_out_knit', 'cmb_daily_out_denim', 'cmb_daily_char_pure', 'cmb_daily_char_eleg'].forEach(C);
             F('fld_daily_outfit', '👗 의상 고르기', ['cmb_daily_out_knit', 'cmb_daily_out_denim']);
             F('fld_daily_char', '🙂 인물 고르기', ['cmb_daily_char_pure', 'cmb_daily_char_eleg']);
             F('fld_daily', '🏠 일상 (여성) · 완성 세트', ['cmb_daily_cafe', 'cmb_daily_sofa', 'cmb_daily_street', 'fld_daily_outfit', 'fld_daily_char']);
             // ── 판타지 · 일본 신사 ──
-            C('cmb_fan_miko', '⛩️ 일본 신사 무녀', ['1girl', 'solo', 'miko', 'white kimono', 'red hakama', 'shrine', 'torii', 'standing', 'long black hair', 'serene expression', 'soft daylight', 'cinematic', 'photorealistic', 'detailed skin']);
-            C('cmb_fan_sakura', '🌸 벚꽃 신사 참배', ['1girl', 'solo', 'kimono', 'floral print kimono', 'cherry blossoms', 'shrine', 'stone stairs', 'hair ornament', 'black hair', 'updo', 'falling petals', 'warm sunlight', 'photorealistic', 'detailed skin']);
-            C('cmb_fan_elf', '🧝 판타지 숲 엘프', ['1girl', 'solo', 'elf', 'pointy ears', 'fantasy', 'forest', 'elegant dress', 'green cloak', 'long blonde hair', 'braid', 'dappled sunlight', 'ethereal', 'cinematic', 'photorealistic', 'detailed skin']);
-            C('cmb_fan_out_miko', '무녀복', ['miko', 'white kimono', 'red hakama', 'ribbon', 'traditional japanese clothes']);
-            C('cmb_fan_out_kimono', '기모노', ['kimono', 'floral print', 'wide sleeves', 'obi', 'traditional japanese clothes']);
-            C('cmb_fan_char_elf', '엘프 (뾰족귀)', ['elf', 'pointy ears', 'fair skin', 'blonde hair', 'long hair', 'delicate features']);
-            C('cmb_fan_char_yamato', '흑발 야마토 나데시코', ['mature female', 'black hair', 'long straight hair', 'hime cut', 'pale skin', 'calm expression']);
+            ['cmb_fan_miko', 'cmb_fan_sakura', 'cmb_fan_elf', 'cmb_fan_out_miko', 'cmb_fan_out_kimono', 'cmb_fan_char_elf', 'cmb_fan_char_yamato'].forEach(C);
             F('fld_fan_outfit', '👘 의상 고르기', ['cmb_fan_out_miko', 'cmb_fan_out_kimono']);
             F('fld_fan_char', '🙂 인물 고르기', ['cmb_fan_char_elf', 'cmb_fan_char_yamato']);
             F('fld_fan', '⛩️ 판타지 · 일본 신사 · 완성 세트', ['cmb_fan_miko', 'cmb_fan_sakura', 'cmb_fan_elf', 'fld_fan_outfit', 'fld_fan_char']);
@@ -7914,6 +7927,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 saveComboFS();
             }
         } catch (e) {}
+        // 기존 사용자 정정: 예전에 배열로 저장된 기본 조합을 올바른 {계층:'태그'} 형식으로 교체(깨진 것만).
+        // 사용자가 직접 수정한 조합은 이미 객체 형식이라 건드리지 않음. 매 로드마다 안전(멱등).
+        (function _fixLegacyDefaultCombos() {
+            try {
+                let changed = false;
+                for (const id in _DEFAULT_COMBO_DEFS) {
+                    const it = comboFS.items[id];
+                    if (it && it.type === 'combo' && Array.isArray(it.tags)) { it.tags = _DEFAULT_COMBO_DEFS[id].g; changed = true; }
+                }
+                if (changed) saveComboFS();
+            } catch (e) {}
+        })();
 
         const _PACK_SIDEBAR_TAGS = {
             "adult": {4:[{t:"thighhighs",k:"허벅지 양말 (니하이)"},{t:"cleavage",k:"가슴 골"},{t:"garter straps",k:"가터 스트랩"},{t:"high heels",k:"하이힐"},{t:"garter belt",k:"가터벨트"},{t:"choker",k:"초커"},{t:"thigh boots",k:"사이하이 부츠"},{t:"thong",k:"끈팬티"},{t:"highleg",k:"하이레그"},{t:"skin tight",k:"몸에 딱 붙는"},{t:"micro skirt",k:"초미니 스커트"},{t:"o-ring",k:"O링 장식"},{t:"bare shoulders",k:"드러난 어깨"},{t:"cape",k:"케이프"},{t:"revealing clothes",k:"노출이 심한 옷"}], 5:[{t:"looking at viewer",k:"정면 응시"},{t:"uncensored",k:"무검열"},{t:"pussy",k:"여성 성기"},{t:"spread legs",k:"다리 벌린"},{t:"arched back",k:"등을 젖힌"},{t:"seductive",k:"유혹적인"},{t:"from behind",k:"뒤에서"},{t:"from above",k:"위에서"},{t:"looking back",k:"뒤돌아보는"},{t:"standing",k:"서 있는"},{t:"from below",k:"아래에서"},{t:"cowboy shot",k:"허벅지 위 컷 (카우보이 샷)"},{t:"full body",k:"전신"},{t:"masturbation",k:"자위"},{t:"ass focus",k:"엉덩이 강조"}], 6:[{t:"dim lighting",k:"어두운 조명"},{t:"indoors",k:"실내"},{t:"night",k:"밤"},{t:"bed",k:"침대"},{t:"steam",k:"수증기"},{t:"neon lighting",k:"네온 조명"},{t:"water",k:"물"},{t:"curtains",k:"커튼"},{t:"window",k:"창문"},{t:"bedroom",k:"침실"},{t:"candlelight",k:"촛불"},{t:"tiles",k:"타일"},{t:"city lights",k:"도시 야경"},{t:"colored lighting",k:"컬러 조명"},{t:"bed sheets",k:"침대 시트"}] },
