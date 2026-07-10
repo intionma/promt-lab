@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.19.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.19.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1086,7 +1086,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.19.0 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.19.1 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1851,7 +1851,14 @@
         const CHANGELOG = [
             // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.19.0', date: '2026-07-10', time: '최신',
+                version: 'v9.19.1', date: '2026-07-10', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[전역] 창(모달)이 떠 있을 때 뒤로가기(모바일 뒤로 버튼 포함)를 누르면 페이지가 통째로 넘어가 버리던 문제를 전면 수정했습니다 — 이제 뒤로가기를 누르면 페이지가 아니라 "떠 있는 그 창만" 닫힙니다. 추천·간편조합 만들기·ComfyUI 전송·태그 카탈로그·프리셋/DB 관리·변경내역·레이아웃 등 거의 모든 창에 적용됐습니다',
+                ]
+            },
+            {
+                version: 'v9.19.0', date: '2026-07-10', time: '이전',
                 tag: 'feat',
                 items: [
                     '[갤러리] 생성한 이미지를 우클릭(PC) 또는 꾹 누르면(모바일) 메뉴가 뜨고, 그 이미지를 만들 때 쓴 태그를 에디터로 바로 불러올 수 있습니다 — "덮어쓰기"로 통째로 가져오거나 "현재에 추가"로 덧붙일 수 있고, 시드 복사도 됩니다',
@@ -2927,6 +2934,7 @@
                 body.appendChild(block);
             });
             overlay.style.display = 'flex';
+            registerModalBack(overlay, closeChangelogModal);
         }
 
         function closeChangelogModal() {
@@ -2970,6 +2978,54 @@
             requestAnimationFrame(() => { requestAnimationFrame(() => toast.classList.add('show')); });
             setTimeout(() => dismissToast(toast), duration);
         }
+
+        // ══════════════════════════════════════════════════════════════
+        //  모달 뒤로가기(Back) 통합 — 창이 떠 있을 때 브라우저/모바일 뒤로가기를 누르면
+        //  페이지가 넘어가지 않고 "그 창만" 닫히게 한다.
+        //  registerModalBack(el, closeFn): 창을 연 직후 한 줄 호출하면 됨.
+        //   - 열 때 history state를 하나 쌓고, el이 닫히면(display:none 또는 DOM 제거) MutationObserver로
+        //     자동 감지해 히스토리를 되감아 정합을 맞춘다(닫기 함수는 손댈 필요 없음).
+        //   - 뒤로가기(popstate) 시 스택 최상단 모달의 closeFn만 실행.
+        //  라이트박스/에디터의 기존 popstate 처리와는 서로 자기 상태만 보므로 공존한다.
+        // ══════════════════════════════════════════════════════════════
+        const _modalBackStack = []; // [{el, close, obs, pobs}]
+        let _modalBackPopping = false;   // popstate가 닫는 중(옵저버의 중복 되감기 방지)
+        let _modalBackConsuming = false; // 외부 닫힘으로 history.back() 소비 중(그 popstate는 무시)
+        function _modalBackDetach(entry) {
+            try { entry.obs && entry.obs.disconnect(); } catch (e) {}
+            try { entry.pobs && entry.pobs.disconnect(); } catch (e) {}
+        }
+        function _modalBackVisible(el) {
+            try { return el && el.isConnected && getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden'; } catch (e) { return false; }
+        }
+        function registerModalBack(el, closeFn) {
+            if (!el || _modalBackStack.some(m => m.el === el)) return; // 중복 등록 방지
+            const entry = { el, close: closeFn || (() => { el.style.display = 'none'; }) };
+            _modalBackStack.push(entry);
+            try { history.pushState({ _plModal: _modalBackStack.length }, ''); } catch (e) {}
+            // 외부(X/스크림/ESC)로 닫히면 히스토리 되감아 정합
+            const onExternalClose = () => {
+                const i = _modalBackStack.indexOf(entry);
+                if (i === -1) return;
+                _modalBackStack.splice(i, 1);
+                _modalBackDetach(entry);
+                if (!_modalBackPopping) { _modalBackConsuming = true; try { history.back(); } catch (e) { _modalBackConsuming = false; } }
+            };
+            const obs = new MutationObserver(() => { if (!_modalBackVisible(el)) onExternalClose(); });
+            try { obs.observe(el, { attributes: true, attributeFilter: ['style', 'class'] }); } catch (e) {}
+            entry.obs = obs;
+            if (el.parentNode) { const pobs = new MutationObserver(() => { if (!el.isConnected) onExternalClose(); }); try { pobs.observe(el.parentNode, { childList: true }); } catch (e) {} entry.pobs = pobs; }
+        }
+        window.registerModalBack = registerModalBack;
+        window.addEventListener('popstate', () => {
+            if (_modalBackConsuming) { _modalBackConsuming = false; return; } // 외부 닫힘이 만든 back → 무시
+            if (!_modalBackStack.length) return;
+            _modalBackPopping = true;
+            const entry = _modalBackStack.pop();
+            _modalBackDetach(entry);
+            try { entry.close(); } catch (e) {}
+            _modalBackPopping = false;
+        });
 
         function showConfirm(msg, onConfirm, opts) {
             opts = opts || {};
@@ -3241,6 +3297,7 @@
             _nbStep = 0; _nbBundles = {}; _nbSelB = {};
             _nbCats.forEach(c => { _nbBundles[c.layer] = _nbGen(c); _nbSelB[c.layer] = new Set(); });
             document.getElementById('newbie-mode').style.display = 'flex';
+            registerModalBack(document.getElementById('newbie-mode'), closeNewbieMode);
             _nbRender();
             _nbBindSwipe();
         }
@@ -3509,6 +3566,7 @@
             box.appendChild(cancel);
             overlay.appendChild(box);
             document.body.appendChild(overlay);
+            registerModalBack(overlay, () => overlay.remove()); // 뒤로가기로 닫힘
         }
 
         async function _doDownloadAppHtml(mode) {
@@ -3631,6 +3689,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 document.getElementById('shutdown-timer-setup').style.display = 'flex';
             }
             document.getElementById('shutdown-modal').style.display = 'flex';
+            registerModalBack(document.getElementById('shutdown-modal'));
         }
 
         function _comfyShutdownDefault() {
@@ -4012,6 +4071,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function openComfyModal() {
             _comfyRestoreSettings();
             document.getElementById('comfy-modal').style.display = 'flex';
+            registerModalBack(document.getElementById('comfy-modal'));
         }
 
         // CLIPTextEncode 계열 노드에서 텍스트 입력 필드명 찾기 (text / text_g 등)
@@ -5966,6 +6026,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const tBtn = document.getElementById('mg-settings-toggle'); if (tBtn) tBtn.innerHTML = '<i class="fa-solid fa-sliders"></i> 설정';
             const sc = document.getElementById('mg-scroll'); if (sc) sc.scrollTop = 0;
             document.getElementById('multigen-modal').style.display = 'flex';
+            registerModalBack(document.getElementById('multigen-modal'), closeMultiGen);
             // PC 상태 실시간 모니터 자동 시작 (가상 모드면 가짜 데이터로, 아니면 연결돼 있던 경우)
             if (DevMode.feature('mockGen') || _comfyConnectedOnce) _mgStartSysMonitor();
         }
@@ -7695,6 +7756,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _recModalPick = null; _recCarouselIdx = 0;
             _recBootstrapPicked(); // 이미 에디터에 적용된 프리셋을 "선택됨"으로 인식(재오픈해도 상단 고정)
             renderRecommendInto(ov, true, { modal: true });
+            registerModalBack(ov, closeRecommendModal); // 뒤로가기로 닫힘(스크롤 잠금 해제 등 side effect 포함)
         }
         function closeRecommendModal() {
             const o = document.getElementById('rec-modal-overlay'); if (o) o.remove();
@@ -8143,6 +8205,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         function openMemoModal() {
             document.getElementById('memo-modal').style.display = 'flex';
+            registerModalBack(document.getElementById('memo-modal'));
             setTimeout(() => document.getElementById('generation-memo')?.focus(), 50);
         }
 
@@ -9459,6 +9522,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             modal.appendChild(header); modal.appendChild(body); modal.appendChild(footer);
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
+            registerModalBack(overlay, () => overlay.remove()); // 뒤로가기로 닫힘
             renderCCMBody(preselectedTag);
         }
 
@@ -11388,6 +11452,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 overlay.style.cssText = 'position:fixed;inset:0;z-index:10002;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;';
                 overlay.onclick = (e) => { if (e.target === overlay) closeTagCatalog(); };
                 document.body.appendChild(overlay);
+                registerModalBack(overlay, closeTagCatalog);
             }
             overlay.innerHTML = '';
             const box = document.createElement('div');
@@ -12537,6 +12602,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             box.appendChild(btnRow);
             overlay.appendChild(box);
             document.body.appendChild(overlay);
+            registerModalBack(overlay, () => overlay.remove()); // 뒤로가기로 닫힘
             setTimeout(() => ta.focus(), 50);
         }
 
@@ -13324,6 +13390,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             box.append(sel, btnRow);
             overlay.appendChild(box);
             document.body.appendChild(overlay);
+            registerModalBack(overlay, () => overlay.remove()); // 뒤로가기로 닫힘
         }
 
         // ─── 레이어 재배치 (DB 기준 자동 정리) ──────────────────────────────────
@@ -13442,6 +13509,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
             overlay.appendChild(box);
             document.body.appendChild(overlay);
+            registerModalBack(overlay, () => overlay.remove()); // 뒤로가기로 닫힘
         }
 
         // ─── DB 전체 검사: Pony/Danbooru 사전 기준 계층 검증 + 중복 태그 감지 ──────
@@ -13645,6 +13713,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             box.append(hdr, body, footer);
             overlay.appendChild(box);
             document.body.appendChild(overlay);
+            registerModalBack(overlay, () => overlay.remove()); // 뒤로가기로 닫힘
         }
 
         // 정확한 (계층,폴더,인덱스)의 항목에서 토큰 제거 — 같은 폴더 중복도 올바른 항목 처리
@@ -13841,6 +13910,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             box.appendChild(close);
             overlay.appendChild(box);
             document.body.appendChild(overlay);
+            registerModalBack(overlay, () => overlay.remove()); // 뒤로가기로 닫힘
         }
 
         function handleSelectionTextMode(e, textarea, layerIndex) {
@@ -14740,6 +14810,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function openPresetManager() {
             renderPresetManagerTable();
             document.getElementById('preset-manager-modal').style.display = 'flex';
+            registerModalBack(document.getElementById('preset-manager-modal'));
         }
 
         function saveNewPreset() {
@@ -15074,6 +15145,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (fileBtn) fileBtn.innerHTML = '<i class="fa-solid fa-file-arrow-up"></i> 파일에서 불러오기';
             }
             modal.style.display = 'flex';
+            registerModalBack(modal);
         }
 
         function setImportMode(mode) {
@@ -15431,7 +15503,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             reader.readAsText(file);
         }
 
-        function openDBManager() { dbSetMode('table'); document.getElementById('db-manager-modal').style.display = 'flex'; }
+        function openDBManager() { dbSetMode('table'); document.getElementById('db-manager-modal').style.display = 'flex'; registerModalBack(document.getElementById('db-manager-modal')); }
 
         // 표 편집 / 코드 편집 모드 전환 (같은 DB, 한 모달)
         function dbSetMode(mode) {
@@ -15674,6 +15746,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             modal.append(titleRow, infoEl, stepOneBox, stepTwoBox, applyBtn);
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
+            registerModalBack(overlay, () => overlay.remove()); // 뒤로가기로 닫힘
 
             // ── 이벤트
             const close = () => overlay.remove();
@@ -15815,6 +15888,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             modal.appendChild(hdr); modal.appendChild(body); modal.appendChild(footer);
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
+            registerModalBack(overlay, () => overlay.remove()); // 뒤로가기로 닫힘
 
             analyzeBtn.onclick = () => _pcmAnalyze(ta.value, resultDiv, addBtn);
             ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); analyzeBtn.click(); } });
@@ -17423,7 +17497,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             vis.forEach((i, idx) => i._el && i._el.classList.toggle('sel', idx === cmdkSel));
             if (vis[cmdkSel] && vis[cmdkSel]._el) vis[cmdkSel]._el.scrollIntoView({ block: 'nearest' });
         }
-        function openCmdK() { buildCmdK(); cmdkItems = collectCommands(); cmdkInput.value = ''; renderCmdK(); cmdkBox.classList.add('open'); setTimeout(() => cmdkInput.focus(), 30); }
+        function openCmdK() { buildCmdK(); cmdkItems = collectCommands(); cmdkInput.value = ''; renderCmdK(); cmdkBox.classList.add('open'); registerModalBack(cmdkBox, closeCmdK); setTimeout(() => cmdkInput.focus(), 30); }
         function closeCmdK() { if (cmdkBox) cmdkBox.classList.remove('open'); }
         document.addEventListener('keydown', (e) => {
             if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); if (cmdkBox && cmdkBox.classList.contains('open')) closeCmdK(); else openCmdK(); }
@@ -17494,7 +17568,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 pickerGrid.appendChild(grid);
             });
         }
-        function openLayoutPicker() { buildPicker(); renderPickerCards(); pickerBox.classList.add('open'); }
+        function openLayoutPicker() { buildPicker(); renderPickerCards(); pickerBox.classList.add('open'); registerModalBack(pickerBox, closeLayoutPicker); }
         function closeLayoutPicker() { if (pickerBox) pickerBox.classList.remove('open'); }
         window.openLayoutPicker = openLayoutPicker;
         window.closeLayoutPicker = closeLayoutPicker;
