@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.17.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.17.2 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1084,7 +1084,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.17.1 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.17.2 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1849,7 +1849,16 @@
         const CHANGELOG = [
             // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.17.1', date: '2026-07-10', time: '최신',
+                version: 'v9.17.2', date: '2026-07-10', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[기본 태그] "고정 접두 태그" 기본값을 score_9~score_6_up까지 4단으로 줄였습니다 (score_5_up·score_4_up 제거) — 매번 직접 지울 필요 없이 바로 깔끔한 상태로 시작해요. 이미 커스터마이즈해서 쓰던 값은 그대로 유지되고, 기본값을 그대로 쓰던 경우만 자동으로 바뀝니다',
+                    '[기본 태그] "소스 & 레이팅" 폴더에 source_photo(실사 사진) 태그를 추가했습니다 — Pony Realism으로 실사 결과물을 뽑을 때 맨 앞에 놓고 쓰면 좋아요',
+                    '[기본 태그] 기본 네거티브 프롬프트에 plastic skin, cgi, 3d render, airbrushed를 추가했습니다 — 실사풍에서 "인위적인 CG 느낌"을 줄이는 데 도움이 됩니다',
+                ]
+            },
+            {
+                version: 'v9.17.1', date: '2026-07-10', time: '이전',
                 tag: 'fix',
                 items: [
                     '[에디터] 태블릿 정도로 넓은 화면(가로 700~1024px 정도)에서 에디터 카드가 한쪽으로 쏠리고 오른쪽에 빈 공간이 크게 남던 문제 수정 — 이제 화면 폭에 맞춰 카드가 가운데로 반듯하게 정렬됩니다',
@@ -6296,7 +6305,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { id: 7, title: "7. 조명 및 이펙트 (Lighting)",   icon: "fa-bolt",          color: "var(--color-l7)", rgb: "var(--rgb-l7)", hue: 45 }
         ];
 
-        let baseNegative = "score_6, score_5, score_4, worst quality, low quality, bad anatomy, missing fingers, extra digits, text, watermark, signature, blurry, 3d, cartoon, anime, illustration";
+        let baseNegative = "score_6, score_5, score_4, worst quality, low quality, bad anatomy, missing fingers, extra digits, text, watermark, signature, blurry, 3d, cartoon, anime, illustration, plastic skin, cgi, 3d render, airbrushed";
 
         const negKorMap = {
             "score_9": "최고 품질 (score 9)", "score_8_up": "고품질 (score 8+)", "score_7_up": "우수 품질 (score 7+)", "score_6_up": "보통 품질 (score 6+)",
@@ -6308,8 +6317,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             "extra digits": "추가 손가락들", "fewer digits": "부족한 손가락",
             "cropped": "잘린 이미지", "jpeg artifacts": "JPEG 열화", "signature": "서명",
             "watermark": "워터마크", "username": "유저네임", "blurry": "흐릿함",
-            "source_realistic": "실사풍", "photorealistic": "사진같은 리얼리즘",
+            "source_realistic": "실사풍", "photorealistic": "사진같은 리얼리즘", "source_photo": "실사 사진 출처",
             "3d": "3D", "cartoon": "카툰", "anime": "애니", "illustration": "일러스트",
+            "plastic skin": "플라스틱 같은 피부", "cgi": "CGI", "3d render": "3D 렌더링", "airbrushed": "에어브러시 보정",
             "multiple girls": "다수의 소녀", "boys": "소년들", "1girl": "1명(여성)", "solo": "단독",
             "outdoors": "야외", "indoors": "실내", "flat background": "단조로운 배경",
             "simple background": "단순한 배경", "detailed background": "복잡한 배경",
@@ -6335,6 +6345,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
               {"t":"absurdres, 8k","n":"lowres","k":"초고화질 (8K)","c":""}
             ],
             "소스 & 레이팅 (Source/Rating)|1개": [
+              {"t":"source_photo","n":"anime, illustration, cartoon, 3d","k":"소스: 실사 사진 (Pony Realism 권장)","c":"source"},
               {"t":"source_pony","n":"","k":"소스: Pony","c":"source"},
               {"t":"source_furry","n":"","k":"소스: Furry (수인)","c":"source"},
               {"t":"source_cartoon","n":"","k":"소스: Cartoon","c":"source"},
@@ -6653,6 +6664,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const hasSourceFolder = Object.keys(L1).some(k => k.startsWith('소스'));
                 if (!hasSourceFolder) {
                     L1['소스 & 레이팅 (Source/Rating)|1개'] = [
+                        { t: 'source_photo', n: 'anime, illustration, cartoon, 3d', k: '소스: 실사 사진 (Pony Realism 권장)', c: 'source' },
                         { t: 'source_pony', n: '', k: '소스: Pony', c: 'source' },
                         { t: 'source_furry', n: '', k: '소스: Furry (수인)', c: 'source' },
                         { t: 'source_cartoon', n: '', k: '소스: Cartoon', c: 'source' },
@@ -6662,6 +6674,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         { t: 'rating_explicit', n: '', k: '레이팅: 노골적 (성인)', c: 'rating' },
                     ];
                     changed = true;
+                } else {
+                    // 2-1) 폴더는 이미 있는데 source_photo만 없는 기존 사용자 — 맨 앞에 보강
+                    const srcFolderKey = Object.keys(L1).find(k => k.startsWith('소스'));
+                    const srcFolder = L1[srcFolderKey] || [];
+                    if (!srcFolder.some(e => e && e.t === 'source_photo')) {
+                        srcFolder.unshift({ t: 'source_photo', n: 'anime, illustration, cartoon, 3d', k: '소스: 실사 사진 (Pony Realism 권장)', c: 'source' });
+                        changed = true;
+                    }
                 }
                 // 3) 장황한 기본 날씨 번역 정리 (rain/snow) — 중복 표현 방지
                 const wFix = { snow: '눈', rain: '비' };
@@ -9551,7 +9571,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             1: { // L1: 화질/렌더링 + 화풍/아트스타일
                 exact: ['score_9','score_8_up','score_7_up','score_6_up','score_5_up','score_4_up',
                         'masterpiece','best quality','high quality','ultra quality','amazing quality',
-                        'source_anime','source_real','source_furry','source_cartoon',
+                        'source_photo','source_anime','source_real','source_furry','source_cartoon',
                         'photorealistic','hyperrealistic','ultra realistic',
                         'sharp focus','high resolution','highres','absurdres','8k','4k','uhd',
                         'ray tracing','perfect anatomy','intricate detail',
@@ -9717,7 +9737,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             "sharp focus":{"k":"선명한 초점","l":1},"intricate detail":{"k":"섬세한 디테일","l":1},
             "perfect anatomy":{"k":"완벽한 해부학","l":1},"subsurface scattering":{"k":"피부 산란 효과","l":1},
             "skin texture":{"k":"피부 텍스처","l":1},"realistic skin":{"k":"실사 피부","l":1},
-            "source_pony":{"k":"Pony 출처","l":1},"source_anime":{"k":"애니메이션 출처","l":1},
+            "source_photo":{"k":"실사 사진 출처","l":1},"source_pony":{"k":"Pony 출처","l":1},"source_anime":{"k":"애니메이션 출처","l":1},
             "source_furry":{"k":"퍼리 출처","l":1},"source_cartoon":{"k":"카툰 출처","l":1},
             "source_realistic":{"k":"실사 출처","l":1},
             "rating_safe":{"k":"전체 이용가","l":1},"rating_questionable":{"k":"성인 (선정적)","l":1},
@@ -14118,8 +14138,19 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         // ── 고정 접두 태그: 추천·조합으로 계층이 바뀌어도 score 등 필수 태그를 최종 프롬프트에 항상 포함 ──
-        let _fixedPrefix = { enabled: true, text: 'score_9, score_8_up, score_7_up, score_6_up, score_5_up, score_4_up' };
-        try { const s = JSON.parse(localStorage.getItem('fixed_prefix_v1')); if (s && typeof s === 'object') _fixedPrefix = { enabled: s.enabled !== false, text: typeof s.text === 'string' ? s.text : _fixedPrefix.text }; } catch (e) {}
+        let _fixedPrefix = { enabled: true, text: 'score_9, score_8_up, score_7_up, score_6_up' };
+        try {
+            const s = JSON.parse(localStorage.getItem('fixed_prefix_v1'));
+            if (s && typeof s === 'object') {
+                let text = typeof s.text === 'string' ? s.text : _fixedPrefix.text;
+                // 기존 6단 체인 기본값 그대로였다면 새 4단 기본값으로 자동 업그레이드 (커스터마이즈한 값은 그대로 보존)
+                if (text === 'score_9, score_8_up, score_7_up, score_6_up, score_5_up, score_4_up') {
+                    text = _fixedPrefix.text;
+                    try { localStorage.setItem('fixed_prefix_v1', JSON.stringify({ enabled: s.enabled !== false, text })); } catch (e) {}
+                }
+                _fixedPrefix = { enabled: s.enabled !== false, text };
+            }
+        } catch (e) {}
         function _fixedPrefixInit() {
             const c = document.getElementById('fixed-prefix-toggle'); const t = document.getElementById('fixed-prefix-text');
             if (c) c.checked = _fixedPrefix.enabled;
