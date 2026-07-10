@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.10.57 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.11.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
-    <!-- 레이아웃 전용 폰트 (특수 테마: 터미널/매거진/레트로/콕핏 등) -->
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=VT323&family=Press+Start+2P&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Space+Mono:wght@400;700&family=Bebas+Neue&family=Gaegu:wght@700&family=Black+Han+Sans&family=Nanum+Myeongjo:wght@700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <style>
@@ -943,71 +941,46 @@
         .pl-mini > div { border-radius:4px; background:rgba(255,255,255,0.10); border:1px solid rgba(255,255,255,0.12); }
         .pl-mini.col { flex-direction:column; }
 
-        /* ── 공통: 특수 레이아웃 풀스크린 스테이지 (오버레이형 기능 레이아웃) ── */
-        #pl-stage { position:fixed; inset:0; top:var(--pl-topbar-h,54px); z-index:900; display:none; overflow:hidden; }
-        body.pl-stage-on #pl-stage { display:block; }
-        body.pl-stage-on .app-container { visibility:hidden; }
-        /* 기능 레이아웃 종료/전환 버튼 (스테이지 위에 항상 떠있음) */
-        .pl-stage-exit { position:fixed; top:calc(var(--pl-topbar-h,54px) + 10px); right:14px; z-index:906; display:flex; align-items:center; gap:7px; background:var(--glass-bg); backdrop-filter:blur(24px) saturate(160%); -webkit-backdrop-filter:blur(24px) saturate(160%); border:1px solid var(--glass-border); color:var(--text-main); border-radius:22px; padding:8px 15px; font-size:12px; font-weight:800; cursor:pointer; box-shadow:0 6px 22px rgba(0,0,0,0.45); font-family:var(--font-ui); transition:border-color .15s, transform .15s; }
-        .pl-stage-exit:hover { border-color:#f472b6; transform:translateY(-1px); }
-        .pl-stage-exit i { color:#f472b6; }
-
         /* =========================================================
-           A군 — 재배치형
+           스튜디오 — 미니멀 라이트 · 간편 조합 + 결과/ComfyUI, 에디터는 소환식
            ========================================================= */
-        /* zen — 집중 모드 */
-        body[data-layout="zen"] #panel-left,
-        body[data-layout="zen"] #panel-right,
-        body[data-layout="zen"] #resize-handle-1,
-        body[data-layout="zen"] #resize-handle-2 { display:none; }
-        body[data-layout="zen"] #panel-mid { max-width:880px; margin:0 auto; border-left:1px solid var(--border-dim); border-right:1px solid var(--border-dim); }
-        body[data-layout="zen"] .app-container { background:var(--bg-base); }
-        body[data-layout="zen"] #panel-mid .panel-content { padding:28px 40px; }
-        body[data-layout="zen"] { --font-ui:'Nanum Myeongjo', serif; }
-        body[data-layout="zen"] .pl-zen-tab { position:fixed; top:50%; transform:translateY(-50%); z-index:850; background:var(--bg-surface); border:1px solid var(--border-dim); color:var(--text-dim); width:34px; height:74px; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; }
-        body[data-layout="zen"] .pl-zen-tab.left { left:0; border-radius:0 12px 12px 0; }
-        body[data-layout="zen"] .pl-zen-tab.right { right:0; border-radius:12px 0 0 12px; }
-        body[data-layout="zen"] #panel-left.pl-zen-open,
-        body[data-layout="zen"] #panel-right.pl-zen-open { display:flex; position:fixed; top:var(--pl-topbar-h,54px); bottom:0; width:min(380px,86vw); z-index:851; box-shadow:0 0 60px rgba(0,0,0,0.6); }
-        body[data-layout="zen"] #panel-left.pl-zen-open { left:0; }
-        body[data-layout="zen"] #panel-right.pl-zen-open { right:0; }
-
-        /* stacked — 세로 적층 */
-        body[data-layout="stacked"] .app-container { flex-direction:column; overflow-y:auto; }
-        body[data-layout="stacked"] #mobile-panel-track { display:contents; }
-        body[data-layout="stacked"] #panel-mid { order:1; min-height:46vh; flex:none; height:auto; }
-        body[data-layout="stacked"] #panel-right { order:2; min-height:36vh; flex:none; height:auto; border-top:3px solid var(--accent-blue); }
-        body[data-layout="stacked"] #panel-left { order:3; min-height:40vh; flex:none; height:auto; border-top:3px solid var(--accent-green); }
-        body[data-layout="stacked"] #resize-handle-1,
-        body[data-layout="stacked"] #resize-handle-2 { display:none; }
-
-        /* mirror — 좌우 반전 */
-        body[data-layout="mirror"] #panel-left  { order:5; border-right:none; border-left:1px solid var(--border-dim); }
-        body[data-layout="mirror"] #resize-handle-1 { order:4; }
-        body[data-layout="mirror"] #panel-mid   { order:3; }
-        body[data-layout="mirror"] #resize-handle-2 { order:2; }
-        body[data-layout="mirror"] #panel-right { order:1; }
-
-        /* =========================================================
-           B군 — 패러다임 차용형
-           ========================================================= */
-        /* inspector — Figma 인스펙터 */
-        body[data-layout="inspector"] { --pl-radius:10px; }
-        body[data-layout="inspector"] #panel-left { max-width:230px; }
-        body[data-layout="inspector"] #panel-right { max-width:300px; background:var(--bg-panel); }
-        body[data-layout="inspector"] #panel-mid { background:var(--bg-base); }
-        body[data-layout="inspector"] .panel-header { text-transform:uppercase; letter-spacing:.5px; font-size:11px; }
-
-        /* ide — VS Code형 (아이콘 레일 + 커맨드 팔레트) */
-        body[data-layout="ide"] { --font-ui:'Space Mono', monospace; --bg-base:#1e1e1e; --bg-panel:#252526; --bg-surface:#2d2d30; --border-dim:#3c3c3c; --text-main:#d4d4d4; --text-dim:#858585; --accent-blue:#007acc; }
-        body[data-layout="ide"] .app-container { padding-left:48px; }
-        body[data-layout="ide"] #pl-ide-rail { position:fixed; left:0; top:var(--pl-topbar-h,54px); bottom:0; width:48px; background:#333333; z-index:840; display:flex; flex-direction:column; align-items:center; padding-top:8px; gap:4px; }
-        body[data-layout="ide"] #pl-ide-rail button { width:48px; height:44px; background:transparent; border:none; border-left:2px solid transparent; color:#858585; font-size:19px; cursor:pointer; }
-        body[data-layout="ide"] #pl-ide-rail button:hover { color:#fff; }
-        body[data-layout="ide"] #pl-ide-rail button.active { color:#fff; border-left-color:#007acc; }
-        body[data-layout="ide"] .panel-header { background:#2d2d30; font-size:11px; text-transform:uppercase; letter-spacing:1px; }
-        body:not([data-layout="ide"]) #pl-ide-rail { display:none; }
-
+        body[data-layout="studio"] {
+            --bg-base:#eef1f6; --bg-panel:#ffffff; --bg-surface:#f6f8fb; --border-dim:#e2e6ec;
+            --text-main:#1e2530; --text-dim:#6b7686; --accent-blue:#6366f1; --accent-green:#10b981;
+            --header-bg:#ffffff; --chip-bg:#ffffff; --input-bg:#ffffff;
+            --folder-bg:#f6f8fb; --folder-hover:#eef1f6; --shadow-color:rgba(30,40,60,0.08);
+        }
+        body[data-layout="studio"] .app-container { gap:16px; padding:16px; background:var(--bg-base); }
+        body[data-layout="studio"] #mobile-panel-track { display:contents; }
+        body[data-layout="studio"] #resize-handle-1,
+        body[data-layout="studio"] #resize-handle-2 { display:none; }
+        body[data-layout="studio"] #panel-left,
+        body[data-layout="studio"] #panel-right { flex:1 1 0 !important; width:auto !important; min-width:0; max-width:none;
+            border:1px solid var(--border-dim); border-radius:18px; background:var(--bg-panel);
+            box-shadow:0 1px 2px var(--shadow-color), 0 8px 24px rgba(30,40,60,0.05); overflow:hidden; }
+        body[data-layout="studio"] .panel-header { background:var(--bg-panel); border-bottom:1px solid var(--border-dim); }
+        /* 에디터: 기본 숨김 → 소환 시 가운데 카드 오버레이 */
+        body[data-layout="studio"] #panel-mid { display:none; }
+        body[data-layout="studio"] .pl-studio-scrim { display:none; }
+        body[data-layout="studio"].pl-studio-editor .pl-studio-scrim {
+            display:block; position:fixed; inset:0; top:var(--pl-topbar-h,54px); z-index:870;
+            background:rgba(20,28,44,0.30); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
+        body[data-layout="studio"].pl-studio-editor #panel-mid {
+            display:flex; position:fixed; z-index:875; left:50%; transform:translateX(-50%);
+            top:calc(var(--pl-topbar-h,54px) + 34px); width:min(780px,94vw); height:min(74vh,860px);
+            border:1px solid var(--border-dim); border-radius:18px; background:var(--bg-panel);
+            box-shadow:0 30px 90px rgba(20,28,44,0.30); overflow:hidden; }
+        /* 소환 FAB 클러스터 (하단 가운데) */
+        body[data-layout="studio"] .pl-studio-fabs {
+            position:fixed; left:50%; transform:translateX(-50%); bottom:22px; z-index:878; display:flex; gap:10px; }
+        body[data-layout="studio"] .pl-studio-fab {
+            display:flex; align-items:center; gap:8px; border:1px solid var(--border-dim); background:#ffffff;
+            color:#1e2530; border-radius:26px; padding:12px 22px; font-size:14px; font-weight:800;
+            font-family:var(--font-ui); cursor:pointer; box-shadow:0 10px 30px rgba(30,40,60,0.16);
+            transition:transform .14s, box-shadow .14s, border-color .14s; }
+        body[data-layout="studio"] .pl-studio-fab:hover { transform:translateY(-2px); box-shadow:0 14px 36px rgba(30,40,60,0.22); }
+        body[data-layout="studio"] .pl-studio-fab.rec { background:#6366f1; color:#fff; border-color:transparent; }
+        body[data-layout="studio"] .pl-studio-fab.ed.on { background:#1e2530; color:#fff; border-color:transparent; }
         /* 커맨드 팔레트 (ide 전용이지만 전역 단축키로도) */
         #pl-cmdk { position:fixed; inset:0; z-index:100020; display:none; align-items:flex-start; justify-content:center; background:rgba(0,0,0,0.4); backdrop-filter:blur(4px); padding-top:14vh; }
         #pl-cmdk.open { display:flex; }
@@ -1019,132 +992,6 @@
         .pl-cmdk-item.sel, .pl-cmdk-item:hover { background:color-mix(in srgb,var(--accent-blue) 22%,transparent); }
         .pl-cmdk-item .pl-cmdk-grp { margin-left:auto; font-size:10px; color:var(--text-dim); }
 
-        /* gallery — Midjourney형 (하단 고정 프롬프트 바) */
-        body[data-layout="gallery"] #panel-left { display:none; }
-        body[data-layout="gallery"] #resize-handle-1 { display:none; }
-        body[data-layout="gallery"] #panel-right { order:1; flex:1.4; }
-        body[data-layout="gallery"] #resize-handle-2 { order:2; }
-        body[data-layout="gallery"] #panel-mid { order:3; max-width:420px; }
-        body[data-layout="gallery"] { --pl-radius:18px; }
-        body[data-layout="gallery"] .pl-gallery-bar { position:fixed; left:50%; transform:translateX(-50%); bottom:18px; z-index:855; width:min(760px,92vw); display:flex; gap:8px; background:var(--glass-bg); backdrop-filter:blur(40px) saturate(160%); border:1px solid var(--glass-border); border-radius:16px; padding:10px 12px; box-shadow:0 16px 50px rgba(0,0,0,0.5); }
-        body[data-layout="gallery"] .pl-gallery-bar input { flex:1; background:transparent; border:none; color:var(--text-main); font-size:14px; outline:none; font-family:var(--font-ui); }
-        body[data-layout="gallery"] .pl-gallery-bar button { background:var(--accent-blue); color:#fff; border:none; border-radius:11px; padding:8px 18px; font-weight:800; cursor:pointer; white-space:nowrap; }
-        body:not([data-layout="gallery"]) .pl-gallery-bar { display:none; }
-
-        /* filmstrip — Lightroom형 */
-        body[data-layout="filmstrip"] { --bg-base:#0d0d0d; --bg-panel:#161616; --bg-surface:#1f1f1f; }
-        body[data-layout="filmstrip"] #panel-left { max-width:240px; }
-        body[data-layout="filmstrip"] #panel-right { display:none; }
-        body[data-layout="filmstrip"] #resize-handle-2 { display:none; }
-        body[data-layout="filmstrip"] .app-container { padding-bottom:132px; }
-        body[data-layout="filmstrip"] .pl-filmstrip { position:fixed; left:0; right:0; bottom:0; height:128px; z-index:845; background:#080808; border-top:1px solid #333; display:flex; gap:8px; padding:10px 14px; overflow-x:auto; align-items:center; }
-        body[data-layout="filmstrip"] .pl-filmstrip img { height:100%; border-radius:6px; border:2px solid transparent; cursor:pointer; }
-        body[data-layout="filmstrip"] .pl-filmstrip img:hover { border-color:#fff; }
-        body[data-layout="filmstrip"] .pl-filmstrip .pl-fs-empty { color:#555; font-size:12px; margin:auto; }
-        body:not([data-layout="filmstrip"]) .pl-filmstrip { display:none; }
-
-        /* mode-flip — Ableton형 (빌드↔퍼포먼스) */
-        body[data-layout="mode-flip"] { --accent-blue:#ff764d; --pl-radius:4px; --bg-base:#181818; --bg-panel:#1c1c1c; --bg-surface:#262626; }
-        body[data-layout="mode-flip"] .pl-modeflip-toggle { position:fixed; top:calc(var(--pl-topbar-h,54px) + 10px); right:16px; z-index:856; display:flex; background:#000; border-radius:8px; padding:3px; border:1px solid #444; }
-        body[data-layout="mode-flip"] .pl-modeflip-toggle button { background:transparent; border:none; color:#888; font-weight:800; font-size:12px; padding:7px 16px; border-radius:6px; cursor:pointer; }
-        body[data-layout="mode-flip"] .pl-modeflip-toggle button.active { background:#ff764d; color:#000; }
-        body:not([data-layout="mode-flip"]) .pl-modeflip-toggle { display:none; }
-        /* perform 모드: 결과 패널만 크게 */
-        body[data-layout="mode-flip"].pl-mf-perform #panel-left,
-        body[data-layout="mode-flip"].pl-mf-perform #panel-mid,
-        body[data-layout="mode-flip"].pl-mf-perform #resize-handle-1,
-        body[data-layout="mode-flip"].pl-mf-perform #resize-handle-2 { display:none; }
-        body[data-layout="mode-flip"].pl-mf-perform #panel-right { flex:1; }
-
-        /* retro — Win95 스킨 */
-        body[data-layout="retro"] { --font-ui:'VT323', monospace; --bg-base:#008080; --bg-panel:#c0c0c0; --bg-surface:#c0c0c0; --border-dim:#808080; --text-main:#000; --text-dim:#444; --pl-radius:0px; }
-        body[data-layout="retro"] .panel { border:2px solid #fff; border-right-color:#404040; border-bottom-color:#404040; box-shadow:inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf; margin:4px; }
-        body[data-layout="retro"] .panel-header { background:linear-gradient(90deg,#000080,#1084d0); color:#fff; font-weight:700; }
-        body[data-layout="retro"] button { font-family:'VT323',monospace; }
-        body[data-layout="retro"] .app-container { background:#008080; }
-        body[data-layout="retro"] * { letter-spacing:0; }
-
-        /* magazine — 에디토리얼 */
-        body[data-layout="magazine"] { --font-heading:'Playfair Display', serif; --font-ui:'Nanum Myeongjo', serif; --bg-base:#f7f5f0; --bg-panel:#fffdf8; --bg-surface:#f0ede5; --border-dim:#d8d2c4; --text-main:#1a1a1a; --text-dim:#6b6358; --accent-blue:#1a1a1a; }
-        body[data-layout="magazine"] #panel-left { max-width:250px; }
-        body[data-layout="magazine"] #panel-right { flex:1.3; }
-        body[data-layout="magazine"] .panel-header span { font-size:15px; }
-        body[data-layout="magazine"] #panel-mid .panel-header span { font-family:'Playfair Display',serif; font-style:italic; }
-
-        /* ── 오버레이 기능 레이아웃 공통 헤더 ── */
-        .pl-stage-head { height:46px; display:flex; align-items:center; gap:12px; padding:0 18px; border-bottom:1px solid var(--border-dim); font-family:var(--font-heading); font-weight:800; flex-shrink:0; }
-        .pl-stage-head .pl-stage-hint { font-size:11px; font-weight:500; color:var(--text-dim); }
-
-        /* terminal */
-        #pl-terminal { width:100%; height:100%; display:flex; flex-direction:column; background:#0a0e0a; color:#33ff66; font-family:'JetBrains Mono', monospace; }
-        #pl-terminal .pl-term-out { flex:1; overflow-y:auto; padding:16px 20px; font-size:13px; line-height:1.6; white-space:pre-wrap; word-break:break-word; text-shadow:0 0 4px rgba(51,255,102,0.4); }
-        #pl-terminal .pl-term-inrow { display:flex; align-items:center; gap:8px; padding:10px 20px; border-top:1px solid #143d14; background:#060a06; }
-        #pl-terminal .pl-term-inrow span { color:#33ff66; }
-        #pl-terminal input { flex:1; background:transparent; border:none; color:#aaffaa; font-family:'JetBrains Mono',monospace; font-size:14px; outline:none; }
-        #pl-terminal::before { content:''; position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(0deg,rgba(0,0,0,0.15) 0px,rgba(0,0,0,0.15) 1px,transparent 1px,transparent 3px); z-index:5; }
-        #pl-terminal .pl-term-line.err { color:#ff5555; text-shadow:none; }
-        #pl-terminal .pl-term-line.ok  { color:#88ff88; }
-        #pl-terminal .pl-term-line.sys { color:#5fa8ff; text-shadow:none; }
-
-        /* deck — 카드 스와이프 */
-        #pl-deck { width:100%; height:100%; display:flex; flex-direction:column; background:radial-gradient(circle at 50% 30%, #2a2140, #14101f); color:#f0e9ff; }
-        #pl-deck .pl-deck-stage { flex:1; display:flex; align-items:center; justify-content:center; position:relative; }
-        .pl-deck-card { position:absolute; width:300px; height:420px; border-radius:20px; background:linear-gradient(160deg,#fdf6e3,#e9dcc0); color:#2a2118; box-shadow:0 20px 60px rgba(0,0,0,0.5); border:8px solid #fff; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center; cursor:grab; user-select:none; font-family:'Playfair Display',serif; }
-        .pl-deck-card .pl-deck-kor { font-size:30px; font-weight:900; margin-bottom:10px; }
-        .pl-deck-card .pl-deck-en { font-size:14px; font-family:'JetBrains Mono',monospace; color:#7a6a4a; }
-        .pl-deck-card .pl-deck-layer { position:absolute; top:16px; left:0; right:0; font-size:12px; letter-spacing:2px; text-transform:uppercase; color:#a08850; }
-        .pl-deck-actions { display:flex; gap:24px; justify-content:center; padding:22px; }
-        .pl-deck-actions button { width:64px; height:64px; border-radius:50%; border:none; font-size:24px; cursor:pointer; box-shadow:0 8px 20px rgba(0,0,0,0.4); }
-        .pl-deck-skip { background:#3a3147; color:#ff7a7a; }
-        .pl-deck-keep { background:#3a3147; color:#7aff9e; }
-        .pl-deck-count { text-align:center; font-size:13px; color:#b9a9e0; padding-bottom:10px; }
-
-        /* node — 무한 캔버스 */
-        #pl-node { width:100%; height:100%; position:relative; overflow:hidden; background:#0e1116; background-image:radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px); background-size:26px 26px; cursor:grab; }
-        #pl-node.panning { cursor:grabbing; }
-        .pl-node-world { position:absolute; left:0; top:0; transform-origin:0 0; }
-        .pl-node-box { position:absolute; min-width:120px; background:#1a2030; border:1px solid #38507a; border-radius:10px; padding:9px 12px; color:#cfe0ff; font-size:12px; cursor:move; box-shadow:0 6px 18px rgba(0,0,0,0.4); }
-        .pl-node-box.layer { background:#14233a; border-color:#2f6fb0; font-weight:800; }
-        .pl-node-box .pl-node-en { font-family:'JetBrains Mono',monospace; font-size:10px; color:#7fa8e0; }
-        #pl-node svg.pl-node-wires { position:absolute; inset:0; pointer-events:none; overflow:visible; }
-        #pl-node .pl-node-toolbar { position:absolute; top:12px; left:12px; z-index:10; display:flex; gap:8px; }
-        #pl-node .pl-node-toolbar button { background:#1a2030; border:1px solid #38507a; color:#cfe0ff; border-radius:8px; padding:7px 12px; font-size:12px; cursor:pointer; }
-
-        /* chat — 대화형 빌더 */
-        #pl-chat { width:100%; height:100%; display:flex; flex-direction:column; background:var(--bg-base); }
-        #pl-chat .pl-chat-log { flex:1; overflow-y:auto; padding:22px; display:flex; flex-direction:column; gap:12px; }
-        .pl-chat-msg { max-width:75%; padding:12px 16px; border-radius:18px; font-size:14px; line-height:1.5; }
-        .pl-chat-msg.bot { background:var(--bg-surface); border:1px solid var(--border-dim); align-self:flex-start; border-bottom-left-radius:5px; }
-        .pl-chat-msg.user { background:var(--accent-blue); color:#fff; align-self:flex-end; border-bottom-right-radius:5px; }
-        .pl-chat-chips { display:flex; flex-wrap:wrap; gap:8px; padding:0 22px 14px; }
-        .pl-chat-chips button { background:var(--bg-surface); border:1px solid var(--accent-blue); color:var(--accent-blue); border-radius:18px; padding:8px 15px; font-size:13px; cursor:pointer; font-weight:700; }
-        .pl-chat-chips button:hover { background:var(--accent-blue); color:#fff; }
-        #pl-chat { --font-ui:'Gaegu', sans-serif; }
-        #pl-chat .pl-chat-inrow { display:flex; gap:8px; padding:14px 22px; border-top:1px solid var(--border-dim); }
-        #pl-chat .pl-chat-inrow input { flex:1; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:22px; padding:11px 18px; color:var(--text-main); outline:none; font-family:inherit; font-size:14px; }
-
-        /* cockpit — 계기판 */
-        #pl-cockpit { width:100%; height:100%; overflow-y:auto; background:linear-gradient(160deg,#1a1d24,#0d0f13); color:#cdd6e0; display:flex; flex-direction:column; align-items:center; padding:30px; gap:26px; }
-        .pl-cockpit-dials { display:flex; flex-wrap:wrap; gap:30px; justify-content:center; }
-        .pl-dial { width:150px; text-align:center; }
-        .pl-dial-face { width:150px; height:150px; border-radius:50%; background:radial-gradient(circle at 50% 40%, #2a2f38, #14171c); border:3px solid #3a4150; position:relative; box-shadow:inset 0 4px 12px rgba(0,0,0,0.6), 0 4px 14px rgba(0,0,0,0.5); cursor:ns-resize; }
-        .pl-dial-needle { position:absolute; left:50%; top:50%; width:3px; height:58px; background:linear-gradient(#ff5a5a,#ffae3a); transform-origin:bottom center; transform:translate(-50%,-100%) rotate(0deg); border-radius:2px; }
-        .pl-dial-val { position:absolute; bottom:24px; left:0; right:0; font-family:'Orbitron',sans-serif; font-size:20px; font-weight:700; color:#ffae3a; }
-        .pl-dial-label { margin-top:10px; font-family:'Orbitron',sans-serif; font-size:12px; letter-spacing:2px; text-transform:uppercase; color:#7f8ba0; }
-        #pl-cockpit .pl-cockpit-screen { width:min(700px,94%); background:#0a0c10; border:2px solid #3a4150; border-radius:12px; padding:18px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#33ff66; min-height:90px; white-space:pre-wrap; }
-        #pl-cockpit .pl-cockpit-fire { background:linear-gradient(#ff5a5a,#c0392b); color:#fff; border:none; border-radius:12px; padding:16px 50px; font-family:'Orbitron',sans-serif; font-weight:900; font-size:18px; letter-spacing:2px; cursor:pointer; box-shadow:0 8px 24px rgba(192,57,43,0.5); }
-
-        /* sheet — 스프레드시트 */
-        #pl-sheet { width:100%; height:100%; display:flex; flex-direction:column; background:var(--bg-base); font-family:var(--font-code); }
-        #pl-sheet .pl-sheet-toolbar { display:flex; gap:8px; padding:10px 14px; border-bottom:1px solid var(--border-dim); align-items:center; flex-wrap:wrap; }
-        #pl-sheet .pl-sheet-toolbar input { background:var(--input-bg); border:1px solid var(--border-dim); border-radius:6px; padding:6px 10px; color:var(--text-main); font-family:inherit; }
-        #pl-sheet .pl-sheet-wrap { flex:1; overflow:auto; }
-        #pl-sheet table { border-collapse:collapse; width:100%; font-size:12px; }
-        #pl-sheet th, #pl-sheet td { border:1px solid var(--border-dim); padding:6px 10px; text-align:left; }
-        #pl-sheet th { background:var(--bg-surface); position:sticky; top:0; cursor:pointer; user-select:none; z-index:2; }
-        #pl-sheet td[contenteditable] { cursor:text; }
-        #pl-sheet tr:nth-child(even) td { background:rgba(255,255,255,0.02); }
-        #pl-sheet .pl-sheet-toolbar button { background:var(--bg-surface); border:1px solid var(--border-dim); color:var(--text-main); border-radius:6px; padding:6px 12px; cursor:pointer; font-family:inherit; }
 
         /* =========================================================
            모바일/태블릿(≤1024px) — 구조형 레이아웃은 앱 고유 슬라이드
@@ -1158,17 +1005,9 @@
             body[data-layout] #panel-mid,
             body[data-layout] #panel-right { order:0 !important; display:flex !important; max-width:100vw !important; margin:0 !important; }
             body[data-layout] .app-container { padding:0 !important; }
-            body[data-layout] #panel-left.pl-zen-open,
-            body[data-layout] #panel-right.pl-zen-open { position:relative !important; width:100vw !important; box-shadow:none !important; }
-            /* 떠있는 보조 UI 숨김 (데스크탑 전용) */
-            .pl-zen-tab, #pl-ide-rail, .pl-gallery-bar, .pl-filmstrip, .pl-modeflip-toggle { display:none !important; }
-            /* 기능 오버레이가 켜지면 하단 탭바는 가린다 (겹침 방지) */
-            body.pl-stage-on #mobile-tabbar { display:none !important; }
-            body.pl-stage-on { padding-bottom:0 !important; }
-            /* 덱 카드: 좁은 화면 대응 */
-            .pl-deck-card { width:min(300px,82vw); height:min(420px,62vh); }
-            .pl-cockpit-dials { gap:18px; }
-            #pl-cockpit { padding:18px; }
+            /* 스튜디오: 모바일에선 소환 오버레이/FAB 비활성 (앱 슬라이드 트랙 사용) */
+            body[data-layout="studio"] .pl-studio-fabs, body[data-layout="studio"] .pl-studio-scrim { display:none !important; }
+            body[data-layout="studio"].pl-studio-editor #panel-mid { position:relative !important; left:auto !important; top:auto !important; transform:none !important; width:100vw !important; height:auto !important; border-radius:0 !important; box-shadow:none !important; }
         }
         /* 태블릿 구간(모바일 단일패널이지만 폭이 넓은 700~1024px): 콘텐츠를 적정 폭으로 가운데 정렬해 빈 공간 최소화 */
         @media (min-width: 700px) and (max-width: 1024px) {
@@ -1223,7 +1062,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.10.57 &nbsp;·&nbsp; 2026-07-09 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.11.0 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1986,9 +1825,19 @@
         // 토스트 알림
         // ── 업데이트 내역 ────────────────────────────────────────────────────
         const CHANGELOG = [
-            // ── 2026-07-08 ──────────────────────────────────────────────────
+            // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.10.57', date: '2026-07-09', time: '최신',
+                version: 'v9.11.0', date: '2026-07-10', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[레이아웃] 레이아웃을 대대적으로 정리했습니다 — 품질이 낮던 테마 16종(집중·세로적층·미러·인스펙터·IDE·갤러리·필름스트립·모드전환·터미널·카드덱·노드그래프·대화형·매거진·레트로·콕핏·스프레드시트)을 모두 제거하고, "클래식"과 새 "스튜디오" 두 가지만 남겼습니다',
+                    '[레이아웃] 신규 "스튜디오" — 미니멀 라이트 디자인. 자주 쓰는 화면을 앞에 둡니다: 왼쪽은 바로 "간편 조합", 오른쪽은 "결과 + ComfyUI 생성", 그리고 화면 아래 버튼으로 "추천 조합"을 한 번에 열 수 있습니다',
+                    '[레이아웃] 스튜디오에서 에디터는 평소엔 접어두고, 아래 "에디터" 버튼(또는 ESC로 닫기)으로 필요할 때만 가운데에 크게 띄워 편집합니다 — 조립·생성에 집중된 깔끔한 작업 화면',
+                    '[레이아웃] 좌상단 "프롬프트 랩" 메뉴 → "레이아웃 변경"에서 클래식 ↔ 스튜디오를 클릭 한 번으로 전환하고 자동 저장합니다 (모바일에서도 정상 동작)',
+                ]
+            },
+            {
+                version: 'v9.10.57', date: '2026-07-09', time: '이전',
                 tag: 'fix',
                 items: [
                     '[레이아웃] "간편 조합" 툴바(간편 조합 · 조합 추가 · 추천 등)가 패널을 좁히면 라벨이 세로로 뭉개지고 버튼이 넘치던 문제를 수정했습니다 — 이제 좁으면 버튼이 아랫줄로 줄바꿈됩니다 (사이드바 상단 버튼 줄도 동일 처리)',
@@ -16435,377 +16284,35 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function track(fn) { cleanups.push(fn); }
         function runCleanups() { while (cleanups.length) { try { cleanups.pop()(); } catch (e) {} } }
 
-        // ── 터미널 ───────────────────────────────────────────────
-        function initTerminal() {
-            const stage = ensureStage(); document.body.classList.add('pl-stage-on');
-            const out = el('div', { class: 'pl-term-out' });
-            const input = el('input', { spellcheck: 'false', autocomplete: 'off', placeholder: '명령 입력 — help 로 시작' });
-            const box = el('div', { id: 'pl-terminal', style: 'position:relative;' },
-                out,
-                el('div', { class: 'pl-term-inrow' }, el('span', { html: '&gt;' }), input)
+        // ── 스튜디오 (미니멀 라이트 · 간편조합+결과, 에디터 소환) ──
+        function mountStudio() {
+            // 왼쪽 패널을 '간편 조합' 모드로 전환
+            try { if (window.switchSidebarMode) switchSidebarMode('combo'); } catch (e) {}
+            // 에디터 오버레이용 스크림
+            const scrim = el('div', { class: 'pl-studio-scrim', onclick: closeEditor });
+            document.body.appendChild(scrim);
+            // 하단 FAB: 추천 조합 · 에디터 소환
+            const edBtn = el('button', { class: 'pl-studio-fab ed', onclick: toggleEditor });
+            const fabs = el('div', { class: 'pl-studio-fabs' },
+                el('button', { class: 'pl-studio-fab rec', html: '<i class="fa-solid fa-bolt"></i> 추천 조합', onclick: () => { try { window.openRecommendModal && openRecommendModal(); } catch (e) {} } }),
+                edBtn
             );
-            stage.appendChild(box);
-            const print = (txt, cls) => { const l = el('div', { class: 'pl-term-line' + (cls ? ' ' + cls : ''), html: txt }); out.appendChild(l); out.scrollTop = out.scrollHeight; };
-            print('PROMPT ARCHITECT // TERMINAL MODE', 'sys');
-            print('명령어: <b>help</b>  ls  add  rm  find  show  layers  clear  gen', 'sys');
-            print('');
-            const hist = []; let hi = -1;
-            function run(raw) {
-                const line = raw.trim(); if (!line) return;
-                print('<span style="color:#5fa8ff">&gt;</span> ' + esc(line));
-                hist.push(line); hi = hist.length;
-                const [cmd, ...rest] = line.split(/\s+/); const arg = rest.join(' ');
-                switch ((cmd || '').toLowerCase()) {
-                    case 'help': print('add &lt;tag&gt; [#layer]  — 태그 추가 (예: add 1girl #3)<br>rm &lt;tag&gt;  — 태그 제거<br>ls [layer]  — DB 태그 목록<br>find &lt;검색어&gt;  — 태그 검색 (영/한)<br>show  — 현재 긍정 프롬프트<br>layers  — 계층 이름<br>gen  — 이미지 생성<br>clear  — 화면 지우기', 'ok'); break;
-                    case 'layers': PL.LAYER_NAMES.forEach((n, i) => print(`  ${i + 1}. ${esc(n)}`)); break;
-                    case 'add': {
-                        const m = arg.match(/#(\d)\s*$/); const layer = m ? parseInt(m[1]) : null;
-                        const tag = arg.replace(/#\d\s*$/, '').trim();
-                        if (!tag) { print('사용법: add &lt;tag&gt; [#layer]', 'err'); break; }
-                        const ok = PL.addTag(tag, layer); print(ok ? `+ 추가됨: ${esc(tag)} → ${PL.LAYER_NAMES[(layer || PL.guessLayer(tag)) - 1]}계층` : `이미 있음: ${esc(tag)}`, ok ? 'ok' : 'err');
-                        break;
-                    }
-                    case 'rm': if (!arg) { print('사용법: rm &lt;tag&gt;', 'err'); break; } PL.removeTag(arg); print(`- 제거: ${esc(arg)}`, 'ok'); break;
-                    case 'ls': {
-                        const L = parseInt(arg); let tags = PL.dbTags(); if (L >= 1 && L <= 7) tags = tags.filter(t => t.layer === L);
-                        if (!tags.length) { print('(DB가 비어있음)', 'err'); break; }
-                        tags.slice(0, 80).forEach(t => print(`  <span style="color:#88ff88">${esc(t.t)}</span>  <span style="color:#5a8a5a">${esc(t.k)}</span>  <span style="color:#446644">L${t.layer}</span>`));
-                        if (tags.length > 80) print(`  …외 ${tags.length - 80}개`, 'sys');
-                        break;
-                    }
-                    case 'find': {
-                        if (!arg) { print('사용법: find &lt;검색어&gt;', 'err'); break; }
-                        const q = arg.toLowerCase(); const r = PL.dbTags().filter(t => t.t.toLowerCase().includes(q) || t.k.toLowerCase().includes(q));
-                        if (!r.length) { print('결과 없음', 'err'); break; }
-                        r.slice(0, 40).forEach(t => print(`  <span style="color:#88ff88">${esc(t.t)}</span>  ${esc(t.k)}  <span style="color:#446644">L${t.layer}</span>`));
-                        break;
-                    }
-                    case 'show': { const p = PL.positive(); print(p ? esc(p) : '(비어있음)', p ? 'ok' : 'err'); break; }
-                    case 'gen': print('🚀 생성 시작…', 'ok'); PL.gen(); break;
-                    case 'clear': out.innerHTML = ''; break;
-                    default: print(`알 수 없는 명령: ${esc(cmd)} (help 참고)`, 'err');
-                }
+            document.body.appendChild(fabs);
+            function syncEd() {
+                const on = document.body.classList.contains('pl-studio-editor');
+                edBtn.classList.toggle('on', on);
+                edBtn.innerHTML = on ? '<i class="fa-solid fa-xmark"></i> 에디터 닫기' : '<i class="fa-solid fa-pen-to-square"></i> 에디터';
             }
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') { run(input.value); input.value = ''; }
-                else if (e.key === 'ArrowUp') { if (hi > 0) { hi--; input.value = hist[hi] || ''; } e.preventDefault(); }
-                else if (e.key === 'ArrowDown') { if (hi < hist.length - 1) { hi++; input.value = hist[hi] || ''; } else { hi = hist.length; input.value = ''; } e.preventDefault(); }
-            });
-            setTimeout(() => input.focus(), 50);
-            return runCleanups;
-        }
-
-        // ── 카드 덱 ──────────────────────────────────────────────
-        function initDeck() {
-            const stage = ensureStage(); document.body.classList.add('pl-stage-on');
-            const active = new Set(PL.activeTags().map(t => t.t.toLowerCase()));
-            let pool = PL.dbTags().filter(t => !active.has(t.t.toLowerCase()));
-            for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[pool[i], pool[j]] = [pool[j], pool[i]]; }
-            let idx = 0, kept = 0;
-            const stageArea = el('div', { class: 'pl-deck-stage' });
-            const count = el('div', { class: 'pl-deck-count' });
-            const box = el('div', { id: 'pl-deck' },
-                stageHead('🃏 카드 덱', '오른쪽으로 밀거나 ♥ = 추가 · 왼쪽/✕ = 건너뛰기'),
-                stageArea, count,
-                el('div', { class: 'pl-deck-actions' },
-                    el('button', { class: 'pl-deck-skip', html: '<i class="fa-solid fa-xmark"></i>', onclick: () => decide(false) }),
-                    el('button', { class: 'pl-deck-keep', html: '<i class="fa-solid fa-heart"></i>', onclick: () => decide(true) })
-                )
-            );
-            stage.appendChild(box);
-            let cardEl = null;
-            function render() {
-                if (cardEl) cardEl.remove();
-                count.textContent = `남은 카드 ${Math.max(0, pool.length - idx)}장 · 추가됨 ${kept}장`;
-                if (idx >= pool.length) {
-                    cardEl = el('div', { class: 'pl-deck-card', style: 'cursor:default;' },
-                        el('div', { class: 'pl-deck-kor', html: '🎉' }),
-                        el('div', { style: 'font-size:18px;font-weight:700;', html: '덱을 모두 살펴봤어요' }),
-                        el('div', { class: 'pl-deck-en', style: 'margin-top:8px;', html: `${kept}개 태그 추가됨` }));
-                    stageArea.appendChild(cardEl); return;
-                }
-                const c = pool[idx];
-                cardEl = el('div', { class: 'pl-deck-card' },
-                    el('div', { class: 'pl-deck-layer', html: esc(PL.LAYER_NAMES[c.layer - 1] || '') }),
-                    el('div', { class: 'pl-deck-kor', html: esc(c.k) }),
-                    el('div', { class: 'pl-deck-en', html: esc(c.t) }));
-                stageArea.appendChild(cardEl);
-                bindCard(cardEl);
-            }
-            function decide(keep) {
-                if (idx >= pool.length) return;
-                const c = pool[idx];
-                if (cardEl) { cardEl.style.transition = 'transform .3s, opacity .3s'; cardEl.style.transform = `translate(${keep ? 600 : -600}px, 40px) rotate(${keep ? 25 : -25}deg)`; cardEl.style.opacity = '0'; }
-                if (keep) { PL.addTag(c.t, c.layer); kept++; }
-                idx++; setTimeout(render, 180);
-            }
-            // 드래그 핸들러는 덱 세션당 1세트만 등록 (카드마다 등록하면 document 리스너가 누적됨)
-            let sx = 0, dragging = false;
-            const onMove = (e) => { if (!dragging || !cardEl) return; const x = (e.touches ? e.touches[0].clientX : e.clientX) - sx; cardEl.style.transform = `translate(${x}px, ${Math.abs(x) * 0.06}px) rotate(${x * 0.05}deg)`; };
-            const onUp = (e) => { if (!dragging) return; dragging = false; if (cardEl) cardEl.style.cursor = 'grab'; const x = (e.changedTouches ? e.changedTouches[0].clientX : e.clientX) - sx; if (Math.abs(x) > 110) decide(x > 0); else if (cardEl) { cardEl.style.transition = 'transform .2s'; cardEl.style.transform = ''; } };
-            document.addEventListener('mousemove', onMove); document.addEventListener('touchmove', onMove, { passive: true });
-            document.addEventListener('mouseup', onUp); document.addEventListener('touchend', onUp);
-            track(() => { document.removeEventListener('mousemove', onMove); document.removeEventListener('touchmove', onMove); document.removeEventListener('mouseup', onUp); document.removeEventListener('touchend', onUp); });
-            function bindCard(node) {
-                const down = (e) => { if (idx >= pool.length) return; dragging = true; sx = (e.touches ? e.touches[0].clientX : e.clientX); node.style.transition = 'none'; node.style.cursor = 'grabbing'; };
-                node.addEventListener('mousedown', down); node.addEventListener('touchstart', down, { passive: true });
-            }
-            render();
-            return runCleanups;
-        }
-
-        // ── 노드 그래프 ──────────────────────────────────────────
-        function initNode() {
-            const stage = ensureStage(); document.body.classList.add('pl-stage-on');
-            const wrap = el('div', { id: 'pl-node' });
-            const world = el('div', { class: 'pl-node-world' });
-            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            svg.setAttribute('class', 'pl-node-wires'); world.appendChild(svg);
-            const toolbar = el('div', { class: 'pl-node-toolbar' },
-                el('button', { html: '<i class="fa-solid fa-rotate"></i> 다시 그리기', onclick: () => build() }),
-                el('button', { html: '<i class="fa-solid fa-plus"></i> 태그 추가', onclick: () => { const t = prompt('추가할 태그(영문):'); if (t) { PL.addTag(t); build(); } } }),
-                el('button', { html: '<i class="fa-solid fa-magnifying-glass-plus"></i> 맞춤', onclick: () => { tx = 60; ty = 120; scale = 1; apply(); } })
-            );
-            wrap.appendChild(toolbar); wrap.appendChild(world); stage.appendChild(wrap);
-            let tx = 60, ty = 120, scale = 1;
-            const apply = () => { world.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`; };
-            const nodes = []; // {elm, x, y}
-            // 노드 드래그: document 리스너는 1세트만. build() 재호출 시 누적 방지.
-            let dragObj = null, ox = 0, oy = 0;
-            const nodeMove = (e) => { if (!dragObj) return; dragObj.x = (e.clientX - ox) / scale; dragObj.y = (e.clientY - oy) / scale; dragObj.elm.style.left = dragObj.x + 'px'; dragObj.elm.style.top = dragObj.y + 'px'; drawWires(); };
-            const nodeUp = () => { dragObj = null; };
-            document.addEventListener('mousemove', nodeMove); document.addEventListener('mouseup', nodeUp);
-            track(() => { document.removeEventListener('mousemove', nodeMove); document.removeEventListener('mouseup', nodeUp); });
-            function addNode(text, sub, x, y, cls) {
-                const n = el('div', { class: 'pl-node-box' + (cls ? ' ' + cls : ''), style: `left:${x}px; top:${y}px;` },
-                    el('div', { html: esc(text) }), sub ? el('div', { class: 'pl-node-en', html: esc(sub) }) : null);
-                world.appendChild(n); const obj = { elm: n, x, y };
-                n.addEventListener('mousedown', (e) => { e.stopPropagation(); dragObj = obj; ox = e.clientX - obj.x * scale; oy = e.clientY - obj.y * scale; });
-                nodes.push(obj); return obj;
-            }
-            let wires = []; // [{a,b}]
-            function drawWires() {
-                while (svg.firstChild) svg.removeChild(svg.firstChild);
-                wires.forEach(({ a, b }) => {
-                    const x1 = a.x + a.elm.offsetWidth / 2, y1 = a.y + a.elm.offsetHeight / 2;
-                    const x2 = b.x + b.elm.offsetWidth / 2, y2 = b.y + b.elm.offsetHeight / 2;
-                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                    const mx = (x1 + x2) / 2;
-                    path.setAttribute('d', `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`);
-                    path.setAttribute('stroke', '#2f6fb0'); path.setAttribute('stroke-width', '1.5'); path.setAttribute('fill', 'none'); path.setAttribute('opacity', '0.7');
-                    svg.appendChild(path);
-                });
-            }
-            function build() {
-                nodes.length = 0; wires = [];
-                Array.from(world.querySelectorAll('.pl-node-box')).forEach(n => n.remove());
-                const center = addNode('PROMPT', PL.cur() || '', 380, 300, 'layer');
-                const active = PL.activeTags();
-                PL.LAYER_NAMES.forEach((name, i) => {
-                    const ang = (i / 7) * Math.PI * 2 - Math.PI / 2;
-                    const lx = 380 + Math.cos(ang) * 250, ly = 300 + Math.sin(ang) * 200;
-                    const ln = addNode(`${i + 1}. ${name}`, '', lx, ly, 'layer');
-                    wires.push({ a: center, b: ln });
-                    const tags = active.filter(t => t.layer === i + 1);
-                    tags.forEach((t, j) => {
-                        const tx2 = lx + Math.cos(ang) * (120 + j * 12) + (j - tags.length / 2) * 30;
-                        const ty2 = ly + Math.sin(ang) * (110) + (j) * 40;
-                        const tn = addNode(PL.korOf(t.t), t.t, tx2, ty2);
-                        wires.push({ a: ln, b: tn });
-                    });
-                });
-                drawWires();
-            }
-            // 팬 / 줌
-            const panDown = (e) => { if (e.target !== wrap && e.target !== world && e.target !== svg) return; wrap.classList.add('panning'); const px = e.clientX - tx, py = e.clientY - ty; const mv = (ev) => { tx = ev.clientX - px; ty = ev.clientY - py; apply(); }; const up = () => { wrap.classList.remove('panning'); document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); }; document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up); };
-            wrap.addEventListener('mousedown', panDown);
-            const wheel = (e) => { e.preventDefault(); const d = e.deltaY < 0 ? 1.1 : 0.9; scale = Math.max(0.3, Math.min(2.5, scale * d)); apply(); };
-            wrap.addEventListener('wheel', wheel, { passive: false });
-            track(() => wrap.removeEventListener('wheel', wheel));
-            apply(); build();
-            return runCleanups;
-        }
-
-        // ── 대화형 빌더 ──────────────────────────────────────────
-        function initChat() {
-            const stage = ensureStage(); document.body.classList.add('pl-stage-on');
-            const log = el('div', { class: 'pl-chat-log' });
-            const chips = el('div', { class: 'pl-chat-chips' });
-            const input = el('input', { placeholder: '직접 입력 후 Enter…' });
-            const box = el('div', { id: 'pl-chat' },
-                stageHead('💬 대화형 빌더', '질문에 답하면 태그가 쌓여요'),
-                log, chips,
-                el('div', { class: 'pl-chat-inrow' }, input, el('button', { style: 'background:var(--accent-blue);color:#fff;border:none;border-radius:22px;padding:0 20px;cursor:pointer;font-weight:800;', html: '보내기', onclick: () => sendFree() }))
-            );
-            stage.appendChild(box);
-            const bot = (t) => { log.appendChild(el('div', { class: 'pl-chat-msg bot', html: t })); log.scrollTop = log.scrollHeight; };
-            const usr = (t) => { log.appendChild(el('div', { class: 'pl-chat-msg user', html: esc(t) })); log.scrollTop = log.scrollHeight; };
-            const steps = [
-                { layer: 3, q: '어떤 인물/외형인가요? 🧑‍🎨' },
-                { layer: 4, q: '의상은 어떻게 할까요? 👗' },
-                { layer: 5, q: '어떤 동작/포즈가 좋을까요? 🏃' },
-                { layer: 6, q: '배경은 어디인가요? 🏞️' },
-                { layer: 7, q: '조명·분위기는요? 💡' }
-            ];
-            let si = 0;
-            function showStep() {
-                chips.innerHTML = '';
-                if (si >= steps.length) { bot('완성됐어요! 결과 패널에서 확인하거나 <b>생성</b>을 눌러보세요. 🎨'); chips.appendChild(el('button', { html: '🚀 이미지 생성', onclick: () => PL.gen() })); return; }
-                const s = steps[si]; bot(s.q);
-                const opts = PL.dbTags().filter(t => t.layer === s.layer);
-                for (let i = opts.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[opts[i], opts[j]] = [opts[j], opts[i]]; }
-                if (!opts.length) bot('<span style="opacity:0.7;font-size:13px;">이 계층엔 사전 태그가 없어요. 아래에 직접 입력하거나 건너뛰세요.</span>');
-                opts.slice(0, 8).forEach(o => chips.appendChild(el('button', { html: `${esc(o.k)}`, title: o.t, onclick: () => { pick(o.t, o.k, s.layer); } })));
-                chips.appendChild(el('button', { style: 'border-color:var(--text-dim);color:var(--text-dim);', html: '건너뛰기 →', onclick: () => { usr('(건너뜀)'); si++; showStep(); } }));
-            }
-            function pick(t, k, layer) { usr(k || t); PL.addTag(t, layer); si++; showStep(); }
-            function sendFree() {
-                const v = input.value.trim(); if (!v) return; input.value = '';
-                const layer = si < steps.length ? steps[si].layer : 3;
-                usr(v); v.split(',').map(x => x.trim()).filter(Boolean).forEach(t => PL.addTag(t, layer)); si++; showStep();
-            }
-            input.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendFree(); });
-            bot('안녕하세요! 몇 가지 질문으로 프롬프트를 함께 만들어볼게요. ✨');
-            setTimeout(showStep, 400);
-            return runCleanups;
-        }
-
-        // ── 콕핏 (계기판) ────────────────────────────────────────
-        function initCockpit() {
-            const stage = ensureStage(); document.body.classList.add('pl-stage-on');
-            const screen = el('div', { class: 'pl-cockpit-screen' });
-            const dials = el('div', { class: 'pl-cockpit-dials' });
-            const box = el('div', { id: 'pl-cockpit' },
-                el('div', { style: 'font-family:Orbitron,sans-serif;font-size:22px;letter-spacing:3px;color:#ffae3a;', html: '◈ GENERATION COCKPIT ◈' }),
-                dials, screen,
-                el('button', { class: 'pl-cockpit-fire', html: 'FIRE', onclick: () => { refreshScreen(); PL.gen(); } })
-            );
-            stage.appendChild(box);
-            function bindInput(id, fallback) { const e = document.getElementById(id); return { get: () => e ? parseFloat(e.value) || fallback : fallback, set: (v) => { if (e) { e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); } } }; }
-            const dialDefs = [
-                { label: 'STEPS', min: 4, max: 40, step: 1, io: bindInput('mg-steps', 8) },
-                { label: 'CFG', min: 1, max: 15, step: 0.5, io: bindInput('mg-cfg', 7) },
-                { label: 'COUNT', min: 1, max: 50, step: 1, io: bindInput('mg-count', 12) },
-                { label: 'BATCH', min: 1, max: 16, step: 1, io: bindInput('mg-batch', 4) }
-            ];
-            dialDefs.forEach(d => {
-                const needle = el('div', { class: 'pl-dial-needle' });
-                const valEl = el('div', { class: 'pl-dial-val' });
-                const face = el('div', { class: 'pl-dial-face' }, needle, valEl);
-                const render = () => { const v = d.io.get(); const pct = (v - d.min) / (d.max - d.min); needle.style.transform = `translate(-50%,-100%) rotate(${(-135 + pct * 270)}deg)`; valEl.textContent = (d.step < 1 ? v.toFixed(1) : Math.round(v)); };
-                let dragging = false, sy = 0, sv = 0;
-                face.addEventListener('mousedown', (e) => { dragging = true; sy = e.clientY; sv = d.io.get(); });
-                const mv = (e) => { if (!dragging) return; const dv = (sy - e.clientY) / 4 * d.step; let nv = Math.max(d.min, Math.min(d.max, sv + dv)); nv = Math.round(nv / d.step) * d.step; d.io.set(nv); render(); };
-                const up = () => dragging = false;
-                document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
-                track(() => { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); });
-                dials.appendChild(el('div', { class: 'pl-dial' }, face, el('div', { class: 'pl-dial-label', html: d.label })));
-                render();
-            });
-            function refreshScreen() { const p = PL.positive(); screen.textContent = p || '(긍정 프롬프트가 비어있습니다 — 다른 레이아웃에서 태그를 먼저 채워보세요)'; }
-            refreshScreen();
-            return runCleanups;
-        }
-
-        // ── 스프레드시트 ─────────────────────────────────────────
-        function initSheet() {
-            const stage = ensureStage(); document.body.classList.add('pl-stage-on');
-            const wrap = el('div', { class: 'pl-sheet-wrap' });
-            const filter = el('input', { placeholder: '🔍 필터 (영/한)…' });
-            const onlyActive = el('label', { style: 'display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-dim);' }, el('input', { type: 'checkbox' }), '활성 태그만');
-            const box = el('div', { id: 'pl-sheet' },
-                el('div', { class: 'pl-sheet-toolbar' },
-                    el('span', { style: 'font-weight:800;font-family:var(--font-heading);', html: '📊 스프레드시트' }),
-                    filter, onlyActive,
-                    el('button', { html: '<i class="fa-solid fa-floppy-disk"></i> 저장', onclick: () => save() }),
-                    el('span', { style: 'font-size:11px;color:var(--text-dim);', html: '셀을 클릭해 편집 · 헤더 클릭해 정렬' })
-                ), wrap);
-            stage.appendChild(box);
-            let sortKey = 'layer', sortDir = 1;
-            const activeSet = new Set(PL.activeTags().map(t => t.t.toLowerCase()));
-            let rows = PL.dbTags();
-            function draw() {
-                const q = filter.value.trim().toLowerCase();
-                let data = rows.filter(r => (!q || r.t.toLowerCase().includes(q) || r.k.toLowerCase().includes(q)) && (!onlyActive.querySelector('input').checked || activeSet.has(r.t.toLowerCase())));
-                data.sort((a, b) => { const av = a[sortKey], bv = b[sortKey]; return (av > bv ? 1 : av < bv ? -1 : 0) * sortDir; });
-                const table = el('table');
-                const head = el('tr');
-                [['layer', '계층'], ['fk', '폴더'], ['t', '영문(EN)'], ['k', '한글(KOR)'], ['c', '충돌그룹'], ['', '']].forEach(([k, lbl]) => {
-                    head.appendChild(el('th', { onclick: () => { if (!k) return; if (sortKey === k) sortDir *= -1; else { sortKey = k; sortDir = 1; } draw(); }, html: esc(lbl) + (sortKey === k && k ? (sortDir > 0 ? ' ▲' : ' ▼') : '') }));
-                });
-                table.appendChild(head);
-                data.forEach(r => {
-                    const tr = el('tr');
-                    tr.appendChild(el('td', { html: `${r.layer}. ${esc(PL.LAYER_NAMES[r.layer - 1] || '')}` }));
-                    tr.appendChild(el('td', { html: esc((r.fk || '').split('|')[0]) }));
-                    const mkEdit = (field) => { const td = el('td', { contenteditable: 'true', html: esc(r[field]) }); td.addEventListener('blur', () => { r['_' + field] = td.textContent.trim(); r['_dirty'] = true; }); return td; };
-                    tr.appendChild(mkEdit('t')); tr.appendChild(mkEdit('k')); tr.appendChild(mkEdit('c'));
-                    tr.appendChild(el('td', {}, el('button', { style: 'padding:2px 8px;font-size:11px;', html: '＋에디터', onclick: () => { PL.addTag(r.t, r.layer); PL.toast(`'${r.k}' 추가됨`, 'success'); } })));
-                    table.appendChild(tr);
-                });
-                wrap.innerHTML = ''; wrap.appendChild(table);
-            }
-            function save() {
-                const db = window.__getPromptDB ? window.__getPromptDB() : null; if (!db) return;
-                let n = 0;
-                rows.forEach(r => { if (!r._dirty) return; try { const cell = db[r.layer][r.fk][r.idx]; if (r._t != null) cell.t = r._t; if (r._k != null) cell.k = r._k; if (r._c != null) cell.c = r._c; n++; } catch (e) {} });
-                if (window.__savePromptDB) window.__savePromptDB();
-                PL.toast(n ? `${n}개 항목 저장됨` : '변경사항 없음', n ? 'success' : 'info');
-                rows = PL.dbTags(); draw();
-            }
-            filter.addEventListener('input', draw); onlyActive.querySelector('input').addEventListener('change', draw);
-            draw();
-            return runCleanups;
-        }
-
-        // ════════════════════════════════════════════════════════
-        //  reshape 레이아웃의 보조 UI (body에 떠있는 요소)
-        // ════════════════════════════════════════════════════════
-        function mountZen() {
-            const left = document.getElementById('panel-left'), right = document.getElementById('panel-right');
-            const tL = el('div', { class: 'pl-zen-tab left', html: '<i class="fa-solid fa-database"></i>', onclick: () => left.classList.toggle('pl-zen-open') });
-            const tR = el('div', { class: 'pl-zen-tab right', html: '<i class="fa-solid fa-terminal"></i>', onclick: () => right.classList.toggle('pl-zen-open') });
-            document.body.appendChild(tL); document.body.appendChild(tR);
-            return () => { tL.remove(); tR.remove(); left && left.classList.remove('pl-zen-open'); right && right.classList.remove('pl-zen-open'); };
-        }
-        function mountIde() {
-            const rail = el('div', { id: 'pl-ide-rail' },
-                el('button', { class: 'active', title: '탐색기', html: '<i class="fa-solid fa-folder-tree"></i>', onclick: () => { document.getElementById('panel-left').scrollIntoView(); } }),
-                el('button', { title: '검색', html: '<i class="fa-solid fa-magnifying-glass"></i>', onclick: () => { const s = document.getElementById('tag-search'); if (s) s.focus(); } }),
-                el('button', { title: '커맨드 팔레트 (Ctrl/⌘+K)', html: '<i class="fa-solid fa-terminal"></i>', onclick: () => openCmdK() }),
-                el('button', { title: 'DB 관리', html: '<i class="fa-solid fa-database"></i>', onclick: () => window.openDBManager && openDBManager() }),
-                el('button', { title: '생성', html: '<i class="fa-solid fa-paper-plane"></i>', onclick: () => window.openComfyModal && openComfyModal() })
-            );
-            document.body.appendChild(rail);
-            return () => rail.remove();
-        }
-        function mountGallery() {
-            const inp = el('input', { placeholder: '프롬프트를 입력하고 Enter — 태그로 추가 후 생성' });
-            const bar = el('div', { class: 'pl-gallery-bar' }, inp,
-                el('button', { html: '<i class="fa-solid fa-bolt"></i> 생성', onclick: () => fire() }));
-            const fire = () => { const v = inp.value.trim(); if (v) v.split(',').map(x => x.trim()).filter(Boolean).forEach(t => PL.addTag(t)); PL.gen(); };
-            inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') fire(); });
-            document.body.appendChild(bar);
-            return () => bar.remove();
-        }
-        function mountFilmstrip() {
-            const strip = el('div', { class: 'pl-filmstrip' });
-            const refresh = () => {
-                strip.innerHTML = '';
-                let urls = []; try { urls = JSON.parse(localStorage.getItem('comfy_gallery_urls_v1') || '[]'); } catch (e) {}
-                if (!urls.length) { strip.appendChild(el('div', { class: 'pl-fs-empty', html: '아직 생성된 이미지가 없습니다 — 생성하면 여기에 필름처럼 쌓여요' })); return; }
-                urls.slice(0, 60).forEach(u => { const img = el('img', { src: u, onclick: () => { if (window.openLightbox) openLightbox(u); } }); strip.appendChild(img); });
+            function toggleEditor() { document.body.classList.toggle('pl-studio-editor'); syncEd(); }
+            function closeEditor() { document.body.classList.remove('pl-studio-editor'); syncEd(); }
+            const onKey = (e) => { if (e.key === 'Escape') closeEditor(); };
+            document.addEventListener('keydown', onKey);
+            syncEd();
+            return () => {
+                document.removeEventListener('keydown', onKey);
+                scrim.remove(); fabs.remove();
+                document.body.classList.remove('pl-studio-editor');
             };
-            document.body.appendChild(strip); refresh();
-            const iv = setInterval(refresh, 3000); track(() => clearInterval(iv));
-            return () => { strip.remove(); };
-        }
-        function mountModeFlip() {
-            const tg = el('div', { class: 'pl-modeflip-toggle' },
-                el('button', { class: 'active', html: '🛠 빌드', onclick: function () { document.body.classList.remove('pl-mf-perform'); this.classList.add('active'); this.nextSibling.classList.remove('active'); } }),
-                el('button', { html: '🎬 퍼포먼스', onclick: function () { document.body.classList.add('pl-mf-perform'); this.classList.add('active'); this.previousSibling.classList.remove('active'); } }));
-            document.body.appendChild(tg);
-            return () => { tg.remove(); document.body.classList.remove('pl-mf-perform'); };
         }
 
         // ── 커맨드 팔레트 ────────────────────────────────────────
@@ -16866,44 +16373,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // ════════════════════════════════════════════════════════
         const mini = {
             cols3: '<div class="pl-mini"><div style="flex:.6"></div><div style="flex:1.4"></div><div style="flex:1"></div></div>',
-            cols3r: '<div class="pl-mini"><div style="flex:1"></div><div style="flex:1.4"></div><div style="flex:.6"></div></div>',
-            center: '<div class="pl-mini" style="justify-content:center"><div style="flex:.15"></div><div style="flex:1;max-width:60%"></div><div style="flex:.15"></div></div>',
-            stack: '<div class="pl-mini col"><div style="flex:1.2"></div><div style="flex:1"></div><div style="flex:1"></div></div>',
-            inspector: '<div class="pl-mini"><div style="flex:.5"></div><div style="flex:1.6"></div><div style="flex:.8"></div></div>',
-            ide: '<div class="pl-mini"><div style="flex:.15"></div><div style="flex:.6"></div><div style="flex:1.5"></div><div style="flex:.8"></div></div>',
-            gallery: '<div class="pl-mini col"><div style="flex:1.6"></div><div style="flex:.3;max-width:80%;margin:0 auto"></div></div>',
-            film: '<div class="pl-mini col"><div style="flex:1.6"></div><div style="flex:.35"></div></div>',
-            bigR: '<div class="pl-mini"><div style="flex:.5"></div><div style="flex:2"></div></div>',
-            term: '<div class="pl-mini"><div style="flex:1;background:#0a0e0a;border-color:#1a3a1a"></div></div>',
-            deck: '<div class="pl-mini" style="justify-content:center;align-items:center"><div style="width:46%;height:80%;background:linear-gradient(160deg,#fdf6e3,#e9dcc0);border:none"></div></div>',
-            node: '<div class="pl-mini" style="position:relative;background-image:radial-gradient(rgba(255,255,255,0.12) 1px,transparent 1px);background-size:10px 10px"><div style="position:absolute;left:30%;top:30%;width:22%;height:30%"></div><div style="position:absolute;left:60%;top:55%;width:22%;height:30%"></div></div>',
-            chat: '<div class="pl-mini col" style="padding:6px;gap:5px"><div style="flex:.5;max-width:60%;border-radius:9px"></div><div style="flex:.5;max-width:60%;margin-left:auto;border-radius:9px;background:rgba(59,130,246,0.4)"></div><div style="flex:.5;max-width:50%;border-radius:9px"></div></div>',
-            cockpit: '<div class="pl-mini" style="justify-content:center;gap:8px;align-items:center"><div style="width:30px;height:30px;border-radius:50%"></div><div style="width:30px;height:30px;border-radius:50%"></div></div>',
-            sheet: '<div class="pl-mini col" style="gap:2px"><div style="flex:.3"></div><div style="flex:.3"></div><div style="flex:.3"></div><div style="flex:.3"></div></div>',
-            retro: '<div class="pl-mini" style="background:#008080"><div style="flex:.6;background:#c0c0c0;border:2px solid #fff;border-right-color:#404040;border-bottom-color:#404040"></div><div style="flex:1.4;background:#c0c0c0;border:2px solid #fff;border-right-color:#404040;border-bottom-color:#404040"></div></div>',
-            magazine: '<div class="pl-mini" style="background:#f7f5f0"><div style="flex:.5;background:#e0dccf;border:none"></div><div style="flex:1.6;background:#fffdf8;border:1px solid #d8d2c4"></div></div>'
+            studio: '<div class="pl-mini" style="background:#e9edf3;gap:6px;padding:8px"><div style="flex:1;background:#fff;border:1px solid #dde2ea"></div><div style="flex:1;background:#fff;border:1px solid #dde2ea"></div></div>'
         };
         const LAYOUTS = [
-            // A군
-            { id: 'classic', name: '클래식', group: 'A · 재배치', icon: 'fa-table-columns', accent: '#3b82f6', desc: '기본 3분할 (DB · 에디터 · 결과)', mini: mini.cols3 },
-            { id: 'zen', name: '집중', group: 'A · 재배치', icon: 'fa-feather', accent: '#10b981', desc: '에디터만 중앙에. 양옆은 탭으로 호출 · 명조체', mini: mini.center, init: mountZen },
-            { id: 'stacked', name: '세로 적층', group: 'A · 재배치', icon: 'fa-bars-staggered', accent: '#f59e0b', desc: '위→아래로 쌓는 세로 스크롤 (세로 모니터)', mini: mini.stack },
-            { id: 'mirror', name: '미러', group: 'A · 재배치', icon: 'fa-right-left', accent: '#a855f7', desc: '좌우 반전 — 결과가 왼쪽', mini: mini.cols3r },
-            // B군
-            { id: 'inspector', name: '인스펙터', group: 'B · 차용', icon: 'fa-pen-ruler', accent: '#06b6d4', desc: 'Figma풍 — 좁은 양옆 + 넓은 캔버스', mini: mini.inspector },
-            { id: 'ide', name: 'IDE', group: 'B · 차용', icon: 'fa-code', accent: '#007acc', desc: 'VS Code풍 — 아이콘 레일 + 커맨드 팔레트(⌘K)', mini: mini.ide, isNew: true, init: mountIde },
-            { id: 'gallery', name: '갤러리', group: 'B · 차용', icon: 'fa-images', accent: '#ec4899', desc: 'Midjourney풍 — 결과 크게 + 하단 고정 입력바', mini: mini.gallery, isNew: true, init: mountGallery },
-            { id: 'filmstrip', name: '필름스트립', group: 'B · 차용', icon: 'fa-film', accent: '#eab308', desc: 'Lightroom풍 — 하단 가로 필름스트립', mini: mini.film, isNew: true, init: mountFilmstrip },
-            { id: 'mode-flip', name: '모드전환', group: 'B · 차용', icon: 'fa-toggle-on', accent: '#ff764d', desc: 'Ableton풍 — 빌드↔퍼포먼스 전환', mini: mini.bigR, isNew: true, init: mountModeFlip },
-            // C군
-            { id: 'terminal', name: '터미널', group: 'C · 신규', icon: 'fa-terminal', accent: '#33ff66', desc: '명령어로 빌드 (add/rm/find/gen) · CRT 감성', mini: mini.term, isNew: true, init: initTerminal },
-            { id: 'deck', name: '카드 덱', group: 'C · 신규', icon: 'fa-clone', accent: '#c084fc', desc: '태그를 스와이프해서 추가 · 타로카드', mini: mini.deck, isNew: true, init: initDeck },
-            { id: 'node', name: '노드 그래프', group: 'C · 신규', icon: 'fa-diagram-project', accent: '#38bdf8', desc: '무한 캔버스에 노드 연결 (팬·줌·드래그)', mini: mini.node, isNew: true, init: initNode },
-            { id: 'chat', name: '대화형', group: 'C · 신규', icon: 'fa-comments', accent: '#22c55e', desc: '챗봇 질문에 답하며 빌드 · 손글씨 폰트', mini: mini.chat, isNew: true, init: initChat },
-            { id: 'magazine', name: '매거진', group: 'C · 신규', icon: 'fa-newspaper', accent: '#1a1a1a', desc: '에디토리얼 — 명조/세리프, 밝은 지면', mini: mini.magazine },
-            { id: 'retro', name: '레트로 OS', group: 'C · 신규', icon: 'fa-computer', accent: '#00a0a0', desc: 'Win95 스킨 — 픽셀 폰트, 베벨 창', mini: mini.retro },
-            { id: 'cockpit', name: '콕핏', group: 'C · 신규', icon: 'fa-gauge-high', accent: '#ffae3a', desc: '다이얼·게이지로 스텝/CFG 조작 · FIRE', mini: mini.cockpit, isNew: true, init: initCockpit },
-            { id: 'sheet', name: '스프레드시트', group: 'C · 신규', icon: 'fa-table-cells', accent: '#84cc16', desc: '태그를 셀로 대량 편집 (정렬·필터·저장)', mini: mini.sheet, isNew: true, init: initSheet }
+            { id: 'classic', name: '클래식', group: '레이아웃', icon: 'fa-table-columns', accent: '#3b82f6', desc: '기본 3분할 (상세태그 · 에디터 · 결과) · 다크 테마', mini: mini.cols3 },
+            { id: 'studio', name: '스튜디오', group: '레이아웃', icon: 'fa-wand-magic-sparkles', accent: '#6366f1', desc: '미니멀 라이트 — 간편 조합 + 결과/ComfyUI · 에디터는 원할 때 소환 · 추천 빠른 실행', mini: mini.studio, isNew: true, init: mountStudio }
         ];
 
         // ════════════════════════════════════════════════════════
@@ -16915,19 +16389,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const def = LAYOUTS.find(l => l.id === id) || LAYOUTS[0];
             if (_plTeardown) { try { _plTeardown(); } catch (e) {} _plTeardown = null; }
             runCleanups();
-            document.querySelectorAll('.pl-stage-exit').forEach(e => e.remove());
-            document.body.classList.remove('pl-stage-on', 'pl-mf-perform');
-            const stage = ensureStage(); stage.innerHTML = '';
             document.body.setAttribute('data-layout', def.id);
             _plCurrent = def.id;
             try { localStorage.setItem('pl_layout', def.id); } catch (e) {}
             const lbl = document.getElementById('pl-current-name'); if (lbl) lbl.textContent = '현재: ' + def.name;
             setTopbarVar();
             if (def.init) { try { _plTeardown = def.init() || null; } catch (e) { console.error('layout init error', e); } }
-            // 기능 오버레이가 켜졌으면 종료/전환 버튼을 띄운다 (앱 전체가 가려지므로)
-            if (document.body.classList.contains('pl-stage-on')) {
-                document.body.appendChild(el('button', { class: 'pl-stage-exit', title: '레이아웃 선택기 열기', html: '<i class="fa-solid fa-table-cells-large"></i> 레이아웃', onclick: openLayoutPicker }));
-            }
             renderPickerCards();
         }
         window.applyLayout = applyLayout;
@@ -16939,7 +16406,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             pickerGrid = el('div');
             const head = el('div', { class: 'pl-picker-head' },
                 el('h2', { html: '<i class="fa-solid fa-table-cells-large" style="color:#f472b6"></i> 레이아웃 선택' }),
-                el('span', { class: 'pl-sub', html: '17가지 · 클릭하면 즉시 적용 · 자동 저장' }),
+                el('span', { class: 'pl-sub', html: '클릭하면 즉시 적용 · 자동 저장' }),
                 el('button', { style: 'margin-left:auto;background:transparent;border:none;color:var(--text-dim);font-size:22px;cursor:pointer;', html: '&times;', onclick: closeLayoutPicker })
             );
             pickerBox = el('div', { id: 'pl-picker' }, el('div', { class: 'pl-picker-box' }, head, el('div', { class: 'pl-picker-body' }, pickerGrid)));
