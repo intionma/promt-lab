@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.18.3 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.18.4 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1086,7 +1086,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.18.3 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.18.4 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1851,7 +1851,14 @@
         const CHANGELOG = [
             // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.18.3', date: '2026-07-10', time: '최신',
+                version: 'v9.18.4', date: '2026-07-10', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[노출/후타나리] 후타나리에서 성기 태그 때문에 "다른 남성의 성기"나 "붕 뜬(분리된) 성기"가 끼어들던 문제를 완화했습니다 — 후타나리가 켜져 있으면 이런 것들을 막는 부정 프롬프트를 자동으로 넣어줍니다. 단, 후타×후타나 남성이 함께 있는 장면처럼 성기가 여러 개 필요한 경우엔 알아서 빼서 충돌하지 않게 했습니다',
+                ]
+            },
+            {
+                version: 'v9.18.3', date: '2026-07-10', time: '이전',
                 tag: 'feat',
                 items: [
                     '[추천/노출] 후타나리 섹션에 "후타나리" 토글을 추가했습니다 — 예전엔 성기·불알만 켤 수 있고 정작 캐릭터를 후타나리로 만드는 태그가 없어서 평범한 여성에 성기만 붙어 어색하게 나올 수 있었어요. 이제 "후타나리"를 켜면 확실히 후타나리로 지정되고, 성기·불알·윤곽 노출을 켜면 자동으로 후타나리 지정도 함께 들어갑니다(노출을 모두 끄면 함께 정리됨)',
@@ -6353,6 +6360,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             "source_realistic": "실사풍", "photorealistic": "사진같은 리얼리즘", "source_photo": "실사 사진 출처",
             "3d": "3D", "cartoon": "카툰", "anime": "애니", "illustration": "일러스트",
             "plastic skin": "플라스틱 같은 피부", "cgi": "CGI", "3d render": "3D 렌더링", "airbrushed": "에어브러시 보정",
+            "disembodied penis": "분리된(붕 뜬) 페니스", "multiple penises": "다수의 페니스", "1boy": "남성 1명", "2boys": "남성 2명", "multiple boys": "다수 남성",
             "multiple girls": "다수의 소녀", "boys": "소년들", "1girl": "1명(여성)", "solo": "단독",
             "outdoors": "야외", "indoors": "실내", "flat background": "단조로운 배경",
             "simple background": "단순한 배경", "detailed background": "복잡한 배경",
@@ -14459,6 +14467,20 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             });
             const negArray = Array.from(activeNegatives);
             let finalNegOutput = negArray.length > 0 ? (dynamicBaseNegative ? dynamicBaseNegative + ", " : "") + negArray.join(", ") : dynamicBaseNegative;
+            // 후타나리 가드: penis 태그 때문에 "다른 남성/분리된 페니스"가 끼어드는 걸 억제.
+            // 단, 후타온후타·커플·그룹 등 의도적으로 남성/다중 성기가 나오는 장면에선 해당 항목을 빼서 충돌 방지.
+            if (allPosTagsStr.includes('futanari')) {
+                const guard = ['disembodied penis']; // 붕 뜬(분리된) 페니스는 어떤 경우에도 원치 않음
+                const maleIntent = ['1boy', '2boys', '3boys', 'multiple boys', 'male focus', 'futa with male', 'penis on male', 'cum on male', 'yaoi'];
+                const multiPenisIntent = ['futa on futa', 'multiple penises', 'group sex', 'gangbang', 'double penetration', 'orgy'];
+                const maleWanted = maleIntent.some(t => allPosTagsStr.includes(t));
+                if (!maleWanted) guard.push('1boy', '2boys', 'multiple boys');
+                // 성기 여러 개가 의도된 경우(후타온후타·그룹) 또는 남성이 함께 있는 경우(남성 성기 존재)엔 multiple penises를 빼서 충돌 방지
+                if (!maleWanted && !multiPenisIntent.some(t => allPosTagsStr.includes(t))) guard.push('multiple penises');
+                const negLc = new Set(finalNegOutput.toLowerCase().split(',').map(s => s.trim()).filter(Boolean));
+                const extra = guard.filter(t => !negLc.has(t) && !allPosTagsStr.includes(t));
+                if (extra.length) finalNegOutput = (finalNegOutput ? finalNegOutput + ', ' : '') + extra.join(', ');
+            }
             document.getElementById('final-negative').value = finalNegOutput;
 
             const negPreviewBox = document.getElementById('negative-korean-preview');
