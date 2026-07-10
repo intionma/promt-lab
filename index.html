@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.19.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.19.2 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1086,7 +1086,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.19.1 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.19.2 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1851,7 +1851,14 @@
         const CHANGELOG = [
             // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.19.1', date: '2026-07-10', time: '최신',
+                version: 'v9.19.2', date: '2026-07-10', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[에디터] 텍스트 모드에서 글자를 지우거나 중간을 편집하면 커서가 끝으로 튀거나 엉뚱하게 지워지던 문제를 고쳤습니다 — 편집 도중 태그를 자동 재정렬하면서 입력창을 다시 써버려 커서가 튀던 것이 원인이었습니다. 이제 편집 중에는 재정렬하지 않고, 편집을 마치고 다른 곳을 누르면(포커스 해제) 그때 정렬됩니다',
+                ]
+            },
+            {
+                version: 'v9.19.1', date: '2026-07-10', time: '이전',
                 tag: 'fix',
                 items: [
                     '[전역] 창(모달)이 떠 있을 때 뒤로가기(모바일 뒤로 버튼 포함)를 누르면 페이지가 통째로 넘어가 버리던 문제를 전면 수정했습니다 — 이제 뒤로가기를 누르면 페이지가 아니라 "떠 있는 그 창만" 닫힙니다. 추천·간편조합 만들기·ComfyUI 전송·태그 카탈로그·프리셋/DB 관리·변경내역·레이아웃 등 거의 모든 창에 적용됐습니다',
@@ -8815,7 +8822,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             placeholder="텍스트를 자유롭게 입력하세요. 쉼표(,)로 구분됩니다."
                             oninput="handleManualInput(${i})"
                             onfocus="document.getElementById('editor-section-${i}').classList.add('focus-${i}')"
-                            onblur="document.getElementById('editor-section-${i}').classList.remove('focus-${i}'); renderChips(${i})"
+                            onblur="document.getElementById('editor-section-${i}').classList.remove('focus-${i}'); syncFromManualInput(${i}); renderChips(${i})"
                             onmouseup="handleSelectionTextMode(event, this, ${i})"
                             onkeydown="handleHotkey(event, this, ${i})"></textarea>
                     </div>
@@ -13305,6 +13312,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function sortLayerByDB(layerIndex) {
             const textarea = document.getElementById(`layer-${layerIndex}`);
             if (!textarea) return;
+            // 사용자가 그 칸을 직접 편집 중이면 재정렬로 textarea를 다시 쓰지 않는다 —
+            // .value를 재설정하면 커서가 끝으로 튀어 "글자가 이상하게 지워지는" 문제가 생김. 정렬은 blur 때 수행.
+            if (document.activeElement === textarea) return;
             const raw = textarea.value.split(',').map(s => s.trim()).filter(Boolean);
             if (raw.length < 2) return;
 
