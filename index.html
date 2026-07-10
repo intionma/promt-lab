@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.18.5 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.18.6 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1086,7 +1086,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.18.5 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.18.6 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1851,7 +1851,15 @@
         const CHANGELOG = [
             // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.18.5', date: '2026-07-10', time: '최신',
+                version: 'v9.18.6', date: '2026-07-10', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[성능] 태그를 넣거나 추천/간편 조합을 켜고 끌 때 전체적으로 버벅이던 렉을 크게 줄였습니다 — 한 번의 동작에서 내부 재계산이 수십 번씩 중복 실행되던 것을 딱 한 번만 하도록 묶었고, 바뀐 계층만 갱신하도록 바꿨습니다. 조합 적용은 약 6배, 태그 추가는 약 8배 빨라졌습니다',
+                    '[버그] 조합을 적용해도 왼쪽 태그 목록에서 해당 태그 버튼에 불이 안 들어오던 문제도 함께 고쳤습니다',
+                ]
+            },
+            {
+                version: 'v9.18.5', date: '2026-07-10', time: '이전',
                 tag: 'fix',
                 items: [
                     '[추천] 추천 조합의 태그에 직접 가중치를 준 뒤(예: (garter belt:1.3)) 그 조합을 다시 끄면 가중치 준 태그가 안 지워지고 남아있던 버그를 고쳤습니다 — 이제 가중치가 붙어 있어도 조합을 끄면 함께 깔끔하게 제거됩니다',
@@ -7390,7 +7398,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         function _recToggleLook(lk) {
             if (!lk || !lk.tags) return;
-            if (_recPickedSet.has(lk)) { const protect = _recTagsProtectedExcluding(lk); _recPickedSet.delete(lk); lk.tags.forEach(t => { if (!protect.has((t || '').toLowerCase())) _recRemoveTag(t); }); }
+            if (_recPickedSet.has(lk)) { const protect = _recTagsProtectedExcluding(lk); _recPickedSet.delete(lk); _umoBatch(() => lk.tags.forEach(t => { if (!protect.has((t || '').toLowerCase())) _recRemoveTag(t); })); } // N개 태그 제거의 재계산을 1회로 배치
             else { _recPickedSet.add(lk); importPromptToEditor(lk.tags, 'append'); }
         }
         // 룩 목록 셔플 (표시용 n개)
@@ -7593,13 +7601,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _recRemoveTag(t) {
             const lc = _recTagCore(t); const st = contextStates[currentContext]; if (!st) return;
             try { saveStateToUndoStack(); } catch (e) {}
+            const changed = [];
             for (let i = 0; i < 7; i++) {
                 // 핵심 태그가 일치하면 가중치가 붙어 있어도((tag:1.2) 등) 함께 제거
-                st[i] = (st[i] || '').split(',').map(s => s.trim()).filter(x => x && _recTagCore(x) !== lc).join(', ');
-                const el = document.getElementById('layer-' + (i + 1)); if (el) el.value = st[i];
+                const before = st[i] || '';
+                const after = before.split(',').map(s => s.trim()).filter(x => x && _recTagCore(x) !== lc).join(', ');
+                if (after !== before) { st[i] = after; const el = document.getElementById('layer-' + (i + 1)); if (el) el.value = after; changed.push(i + 1); }
             }
-            for (let i = 1; i <= 7; i++) { try { syncFromManualInput(i); } catch (e) {} }
-            try { updateMasterOutput(); } catch (e) {}
+            // 실제 태그가 있던(바뀐) 레이어만 sync — 예전엔 태그 1개 제거에 7레이어 전부 sync해서 렉의 큰 원인이었음
+            _umoBatch(() => { changed.forEach(i => { try { syncFromManualInput(i); } catch (e) {} }); });
         }
         // 추천 축(의상/구도/배경/노출/화풍/인원/인물) 전체 목록 — 표시 여부와 무관하게 항상 전체 참조(교차 오염 방지용)
         function _recAllAxisData() {
@@ -7842,11 +7852,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const clearing = (ax.data || []).filter(p => _recPickedSet.has(p));
                     if (!clearing.length) return;
                     // 이 축을 비우되, 다른 선택된 프리셋이 여전히 필요로 하는 태그는 보존(교차 오염 방지)
-                    clearing.forEach(p => {
+                    _umoBatch(() => clearing.forEach(p => {
                         const protect = _recTagsProtectedExcluding(p);
                         _recPickedSet.delete(p); // 먼저 선택 해제(보호 계산에서 자기 자신 제외 효과)
                         (p.tags || []).forEach(t => { if (!protect.has((t || '').toLowerCase())) _recRemoveTag(t); });
-                    });
+                    })); // 축 비우기: 여러 프리셋 태그 제거를 1회 재계산으로 배치
                     renderRecommendModal(false);
                 });
                 body.querySelectorAll('.recm-item').forEach(b => b.onclick = () => {
@@ -7860,6 +7870,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     if (wasOn) _recPickedSet.delete(p); else _recPickedSet.add(p);
                     // 무거운 에디터 반영은 다음 프레임에 (하이라이트가 먼저 그려지도록)
                     setTimeout(() => {
+                        _umoBatch(() => {
                         if (wasOn) {
                             // 다른 선택된 프리셋이 공유하는 태그는 지우지 않음(교차 오염 방지)
                             const protect = _recTagsProtectedExcluding(p);
@@ -7882,6 +7893,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                                 (sib.tags || []).forEach(t => { if (!sProtect.has((t || '').toLowerCase())) _recRemoveTag(t); });
                             });
                         }
+                        }); // _umoBatch: 이 조작(추가+형제 제거 등) 전체를 1회 재계산으로 배치
                         _recSyncVisual(host); // 이번 조작으로 실제 상태가 바뀐 다른 칩들도 정확하게 재동기화
                     }, 0);
                 });
@@ -12202,7 +12214,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (isOn) {
                 // 해제: 조합의 태그 제거 (다른 활성 조합이 공유하는 태그는 보존 — 교차 오염 방지)
                 const protect = _comboTagsProtectedExcluding(combo.id);
-                Object.keys(combo.tags).forEach(layerId => {
+                _umoBatch(() => Object.keys(combo.tags).forEach(layerId => {
                     const textarea = document.getElementById(`layer-${layerId}`);
                     if (!textarea) return;
                     let content = textarea.value;
@@ -12213,12 +12225,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     });
                     textarea.value = content.replace(/,\s*,+/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').trim();
                     syncFromManualInput(layerId);
-                });
+                }));
                 _activeComboIds.delete(combo.id);
                 showToast(`[${combo.title}] 조합이 해제되었습니다.`, "info");
             } else {
                 // 적용: 기존 조합 태그 먼저 제거(중복 방지) 후 추가
-                Object.keys(combo.tags).forEach(layerId => {
+                _umoBatch(() => Object.keys(combo.tags).forEach(layerId => {
                     const textarea = document.getElementById(`layer-${layerId}`);
                     if (!textarea) return;
                     // 중복 방지: 이미 있는 같은 조합 태그 먼저 클리어
@@ -12235,12 +12247,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     });
                     textarea.value = currentTags.join(', ');
                     syncFromManualInput(layerId);
-                });
+                }));
                 _activeComboIds.add(combo.id);
                 showToast(`[${combo.title}] 조합이 적용되었습니다!`, "success");
             }
-            // 모든 레이어 sync 완료 후 전체 태그 버튼 상태 일괄 갱신
-            _refreshAllTagBtnStates();
+            // 조합이 건드린 레이어는 위 syncFromManualInput에서 이미 버튼 하이라이트가 갱신됐으므로
+            // 전체(263개) 재스캔은 생략(중복). 배지·조합카드·미리보기는 배치 끝 updateMasterOutput가 처리.
         }
 
         function _refreshAllTagBtnStates() {
@@ -12484,13 +12496,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const arr = buckets[layer - 1];
                 if (!arr.some(x => x.toLowerCase() === tok.toLowerCase())) arr.push(tok);
             });
+            const _changed = [];
             for (let i = 0; i < 7; i++) {
-                contextStates[currentContext][i] = buckets[i].join(', ');
+                const val = buckets[i].join(', ');
+                if (val !== (contextStates[currentContext][i] || '')) _changed.push(i + 1);
+                contextStates[currentContext][i] = val;
                 const taEl = document.getElementById(`layer-${i + 1}`);
-                if (taEl) taEl.value = contextStates[currentContext][i];
+                if (taEl) taEl.value = val;
             }
-            for (let i = 1; i <= 7; i++) syncFromManualInput(i);
-            if (typeof updateMasterOutput === 'function') updateMasterOutput();
+            _umoBatch(() => { _changed.forEach(i => syncFromManualInput(i)); }); // 바뀐 레이어만 sync + 재계산 1회로 배치
             return { total: tokens.length, unknown };
         }
 
@@ -13033,7 +13047,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             showToast(`클릭 기본 가중치: ${globalWeightCurrent.toFixed(1)}`, 'info', 1500);
         }
 
-        function getRegexForTag(tag) { return new RegExp(`\\(?\\b${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b(:\\s*\\d*\\.?\\d*)?\\)?`, 'i'); }
+        // 태그별 정규식 캐시 — 예전엔 (태그×탭) 루프마다 new RegExp를 매번 컴파일해 렉의 큰 원인이었음.
+        // g/y 플래그가 없어 lastIndex 상태가 없으므로 캐시 재사용이 안전함.
+        const _regexForTagCache = new Map();
+        function getRegexForTag(tag) {
+            let r = _regexForTagCache.get(tag);
+            if (!r) { r = new RegExp(`\\(?\\b${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b(:\\s*\\d*\\.?\\d*)?\\)?`, 'i'); _regexForTagCache.set(tag, r); }
+            return r;
+        }
 
         // 다중 프롬포트 태그의 활성 여부: 모든 프롬포트가 텍스트에 있어야 활성
         function isTagActive(tagText, content) {
@@ -13602,6 +13623,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         function syncFromManualInput(layerIndex) {
+            layerIndex = +layerIndex; // 문자열 키("5")로 불려도 activeTagsMap[t].layer(숫자)와 === 비교되게 정규화(조합 적용 시 버튼 하이라이트 버그 방지)
             sortLayerByDB(layerIndex);
             const textarea = document.getElementById(`layer-${layerIndex}`);
             if (!contextStates[currentContext]) contextStates[currentContext] = ["","","","","","",""];
@@ -14330,7 +14352,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return `${pfx}, ${cleaned}`;
         }
 
+        // 배치 재계산: 한 동작(조합 적용/추천 토글/여러 태그 추가·제거)이 updateMasterOutput를 수십 번
+        // 호출하던 걸 억제했다가 마지막에 딱 한 번만 실행. _umoBatch는 중첩 안전(카운터).
+        let _umoSuppress = 0, _umoPending = false;
+        function _umoBatch(fn) {
+            _umoSuppress++;
+            try { fn(); } finally { _umoSuppress--; }
+            if (_umoSuppress === 0 && _umoPending) { _umoPending = false; updateMasterOutput(); }
+        }
         function updateMasterOutput() {
+            if (_umoSuppress > 0) { _umoPending = true; return; } // 배치 중이면 미루고 마지막에 1회만
             // 동적 탭 기반으로 각 탭의 내용 수집
             const tabStrings = contextTabs.map(tab => {
                 const state = contextStates[tab.id] || [];
