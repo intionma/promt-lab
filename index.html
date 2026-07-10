@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.19.2 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.19.3 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1086,7 +1086,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.19.2 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.19.3 &nbsp;·&nbsp; 2026-07-10 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1604,8 +1604,8 @@
                     <div>
                         <label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Seed</label>
                         <div style="display:flex; gap:6px;">
-                            <input id="comfy-seed" type="number" value="-1" class="comfy-num" style="flex:1;">
-                            <button class="action-btn" onclick="document.getElementById('comfy-seed').value=-1;" title="랜덤(-1)" style="padding:0 10px;"><i class="fa-solid fa-dice"></i></button>
+                            <input id="comfy-seed" type="number" value="-1" class="comfy-num" style="flex:1;" onchange="try{_comfySaveSettings()}catch(e){}">
+                            <button class="action-btn" onclick="document.getElementById('comfy-seed').value=-1; try{_comfySaveSettings()}catch(e){}" title="랜덤(-1)" style="padding:0 10px;"><i class="fa-solid fa-dice"></i></button>
                         </div>
                     </div>
                 </div>
@@ -1851,7 +1851,14 @@
         const CHANGELOG = [
             // ── 2026-07-10 ──────────────────────────────────────────────────
             {
-                version: 'v9.19.2', date: '2026-07-10', time: '최신',
+                version: 'v9.19.3', date: '2026-07-10', time: '최신',
+                tag: 'feat',
+                items: [
+                    '[갤러리] 이미지 우클릭/롱프레스 메뉴의 시드 항목을 실제로 쓸 수 있게 바꿨습니다 — "이 시드로 생성 고정"을 누르면 그 시드가 ComfyUI 전송 설정에 바로 들어가고 "매번 시드 랜덤"이 자동으로 꺼져서, 다음 생성이 같은 시드로 재현됩니다(설정은 저장되어 다음에도 유지). 그냥 복사만 원하면 "시드 복사"도 그대로 있습니다',
+                ]
+            },
+            {
+                version: 'v9.19.2', date: '2026-07-10', time: '이전',
                 tag: 'fix',
                 items: [
                     '[에디터] 텍스트 모드에서 글자를 지우거나 중간을 편집하면 커서가 끝으로 튀거나 엉뚱하게 지워지던 문제를 고쳤습니다 — 편집 도중 태그를 자동 재정렬하면서 입력창을 다시 써버려 커서가 튀던 것이 원인이었습니다. 이제 편집 중에는 재정렬하지 않고, 편집을 마치고 다른 곳을 누르면(포커스 해제) 그때 정렬됩니다',
@@ -4019,6 +4026,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     wfMode: _comfyWfMode,
                     wfJson: document.getElementById('comfy-wf-json').value,
                     wfRandSeed: document.getElementById('comfy-wf-randseed').checked,
+                    seed: document.getElementById('comfy-seed').value,
                     wfInjectMode: document.getElementById('comfy-wf-injectmode').value,
                     target: _comfyTarget,
                     connectedOnce: _comfyConnectedOnce,
@@ -4061,6 +4069,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (s.scheduler) document.getElementById('comfy-scheduler').value = s.scheduler;
                 if (s.wfJson) document.getElementById('comfy-wf-json').value = s.wfJson;
                 if (s.wfRandSeed !== undefined) document.getElementById('comfy-wf-randseed').checked = s.wfRandSeed;
+                if (s.seed !== undefined && s.seed !== '') document.getElementById('comfy-seed').value = s.seed;
                 if (s.wfInjectMode) document.getElementById('comfy-wf-injectmode').value = s.wfInjectMode;
                 if (Array.isArray(s.groups)) _comfyGroups = s.groups;
                 if (Array.isArray(s.nodeFaves)) _comfyNodeFaves = s.nodeFaves;
@@ -8398,9 +8407,24 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
             if (seed != null && String(seed) !== '' && String(seed) !== 'null') {
                 items.push('sep');
-                items.push({ icon: 'fa-solid fa-dice', label: `시드 복사`, action: () => { const s = String(seed); (navigator.clipboard && navigator.clipboard.writeText) ? navigator.clipboard.writeText(s).catch(() => _fallbackCopy(s)) : _fallbackCopy(s); showToast('시드를 복사했어요: ' + s, 'success', 2200); } });
+                // 이 시드로 바로 고정 — ComfyUI 전송 칸(comfy-seed)에 넣고 "매번 랜덤"을 꺼서 다음 생성이 같은 시드로 나오게 함
+                items.push({ icon: 'fa-solid fa-dice', label: `이 시드로 생성 고정`, action: () => _applyImageSeed(seed) });
+                items.push({ icon: 'fa-solid fa-clipboard', label: `시드 복사`, action: () => { const s = String(seed); (navigator.clipboard && navigator.clipboard.writeText) ? navigator.clipboard.writeText(s).catch(() => _fallbackCopy(s)) : _fallbackCopy(s); showToast('시드를 복사했어요: ' + s, 'success', 2200); } });
             }
             showCtxMenu(x, y, items);
+        }
+        function _applyImageSeed(seed) {
+            const si = document.getElementById('comfy-seed');
+            const rs = document.getElementById('comfy-wf-randseed');
+            if (!si) { // 전송 UI가 아직 없으면 클립보드로 폴백
+                const s = String(seed); (navigator.clipboard && navigator.clipboard.writeText) ? navigator.clipboard.writeText(s).catch(() => _fallbackCopy(s)) : _fallbackCopy(s);
+                showToast('시드를 복사했어요: ' + s, 'success', 2200); return;
+            }
+            si.value = String(seed);
+            let note = '';
+            if (rs && rs.checked) { rs.checked = false; note = ' · "매번 시드 랜덤"을 껐어요'; } // 랜덤이 켜져 있으면 시드가 무시되므로 끔
+            try { _comfySaveSettings(); } catch (e) {}
+            showToast('이 시드로 고정했어요 (' + seed + ')' + note + ' — ComfyUI 전송 시 같은 시드로 생성됩니다', 'success', 3600);
         }
 
         document.addEventListener('contextmenu', (e) => {
