@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.19.8 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.19.9 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -537,6 +537,10 @@
         #tag-inline-popup .tip-btn-cancel:hover { color: var(--text-main); }
         .chip-add-input { background: transparent; border: none; color: var(--text-dim); font-family: var(--font-code); font-size: 13px; outline: none; width: 130px; padding: 4px; }
         .chip-add-input:focus { color: var(--text-main); }
+        /* 자동완성 목록 항목 — 눌렀을 때 눌린 티가 나도록(모바일 터치/데스크톱 공통) */
+        #tag-ac .aci { transition: background .08s ease, transform .06s ease, filter .06s ease; -webkit-tap-highlight-color: transparent; }
+        #tag-ac .aci:active { background: color-mix(in srgb, var(--accent-blue) 32%, transparent) !important; transform: scale(0.97); filter: brightness(1.06); }
+        #tag-ac .aci.aci-press { background: color-mix(in srgb, var(--accent-blue) 32%, transparent) !important; transform: scale(0.97); }
 
         .prompt-chip.drag-over {
             transform: scale(1.05);
@@ -1086,7 +1090,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.19.8 &nbsp;·&nbsp; 2026-07-11 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.19.9 &nbsp;·&nbsp; 2026-07-11 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1851,7 +1855,15 @@
         const CHANGELOG = [
             // ── 2026-07-11 ──────────────────────────────────────────────────
             {
-                version: 'v9.19.8', date: '2026-07-11', time: '최신',
+                version: 'v9.19.9', date: '2026-07-11', time: '최신',
+                tag: 'fix',
+                items: [
+                    '[자동완성] 목록을 스크롤하려고 드래그하면 창이 바로 닫히던 문제를 고쳤습니다 — 이제 목록 안에서 편하게 위아래로 스크롤할 수 있습니다',
+                    '[자동완성] 목록 항목을 누르면 눌린 느낌(하이라이트 + 살짝 눌리는 효과)이 나도록 했습니다',
+                ]
+            },
+            {
+                version: 'v9.19.8', date: '2026-07-11', time: '',
                 tag: 'fix',
                 items: [
                     '[자동완성] 모바일에서 자동완성 목록의 항목을 눌러도 태그가 안 들어오던 문제를 고쳤습니다 — 항목 선택을 탭(click)에도 반응하도록 바꿔, 터치 기기에서 눌렀는데 아무것도 안 되던 현상을 없앴습니다',
@@ -12349,6 +12361,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         let _acState = { input: null, mode: null, items: [], sel: -1 };
         let _acPicking = false; // 자동완성 항목 선택 진행 중 표시 — 입력창 blur가 "부분 입력"을 먼저 커밋해버리는 경합 방지
+        let _acTouching = false; // 드롭다운을 터치로 스크롤하는 중 표시 — 스크롤/blur로 인한 조기 닫힘 방지
         function _acEl() {
             let el = document.getElementById('tag-ac');
             if (!el) {
@@ -12364,8 +12377,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             el.innerHTML = _acState.items.map((it, i) => `<div class="aci" data-i="${i}" style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;cursor:pointer;font-size:12px;${i === _acState.sel ? 'background:color-mix(in srgb,var(--accent-blue) 16%,transparent);' : ''}"><span style="color:var(--text-main);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_esc(it.ko || it.en)}</span><span style="color:var(--text-dim);font-family:var(--font-code);font-size:11px;margin-left:auto;white-space:nowrap;">${_esc(it.en)}</span></div>`).join('');
             el.querySelectorAll('.aci').forEach(d => {
                 const doPick = (e) => { if (e) { e.preventDefault(); e.stopPropagation(); } _acPick(parseInt(d.dataset.i)); };
+                const _unpress = () => d.classList.remove('aci-press');
                 // pointerdown은 blur보다 먼저 발생 → 이 시점에 "선택 중" 표시해 입력창 blur의 부분입력 커밋을 막음(모바일 터치 포함)
-                d.onpointerdown = () => { _acPicking = true; setTimeout(() => { _acPicking = false; }, 700); };
+                // + 눌린 티가 나도록 press 클래스 부여(터치 중 :active가 안 잡히는 기기 대비)
+                d.onpointerdown = () => { _acPicking = true; d.classList.add('aci-press'); setTimeout(() => { _acPicking = false; }, 700); };
+                d.onpointerup = _unpress; d.onpointercancel = _unpress; d.onpointerleave = _unpress;
                 // mousedown은 데스크톱에서 blur보다 먼저 커밋(포커스 유지). click은 모바일 탭에서
                 // 마우스-호환 이벤트(mousedown)가 억제돼도 반드시 발생하는 크로스 디바이스 선택 경로.
                 // 둘 다 걸어도 _acPick은 첫 호출에서 _acState를 비우므로 두 번째 호출은 무시됨(중복 안전).
@@ -12424,9 +12440,23 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }, true);
         document.addEventListener('focusout', (e) => {
             const t = e.target; if (!t || !((t.classList && t.classList.contains('chip-add-input')) || t.id === 'tag-search')) return;
-            setTimeout(() => { const a = document.activeElement; if (a && ((a.classList && a.classList.contains('chip-add-input')) || a.id === 'tag-search')) return; _acHide(); }, 160);
+            setTimeout(() => {
+                if (_acTouching) return; // 드롭다운을 손가락으로 스크롤 중이면 닫지 않음
+                const a = document.activeElement; if (a && ((a.classList && a.classList.contains('chip-add-input')) || a.id === 'tag-search')) return;
+                _acHide();
+            }, 160);
         }, true);
-        window.addEventListener('scroll', _acHide, true);
+        // 드롭다운 안에서 스크롤(터치 드래그 포함)하는 동안에는 닫지 않도록 상호작용 상태 추적
+        document.addEventListener('pointerdown', (e) => { const ac = document.getElementById('tag-ac'); if (ac && e.target && ac.contains(e.target)) _acTouching = true; }, true);
+        const _acEndTouch = () => { _acTouching = false; };
+        document.addEventListener('pointerup', _acEndTouch, true);
+        document.addEventListener('pointercancel', _acEndTouch, true);
+        // 스크롤로 인한 자동 닫힘: 드롭다운 자신의 내부 스크롤은 무시하고, 바깥(페이지/패널) 스크롤에서만 닫는다
+        window.addEventListener('scroll', (e) => {
+            const el = document.getElementById('tag-ac');
+            if (el && e.target && e.target.nodeType === 1 && (e.target === el || el.contains(e.target))) return;
+            _acHide();
+        }, true);
 
         // excludeId를 제외한, 현재 활성(_activeComboIds)인 다른 모든 조합들의 태그 합집합
         // → 조합을 뺄 때 다른 활성 조합이 여전히 필요로 하는(겹치는) 태그는 지우지 않음(교차 오염 방지)
