@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.20.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.20.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1090,7 +1090,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.20.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.20.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1855,7 +1855,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.20.0', date: '2026-07-12', time: '최신',
+                version: 'v9.20.1', date: '2026-07-12', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[간편조합] 조합을 넣었다 뺐을 때 특정 태그가 안 빠지고 남던 문제를 고쳤습니다 — 이모티콘 계열(^_^, >_< 등)이나 괄호가 붙은 태그(bird (animal) 등)처럼 특수문자로 시작·끝나는 태그가 이제 깔끔하게 함께 제거됩니다",
+                ]
+            },
+            {
+                version: 'v9.20.0', date: '2026-07-12', time: '',
                 tag: 'fix',
                 items: [
                     "[에디터] '전체' 보기에서 간편조합·추천조합·태그를 추가하면 화면에 바로 안 뜨고 새로고침해야 보이던 문제를 고쳤습니다 — 이제 추가하는 즉시 통합 텍스트에 반영됩니다 (캡슐·텍스트 보기는 원래 정상)",
@@ -13335,9 +13342,20 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // 태그별 정규식 캐시 — 예전엔 (태그×탭) 루프마다 new RegExp를 매번 컴파일해 렉의 큰 원인이었음.
         // g/y 플래그가 없어 lastIndex 상태가 없으므로 캐시 재사용이 안전함.
         const _regexForTagCache = new Map();
+        // 룩비하인드 지원 여부(구형 사파리 대비). 지원되면 단어경계 문제를 정확히 처리.
+        let _lookbehindOK = true; try { new RegExp('(?<=a)b'); } catch (e) { _lookbehindOK = false; }
         function getRegexForTag(tag) {
             let r = _regexForTagCache.get(tag);
-            if (!r) { r = new RegExp(`\\(?\\b${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b(:\\s*\\d*\\.?\\d*)?\\)?`, 'i'); _regexForTagCache.set(tag, r); }
+            if (!r) {
+                const esc = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                // \b(단어경계)는 태그가 비단어문자로 시작/끝날 때(예: 이모티콘 ^_^, 괄호 bird (animal)) 매칭에 실패해
+                // 조합 해제 시 해당 태그가 남는 버그가 있었다. "앞뒤가 단어문자가 아님"을 룩어라운드로 판정해 모든 태그를 안전히 매칭.
+                const src = _lookbehindOK
+                    ? `\\(?(?<![\\w])${esc}(?![\\w])(:\\s*\\d*\\.?\\d*)?\\)?`
+                    : `\\(?\\b${esc}\\b(:\\s*\\d*\\.?\\d*)?\\)?`;
+                r = new RegExp(src, 'i');
+                _regexForTagCache.set(tag, r);
+            }
             return r;
         }
 
