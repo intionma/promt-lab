@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.35.2 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.35.3 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1149,7 +1149,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.35.2 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.35.3 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1915,7 +1915,15 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.35.2', date: '2026-07-12', time: '최신',
+                version: 'v9.35.3', date: '2026-07-12', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[이미지 인페인팅] 실사 변환용 태그(photo, realistic …)가 인페인팅 프롬프트에 자동으로 딸려 들어가던 문제를 고쳤습니다 — 인페인팅은 이제 내가 적은 것만 반영합니다 (원본 화풍 유지)",
+                    "[이미지] 얼굴 보정(FaceDetailer) 등 고급 노드를 켰을 때 'HTTP 400 required_input_missing'으로 전송이 실패하던 문제 수정 — 설치된 노드의 실제 입력을 먼저 읽어 맞춰 보냅니다",
+                ]
+            },
+            {
+                version: 'v9.35.2', date: '2026-07-12', time: '',
                 tag: 'fix',
                 items: [
                     "[이미지 인페인팅] 인페인팅 에디터에 '이미지 변환'에서 쓰던 태그가 딸려오던 문제를 고쳤습니다 — 이제 이미지 변환 / 이미지 인페인팅 / 클래식·스튜디오가 각각 별도의 태그 저장소를 씁니다",
@@ -5502,6 +5510,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 let name;
                 try { name = await _img2imgEnsureUploaded(); }
                 catch (e) { showToast('원본 이미지 업로드 실패: ' + (e && e.message || e), 'error', 6000); return null; }
+                // 복잡한 노드는 설치본의 "실제 필수 입력"을 먼저 받아 캐시 → 버전 차이로 required_input_missing 검증 실패 방지
+                try {
+                    if (_img2img.faceDetailer) { await _comfyNodeDefaults('FaceDetailer'); await _comfyNodeDefaults('UltralyticsDetectorProvider'); }
+                    if (_img2img.upscale) await _comfyNodeDefaults('UltimateSDUpscale');
+                    if (_img2img.ipadapter) { await _comfyNodeDefaults('IPAdapterUnifiedLoaderFaceID'); await _comfyNodeDefaults('IPAdapterFaceID'); }
+                    if (_img2img.editMode === 'inpaint') await _comfyNodeDefaults('InpaintModelConditioning');
+                } catch (e) {}
                 // 부분 편집(인페인팅): 브러시로 칠한 마스크를 업로드 → 인페인트 워크플로우
                 if (_img2img.editMode === 'inpaint') {
                     const maskURL = (typeof window.__i2iGetMaskDataURL === 'function') ? window.__i2iGetMaskDataURL() : null;
@@ -15662,7 +15677,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 분석을 안 돌렸거나 지웠어도 Pony Realism이 제대로 실사화되도록 — 실사 품질의 핵심 레버.
             // Pony 스코어 태그(score_9 등)는 맨 앞을 유지해야 효과가 좋으므로, 실사 태그는 스코어 접두 "뒤"에 끼워넣는다.
             try {
-                if (typeof _img2img !== 'undefined' && _img2img.enabled && _img2img.addRealism) {
+                // 인페인팅에선 실사 태그 자동 주입 안 함 — 칠한 부분은 사용자가 적은 것만 반영(원본 화풍 유지)
+                if (typeof _img2img !== 'undefined' && _img2img.enabled && _img2img.editMode !== 'inpaint' && _img2img.addRealism) {
                     const present = new Set((finalOutput || '').toLowerCase().split(/[,\n]/).map(s => s.trim()).filter(Boolean));
                     const scoreTags = _I2I_REALISM_TAGS.filter(t => /^score_/i.test(t));
                     const styleAdds = _I2I_REALISM_TAGS.filter(t => !/^score_/i.test(t) && !present.has(t.toLowerCase()));
@@ -15819,9 +15835,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const extra = guard.filter(t => !negLc.has(t) && !allPosTagsStr.includes(t));
                 if (extra.length) finalNegOutput = (finalNegOutput ? finalNegOutput + ', ' : '') + extra.join(', ');
             }
-            // 이미지 변환(img2img) 모드: 애니 느낌 억제용 부정 태그를 자동으로 합침 (실사 변환 방향 고정)
+            // 이미지 변환(img2img) 모드: 애니 느낌 억제용 부정 태그를 자동으로 합침 (실사 변환 방향 고정) — 인페인팅 제외
             try {
-                if (typeof _img2img !== 'undefined' && _img2img.enabled && _img2img.addRealism) {
+                if (typeof _img2img !== 'undefined' && _img2img.enabled && _img2img.editMode !== 'inpaint' && _img2img.addRealism) {
                     const negLc2 = new Set(finalNegOutput.toLowerCase().split(',').map(s => s.trim()).filter(Boolean));
                     const add2 = _I2I_NEG_TAGS.filter(t => !negLc2.has(t.toLowerCase()));
                     if (add2.length) finalNegOutput = (finalNegOutput ? finalNegOutput + ', ' : '') + add2.join(', ');
