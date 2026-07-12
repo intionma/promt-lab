@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.36.2 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.36.3 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1156,7 +1156,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.36.2 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.36.3 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1922,7 +1922,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.36.2', date: '2026-07-12', time: '최신',
+                version: 'v9.36.3', date: '2026-07-12', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[이미지] 체크포인트 기본값이 엉뚱한 모델로 잡히던 문제를 고쳤습니다 — 설치 목록에 Pony Realism이 있으면 그걸 우선 기본으로 선택합니다 (이미 고른 모델은 그대로 유지)",
+                ]
+            },
+            {
+                version: 'v9.36.2', date: '2026-07-12', time: '',
                 tag: 'fix',
                 items: [
                     "[이미지 인페인팅] 예전에 다른 레이어에 적어둔 태그가 최종 프롬프트에 계속 남는데 지울 수 없던 문제를 고쳤습니다 — 인페인팅에 들어가면 흩어진 태그를 '칠한 곳에 넣을 것' 한 칸으로 모아, 거기서 지우거나 고칠 수 있습니다",
@@ -19001,7 +19008,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
             // ══ 고급 파이프라인 (체크포인트·LoRA·ControlNet·FaceDetailer·업스케일) ══
             const enumFills = []; // 설치 목록 드롭다운 채우기 함수들
-            function mkEnumSelect(cls, field, getCur, onPick) {
+            function mkEnumSelect(cls, field, getCur, onPick, preferRe) {
                 const sel = el('select', { class: 'ctl', style: 'flex:1; min-width:0; font-size:11px; font-family:var(--font-code);', onchange: (e) => onPick(e.target.value) });
                 async function fill() {
                     const cur = getCur() || '';
@@ -19011,16 +19018,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     if (cur && !list.includes(cur)) list = [cur, ...list];
                     list.forEach(m => sel.appendChild(el('option', { value: m }, m)));
                     sel.value = cur;
-                    if (!sel.value && list.length) { sel.value = list[0]; try { onPick(list[0]); } catch (e) {} } // 비어 있으면 첫 항목 자동 선택
+                    // 비어 있으면 기본 선택 — preferRe(예: Pony Realism)에 맞는 게 있으면 그걸, 없으면 첫 항목
+                    if (!sel.value && list.length) {
+                        let pick = list[0];
+                        if (preferRe) { const m = list.find(x => preferRe.test(x)); if (m) pick = m; }
+                        sel.value = pick; try { onPick(pick); } catch (e) {}
+                    }
                 }
                 enumFills.push(fill);
+                sel._fill = fill;
                 return sel;
             }
             const lbl = (t) => el('div', { style: 'font-size:12px; font-weight:800; color:var(--text-main); margin-bottom:6px;' }, t);
             const hint = (t) => el('div', { style: 'font-size:11px; color:var(--text-dim); margin-top:4px; line-height:1.5;' }, t);
 
             // 체크포인트
-            const ckptSel = mkEnumSelect('CheckpointLoaderSimple', 'ckpt_name', () => document.getElementById('comfy-ckpt').value, (v) => { document.getElementById('comfy-ckpt').value = v; try { _comfySaveSettings(); } catch (e) {} });
+            const ckptSel = mkEnumSelect('CheckpointLoaderSimple', 'ckpt_name', () => document.getElementById('comfy-ckpt').value, (v) => { document.getElementById('comfy-ckpt').value = v; try { _comfySaveSettings(); } catch (e) {} }, /pony.?realism/i);
 
             // LoRA
             const loraAddSel = mkEnumSelect('LoraLoader', 'lora_name', () => (_img2img.loras[0] && _img2img.loras[0].name) || '', () => {});
@@ -19192,6 +19205,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { if (!_img2img.dataURL) _img2imgRestoreSrc(); } catch (e) {}
             syncThumb();
             setMode(_img2img.editMode); // 저장된 편집 모드(실사 변환/부분 편집) 반영
+            try { ckptSel._fill(); } catch (e) {} // 체크포인트 기본값을 마운트 즉시 확정(Pony Realism 우선) — 고급 파이프라인 안 열어도
             try { fillModels(false); } catch (e) {} // 설치된 WD14 모델 목록 채우기(비동기)
             // 이미 켜져 있는 고급 노드는 스키마(기본값)를 미리 받아 캐시 (전송 시 버전 어긋남 방지)
             try {
