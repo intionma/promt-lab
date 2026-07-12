@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.34.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.34.2 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1146,7 +1146,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.34.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.34.2 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1912,7 +1912,16 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.34.1', date: '2026-07-12', time: '최신',
+                version: 'v9.34.2', date: '2026-07-12', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[이미지 변환] 부분 편집(인페인팅)이 통째로 새 이미지로 나오던 문제를 잡았습니다 — 인페인트를 항상 최우선으로 처리해 원본+마스크가 확실히 쓰이도록 했습니다",
+                    "[이미지 변환] 내부망(192.168.x.x) http로 연결했을 때 이미지 분석이 미리 막히던 문제 수정 — 일단 시도하고 실제 실패했을 때만 안내합니다",
+                    "[이미지 변환] 모바일에서 브러시로 칠할 때 화면이 좌우로 밀리던 문제 수정 — 마스크 위에서는 스와이프 대신 그리기만 됩니다",
+                ]
+            },
+            {
+                version: 'v9.34.1', date: '2026-07-12', time: '',
                 tag: 'fix',
                 items: [
                     "[이미지 변환] Fooocus 인페인트 패치가 두 종류 패키지(comfyui-inpaint-nodes / comfyui-easy-use) 중 어느 것으로 설치돼 있어도 자동 인식하도록 했습니다",
@@ -5292,21 +5301,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         async function _i2iAnalyzeAndFill() {
             if (!_img2imgHasImage()) { showToast('먼저 원본 이미지를 넣어주세요.', 'warning'); return false; }
             const mock = (typeof DevMode !== 'undefined' && DevMode.feature && DevMode.feature('mockGen'));
-            // 혼합 콘텐츠(https 페이지 → http ComfyUI) 차단: 이미지 자체는 이미 들어가 있음을 분명히 안내
-            if (!mock && _comfyMixedContentBlocked()) {
-                showToast('✅ 이미지는 정상적으로 들어갔어요. 다만 이 페이지는 https, ComfyUI는 http(127.0.0.1)라서 브라우저가 연결을 막아 자동 태그 분석만 못 했습니다. ComfyUI 연동은 앱을 로컬(http)에서 열어 쓰세요.', 'warning', 8000);
-                return false;
-            }
+            // 미리 차단하지 않고 일단 시도한다(전송 경로와 동일). 실제로 실패했을 때만 원인 안내.
             if (!_comfyConnectedOnce && !mock) { showToast('✅ 이미지는 들어갔어요. 자동 태그 분석은 ComfyUI 연결이 필요합니다 (오른쪽 결과창에서 연결 후 “이미지 분석” 버튼).', 'info', 5000); return false; }
             let name;
             try { name = await _img2imgEnsureUploaded(); } catch (e) {
-                if (_isFetchNetworkError(e)) showToast('✅ 이미지는 들어갔지만 ComfyUI에 연결하지 못했어요(자동 태그 분석 건너뜀). ComfyUI가 켜져 있는지·주소가 맞는지 확인하세요.', 'error', 6000);
+                if (_isFetchNetworkError(e)) showToast(_comfyMixedBlocked() ? _COMFY_MIXED_TOAST : '✅ 이미지는 들어갔지만 ComfyUI에 연결하지 못했어요(자동 태그 분석 건너뜀). ComfyUI가 켜져 있는지·주소가 맞는지 확인하세요.', 'error', 7000);
                 else showToast('이미지 업로드 실패: ' + (e && e.message || e), 'error', 5000);
                 return false;
             }
             let tagStr;
             try { tagStr = await _comfyWD14Tag(name); } catch (e) {
-                if (_isFetchNetworkError(e)) showToast('✅ 이미지는 들어갔지만 분석 중 ComfyUI 연결이 끊겼어요. 연결 상태를 확인하세요.', 'error', 6000);
+                if (_isFetchNetworkError(e)) showToast(_comfyMixedBlocked() ? _COMFY_MIXED_TOAST : '✅ 이미지는 들어갔지만 분석 중 ComfyUI 연결이 끊겼어요. 연결 상태를 확인하세요.', 'error', 6000);
                 else showToast('자동 분석 실패: ' + (e && e.message || e), 'error', 6000);
                 return false;
             }
@@ -5466,6 +5471,25 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         // 현재 모드/설정으로 실제 전송될 워크플로우를 조립 (생성·미리보기 공용)
         async function _comfyAssembleWorkflow(pos, neg) {
+            // ★ 인페인트(부분 편집)는 항상 최우선으로 라우팅 — 커스텀 워크플로우 모드여도 절대 text2img로 새지 않음
+            if (_img2img.enabled && _img2img.editMode === 'inpaint') {
+                if (!document.getElementById('comfy-ckpt').value.trim()) { showToast('체크포인트(모델 파일명)를 입력하세요.', 'error'); return null; }
+                if (!_img2imgHasImage()) { showToast('원본 이미지를 먼저 넣어주세요.', 'error'); return null; }
+                const maskURL = (typeof window.__i2iGetMaskDataURL === 'function') ? window.__i2iGetMaskDataURL() : null;
+                if (!maskURL) { showToast('편집할 영역을 브러시로 칠해주세요. (칠한 곳만 다시 그려집니다)', 'error', 5000); return null; }
+                let name;
+                try { name = await _img2imgEnsureUploaded(); }
+                catch (e) { showToast('원본 이미지 업로드 실패: ' + (e && e.message || e), 'error', 6000); return null; }
+                let maskName;
+                try { maskName = await _comfyUploadImage(_dataURLtoBlob(maskURL), 'promptlab_mask_' + Date.now() + '.png'); }
+                catch (e) { showToast('마스크 업로드 실패: ' + (e && e.message || e), 'error', 6000); return null; }
+                let fooocusKind = null, fooocusNames = null;
+                if (_img2img.fooocus) {
+                    try { if (await _comfyHasNode('INPAINT_ApplyFooocusInpaint')) fooocusKind = 'acly'; else if (await _comfyHasNode('easy applyFooocusInpaint')) fooocusKind = 'easy'; } catch (e) {}
+                    if (fooocusKind) { try { fooocusNames = await _resolveFooocusNames(fooocusKind); } catch (e) {} }
+                }
+                return _comfyBuildInpaintWorkflow(pos, neg, name, maskName, _img2img.inpaintDenoise, fooocusKind, fooocusNames);
+            }
             if (_comfyWfMode === 'custom') {
                 const workflow = _comfyBuildCustomWorkflow(pos, neg);
                 if (!workflow) return null; // 내부에서 에러 토스트 처리
@@ -18209,6 +18233,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (lb && lb.style.display !== 'none') return;
                 // 텍스트 입력 중 무시
                 if (e.target.closest('input, textarea, select, [contenteditable]')) return;
+                // 인페인트 마스크 브러시 위에서는 스와이프 대신 그리기 (좌우로 화면이 안 밀리게)
+                if (e.target.closest('.i2i-mask')) return;
                 swStartX = e.touches[0].clientX;
                 swStartY = e.touches[0].clientY;
                 swLocked = null;
