@@ -5,6 +5,9 @@
 
 ## 🔴 진행/대기 (Open)
 
+- [x] **[변환 조합 드로어]** — ✅완료(v9.43.0). 이미지 변환 좌하단 '조합' FAB → panel-left(combo 모드)를
+  왼쪽 드로어로 소환(간편/추천/추가/폴더). body로 이동+`pl-i2i-combo` 클래스, 스크림·닫기X·Esc·뒤로가기.
+  teardown에서 panel-left 트랙 복귀+요소 제거. 인페인팅 제외. 테스트 vcombo.js.
 - [x] **[모바일 스와이프 밀림]** — ✅수정(v9.42.1). `initMobileNav` 스냅은 `translateX(-idx*100vw)`,
   드래그는 `-idx*innerWidth(px)` 사용 → vw/px 불일치로 트랙이 살짝 밀려 고정됨. `panelW()`(실제 패널
   getBoundingClientRect 폭)로 스냅·baseOffset·minX 통일. 테스트 vswipe.js(실제 터치 제스처 후 정렬 확인).

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.42.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.43.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1012,6 +1012,30 @@
             width:44px; height:44px; border-radius:50%; border:1px solid var(--border-dim);
             background:var(--bg-panel); color:var(--text-main); font-size:20px; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,0.35); }
         body[data-layout="studio"].pl-studio-editor .pl-studio-edclose:hover { background:var(--text-main); color:var(--bg-panel); border-color:transparent; }
+        /* ─── 이미지 변환: 좌하단 버튼으로 간편/추천 조합을 왼쪽 드로어로 소환 ─── */
+        body[data-layout="img2img"] .pl-i2i-combo-scrim { display:none; }
+        body[data-layout="img2img"].pl-i2i-combo .pl-i2i-combo-scrim {
+            display:block; position:fixed; inset:0; top:var(--pl-topbar-h,54px); z-index:870;
+            background:rgba(0,0,0,0.45); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
+        body[data-layout="img2img"].pl-i2i-combo #panel-left {
+            display:flex !important; position:fixed; z-index:875; left:0; top:var(--pl-topbar-h,54px); bottom:0;
+            width:min(440px,90vw); border-right:1px solid var(--border-dim); background:var(--bg-panel);
+            box-shadow:0 20px 60px rgba(0,0,0,0.4); overflow:hidden; animation:plDrawerIn .22s ease; }
+        @keyframes plDrawerIn { from { transform:translateX(-100%); opacity:.4; } to { transform:none; opacity:1; } }
+        body[data-layout="img2img"] .pl-i2i-combo-fab {
+            position:fixed; left:16px; bottom:20px; z-index:878; display:flex; align-items:center; gap:8px;
+            border:1px solid var(--border-dim); background:var(--accent-green); color:#fff; border-radius:26px;
+            padding:12px 20px; font-size:14px; font-weight:800; font-family:var(--font-ui); cursor:pointer;
+            box-shadow:0 10px 30px rgba(0,0,0,0.25); transition:transform .14s, box-shadow .14s; }
+        body[data-layout="img2img"] .pl-i2i-combo-fab:hover { transform:translateY(-2px); box-shadow:0 14px 36px rgba(0,0,0,0.3); }
+        body[data-layout="img2img"].pl-i2i-combo .pl-i2i-combo-fab { background:var(--text-main); color:var(--bg-panel); border-color:transparent; }
+        body[data-layout="img2img"] .pl-i2i-combo-close { display:none; }
+        body[data-layout="img2img"].pl-i2i-combo .pl-i2i-combo-close {
+            display:flex; align-items:center; justify-content:center; position:fixed; z-index:9700;
+            top:calc(var(--pl-topbar-h,54px) + 12px); left:calc(min(440px,90vw) - 46px);
+            width:38px; height:38px; border-radius:50%; border:1px solid var(--border-dim);
+            background:var(--bg-panel); color:var(--text-main); font-size:17px; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,0.35); }
+        @media (max-width:1024px){ body[data-layout="img2img"] .pl-i2i-combo-fab { bottom:calc(env(safe-area-inset-bottom,0px) + 68px); } }
         /* 서브 전환(상세↔간편 · 결과↔이미지) 슬라이드 인 */
         @keyframes plSwipeInR { from { transform:translateX(-13%); opacity:.35; } to { transform:none; opacity:1; } }
         @keyframes plSwipeInL { from { transform:translateX(13%); opacity:.35; } to { transform:none; opacity:1; } }
@@ -1156,7 +1180,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.42.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.43.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1922,7 +1946,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.42.1', date: '2026-07-12', time: '최신',
+                version: 'v9.43.0', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지 변환] 화면 좌하단 '조합' 버튼으로 간편 조합·추천 조합 창을 바로 열고 닫을 수 있습니다 — 이미지 변환 중에도 조합을 넣거나 뺄 수 있어요. 버튼을 누르면 왼쪽에서 조합 서랍이 나오고(조합 추가·폴더·추천 모두 포함), 다시 누르거나 X·바깥 터치·뒤로가기로 닫힙니다.",
+                ]
+            },
+            {
+                version: 'v9.42.1', date: '2026-07-12', time: '',
                 tag: 'fix',
                 items: [
                     "[모바일] 에디터·이미지·결과를 가로로 스와이프해 넘길 때, 어느 순간 화면이 한쪽으로 살짝 밀린 채 고정되던(새로고침해야 돌아오던) 버그를 고쳤습니다 — 스와이프와 스냅이 서로 다른 폭 기준을 써서 생긴 어긋남을, 실제 패널 폭으로 통일해 항상 정확히 정렬되게 했습니다",
@@ -19487,6 +19518,49 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const right = document.getElementById('panel-right');
             if (right && right.parentElement) right.parentElement.insertBefore(panel, right);
 
+            // ── 이미지 변환: 좌하단 버튼으로 간편/추천 조합 드로어 소환 (조합 추가·제거) ──
+            // (인페인팅 제외 — 인페인팅은 간단 프롬프트만 사용)
+            let _comboScrim = null, _comboFab = null, _comboClose = null, _comboPushed = false, _comboMoved = false;
+            function _comboToBody() {
+                const pl = document.getElementById('panel-left');
+                if (pl && pl.parentElement !== document.body) { document.body.appendChild(pl); _comboMoved = true; }
+            }
+            function _comboToTrack() {
+                const pl = document.getElementById('panel-left');
+                const track = window.__getMobileTrack && window.__getMobileTrack();
+                const home = track || document.getElementById('app-container');
+                if (pl && _comboMoved && home) { home.appendChild(pl); _comboMoved = false; }
+            }
+            function _applyComboClose() {
+                document.body.classList.remove('pl-i2i-combo');
+                _comboToTrack();
+                if (_comboFab) _comboFab.innerHTML = '<i class="fa-solid fa-puzzle-piece"></i> 조합';
+            }
+            function openComboDrawer() {
+                if (document.body.classList.contains('pl-i2i-combo')) return;
+                try { if (window.switchSidebarMode) switchSidebarMode('combo'); } catch (e) {} // 간편 조합 모드로
+                _comboToBody();
+                document.body.classList.add('pl-i2i-combo');
+                if (_comboFab) _comboFab.innerHTML = '<i class="fa-solid fa-xmark"></i> 조합 닫기';
+                try { history.pushState({ i2iCombo: 1 }, ''); _comboPushed = true; } catch (e) {} // 뒤로가기로 닫힘
+            }
+            function closeComboDrawer() {
+                if (!document.body.classList.contains('pl-i2i-combo')) return;
+                if (_comboPushed) { try { history.back(); return; } catch (e) { _comboPushed = false; } }
+                _applyComboClose();
+            }
+            function toggleComboDrawer() { if (document.body.classList.contains('pl-i2i-combo')) closeComboDrawer(); else openComboDrawer(); }
+            const _comboOnPop = () => { if (_comboPushed && document.body.classList.contains('pl-i2i-combo')) { _comboPushed = false; _applyComboClose(); } };
+            const _comboOnKey = (e) => { if (e.key === 'Escape' && document.body.classList.contains('pl-i2i-combo')) closeComboDrawer(); };
+            if (!IS_INPAINT) {
+                _comboScrim = el('div', { class: 'pl-i2i-combo-scrim', onclick: () => closeComboDrawer() });
+                _comboClose = el('button', { class: 'pl-i2i-combo-close', title: '조합 닫기 (Esc)', html: '<i class="fa-solid fa-xmark"></i>', onclick: () => closeComboDrawer() });
+                _comboFab = el('button', { class: 'pl-i2i-combo-fab', title: '간편·추천 조합 열기/닫기', html: '<i class="fa-solid fa-puzzle-piece"></i> 조합', onclick: () => toggleComboDrawer() });
+                document.body.appendChild(_comboScrim); document.body.appendChild(_comboClose); document.body.appendChild(_comboFab);
+                window.addEventListener('popstate', _comboOnPop);
+                document.addEventListener('keydown', _comboOnKey);
+            }
+
             // ── 모바일: 클래식/스튜디오처럼 앱 고유 가로 스와이프 (에디터 · 이미지 · 결과 3탭) ──
             const IMG2IMG_MB = 1024;
             let _i2iMobileOn = false;
@@ -19554,6 +19628,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return () => {
                 _img2img.enabled = false;
                 window.removeEventListener('resize', _i2iOnResize);
+                // 조합 드로어 정리 — panel-left를 트랙으로 되돌리고 오버레이 요소 제거
+                try { _applyComboClose(); } catch (e) {}
+                window.removeEventListener('popstate', _comboOnPop);
+                document.removeEventListener('keydown', _comboOnKey);
+                if (_comboScrim) _comboScrim.remove();
+                if (_comboFab) _comboFab.remove();
+                if (_comboClose) _comboClose.remove();
                 try { _i2iTeardownMobile(); } catch (e) {} // 기본 모바일 패널 세트 복원(패널 제거 전에)
                 document.removeEventListener('paste', onPaste);
                 try { window.__i2iGetMaskDataURL = null; } catch (e) {} // 마스크 게터 정리(다른 테마로 나갈 때)
