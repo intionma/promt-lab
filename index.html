@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.31.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.32.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1129,7 +1129,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.31.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.32.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1895,7 +1895,16 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.31.0', date: '2026-07-12', time: '최신',
+                version: 'v9.32.0', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지 변환] 원본 포즈·구도가 너무 바뀌던 문제를 잡았습니다 — 이제 ControlNet(포즈 고정)이 기본으로 켜져서 원본 인물의 포즈와 구도를 유지한 채 실사화합니다 (강도 0.7)",
+                    "[이미지 변환] 변환 강도(denoise) 기본값을 0.5로 낮춰 원본을 더 잘 보존합니다",
+                    "[이미지 변환] 안내문을 갱신했습니다 — 구도가 아직 흐트러지면 ControlNet 강도를 올리고, OpenPose 노드가 없어 오류가 나면 끄라고 알려줍니다",
+                ]
+            },
+            {
+                version: 'v9.31.0', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[이미지 변환] 실사 변환 품질을 크게 끌어올렸습니다 — Pony Realism이 제대로 실사화되도록 품질 태그(score_9 등)와 실사·피부 질감 태그를 전송 시 긍정 프롬프트 맨 앞에 자동으로 넣어줍니다 (분석을 안 돌렸어도 항상 적용)",
@@ -4750,7 +4759,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // ══════════════════════════════════════════════════════════
         const IMG2IMG_KEY = 'comfy_img2img_v1';
         let _img2img = {
-            enabled: false, file: null, dataURL: null, uploadedName: null, denoise: 0.6, fileName: '',
+            enabled: false, file: null, dataURL: null, uploadedName: null, denoise: 0.5, fileName: '',
             autoTag: true,                        // 업로드 시 자동으로 이미지 분석(태깅)
             wd14Model: 'wd-v1-4-moat-tagger-v2',  // WD14 태거 모델 (사용자 설치본에 맞게 수정 가능)
             wd14Threshold: 0.35,                  // 태그 채택 임계값
@@ -4758,9 +4767,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             maxSide: 1152,                        // 원본이 크면 긴 변을 이 값으로 축소(업로드·VRAM 폭주 방지)
             // ── 고급 파이프라인 ──
             loras: [],                            // [{name, strength}] 적용할 LoRA들
-            controlnet: false,                    // ControlNet(포즈 고정) 사용
+            controlnet: true,                     // ControlNet(포즈 고정) 사용 — 기본 ON(원본 포즈·구도 유지)
             cnModel: 'OpenPoseXL2.safetensors',   // ControlNet 모델
-            cnStrength: 0.55,                     // ControlNet 강도
+            cnStrength: 0.7,                      // ControlNet 강도(포즈 확실히 고정)
             ipadapter: false,                     // IPAdapter FaceID (원본 얼굴 참조 → 얼굴 일관성)
             ipaWeight: 0.75,                      // IPAdapter 강도
             faceDetailer: false,                  // 얼굴 복구(FaceDetailer)
@@ -5120,10 +5129,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             set('comfy-cfg', '6.5');
             const ck = document.getElementById('comfy-ckpt');
             if (ck && !ck.value.trim()) ck.value = 'ponyRealism_V22.safetensors';
-            _img2imgSetDenoise(0.55);
-            // 고급 파이프라인 → 안전한 기본값 (전부 끔 · 모델명/수치 기본값 · 자동태깅 켬)
+            _img2imgSetDenoise(0.5);
+            // 고급 파이프라인 → 기본값 (ControlNet만 ON = 원본 포즈·구도 유지 · 나머지 OFF · 자동태깅 켬)
             _img2img.loras = [];
-            _img2img.controlnet = false; _img2img.cnModel = 'OpenPoseXL2.safetensors'; _img2img.cnStrength = 0.55;
+            _img2img.controlnet = true; _img2img.cnModel = 'OpenPoseXL2.safetensors'; _img2img.cnStrength = 0.7;
             _img2img.ipadapter = false; _img2img.ipaWeight = 0.75;
             _img2img.faceDetailer = false; _img2img.fdModel = 'bbox/face_yolov8m.pt';
             _img2img.upscale = false; _img2img.upscaleModel = '4x-UltraSharp.pth'; _img2img.upscaleBy = 2;
@@ -5131,7 +5140,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _img2img.wd14Model = 'wd-v1-4-moat-tagger-v2'; _img2img.wd14Threshold = 0.35;
             _img2imgSave();
             try { _comfySaveSettings(); } catch (e) {}
-            showToast('기본값으로 초기화했습니다 — denoise 0.55 · 30스텝 · CFG 6.5 · 고급 옵션 전부 OFF (필요한 것만 다시 켜세요)', 'success', 4200);
+            showToast('기본값으로 초기화했습니다 — denoise 0.5 · ControlNet ON(원본 포즈 유지) · 나머지 고급 옵션 OFF', 'success', 4200);
         }
         window.__i2iApplyRecommended = _i2iApplyRecommendedSettings;
 
@@ -18488,7 +18497,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
 
             const pipeBody = el('div', { style: 'display:none; flex-direction:column; gap:16px; padding-top:12px;' },
-                el('div', { style: 'background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:10px; padding:12px; font-size:12px; color:var(--text-dim); line-height:1.7;', html: '💡 <b style="color:var(--text-main);">품질이 아쉬울 때 증상별 처방:</b> (실사·품질 태그 score_9 등은 전송 시 자동 추가됩니다)<br>· <b>씹덕/애니 느낌이 남음</b> → 변환 강도(denoise)를 <b>0.6~0.65</b>로 올리기.<br>· <b>원본과 너무 달라짐 · 구도 흐트러짐</b> → <b>ControlNet</b> 켜기 (포즈·구도 고정).<br>· <b>얼굴이 뭉개짐 · 딴사람</b> → <b>FaceDetailer</b> + <b>IPAdapter FaceID</b> 켜기.<br>· <b>피부가 플라스틱·CG 같음</b> → denoise 살짝 낮추고(0.5) FaceDetailer 켜기.<br>· <b style="color:#f59e0b;">뭔가 꼬여서 안 되면 위의 “기본값으로 초기화” 버튼</b>을 누르면 다 정상으로 돌아옵니다.' }),
+                el('div', { style: 'background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:10px; padding:12px; font-size:12px; color:var(--text-dim); line-height:1.7;', html: '💡 <b style="color:var(--text-main);">품질이 아쉬울 때 증상별 처방:</b> (실사·품질 태그 score_9 등은 전송 시 자동 추가됩니다)<br>· <b style="color:#22c55e;">기본으로 ControlNet이 켜져 원본 포즈·구도를 유지합니다.</b> (OpenPose 노드가 없어 오류가 나면 아래에서 끄세요)<br>· <b>씹덕/애니 느낌이 남음</b> → 변환 강도(denoise)를 <b>0.55~0.65</b>로 올리기.<br>· <b>원본과 아직 달라짐 · 구도 흐트러짐</b> → ControlNet <b>강도를 0.8~1.0</b>으로 올리기.<br>· <b>얼굴이 뭉개짐 · 딴사람</b> → <b>FaceDetailer</b> + <b>IPAdapter FaceID</b> 켜기.<br>· <b>피부가 플라스틱·CG 같음</b> → denoise 살짝 낮추고 FaceDetailer 켜기.<br>· <b style="color:#f59e0b;">뭔가 꼬여서 안 되면 위의 “기본값으로 초기화” 버튼</b>을 누르면 다 정상으로 돌아옵니다.' }),
                 el('div', {}, lbl('체크포인트 (실사 모델)'), ckptSel),
                 el('div', {}, lbl('LoRA (얼굴 일관성·스타일)'),
                     el('div', { style: 'display:flex; gap:6px; align-items:center; margin-bottom:8px;' }, loraAddSel, loraAddBtn), loraList),
