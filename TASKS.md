@@ -5,6 +5,10 @@
 
 ## 🔴 진행/대기 (Open)
 
+- [x] **[변환 얼굴 처리 토글 2종]** — ✅완료(v9.42.0). 씹덕→실사 언캐니 방지.
+  ① `faceRealism`(기본 ON): 부정에 `_I2I_FACE_NEG_TAGS`(large/anime eyes 등) 주입.
+  ② `dropExpression`(기본 OFF): 최종 긍정에서 `_I2I_EXPRESSION_TAGS` 제거 + FaceDetailer denoise 0.5→0.65.
+  UI는 고급 파이프라인 '얼굴 처리' 블록. save/restore/recommended/_syncPipelineUI 연결. 테스트 vface.js.
 - [ ] **[미리보기/스텝] FaceDetailer 2패스(30+30) 중 스텝별 라이브 미리보기 안 뜸** — 다음 작업.
   KSampler는 미리보기 나오는데 FaceDetailer 내부 샘플러 패스에서 스텝별 프리뷰가 안 나옴.
   `_comfyOnSocketMessage` progress/preview 처리 + `_comfyPreviewNodes` 노드 선택 조사 필요.
