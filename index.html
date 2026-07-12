@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.37.2 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.38.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1156,7 +1156,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.37.2 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.38.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1922,7 +1922,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.37.2', date: '2026-07-12', time: '최신',
+                version: 'v9.38.0', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지 인페인팅] '칠한 곳에 넣을 것' 입력칸에 태그 자동완성을 추가했습니다 — 타이핑하면 클래식 에디터처럼 추천이 뜨고, 고르면 지금 입력 중인 단어만 완성 태그로 바뀝니다(나머지는 그대로)",
+                ]
+            },
+            {
+                version: 'v9.37.2', date: '2026-07-12', time: '',
                 tag: 'fix',
                 items: [
                     "[이미지] IPAdapter FaceID를 2D·애니 원본에 쓰면 'No face detected'가 나던 것에 대해 정확한 안내를 추가했습니다 — InsightFace는 애니 얼굴을 인식 못 하니 2D→실사 변환에선 IPAdapter를 끄고 FaceDetailer로 얼굴 품질을 잡으라고 알려줍니다 (도움말·오류 메시지 모두 갱신)",
@@ -13450,8 +13457,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const el = document.getElementById('tag-ac'); if (!el) return;
             el.querySelectorAll('.aci').forEach((x, idx) => { x.style.background = idx === _acState.sel ? 'color-mix(in srgb,var(--accent-blue) 16%,transparent)' : ''; });
         }
+        // 멀티태그 textarea(인페인팅 '칠한 곳에 넣을 것')에서 커서 앞 "마지막 쉼표 뒤 토큰" 반환
+        function _acCurrentToken(ta) {
+            const val = ta.value || '';
+            let caret = ta.selectionStart; if (caret == null) caret = val.length;
+            let start = val.lastIndexOf(',', caret - 1) + 1;
+            while (start < caret && /\s/.test(val[start])) start++; // 앞 공백 스킵
+            return { text: val.slice(start, caret), start: start, end: caret };
+        }
         function _acOpen(input, mode) {
-            const items = _acSuggest(input.value, 10);
+            let query = input.value;
+            if (mode === 'multitag') { const tok = _acCurrentToken(input); query = tok.text; if (!query.trim()) { _acHide(); return; } }
+            const items = _acSuggest(query, 10);
             if (!items.length) { _acHide(); return; }
             _acState = { input: input, mode: mode, items: items, sel: -1 };
             const el = _acEl(); _acRenderList();
@@ -13475,6 +13492,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 // 입력창에 저장해둔 커밋 함수를 직접 호출. 없으면 예전 방식(Enter 디스패치)으로 폴백.
                 if (typeof input._commit === 'function') input._commit();
                 else input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+            } else if (mode === 'multitag' && input) {
+                // 커서 앞 토큰만 선택한 태그로 교체하고 ', '로 이어붙임(나머지 유지) → textarea 자동완성
+                const tok = _acCurrentToken(input);
+                const before = input.value.slice(0, tok.start);
+                const after = input.value.slice(tok.end);
+                let insert = it.en; if (!/^\s*,/.test(after)) insert += ', ';
+                input.value = before + insert + after;
+                const pos = (before + insert).length;
+                try { input.focus(); input.setSelectionRange(pos, pos); } catch (e) {}
+                input.dispatchEvent(new Event('input', { bubbles: true })); // _simpleToEditor 동기화 + (빈 토큰이라)드롭다운 닫힘
             } else if (mode === 'search') {
                 try { importPromptToEditor([it.en], 'append'); showToast(`'${it.ko || it.en}' 담음`, 'success', 1400); } catch (e) {}
             }
@@ -13482,6 +13509,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         document.addEventListener('input', (e) => {
             const t = e.target; if (!t) return;
             if (t.classList && t.classList.contains('chip-add-input')) _acOpen(t, 'editor');
+            else if (t.classList && t.classList.contains('i2i-simple-prompt')) _acOpen(t, 'multitag');
             else if (t.id === 'tag-search') _acOpen(t, 'search');
         }, true);
         document.addEventListener('keydown', (e) => {
@@ -13493,10 +13521,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             else if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); _acHide(); }
         }, true);
         document.addEventListener('focusout', (e) => {
-            const t = e.target; if (!t || !((t.classList && t.classList.contains('chip-add-input')) || t.id === 'tag-search')) return;
+            const t = e.target; if (!t || !((t.classList && (t.classList.contains('chip-add-input') || t.classList.contains('i2i-simple-prompt'))) || t.id === 'tag-search')) return;
             setTimeout(() => {
                 if (_acTouching) return; // 드롭다운을 손가락으로 스크롤 중이면 닫지 않음
-                const a = document.activeElement; if (a && ((a.classList && a.classList.contains('chip-add-input')) || a.id === 'tag-search')) return;
+                const a = document.activeElement; if (a && ((a.classList && (a.classList.contains('chip-add-input') || a.classList.contains('i2i-simple-prompt'))) || a.id === 'tag-search')) return;
                 _acHide();
             }, 160);
         }, true);
