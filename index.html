@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.35.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.35.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1149,7 +1149,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.35.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.35.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1915,7 +1915,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.35.0', date: '2026-07-12', time: '최신',
+                version: 'v9.35.1', date: '2026-07-12', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[이미지 변환] 실사 변환이 원본 이미지를 전혀 안 따라가던 문제를 잡았습니다 — 이미지 테마는 이제 어떤 상황(커스텀 워크플로우 모드 포함)에서도 반드시 원본을 참고하는 img2img 방식으로 생성합니다",
+                ]
+            },
+            {
+                version: 'v9.35.0', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[테마] '이미지 인페인팅'을 별도 테마로 분리했습니다 — '이미지 변환'은 2D→실사 전체 변환 전용, 칠한 곳만 다시 그리는 부분 편집은 새 '이미지 인페인팅' 테마에서 하세요 (모드 토글 제거)",
@@ -5480,24 +5487,30 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         // 현재 모드/설정으로 실제 전송될 워크플로우를 조립 (생성·미리보기 공용)
         async function _comfyAssembleWorkflow(pos, neg) {
-            // ★ 인페인트(부분 편집)는 항상 최우선으로 라우팅 — 커스텀 워크플로우 모드여도 절대 text2img로 새지 않음
-            if (_img2img.enabled && _img2img.editMode === 'inpaint') {
+            // ★ 이미지 테마(변환/인페인트)는 항상 최우선 — 커스텀 워크플로우 모드여도 반드시 원본 이미지를 쓰는
+            //    img2img/인페인트 워크플로우로 빌드한다. (원본을 안 따라가거나 text2img로 새던 문제의 근본 해결)
+            if (_img2img.enabled) {
                 if (!document.getElementById('comfy-ckpt').value.trim()) { showToast('체크포인트(모델 파일명)를 입력하세요.', 'error'); return null; }
                 if (!_img2imgHasImage()) { showToast('원본 이미지를 먼저 넣어주세요.', 'error'); return null; }
-                const maskURL = (typeof window.__i2iGetMaskDataURL === 'function') ? window.__i2iGetMaskDataURL() : null;
-                if (!maskURL) { showToast('편집할 영역을 브러시로 칠해주세요. (칠한 곳만 다시 그려집니다)', 'error', 5000); return null; }
                 let name;
                 try { name = await _img2imgEnsureUploaded(); }
                 catch (e) { showToast('원본 이미지 업로드 실패: ' + (e && e.message || e), 'error', 6000); return null; }
-                let maskName;
-                try { maskName = await _comfyUploadImage(_dataURLtoBlob(maskURL), 'promptlab_mask_' + Date.now() + '.png'); }
-                catch (e) { showToast('마스크 업로드 실패: ' + (e && e.message || e), 'error', 6000); return null; }
-                let fooocusKind = null, fooocusNames = null;
-                if (_img2img.fooocus) {
-                    try { if (await _comfyHasNode('INPAINT_ApplyFooocusInpaint')) fooocusKind = 'acly'; else if (await _comfyHasNode('easy applyFooocusInpaint')) fooocusKind = 'easy'; } catch (e) {}
-                    if (fooocusKind) { try { fooocusNames = await _resolveFooocusNames(fooocusKind); } catch (e) {} }
+                // 부분 편집(인페인팅): 브러시로 칠한 마스크를 업로드 → 인페인트 워크플로우
+                if (_img2img.editMode === 'inpaint') {
+                    const maskURL = (typeof window.__i2iGetMaskDataURL === 'function') ? window.__i2iGetMaskDataURL() : null;
+                    if (!maskURL) { showToast('편집할 영역을 브러시로 칠해주세요. (칠한 곳만 다시 그려집니다)', 'error', 5000); return null; }
+                    let maskName;
+                    try { maskName = await _comfyUploadImage(_dataURLtoBlob(maskURL), 'promptlab_mask_' + Date.now() + '.png'); }
+                    catch (e) { showToast('마스크 업로드 실패: ' + (e && e.message || e), 'error', 6000); return null; }
+                    let fooocusKind = null, fooocusNames = null;
+                    if (_img2img.fooocus) {
+                        try { if (await _comfyHasNode('INPAINT_ApplyFooocusInpaint')) fooocusKind = 'acly'; else if (await _comfyHasNode('easy applyFooocusInpaint')) fooocusKind = 'easy'; } catch (e) {}
+                        if (fooocusKind) { try { fooocusNames = await _resolveFooocusNames(fooocusKind); } catch (e) {} }
+                    }
+                    return _comfyBuildInpaintWorkflow(pos, neg, name, maskName, _img2img.inpaintDenoise, fooocusKind, fooocusNames);
                 }
-                return _comfyBuildInpaintWorkflow(pos, neg, name, maskName, _img2img.inpaintDenoise, fooocusKind, fooocusNames);
+                // 실사 변환: 원본을 VAEEncode → KSampler(denoise) 로 따라가며 변환
+                return _comfyBuildImg2ImgWorkflow(pos, neg, name, _img2img.denoise);
             }
             if (_comfyWfMode === 'custom') {
                 const workflow = _comfyBuildCustomWorkflow(pos, neg);
@@ -5509,33 +5522,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     offIds.forEach(id => _comfyBypassNode(workflow, id, oi));
                 }
                 return workflow;
-            } else {
-                if (!document.getElementById('comfy-ckpt').value.trim()) { showToast('체크포인트(모델 파일명)를 입력하세요.', 'error'); return null; }
-                // 이미지 변환 모드: 원본 이미지를 업로드하고 img2img 워크플로우로 빌드
-                if (_img2img.enabled) {
-                    if (!_img2imgHasImage()) { showToast('원본 이미지를 먼저 넣어주세요.', 'error'); return null; }
-                    let name;
-                    try { name = await _img2imgEnsureUploaded(); }
-                    catch (e) { showToast('원본 이미지 업로드 실패: ' + (e && e.message || e), 'error', 6000); return null; }
-                    // 부분 편집(인페인팅): 브러시로 칠한 마스크를 업로드 → 인페인트 워크플로우
-                    if (_img2img.editMode === 'inpaint') {
-                        const maskURL = (typeof window.__i2iGetMaskDataURL === 'function') ? window.__i2iGetMaskDataURL() : null;
-                        if (!maskURL) { showToast('편집할 영역을 브러시로 칠해주세요. (칠한 곳만 다시 그려집니다)', 'error', 5000); return null; }
-                        let maskName;
-                        try { maskName = await _comfyUploadImage(_dataURLtoBlob(maskURL), 'promptlab_mask_' + Date.now() + '.png'); }
-                        catch (e) { showToast('마스크 업로드 실패: ' + (e && e.message || e), 'error', 6000); return null; }
-                        // Fooocus 패치 노드가 어느 패키지로 설치됐는지 감지 (Acly 우선, 없으면 easy-use)
-                        let fooocusKind = null, fooocusNames = null;
-                        if (_img2img.fooocus) {
-                            try { if (await _comfyHasNode('INPAINT_ApplyFooocusInpaint')) fooocusKind = 'acly'; else if (await _comfyHasNode('easy applyFooocusInpaint')) fooocusKind = 'easy'; } catch (e) {}
-                            if (fooocusKind) { try { fooocusNames = await _resolveFooocusNames(fooocusKind); } catch (e) {} }
-                        }
-                        return _comfyBuildInpaintWorkflow(pos, neg, name, maskName, _img2img.inpaintDenoise, fooocusKind, fooocusNames);
-                    }
-                    return _comfyBuildImg2ImgWorkflow(pos, neg, name, _img2img.denoise);
-                }
-                return _comfyBuildWorkflow(pos, neg);
             }
+            if (!document.getElementById('comfy-ckpt').value.trim()) { showToast('체크포인트(모델 파일명)를 입력하세요.', 'error'); return null; }
+            return _comfyBuildWorkflow(pos, neg);
         }
 
         // 전송될 워크플로우 점검 — LoRA/디테일러 등 포함 여부 확인
