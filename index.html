@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.36.3 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.37.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1156,7 +1156,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.36.3 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.37.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1922,7 +1922,15 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.36.3', date: '2026-07-12', time: '최신',
+                version: 'v9.37.0', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지] 이미지 변환·인페인팅이 이제 ComfyUI 생성 설정(체크포인트·스텝·CFG·샘플러·스케줄러·시드·워크플로우 모드)을 메인과 완전히 분리해서 씁니다 — 이미지 테마를 아무리 써도 클래식/스튜디오에서 쓰던 내 커스텀 워크플로우·설정이 절대 안 바뀝니다 (반복해서 설정 날아가던 문제 해결)",
+                    "[레이아웃] 테마 선택 창에서 테마를 고르면 창이 자동으로 닫히도록 했습니다 (바뀐 걸 바로 확인)",
+                ]
+            },
+            {
+                version: 'v9.36.3', date: '2026-07-12', time: '',
                 tag: 'fix',
                 items: [
                     "[이미지] 체크포인트 기본값이 엉뚱한 모델로 잡히던 문제를 고쳤습니다 — 설치 목록에 Pony Realism이 있으면 그걸 우선 기본으로 선택합니다 (이미 고른 모델은 그대로 유지)",
@@ -4229,6 +4237,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // ComfyUI 연동
         // ─────────────────────────────────────────────────────────────
         const COMFY_KEY = 'comfy_settings_v1';
+        // 이미지 변환·인페인팅 전용 ComfyUI 설정 저장소 — 메인(클래식/스튜디오 text2img)과 완전 분리.
+        // 이미지 테마에 있을 땐 저장/복원이 이 키로 가서, 사용자의 메인 워크플로우·스텝·시드 등을 절대 안 건드림.
+        const COMFY_IMG_KEY = 'comfy_settings_image_v1';
+        let _comfyImgSettingsOn = false; // 현재 이미지 테마 설정을 편집 중인지
+        function _comfyActiveSettingsKey() { return _comfyImgSettingsOn ? COMFY_IMG_KEY : COMFY_KEY; }
         let _comfySocket = null;
         let _comfyClientId = null;
         let _comfyConnectedOnce = false;
@@ -4398,7 +4411,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         function _comfySaveSettings() {
             try {
-                localStorage.setItem(COMFY_KEY, JSON.stringify({
+                localStorage.setItem(_comfyActiveSettingsKey(), JSON.stringify({
                     url: document.getElementById('comfy-url').value,
                     ckpt: document.getElementById('comfy-ckpt').value,
                     steps: document.getElementById('comfy-steps').value,
@@ -4442,7 +4455,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // 저장된 ComfyUI 설정을 (숨겨진) 폼에 복원 — 모달 없이도 전송 가능하게
         function _comfyRestoreSettings() {
             try {
-                const s = JSON.parse(localStorage.getItem(COMFY_KEY) || '{}');
+                const s = JSON.parse(localStorage.getItem(_comfyActiveSettingsKey()) || '{}');
                 if (s.url) document.getElementById('comfy-url').value = s.url;
                 if (s.ckpt) document.getElementById('comfy-ckpt').value = s.ckpt;
                 if (s.steps) document.getElementById('comfy-steps').value = s.steps;
@@ -4467,6 +4480,26 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } catch (e) {}
             if (!document.getElementById('comfy-url').value) document.getElementById('comfy-url').value = 'http://127.0.0.1:8188';
         }
+
+        // ── 이미지 테마(변환·인페인팅) ComfyUI 설정 분리 ──
+        // 진입: 메인 설정 저장 → (첫 진입이면 메인을 복제) → 이미지 설정 로드 → 기본 모드 강제(커스텀 워크플로우 안 씀)
+        // 이탈: 이미지 설정 저장 → 메인 설정 복원. 메인 키는 이미지 편집 중 절대 안 건드려짐.
+        function _comfyEnterImageSettings() {
+            if (_comfyImgSettingsOn) return;
+            _comfySaveSettings(); // 현재 메인 설정 확정 저장(메인 키)
+            try { if (!localStorage.getItem(COMFY_IMG_KEY)) { const m = localStorage.getItem(COMFY_KEY); if (m) localStorage.setItem(COMFY_IMG_KEY, m); } } catch (e) {} // 첫 진입: 메인 복제(URL 등 그대로)
+            _comfyImgSettingsOn = true;
+            _comfyRestoreSettings(); // 이미지 키 → 폼
+            try { comfySetWfMode('basic'); } catch (e) {} // 이미지 테마는 항상 기본 워크플로우(커스텀 JSON 안 건드림)
+        }
+        function _comfyExitImageSettings() {
+            if (!_comfyImgSettingsOn) return;
+            _comfySaveSettings(); // 이미지 설정 저장(이미지 키)
+            _comfyImgSettingsOn = false;
+            _comfyRestoreSettings(); // 메인 키 → 폼 (내 커스텀 워크플로우·스텝·시드 원상복구)
+        }
+        window.__comfyEnterImageSettings = _comfyEnterImageSettings;
+        window.__comfyExitImageSettings = _comfyExitImageSettings;
 
         function openComfyModal() {
             _comfyRestoreSettings();
@@ -18778,6 +18811,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _img2img.editMode = IS_INPAINT ? 'inpaint' : 'transform';
             // 변환/인페인팅은 각각 별도 세션(탭·태그) — 서로도, 클래식/스튜디오와도 공유하지 않음
             try { if (window.__i2iEnterSession) window.__i2iEnterSession(IS_INPAINT ? 'inpaint' : 'transform'); } catch (e) {}
+            // ComfyUI 생성 설정도 이미지 전용으로 분리(메인 커스텀 워크플로우·스텝·시드 보호)
+            try { if (window.__comfyEnterImageSettings) window.__comfyEnterImageSettings(); } catch (e) {}
 
             // ── 설정별 도움말 내용 + "?" 버튼 헬퍼 (아래 UI 구성보다 먼저 정의돼야 함) ──
             const HLP = {
@@ -19240,6 +19275,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 panel.remove();
                 // text2img 세션으로 복원 (클래식/스튜디오는 원래 태그 그대로)
                 try { if (window.__i2iExitSession) window.__i2iExitSession(); } catch (e) {}
+                // ComfyUI 생성 설정도 메인으로 원상복구 (내 커스텀 워크플로우·스텝·시드 그대로)
+                try { if (window.__comfyExitImageSettings) window.__comfyExitImageSettings(); } catch (e) {}
                 try { if (window.comfyUpdateQuickButtons) comfyUpdateQuickButtons(); } catch (e) {}
             };
         }
@@ -19354,7 +19391,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 pickerGrid.appendChild(el('div', { class: 'pl-group-title', html: esc(g) }));
                 const grid = el('div', { class: 'pl-grid' });
                 groups[g].forEach(l => {
-                    const card = el('div', { class: 'pl-card' + (l.id === _plCurrent ? ' active' : ''), style: `--pl-card-accent:${l.accent};`, onclick: () => applyLayout(l.id) },
+                    const card = el('div', { class: 'pl-card' + (l.id === _plCurrent ? ' active' : ''), style: `--pl-card-accent:${l.accent};`, onclick: () => { applyLayout(l.id); closeLayoutPicker(); } },
                         el('div', { class: 'pl-thumb', html: l.mini || mini.cols3 }),
                         el('div', { class: 'pl-card-info' },
                             el('div', { class: 'pl-card-name', html: `<i class="fa-solid ${l.icon}"></i> ${esc(l.name)}${l.isNew ? '<span class="pl-badge-new">NEW</span>' : ''}` }),
