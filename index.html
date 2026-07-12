@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.32.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.32.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1129,7 +1129,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.32.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.32.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1895,7 +1895,15 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.32.0', date: '2026-07-12', time: '최신',
+                version: 'v9.32.1', date: '2026-07-12', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[이미지 변환] 이미지를 넣을 때 'failed to fetch' 오류가 뜨던 문제를 정리했습니다 — 이미지 자체는 항상 정상적으로 들어가며, 자동 태그 분석이 실패한 경우 원인(ComfyUI 미연결 / https↔http 차단)을 알기 쉽게 안내합니다",
+                    "[이미지 변환] 페이지가 https인데 ComfyUI가 http(127.0.0.1)라 브라우저가 연결을 막는 경우를 감지해, 앱을 로컬(http)에서 열라고 알려줍니다",
+                ]
+            },
+            {
+                version: 'v9.32.0', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[이미지 변환] 원본 포즈·구도가 너무 바뀌던 문제를 잡았습니다 — 이제 ControlNet(포즈 고정)이 기본으로 켜져서 원본 인물의 포즈와 구도를 유지한 채 실사화합니다 (강도 0.7)",
@@ -4248,6 +4256,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             comfyLoadCheckpoints();
         }
 
+        // https 페이지에서 http(127.0.0.1) ComfyUI로 fetch하면 브라우저가 "혼합 콘텐츠"로 차단 → "Failed to fetch".
+        // 이 경우 앱을 로컬(http)에서 열어야 ComfyUI와 통신 가능. (이미지 삽입 자체는 영향 없음)
+        function _comfyMixedContentBlocked() {
+            try { return location.protocol === 'https:' && /^http:\/\//i.test(_comfyBase()); } catch (e) { return false; }
+        }
+        // fetch 실패(네트워크/혼합콘텐츠) 계열 에러인지 판별
+        function _isFetchNetworkError(e) {
+            const m = (e && e.message ? e.message : String(e || '')).toLowerCase();
+            return /failed to fetch|networkerror|network error|load failed|err_|refused|typeerror/.test(m);
+        }
+
         let _comfyWfMode = 'basic';
         let _comfyCustomWF = null; // 파싱된 API 워크플로우
         let _comfyTarget = 'both'; // 전송 대상: both | pos | neg
@@ -5102,11 +5121,24 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         async function _i2iAnalyzeAndFill() {
             if (!_img2imgHasImage()) { showToast('먼저 원본 이미지를 넣어주세요.', 'warning'); return false; }
             const mock = (typeof DevMode !== 'undefined' && DevMode.feature && DevMode.feature('mockGen'));
-            if (!_comfyConnectedOnce && !mock) { showToast('이미지 분석은 ComfyUI 연결이 필요합니다. (개발자 모드면 가상)', 'error', 4000); return false; }
+            // 혼합 콘텐츠(https 페이지 → http ComfyUI) 차단: 이미지 자체는 이미 들어가 있음을 분명히 안내
+            if (!mock && _comfyMixedContentBlocked()) {
+                showToast('✅ 이미지는 정상적으로 들어갔어요. 다만 이 페이지는 https, ComfyUI는 http(127.0.0.1)라서 브라우저가 연결을 막아 자동 태그 분석만 못 했습니다. ComfyUI 연동은 앱을 로컬(http)에서 열어 쓰세요.', 'warning', 8000);
+                return false;
+            }
+            if (!_comfyConnectedOnce && !mock) { showToast('✅ 이미지는 들어갔어요. 자동 태그 분석은 ComfyUI 연결이 필요합니다 (오른쪽 결과창에서 연결 후 “이미지 분석” 버튼).', 'info', 5000); return false; }
             let name;
-            try { name = await _img2imgEnsureUploaded(); } catch (e) { showToast('이미지 업로드 실패: ' + (e && e.message || e), 'error', 5000); return false; }
+            try { name = await _img2imgEnsureUploaded(); } catch (e) {
+                if (_isFetchNetworkError(e)) showToast('✅ 이미지는 들어갔지만 ComfyUI에 연결하지 못했어요(자동 태그 분석 건너뜀). ComfyUI가 켜져 있는지·주소가 맞는지 확인하세요.', 'error', 6000);
+                else showToast('이미지 업로드 실패: ' + (e && e.message || e), 'error', 5000);
+                return false;
+            }
             let tagStr;
-            try { tagStr = await _comfyWD14Tag(name); } catch (e) { showToast('자동 분석 실패: ' + (e && e.message || e), 'error', 6000); return false; }
+            try { tagStr = await _comfyWD14Tag(name); } catch (e) {
+                if (_isFetchNetworkError(e)) showToast('✅ 이미지는 들어갔지만 분석 중 ComfyUI 연결이 끊겼어요. 연결 상태를 확인하세요.', 'error', 6000);
+                else showToast('자동 분석 실패: ' + (e && e.message || e), 'error', 6000);
+                return false;
+            }
             const tags = (tagStr || '').split(',').map(s => s.trim()).filter(Boolean);
             if (!tags.length) { showToast('감지된 태그가 없습니다.', 'info'); return false; }
             // 실사/스코어 태그는 최종 출력 단계에서 자동 주입되므로 여기선 감지 태그만 채움(에디터는 깔끔하게)
@@ -18338,6 +18370,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const blob = _dataURLtoBlob(prep.dataURL);
                 setImg(new File([blob], name || 'source.png', { type: blob.type }), prep.dataURL);
                 if (prep.resized) showToast(`원본이 커서 ${prep.w}×${prep.h}로 줄여서 넣었습니다`, 'info', 3000);
+                else if (!_img2img.autoTag) showToast('원본 이미지를 넣었습니다.', 'success', 1800);
                 afterNewImage();
             }
             function loadFile(file) { const r = new FileReader(); r.onload = () => useImage(r.result, file.name); r.readAsDataURL(file); }
