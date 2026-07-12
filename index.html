@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.28.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.29.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1131,7 +1131,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.28.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.29.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1897,7 +1897,15 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.28.0', date: '2026-07-12', time: '최신',
+                version: 'v9.29.0', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지 변환] IPAdapter FaceID를 추가했습니다 — 원본 이미지의 얼굴을 참조해 실사 변환 후에도 인상을 유지합니다. 고급 파이프라인에서 켜고 강도 조절 (얼굴 일관성)",
+                    "[이미지 변환] FaceDetailer·업스케일 등 파라미터가 많은 노드를 ComfyUI 설치본의 실제 기본값을 읽어와 채우도록 바꿔, 노드 버전이 달라도 덜 깨지게 했습니다",
+                ]
+            },
+            {
+                version: 'v9.28.0', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[이미지 변환] '고급 파이프라인'을 추가했습니다 — 체크포인트·LoRA·ControlNet·FaceDetailer·업스케일을 이미지 변환 화면에서 켜고 끄며 조립합니다. 모델·LoRA·ControlNet·업스케일러는 ComfyUI에 설치된 목록에서 드롭다운으로 고릅니다",
@@ -4716,6 +4724,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             controlnet: false,                    // ControlNet(포즈 고정) 사용
             cnModel: 'OpenPoseXL2.safetensors',   // ControlNet 모델
             cnStrength: 0.55,                     // ControlNet 강도
+            ipadapter: false,                     // IPAdapter FaceID (원본 얼굴 참조 → 얼굴 일관성)
+            ipaWeight: 0.75,                      // IPAdapter 강도
             faceDetailer: false,                  // 얼굴 복구(FaceDetailer)
             fdModel: 'bbox/face_yolov8m.pt',      // 얼굴 감지 모델(bbox)
             upscale: false,                       // 업스케일(느림 — 기본 꺼짐)
@@ -4729,6 +4739,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     denoise: _img2img.denoise, autoTag: _img2img.autoTag,
                     wd14Model: _img2img.wd14Model, wd14Threshold: _img2img.wd14Threshold, addRealism: _img2img.addRealism, maxSide: _img2img.maxSide,
                     loras: _img2img.loras, controlnet: _img2img.controlnet, cnModel: _img2img.cnModel, cnStrength: _img2img.cnStrength,
+                    ipadapter: _img2img.ipadapter, ipaWeight: _img2img.ipaWeight,
                     faceDetailer: _img2img.faceDetailer, fdModel: _img2img.fdModel, upscale: _img2img.upscale, upscaleModel: _img2img.upscaleModel, upscaleBy: _img2img.upscaleBy
                 }));
             } catch (e) {}
@@ -4746,6 +4757,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (typeof s.controlnet === 'boolean') _img2img.controlnet = s.controlnet;
                 if (typeof s.cnModel === 'string' && s.cnModel) _img2img.cnModel = s.cnModel;
                 if (typeof s.cnStrength === 'number') _img2img.cnStrength = s.cnStrength;
+                if (typeof s.ipadapter === 'boolean') _img2img.ipadapter = s.ipadapter;
+                if (typeof s.ipaWeight === 'number') _img2img.ipaWeight = s.ipaWeight;
                 if (typeof s.faceDetailer === 'boolean') _img2img.faceDetailer = s.faceDetailer;
                 if (typeof s.fdModel === 'string' && s.fdModel) _img2img.fdModel = s.fdModel;
                 if (typeof s.upscale === 'boolean') _img2img.upscale = s.upscale;
@@ -4868,6 +4881,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 modelRef = [id, 0]; clipRef = [id, 1];
             });
 
+            // IPAdapter FaceID — 원본 얼굴을 참조해 얼굴 일관성 강화 (model만 수정, 원본 이미지를 참조로 사용)
+            if (_img2img.ipadapter) {
+                wf["60"] = { "class_type": "IPAdapterUnifiedLoaderFaceID", "inputs": _comfyNodeInputs("IPAdapterUnifiedLoaderFaceID",
+                    { "preset": "FACEID PLUS V2", "lora_strength": 0.6, "provider": "CPU" },
+                    { "model": modelRef }) };
+                wf["61"] = { "class_type": "IPAdapterFaceID", "inputs": _comfyNodeInputs("IPAdapterFaceID",
+                    { "weight_faceidv2": 1.0, "weight_type": "linear", "combine_embeds": "concat", "start_at": 0.0, "end_at": 1.0, "embeds_scaling": "V only" },
+                    { "model": ["60", 0], "ipadapter": ["60", 1], "image": ["10", 0], "weight": _img2img.ipaWeight }) };
+                modelRef = ["61", 0];
+            }
+
             // CLIP skip 2 (Pony 권장) + 프롬프트 인코딩
             wf["12"] = { "class_type": "CLIPSetLastLayer", "inputs": { "clip": clipRef, "stop_at_clip_layer": -2 } };
             const clip2 = ["12", 0];
@@ -4891,30 +4915,32 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // FaceDetailer — 얼굴 복구(인상). 기본 프롬프트(6/7)로 얼굴만 재생성
             if (_img2img.faceDetailer) {
                 wf["31"] = { "class_type": "UltralyticsDetectorProvider", "inputs": { "model_name": _img2img.fdModel } };
-                wf["30"] = { "class_type": "FaceDetailer", "inputs": {
-                    "image": imgRef, "model": modelRef, "clip": clip2, "vae": vaeRef, "positive": ["6", 0], "negative": ["7", 0],
-                    "bbox_detector": ["31", 0],
+                wf["30"] = { "class_type": "FaceDetailer", "inputs": _comfyNodeInputs("FaceDetailer", {
                     "guide_size": 384, "guide_size_for": true, "max_size": 1024,
-                    "seed": seed, "steps": steps, "cfg": cfg, "sampler_name": sampler, "scheduler": scheduler, "denoise": 0.5,
                     "feather": 5, "noise_mask": true, "force_inpaint": true,
                     "bbox_threshold": 0.5, "bbox_dilation": 10, "bbox_crop_factor": 3.0,
                     "sam_detection_hint": "center-1", "sam_dilation": 0, "sam_threshold": 0.93, "sam_bbox_expansion": 0,
                     "sam_mask_hint_threshold": 0.7, "sam_mask_hint_use_negative": "False",
                     "drop_size": 10, "wildcard": "", "cycle": 1
-                }};
+                }, {
+                    "image": imgRef, "model": modelRef, "clip": clip2, "vae": vaeRef, "positive": ["6", 0], "negative": ["7", 0],
+                    "bbox_detector": ["31", 0],
+                    "seed": seed, "steps": steps, "cfg": cfg, "sampler_name": sampler, "scheduler": scheduler, "denoise": 0.5
+                }) };
                 imgRef = ["30", 0];
             }
 
             // UltimateSDUpscale — 타일 업스케일(느림, 기본 꺼짐)
             if (_img2img.upscale) {
                 wf["41"] = { "class_type": "UpscaleModelLoader", "inputs": { "model_name": _img2img.upscaleModel } };
-                wf["40"] = { "class_type": "UltimateSDUpscale", "inputs": {
-                    "image": imgRef, "model": modelRef, "positive": ["6", 0], "negative": ["7", 0], "vae": vaeRef, "upscale_model": ["41", 0],
-                    "upscale_by": _img2img.upscaleBy || 2, "seed": seed, "steps": steps, "cfg": cfg, "sampler_name": sampler, "scheduler": scheduler, "denoise": 0.2,
+                wf["40"] = { "class_type": "UltimateSDUpscale", "inputs": _comfyNodeInputs("UltimateSDUpscale", {
                     "mode_type": "Linear", "tile_width": 768, "tile_height": 768, "mask_blur": 8, "tile_padding": 32,
                     "seam_fix_mode": "None", "seam_fix_denoise": 1.0, "seam_fix_width": 64, "seam_fix_mask_blur": 8, "seam_fix_padding": 16,
                     "force_uniform_tiles": true, "tiled_decode": false
-                }};
+                }, {
+                    "image": imgRef, "model": modelRef, "positive": ["6", 0], "negative": ["7", 0], "vae": vaeRef, "upscale_model": ["41", 0],
+                    "upscale_by": _img2img.upscaleBy || 2, "seed": seed, "steps": steps, "cfg": cfg, "sampler_name": sampler, "scheduler": scheduler, "denoise": 0.2
+                }) };
                 imgRef = ["40", 0];
             }
 
@@ -4959,6 +4985,36 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } catch (e) { return null; }
         }
         const _comfyWD14Models = () => _comfyNodeEnum('WD14Tagger|pysssss', 'model');
+
+        // 노드의 필수 입력 "기본값"을 /object_info에서 읽어옴 (버전마다 다른 파라미터를 실제 설치본 기준으로 채우기 위함)
+        // → FaceDetailer/UltimateSDUpscale 같은 파라미터 많은 노드가 설치 버전과 안 어긋나게.
+        const _comfyNodeDefCache = {};
+        async function _comfyNodeDefaults(cls) {
+            if (_comfyNodeDefCache[cls]) return _comfyNodeDefCache[cls];
+            if (typeof DevMode !== 'undefined' && DevMode.feature && DevMode.feature('mockGen')) { _comfyNodeDefCache[cls] = {}; return {}; }
+            try {
+                const res = await fetch(_comfyBase() + '/object_info/' + encodeURIComponent(cls));
+                if (!res.ok) return {};
+                const data = await res.json();
+                const req = (data[cls] && data[cls].input && data[cls].input.required) || {};
+                const out = {};
+                for (const k in req) {
+                    const spec = req[k]; if (!Array.isArray(spec)) continue;
+                    const meta = spec[1];
+                    if (meta && typeof meta === 'object' && 'default' in meta) out[k] = meta.default;         // 스칼라: 기본값
+                    else if (Array.isArray(spec[0]) && spec[0].length) out[k] = spec[0][0];                    // enum: 첫 항목
+                    // 그 외(연결형 IMAGE/MODEL 등)는 우리가 배선하므로 스킵
+                }
+                _comfyNodeDefCache[cls] = out;
+                return out;
+            } catch (e) { return {}; }
+        }
+        // 노드 입력 = (설치본 기본값 있으면 그걸, 없으면 내 폴백) + 내 연결/핵심 오버라이드
+        function _comfyNodeInputs(cls, fallbackScalars, overrides) {
+            const defs = _comfyNodeDefCache[cls];
+            const base = (defs && Object.keys(defs).length) ? defs : (fallbackScalars || {});
+            return Object.assign({}, base, overrides);
+        }
         async function _comfyWD14Tag(imageName) {
             // 가상(개발자) 모드: 실제 ComfyUI 없이 흐름 테스트용 더미 태그
             if (typeof DevMode !== 'undefined' && DevMode.feature && DevMode.feature('mockGen')) {
@@ -18321,11 +18377,20 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 el('div', { style: 'display:flex; align-items:center; gap:10px;' }, el('span', { style: 'font-size:11px; color:var(--text-dim); white-space:nowrap;' }, '강도'), cnStr, cnStrVal),
                 hint('포즈·구도를 고정해 강도를 높여도 캐릭터가 유지됩니다. 0.5~0.6 권장. (전처리기: OpenposePreprocessor)'));
 
+            // IPAdapter FaceID — 원본 얼굴 참조 (model 수정)
+            const ipaChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.ipadapter = e.target.checked; _img2imgSave(); ipaBody.style.display = e.target.checked ? 'flex' : 'none'; if (e.target.checked) { _comfyNodeDefaults('IPAdapterUnifiedLoaderFaceID'); _comfyNodeDefaults('IPAdapterFaceID'); } } }); ipaChk.checked = _img2img.ipadapter;
+            const ipaVal = el('span', { style: 'font-weight:800; color:var(--accent-blue); font-size:12px; white-space:nowrap;' });
+            const ipaStr = el('input', { type: 'range', min: '0.1', max: '1.2', step: '0.05', value: _img2img.ipaWeight, style: 'flex:1; accent-color:var(--accent-blue);', oninput: (e) => { _img2img.ipaWeight = parseFloat(e.target.value); ipaVal.textContent = _img2img.ipaWeight.toFixed(2); _img2imgSave(); } });
+            ipaVal.textContent = (+_img2img.ipaWeight).toFixed(2);
+            const ipaBody = el('div', { style: 'display:' + (_img2img.ipadapter ? 'flex' : 'none') + '; flex-direction:column; gap:8px; padding-top:8px;' },
+                el('div', { style: 'display:flex; align-items:center; gap:10px;' }, el('span', { style: 'font-size:11px; color:var(--text-dim); white-space:nowrap;' }, '강도'), ipaStr, ipaVal),
+                hint('원본 이미지의 얼굴을 참조해 실사 변환 후에도 인상을 유지합니다. 0.7~0.9 권장. (FaceID Plus V2 · insightface 필요)'));
+
             // FaceDetailer
-            const fdChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.faceDetailer = e.target.checked; _img2imgSave(); } }); fdChk.checked = _img2img.faceDetailer;
+            const fdChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.faceDetailer = e.target.checked; _img2imgSave(); if (e.target.checked) { _comfyNodeDefaults('FaceDetailer'); } } }); fdChk.checked = _img2img.faceDetailer;
 
             // 업스케일 (기본 꺼짐 — 느림)
-            const upChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.upscale = e.target.checked; _img2imgSave(); upBody.style.display = e.target.checked ? 'flex' : 'none'; } }); upChk.checked = _img2img.upscale;
+            const upChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.upscale = e.target.checked; _img2imgSave(); upBody.style.display = e.target.checked ? 'flex' : 'none'; if (e.target.checked) { _comfyNodeDefaults('UltimateSDUpscale'); } } }); upChk.checked = _img2img.upscale;
             const upSel = mkEnumSelect('UpscaleModelLoader', 'model_name', () => _img2img.upscaleModel, (v) => { _img2img.upscaleModel = v; _img2imgSave(); });
             const upByeSel = el('select', { class: 'ctl', style: 'width:90px; font-size:11px;', onchange: (e) => { _img2img.upscaleBy = parseFloat(e.target.value); _img2imgSave(); } });
             [['1.5x', 1.5], ['2x', 2], ['3x', 3], ['4x', 4]].forEach(([t, v]) => upByeSel.appendChild(el('option', { value: v }, t)));
@@ -18342,6 +18407,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 el('div', {}, lbl('LoRA (얼굴 일관성·스타일)'),
                     el('div', { style: 'display:flex; gap:6px; align-items:center; margin-bottom:8px;' }, loraAddSel, loraAddBtn), loraList),
                 el('div', {}, el('label', { class: 'ctl-chk', style: 'height:auto; color:var(--text-main); font-weight:700;' }, cnChk, 'ControlNet — 포즈/구도 고정 (캐릭터 유지)'), cnBody),
+                el('div', {}, el('label', { class: 'ctl-chk', style: 'height:auto; color:var(--text-main); font-weight:700;' }, ipaChk, 'IPAdapter FaceID — 원본 얼굴 참조 (얼굴 일관성)'), ipaBody),
                 el('div', {}, el('label', { class: 'ctl-chk', style: 'height:auto; color:var(--text-main); font-weight:700;' }, fdChk, 'FaceDetailer — 얼굴 복구 (인상 보존)')),
                 el('div', {}, el('label', { class: 'ctl-chk', style: 'height:auto; color:var(--text-main); font-weight:700;' }, upChk, '업스케일 — 고해상도 (느림, 최종 컷용)'), upBody),
                 el('div', { style: 'padding-top:4px;' }, pipeRefresh));
@@ -18375,6 +18441,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { if (!_img2img.dataURL) _img2imgRestoreSrc(); } catch (e) {}
             syncThumb();
             try { fillModels(false); } catch (e) {} // 설치된 WD14 모델 목록 채우기(비동기)
+            // 이미 켜져 있는 고급 노드는 스키마(기본값)를 미리 받아 캐시 (전송 시 버전 어긋남 방지)
+            try {
+                if (_img2img.faceDetailer) _comfyNodeDefaults('FaceDetailer');
+                if (_img2img.upscale) _comfyNodeDefaults('UltimateSDUpscale');
+                if (_img2img.ipadapter) { _comfyNodeDefaults('IPAdapterUnifiedLoaderFaceID'); _comfyNodeDefaults('IPAdapterFaceID'); }
+            } catch (e) {}
             try { if (window.comfyUpdateQuickButtons) comfyUpdateQuickButtons(); } catch (e) {}
 
             // 드래그&드롭
