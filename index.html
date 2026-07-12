@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.22.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.23.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1110,7 +1110,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.22.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.23.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1878,7 +1878,15 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.22.0', date: '2026-07-12', time: '최신',
+                version: 'v9.23.0', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지 변환] 이제 '이미지 변환' 테마는 태그·최종 프롬프트를 별도로 씁니다 — 클래식·스튜디오(둘 다 텍스트→이미지)는 서로 공유하지만, 이미지 변환(이미지→이미지)은 완전히 독립된 작업공간이라 서로 섞이지 않습니다",
+                    "[간편조합] 팩에서 자동 추가된 조합을 삭제해도 새로고침하면 다시 생기던 문제를 고쳤습니다 — 이제 지운 조합은 계속 지워진 상태로 유지됩니다",
+                ]
+            },
+            {
+                version: 'v9.22.0', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[레이아웃] '이미지 변환' 테마를 새로 추가했습니다 (레이아웃 변경에서 선택) — 2D·씹덕 이미지를 넣고 원하는 인물/실사로 바꾸는 이미지→이미지(img2img) 전용 화면입니다. 왼쪽 에디터에서 태그를 담고, 가운데에 원본 이미지를 드래그·붙여넣기(Ctrl+V)로 넣고, 오른쪽 결과창에서 ComfyUI 전송하면 원본을 참고해 다시 그립니다",
@@ -4628,14 +4636,34 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         //  원본 이미지를 ComfyUI에 업로드 → LoadImage→VAEEncode→KSampler(denoise) 로 변환
         // ══════════════════════════════════════════════════════════
         const IMG2IMG_KEY = 'comfy_img2img_v1';
-        let _img2img = { enabled: false, file: null, dataURL: null, uploadedName: null, denoise: 0.6, fileName: '' };
+        let _img2img = {
+            enabled: false, file: null, dataURL: null, uploadedName: null, denoise: 0.6, fileName: '',
+            autoTag: true,                        // 업로드 시 자동으로 이미지 분석(태깅)
+            wd14Model: 'wd-v1-4-moat-tagger-v2',  // WD14 태거 모델 (사용자 설치본에 맞게 수정 가능)
+            wd14Threshold: 0.35,                  // 태그 채택 임계값
+            addRealism: true                      // 분석 후 실사 변환 태그 자동 추가
+        };
         function _img2imgSave() {
-            // 이미지 원본(dataURL)은 용량이 커 localStorage에 넣지 않음. 강도만 영속.
-            try { localStorage.setItem(IMG2IMG_KEY, JSON.stringify({ denoise: _img2img.denoise })); } catch (e) {}
+            // 이미지 원본(dataURL)은 용량이 커 localStorage에 넣지 않음. 설정값만 영속.
+            try {
+                localStorage.setItem(IMG2IMG_KEY, JSON.stringify({
+                    denoise: _img2img.denoise, autoTag: _img2img.autoTag,
+                    wd14Model: _img2img.wd14Model, wd14Threshold: _img2img.wd14Threshold, addRealism: _img2img.addRealism
+                }));
+            } catch (e) {}
         }
         function _img2imgRestore() {
-            try { const s = JSON.parse(localStorage.getItem(IMG2IMG_KEY) || '{}'); if (typeof s.denoise === 'number') _img2img.denoise = s.denoise; } catch (e) {}
+            try {
+                const s = JSON.parse(localStorage.getItem(IMG2IMG_KEY) || '{}');
+                if (typeof s.denoise === 'number') _img2img.denoise = s.denoise;
+                if (typeof s.autoTag === 'boolean') _img2img.autoTag = s.autoTag;
+                if (typeof s.wd14Model === 'string' && s.wd14Model) _img2img.wd14Model = s.wd14Model;
+                if (typeof s.wd14Threshold === 'number') _img2img.wd14Threshold = s.wd14Threshold;
+                if (typeof s.addRealism === 'boolean') _img2img.addRealism = s.addRealism;
+            } catch (e) {}
         }
+        // 실사 변환용 스타일 태그 (분석 태그 앞에 붙여 "실사화" 방향을 잡아줌)
+        const _I2I_REALISM_TAGS = ['source_photo', 'realistic', 'photorealistic', 'photography', 'detailed skin', 'film grain'];
         function _img2imgSetDenoise(v) {
             let n = parseFloat(v); if (isNaN(n)) n = 0.6;
             _img2img.denoise = Math.max(0.05, Math.min(1, n));
@@ -7159,12 +7187,52 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             setTimeout(() => document.addEventListener('mousedown', dismiss), 0);
         }
 
+        // ── 이미지 변환(img2img) 전용 세션 ──────────────────────────────
+        // 클래식·스튜디오(둘 다 text2img)는 태그·최종프롬프트를 공유하지만,
+        // 이미지 변환(img2img)은 완전히 별도의 탭/상태/저장소를 쓴다.
+        const TABS_KEY_I2I = 'context_tabs_i2i_v1';
+        const STATES_KEY_I2I = 'context_states_i2i_v1';
+        let _inI2iSession = false;   // 현재 img2img 세션 편집 중인지
+        let _t2iBackup = null;       // img2img 진입 시 백업해둔 text2img 세션
+
         function saveTabsAndStates() {
-            safeSetStorage(TABS_KEY, contextTabs);
-            safeSetStorage(STATES_KEY, contextStates);
+            safeSetStorage(_inI2iSession ? TABS_KEY_I2I : TABS_KEY, contextTabs);
+            safeSetStorage(_inI2iSession ? STATES_KEY_I2I : STATES_KEY, contextStates);
             // 에디터 내용이 바뀌면 추천도 최신화 (변화 없으면 내부에서 생략)
             try { if (typeof renderRecommendArea === 'function') renderRecommendArea(); } catch (e) {}
         }
+
+        // contextTabs/contextStates를 (참조 유지 위해) 제자리에서 교체
+        function _swapSession(tabs, states, current) {
+            contextTabs.length = 0; tabs.forEach(t => contextTabs.push(t));
+            Object.keys(contextStates).forEach(k => delete contextStates[k]);
+            Object.assign(contextStates, states || {});
+            contextTabs.forEach(t => { if (!contextStates[t.id]) contextStates[t.id] = ["", "", "", "", "", "", ""]; });
+            currentContext = (current && contextStates[current]) ? current : (contextTabs[0] && contextTabs[0].id);
+            try { renderContextTabs(); } catch (e) {}
+            try { initApp(); } catch (e) {}
+            try { updateMasterOutput(); } catch (e) {}
+        }
+        function _i2iEnterSession() {
+            if (_inI2iSession) return;
+            saveTabsAndStates(); // 현재 text2img 세션을 t2i 키에 저장
+            _t2iBackup = { tabs: JSON.parse(JSON.stringify(contextTabs)), states: JSON.parse(JSON.stringify(contextStates)), current: currentContext };
+            let iTabs, iStates;
+            try { iTabs = JSON.parse(localStorage.getItem(TABS_KEY_I2I) || 'null'); iStates = JSON.parse(localStorage.getItem(STATES_KEY_I2I) || 'null'); } catch (e) {}
+            if (!iTabs || !iTabs.length) { iTabs = [{ id: 'i2i-main', name: '이미지 변환' }]; iStates = { 'i2i-main': ["", "", "", "", "", "", ""] }; }
+            _inI2iSession = true;
+            _swapSession(iTabs, iStates, iTabs[0].id);
+        }
+        function _i2iExitSession() {
+            if (!_inI2iSession) return;
+            saveTabsAndStates(); // 현재 img2img 세션을 i2i 키에 저장
+            _inI2iSession = false; // 복원 저장이 t2i 키로 가도록 먼저 해제
+            const bk = _t2iBackup || { tabs: _defaultTabs(), states: null, current: null };
+            _t2iBackup = null;
+            _swapSession(bk.tabs, bk.states, bk.current);
+        }
+        window.__i2iEnterSession = _i2iEnterSession;
+        window.__i2iExitSession = _i2iExitSession;
         let currentViewMode = 'visual';
         // 한글 번역 문체: 'prose'(서술체) | 'concise'(간결체)
         let _korStyle = 'prose'; try { _korStyle = localStorage.getItem('kor_style') || 'prose'; } catch (e) {}
@@ -8358,6 +8426,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 });
             });
         }
+        // 사용자가 삭제한 팩 조합/폴더 id를 기억해 재생성 때 되살아나지 않게 함
+        const PACK_COMBO_DEL_KEY = 'pack_combo_deleted_v1';
+        let _packComboDeleted = new Set();
+        try { _packComboDeleted = new Set(JSON.parse(localStorage.getItem(PACK_COMBO_DEL_KEY) || '[]')); } catch (e) {}
+        function _packComboDelSave() { try { localStorage.setItem(PACK_COMBO_DEL_KEY, JSON.stringify([..._packComboDeleted])); } catch (e) {} }
+        function _packComboMarkDeleted(id) { if (id && id.indexOf('pack_') === 0) { _packComboDeleted.add(id); _packComboDelSave(); } }
         function _packComboStrip() {
             Object.keys(comboFS.items).forEach(id => { if (id.indexOf('pack_') === 0) delete comboFS.items[id]; });
             comboFS.root = comboFS.root.filter(id => id.indexOf('pack_') !== 0);
@@ -8367,12 +8441,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _activePackIds().forEach(pid => {
                 const meta = _PACK_META[pid], combos = _PACK_COMBOS[pid];
                 if (!meta || !combos) return;
-                const rootId = 'pack_' + pid + '_root', childIds = [];
+                const rootId = 'pack_' + pid + '_root';
+                if (_packComboDeleted.has(rootId)) return; // 사용자가 폴더째 삭제 → 재생성 안 함
+                const childIds = [];
                 combos.forEach((c, idx) => {
                     const cid = 'pack_' + pid + '_c' + idx;
+                    if (_packComboDeleted.has(cid)) return; // 사용자가 지운 조합은 복원 안 함
                     comboFS.items[cid] = { type: 'combo', id: cid, title: meta.e + ' ' + c.n, tags: c.g };
                     childIds.push(cid);
                 });
+                if (!childIds.length) return; // 전부 지웠으면 빈 폴더도 안 만듦
                 comboFS.items[rootId] = { type: 'folder', id: rootId, title: meta.e + ' ' + meta.l + ' 조합', children: childIds };
                 comboFS.root.push(rootId);
             });
@@ -9415,6 +9493,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         function deleteFsItem(id) {
+            // 팩 조합/폴더를 지웠다면 기억 → 재생성(리컨사일) 때 되살아나지 않게
+            try { if (typeof _packComboMarkDeleted === 'function') _packComboMarkDeleted(id); } catch (e) {}
             // 모든 폴더에서 id 제거
             Object.values(comboFS.items).forEach(item => {
                 if (item.type === 'folder' && item.children) item.children = item.children.filter(c => c !== id);
@@ -17776,6 +17856,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function mountImg2img() {
             try { _img2imgRestore(); } catch (e) {}
             _img2img.enabled = true;
+            // 이미지 변환은 별도 세션(탭·태그·최종프롬프트)을 쓰도록 전환 — 클래식/스튜디오와 공유하지 않음
+            try { if (window.__i2iEnterSession) window.__i2iEnterSession(); } catch (e) {}
 
             const dnHint = (d) => d <= 0.5 ? ' (원본 많이 유지)' : (d >= 0.72 ? ' (많이 변함)' : ' (보통)');
 
@@ -17847,6 +17929,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _img2img.enabled = false;
                 document.removeEventListener('paste', onPaste);
                 panel.remove();
+                // text2img 세션으로 복원 (클래식/스튜디오는 원래 태그 그대로)
+                try { if (window.__i2iExitSession) window.__i2iExitSession(); } catch (e) {}
                 try { if (window.comfyUpdateQuickButtons) comfyUpdateQuickButtons(); } catch (e) {}
             };
         }
