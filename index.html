@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.27.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.28.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1131,7 +1131,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.27.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.28.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1897,7 +1897,16 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.27.0', date: '2026-07-12', time: '최신',
+                version: 'v9.28.0', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지 변환] '고급 파이프라인'을 추가했습니다 — 체크포인트·LoRA·ControlNet·FaceDetailer·업스케일을 이미지 변환 화면에서 켜고 끄며 조립합니다. 모델·LoRA·ControlNet·업스케일러는 ComfyUI에 설치된 목록에서 드롭다운으로 고릅니다",
+                    "[이미지 변환] ControlNet(OpenPose)로 포즈·구도를 고정할 수 있습니다 — 강도를 높여도 캐릭터가 유지됩니다. LoRA는 여러 개 추가하고 각각 강도 조절이 됩니다 (얼굴 일관성·스타일)",
+                    "[이미지 변환] FaceDetailer(얼굴 복구)와 업스케일(고해상도)을 선택적으로 켤 수 있습니다 — 업스케일은 느려서 기본은 꺼짐, 최종 컷에만 켜세요. 다중 생성 후 선택도 이미지 변환에서 그대로 동작합니다",
+                ]
+            },
+            {
+                version: 'v9.27.0', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[이미지 변환] Pony Realism 코스프레 변환 품질을 끌어올렸습니다 — 실사 태그를 코스프레 방향(source_photo, cosplay photo, detailed skin texture)으로 바꾸고, 애니 느낌을 억제하는 부정 태그(source_anime, cel shading 등)를 자동으로 넣고, Pony에 필요한 CLIP skip 2를 워크플로우에 적용했습니다",
@@ -4701,14 +4710,26 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             wd14Model: 'wd-v1-4-moat-tagger-v2',  // WD14 태거 모델 (사용자 설치본에 맞게 수정 가능)
             wd14Threshold: 0.35,                  // 태그 채택 임계값
             addRealism: true,                     // 분석 후 실사 변환 태그 자동 추가
-            maxSide: 1152                         // 원본이 크면 긴 변을 이 값으로 축소(업로드·VRAM 폭주 방지)
+            maxSide: 1152,                        // 원본이 크면 긴 변을 이 값으로 축소(업로드·VRAM 폭주 방지)
+            // ── 고급 파이프라인 ──
+            loras: [],                            // [{name, strength}] 적용할 LoRA들
+            controlnet: false,                    // ControlNet(포즈 고정) 사용
+            cnModel: 'OpenPoseXL2.safetensors',   // ControlNet 모델
+            cnStrength: 0.55,                     // ControlNet 강도
+            faceDetailer: false,                  // 얼굴 복구(FaceDetailer)
+            fdModel: 'bbox/face_yolov8m.pt',      // 얼굴 감지 모델(bbox)
+            upscale: false,                       // 업스케일(느림 — 기본 꺼짐)
+            upscaleModel: '4x-UltraSharp.pth',    // 업스케일러
+            upscaleBy: 2                          // 업스케일 배율
         };
         function _img2imgSave() {
             // 이미지 원본(dataURL)은 용량이 커 localStorage에 넣지 않음. 설정값만 영속.
             try {
                 localStorage.setItem(IMG2IMG_KEY, JSON.stringify({
                     denoise: _img2img.denoise, autoTag: _img2img.autoTag,
-                    wd14Model: _img2img.wd14Model, wd14Threshold: _img2img.wd14Threshold, addRealism: _img2img.addRealism, maxSide: _img2img.maxSide
+                    wd14Model: _img2img.wd14Model, wd14Threshold: _img2img.wd14Threshold, addRealism: _img2img.addRealism, maxSide: _img2img.maxSide,
+                    loras: _img2img.loras, controlnet: _img2img.controlnet, cnModel: _img2img.cnModel, cnStrength: _img2img.cnStrength,
+                    faceDetailer: _img2img.faceDetailer, fdModel: _img2img.fdModel, upscale: _img2img.upscale, upscaleModel: _img2img.upscaleModel, upscaleBy: _img2img.upscaleBy
                 }));
             } catch (e) {}
         }
@@ -4721,6 +4742,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (typeof s.wd14Threshold === 'number') _img2img.wd14Threshold = s.wd14Threshold;
                 if (typeof s.addRealism === 'boolean') _img2img.addRealism = s.addRealism;
                 if (typeof s.maxSide === 'number') _img2img.maxSide = s.maxSide;
+                if (Array.isArray(s.loras)) _img2img.loras = s.loras;
+                if (typeof s.controlnet === 'boolean') _img2img.controlnet = s.controlnet;
+                if (typeof s.cnModel === 'string' && s.cnModel) _img2img.cnModel = s.cnModel;
+                if (typeof s.cnStrength === 'number') _img2img.cnStrength = s.cnStrength;
+                if (typeof s.faceDetailer === 'boolean') _img2img.faceDetailer = s.faceDetailer;
+                if (typeof s.fdModel === 'string' && s.fdModel) _img2img.fdModel = s.fdModel;
+                if (typeof s.upscale === 'boolean') _img2img.upscale = s.upscale;
+                if (typeof s.upscaleModel === 'string' && s.upscaleModel) _img2img.upscaleModel = s.upscaleModel;
+                if (typeof s.upscaleBy === 'number') _img2img.upscaleBy = s.upscaleBy;
             } catch (e) {}
         }
         // 큰 원본을 긴 변 기준 maxSide로 축소(비율 유지). 이미 작으면 그대로.
@@ -4808,32 +4838,88 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return name;
         }
 
-        // img2img 워크플로우 빌드 (기본 모드 기반 + LoadImage/VAEEncode)
+        // img2img 워크플로우 빌드 — 모듈식 파이프라인
+        // 베이스: LoadImage→VAEEncode→(LoRA체인)→CLIP skip→인코딩→(ControlNet)→KSampler→VAEDecode
+        //        →(FaceDetailer)→(UltimateSDUpscale)→SaveImage
         function _comfyBuildImg2ImgWorkflow(pos, neg, imageName, denoise) {
             const seedInput = parseInt(document.getElementById('comfy-seed').value);
             const seed = (isNaN(seedInput) || seedInput < 0) ? Math.floor(Math.random() * 1e15) : seedInput;
             if (_comfyTarget === 'pos') neg = '';
             if (_comfyTarget === 'neg') pos = '';
             const dn = Math.max(0.05, Math.min(1, denoise || 0.6));
-            return {
-                "3": { "class_type": "KSampler", "inputs": {
-                    "seed": seed,
-                    "steps": parseInt(document.getElementById('comfy-steps').value) || 28,
-                    "cfg": parseFloat(document.getElementById('comfy-cfg').value) || 7,
-                    "sampler_name": document.getElementById('comfy-sampler').value,
-                    "scheduler": document.getElementById('comfy-scheduler').value,
-                    "denoise": dn,
-                    "model": ["4", 0], "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["11", 0]
-                }},
-                "4": { "class_type": "CheckpointLoaderSimple", "inputs": { "ckpt_name": document.getElementById('comfy-ckpt').value } },
-                "6": { "class_type": "CLIPTextEncode", "inputs": { "text": pos, "clip": ["12", 0] } },
-                "7": { "class_type": "CLIPTextEncode", "inputs": { "text": neg, "clip": ["12", 0] } },
-                "8": { "class_type": "VAEDecode", "inputs": { "samples": ["3", 0], "vae": ["4", 2] } },
-                "9": { "class_type": "SaveImage", "inputs": { "filename_prefix": "PromptLab_i2i", "images": ["8", 0] } },
-                "10": { "class_type": "LoadImage", "inputs": { "image": imageName } },
-                "11": { "class_type": "VAEEncode", "inputs": { "pixels": ["10", 0], "vae": ["4", 2] } },
-                "12": { "class_type": "CLIPSetLastLayer", "inputs": { "clip": ["4", 1], "stop_at_clip_layer": -2 } }
-            };
+            const steps = parseInt(document.getElementById('comfy-steps').value) || 28;
+            const cfg = parseFloat(document.getElementById('comfy-cfg').value) || 7;
+            const sampler = document.getElementById('comfy-sampler').value;
+            const scheduler = document.getElementById('comfy-scheduler').value;
+            const wf = {};
+
+            wf["4"] = { "class_type": "CheckpointLoaderSimple", "inputs": { "ckpt_name": document.getElementById('comfy-ckpt').value } };
+            wf["10"] = { "class_type": "LoadImage", "inputs": { "image": imageName } };
+
+            // LoRA 체인 — model/clip을 순차적으로 통과
+            let modelRef = ["4", 0], clipRef = ["4", 1];
+            const vaeRef = ["4", 2];
+            let li = 50;
+            (_img2img.loras || []).forEach(l => {
+                if (!l || !l.name) return;
+                const id = String(li++);
+                const s = (typeof l.strength === 'number') ? l.strength : 0.8;
+                wf[id] = { "class_type": "LoraLoader", "inputs": { "model": modelRef, "clip": clipRef, "lora_name": l.name, "strength_model": s, "strength_clip": s } };
+                modelRef = [id, 0]; clipRef = [id, 1];
+            });
+
+            // CLIP skip 2 (Pony 권장) + 프롬프트 인코딩
+            wf["12"] = { "class_type": "CLIPSetLastLayer", "inputs": { "clip": clipRef, "stop_at_clip_layer": -2 } };
+            const clip2 = ["12", 0];
+            wf["6"] = { "class_type": "CLIPTextEncode", "inputs": { "text": pos, "clip": clip2 } };
+            wf["7"] = { "class_type": "CLIPTextEncode", "inputs": { "text": neg, "clip": clip2 } };
+            wf["11"] = { "class_type": "VAEEncode", "inputs": { "pixels": ["10", 0], "vae": vaeRef } };
+
+            let posC = ["6", 0], negC = ["7", 0];
+            // ControlNet(OpenPose) — 포즈/구도 고정
+            if (_img2img.controlnet) {
+                wf["20"] = { "class_type": "OpenposePreprocessor", "inputs": { "image": ["10", 0], "detect_hand": "enable", "detect_body": "enable", "detect_face": "enable", "resolution": 512 } };
+                wf["21"] = { "class_type": "ControlNetLoader", "inputs": { "control_net_name": _img2img.cnModel } };
+                wf["22"] = { "class_type": "ControlNetApplyAdvanced", "inputs": { "positive": posC, "negative": negC, "control_net": ["21", 0], "image": ["20", 0], "strength": _img2img.cnStrength, "start_percent": 0.0, "end_percent": 1.0 } };
+                posC = ["22", 0]; negC = ["22", 1];
+            }
+
+            wf["3"] = { "class_type": "KSampler", "inputs": { "seed": seed, "steps": steps, "cfg": cfg, "sampler_name": sampler, "scheduler": scheduler, "denoise": dn, "model": modelRef, "positive": posC, "negative": negC, "latent_image": ["11", 0] } };
+            wf["8"] = { "class_type": "VAEDecode", "inputs": { "samples": ["3", 0], "vae": vaeRef } };
+            let imgRef = ["8", 0];
+
+            // FaceDetailer — 얼굴 복구(인상). 기본 프롬프트(6/7)로 얼굴만 재생성
+            if (_img2img.faceDetailer) {
+                wf["31"] = { "class_type": "UltralyticsDetectorProvider", "inputs": { "model_name": _img2img.fdModel } };
+                wf["30"] = { "class_type": "FaceDetailer", "inputs": {
+                    "image": imgRef, "model": modelRef, "clip": clip2, "vae": vaeRef, "positive": ["6", 0], "negative": ["7", 0],
+                    "bbox_detector": ["31", 0],
+                    "guide_size": 384, "guide_size_for": true, "max_size": 1024,
+                    "seed": seed, "steps": steps, "cfg": cfg, "sampler_name": sampler, "scheduler": scheduler, "denoise": 0.5,
+                    "feather": 5, "noise_mask": true, "force_inpaint": true,
+                    "bbox_threshold": 0.5, "bbox_dilation": 10, "bbox_crop_factor": 3.0,
+                    "sam_detection_hint": "center-1", "sam_dilation": 0, "sam_threshold": 0.93, "sam_bbox_expansion": 0,
+                    "sam_mask_hint_threshold": 0.7, "sam_mask_hint_use_negative": "False",
+                    "drop_size": 10, "wildcard": "", "cycle": 1
+                }};
+                imgRef = ["30", 0];
+            }
+
+            // UltimateSDUpscale — 타일 업스케일(느림, 기본 꺼짐)
+            if (_img2img.upscale) {
+                wf["41"] = { "class_type": "UpscaleModelLoader", "inputs": { "model_name": _img2img.upscaleModel } };
+                wf["40"] = { "class_type": "UltimateSDUpscale", "inputs": {
+                    "image": imgRef, "model": modelRef, "positive": ["6", 0], "negative": ["7", 0], "vae": vaeRef, "upscale_model": ["41", 0],
+                    "upscale_by": _img2img.upscaleBy || 2, "seed": seed, "steps": steps, "cfg": cfg, "sampler_name": sampler, "scheduler": scheduler, "denoise": 0.2,
+                    "mode_type": "Linear", "tile_width": 768, "tile_height": 768, "mask_blur": 8, "tile_padding": 32,
+                    "seam_fix_mode": "None", "seam_fix_denoise": 1.0, "seam_fix_width": 64, "seam_fix_mask_blur": 8, "seam_fix_padding": 16,
+                    "force_uniform_tiles": true, "tiled_decode": false
+                }};
+                imgRef = ["40", 0];
+            }
+
+            wf["9"] = { "class_type": "SaveImage", "inputs": { "filename_prefix": "PromptLab_i2i", "images": imgRef } };
+            return wf;
         }
 
         // ── WD14 자동 태깅: 이미지 → danbooru 태그 ──────────────────────
@@ -4850,22 +4936,29 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
             return null;
         }
-        // ComfyUI에 설치된 WD14 태거 모델 목록 (/object_info에서 enum 회수)
-        async function _comfyWD14Models() {
+        // 특정 로더 노드의 파일 목록(enum)을 /object_info에서 회수 (체크포인트·LoRA·ControlNet·업스케일·태거 공용)
+        const _COMFY_ENUM_MOCK = {
+            'WD14Tagger|pysssss|model': ['wd-eva02-large-tagger-v3', 'wd-vit-tagger-v3', 'wd-swinv2-tagger-v3', 'wd-v1-4-moat-tagger-v2'],
+            'CheckpointLoaderSimple|ckpt_name': ['ponyRealism_V22.safetensors', 'asianRealismByStable_v30FP16.safetensors', 'juggernautXL_ragnarokBy.safetensors', 'illustriousXL_v01.safetensors'],
+            'LoraLoader|lora_name': ['ip-adapter-faceid-plusv2_sdxl_lora.safetensors', 'D-ART_XL-V2.safetensors', 'NSFW_master_ZIT_000017532.safetensors', 'k4_anime_nude.safetensors', 'testlora_wife.safetensors'],
+            'ControlNetLoader|control_net_name': ['OpenPoseXL2.safetensors', 'diffusion_pytorch_model.fp16.safetensors'],
+            'UpscaleModelLoader|model_name': ['4x-UltraSharp.pth', '2x-AnimeSharpV3.pth'],
+        };
+        async function _comfyNodeEnum(cls, field) {
             if (typeof DevMode !== 'undefined' && DevMode.feature && DevMode.feature('mockGen')) {
-                return ['wd-eva02-large-tagger-v3', 'wd-vit-tagger-v3', 'wd-swinv2-tagger-v3', 'wd-convnext-tagger-v3', 'wd-v1-4-moat-tagger-v2'];
+                return _COMFY_ENUM_MOCK[cls + '|' + field] || [];
             }
             try {
-                const cls = 'WD14Tagger|pysssss';
                 const res = await fetch(_comfyBase() + '/object_info/' + encodeURIComponent(cls));
                 if (!res.ok) return null;
                 const data = await res.json();
                 const node = data && data[cls];
-                const m = node && node.input && node.input.required && node.input.required.model;
+                const m = node && node.input && node.input.required && node.input.required[field];
                 const list = Array.isArray(m) ? m[0] : null;
                 return (Array.isArray(list) && list.length) ? list : null;
             } catch (e) { return null; }
         }
+        const _comfyWD14Models = () => _comfyNodeEnum('WD14Tagger|pysssss', 'model');
         async function _comfyWD14Tag(imageName) {
             // 가상(개발자) 모드: 실제 ComfyUI 없이 흐름 테스트용 더미 태그
             if (typeof DevMode !== 'undefined' && DevMode.feature && DevMode.feature('mockGen')) {
@@ -18177,6 +18270,84 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const advToggle = el('div', { style: 'font-size:11px; color:var(--text-dim); cursor:pointer; user-select:none;', html: '▼ 자동 태깅 고급 설정 (WD14)', onclick: () => { const on = advBody.style.display === 'none'; advBody.style.display = on ? 'flex' : 'none'; advToggle.innerHTML = (on ? '▲' : '▼') + ' 자동 태깅 고급 설정 (WD14)'; } });
             const advWrap = el('div', { style: 'border-top:1px solid var(--border-dim); padding-top:12px;' }, advToggle, advBody);
 
+            // ══ 고급 파이프라인 (체크포인트·LoRA·ControlNet·FaceDetailer·업스케일) ══
+            const enumFills = []; // 설치 목록 드롭다운 채우기 함수들
+            function mkEnumSelect(cls, field, getCur, onPick) {
+                const sel = el('select', { class: 'ctl', style: 'flex:1; min-width:0; font-size:11px; font-family:var(--font-code);', onchange: (e) => onPick(e.target.value) });
+                async function fill() {
+                    const cur = getCur() || '';
+                    let list = await _comfyNodeEnum(cls, field);
+                    sel.innerHTML = '';
+                    if (!list || !list.length) { sel.appendChild(el('option', { value: cur }, (cur || '(없음)') + ' · 연결 확인')); sel.value = cur; return; }
+                    if (cur && !list.includes(cur)) list = [cur, ...list];
+                    list.forEach(m => sel.appendChild(el('option', { value: m }, m)));
+                    sel.value = cur;
+                    if (!sel.value && list.length) { sel.value = list[0]; try { onPick(list[0]); } catch (e) {} } // 비어 있으면 첫 항목 자동 선택
+                }
+                enumFills.push(fill);
+                return sel;
+            }
+            const lbl = (t) => el('div', { style: 'font-size:12px; font-weight:800; color:var(--text-main); margin-bottom:6px;' }, t);
+            const hint = (t) => el('div', { style: 'font-size:11px; color:var(--text-dim); margin-top:4px; line-height:1.5;' }, t);
+
+            // 체크포인트
+            const ckptSel = mkEnumSelect('CheckpointLoaderSimple', 'ckpt_name', () => document.getElementById('comfy-ckpt').value, (v) => { document.getElementById('comfy-ckpt').value = v; try { _comfySaveSettings(); } catch (e) {} });
+
+            // LoRA
+            const loraAddSel = mkEnumSelect('LoraLoader', 'lora_name', () => (_img2img.loras[0] && _img2img.loras[0].name) || '', () => {});
+            const loraList = el('div', { style: 'display:flex; flex-direction:column; gap:6px;' });
+            function renderLoras() {
+                loraList.innerHTML = '';
+                if (!_img2img.loras.length) { loraList.appendChild(el('div', { style: 'font-size:11px; color:var(--text-dim);' }, '적용된 LoRA 없음')); return; }
+                _img2img.loras.forEach((l, i) => {
+                    const strengthInp = el('input', { type: 'number', min: '-2', max: '2', step: '0.05', value: l.strength, style: 'width:64px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:6px; padding:5px 7px; color:var(--text-main); font-size:12px; outline:none;', onchange: (e) => { let v = parseFloat(e.target.value); if (isNaN(v)) v = 0.8; _img2img.loras[i].strength = v; _img2imgSave(); } });
+                    const rm = el('button', { class: 'action-btn', style: 'padding:4px 8px; color:var(--accent-danger); border-color:var(--border-dim);', html: '<i class="fa-solid fa-xmark"></i>', onclick: () => { _img2img.loras.splice(i, 1); _img2imgSave(); renderLoras(); } });
+                    loraList.appendChild(el('div', { style: 'display:flex; align-items:center; gap:8px; background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:7px; padding:6px 8px;' },
+                        el('span', { style: 'flex:1; min-width:0; font-size:11px; font-family:var(--font-code); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;' }, l.name),
+                        el('span', { style: 'font-size:10px; color:var(--text-dim);' }, '강도'), strengthInp, rm));
+                });
+            }
+            const loraAddBtn = el('button', { class: 'action-btn', style: 'flex:0 0 auto; font-size:12px; padding:0 12px; height:var(--ctl-h);', html: '<i class="fa-solid fa-plus"></i> 추가', onclick: () => { const v = loraAddSel.value; if (!v) return; if (_img2img.loras.some(x => x.name === v)) { showToast('이미 추가된 LoRA입니다.', 'info'); return; } _img2img.loras.push({ name: v, strength: 0.8 }); _img2imgSave(); renderLoras(); } });
+            renderLoras();
+
+            // ControlNet
+            const cnChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.controlnet = e.target.checked; _img2imgSave(); cnBody.style.display = e.target.checked ? 'flex' : 'none'; } }); cnChk.checked = _img2img.controlnet;
+            const cnSel = mkEnumSelect('ControlNetLoader', 'control_net_name', () => _img2img.cnModel, (v) => { _img2img.cnModel = v; _img2imgSave(); });
+            const cnStrVal = el('span', { style: 'font-weight:800; color:var(--accent-blue); font-size:12px; white-space:nowrap;' });
+            const cnStr = el('input', { type: 'range', min: '0.1', max: '1', step: '0.05', value: _img2img.cnStrength, style: 'flex:1; accent-color:var(--accent-blue);', oninput: (e) => { _img2img.cnStrength = parseFloat(e.target.value); cnStrVal.textContent = _img2img.cnStrength.toFixed(2); _img2imgSave(); } });
+            cnStrVal.textContent = (+_img2img.cnStrength).toFixed(2);
+            const cnBody = el('div', { style: 'display:' + (_img2img.controlnet ? 'flex' : 'none') + '; flex-direction:column; gap:8px; padding-top:8px;' },
+                el('div', {}, el('div', { style: 'font-size:11px; color:var(--text-dim); margin-bottom:4px;' }, 'ControlNet 모델 (OpenPose 권장)'), cnSel),
+                el('div', { style: 'display:flex; align-items:center; gap:10px;' }, el('span', { style: 'font-size:11px; color:var(--text-dim); white-space:nowrap;' }, '강도'), cnStr, cnStrVal),
+                hint('포즈·구도를 고정해 강도를 높여도 캐릭터가 유지됩니다. 0.5~0.6 권장. (전처리기: OpenposePreprocessor)'));
+
+            // FaceDetailer
+            const fdChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.faceDetailer = e.target.checked; _img2imgSave(); } }); fdChk.checked = _img2img.faceDetailer;
+
+            // 업스케일 (기본 꺼짐 — 느림)
+            const upChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.upscale = e.target.checked; _img2imgSave(); upBody.style.display = e.target.checked ? 'flex' : 'none'; } }); upChk.checked = _img2img.upscale;
+            const upSel = mkEnumSelect('UpscaleModelLoader', 'model_name', () => _img2img.upscaleModel, (v) => { _img2img.upscaleModel = v; _img2imgSave(); });
+            const upByeSel = el('select', { class: 'ctl', style: 'width:90px; font-size:11px;', onchange: (e) => { _img2img.upscaleBy = parseFloat(e.target.value); _img2imgSave(); } });
+            [['1.5x', 1.5], ['2x', 2], ['3x', 3], ['4x', 4]].forEach(([t, v]) => upByeSel.appendChild(el('option', { value: v }, t)));
+            upByeSel.value = String(_img2img.upscaleBy);
+            const upBody = el('div', { style: 'display:' + (_img2img.upscale ? 'flex' : 'none') + '; flex-direction:column; gap:8px; padding-top:8px;' },
+                el('div', {}, el('div', { style: 'font-size:11px; color:var(--text-dim); margin-bottom:4px;' }, '업스케일러 모델'), upSel),
+                el('div', { style: 'display:flex; align-items:center; gap:10px;' }, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, '배율'), upByeSel),
+                hint('타일 방식(768px)이라 12GB에서도 안전하지만 시간이 오래 걸립니다. 최종 컷에만 켜세요.'));
+
+            const pipeRefresh = el('button', { class: 'action-btn', style: 'font-size:11px; padding:5px 10px;', html: '<i class="fa-solid fa-rotate"></i> 설치 목록 새로고침', onclick: () => { enumFills.forEach(f => { try { f(); } catch (e) {} }); showToast('설치 목록 새로고침', 'info', 1500); } });
+
+            const pipeBody = el('div', { style: 'display:none; flex-direction:column; gap:16px; padding-top:12px;' },
+                el('div', {}, lbl('체크포인트 (실사 모델)'), ckptSel),
+                el('div', {}, lbl('LoRA (얼굴 일관성·스타일)'),
+                    el('div', { style: 'display:flex; gap:6px; align-items:center; margin-bottom:8px;' }, loraAddSel, loraAddBtn), loraList),
+                el('div', {}, el('label', { class: 'ctl-chk', style: 'height:auto; color:var(--text-main); font-weight:700;' }, cnChk, 'ControlNet — 포즈/구도 고정 (캐릭터 유지)'), cnBody),
+                el('div', {}, el('label', { class: 'ctl-chk', style: 'height:auto; color:var(--text-main); font-weight:700;' }, fdChk, 'FaceDetailer — 얼굴 복구 (인상 보존)')),
+                el('div', {}, el('label', { class: 'ctl-chk', style: 'height:auto; color:var(--text-main); font-weight:700;' }, upChk, '업스케일 — 고해상도 (느림, 최종 컷용)'), upBody),
+                el('div', { style: 'padding-top:4px;' }, pipeRefresh));
+            const pipeToggle = el('div', { style: 'font-size:12px; font-weight:800; color:var(--text-main); cursor:pointer; user-select:none;', html: '<i class="fa-solid fa-sliders"></i> ▼ 고급 파이프라인 (LoRA · ControlNet · 얼굴 · 업스케일)', onclick: () => { const on = pipeBody.style.display === 'none'; pipeBody.style.display = on ? 'flex' : 'none'; pipeToggle.innerHTML = '<i class="fa-solid fa-sliders"></i> ' + (on ? '▲' : '▼') + ' 고급 파이프라인 (LoRA · ControlNet · 얼굴 · 업스케일)'; if (on) enumFills.forEach(f => { try { f(); } catch (e) {} }); } });
+            const pipeWrap = el('div', { style: 'border-top:1px solid var(--border-dim); padding-top:12px;' }, pipeToggle, pipeBody);
+
             const panel = el('section', { class: 'panel', id: 'i2i-source' },
                 el('div', { class: 'panel-header', style: 'display:flex; align-items:center; gap:8px;' },
                     el('span', { html: '<i class="fa-solid fa-wand-magic-sparkles" style="color:#f59e0b;"></i> 원본 → 변환', style: 'font-weight:800;' })
@@ -18192,6 +18363,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         el('div', { style: 'font-size:11px; color:var(--text-dim); margin-top:8px; line-height:1.5;' }, '낮을수록 원본 구도·형태를 유지하고, 높을수록 프롬프트대로 많이 바뀝니다. 실사 코스프레는 0.5~0.6 권장.')
                     ),
                     el('button', { class: 'action-btn', style: 'width:100%; background:var(--accent-green); color:#fff; border:none; font-weight:800; padding:9px;', html: '<i class="fa-solid fa-sliders"></i> Pony Realism 권장 세팅 적용', onclick: () => { _i2iApplyRecommendedSettings(); syncDn(); } }),
+                    pipeWrap,
                     advWrap
                 )
             );
