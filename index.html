@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.41.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.41.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1156,7 +1156,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.41.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.41.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1922,7 +1922,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.41.0', date: '2026-07-12', time: '최신',
+                version: 'v9.41.1', date: '2026-07-12', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[이미지 인페인팅] 칠한 부분이 무지개빛으로 녹아내리던 진짜 원인을 잡았습니다 — Fooocus 인페인트 패치를 쓸 때 인페인트 조건화가 이중으로 들어가 결과가 망가졌습니다. 이제 Fooocus를 켜면 표준 Fooocus 방식(VAEEncodeForInpaint + 일반 조건)으로, 끄면 기존 방식으로 배선이 갈라져 정상적으로 그려집니다",
+                ]
+            },
+            {
+                version: 'v9.41.0', date: '2026-07-12', time: '',
                 tag: 'fix',
                 items: [
                     "[이미지 인페인팅] 칠한 영역이 노이즈처럼 뭉개지던 핵심 원인 수정 — 최종 프롬프트에 '칠한 곳에 넣을 것' 박스 내용만 들어가도록 바꿨습니다. 이전엔 에디터의 다른 탭·레이어에 남아 있던 태그(원본 옷·배경 등)가 함께 섞여 들어가 칠한 부분이 엉망이 됐습니다. 이제 적은 것만 깔끔하게 반영됩니다",
@@ -5338,22 +5345,30 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             wf["6"] = { "class_type": "CLIPTextEncode", "inputs": { "text": pos, "clip": clip2 } };
             wf["7"] = { "class_type": "CLIPTextEncode", "inputs": { "text": neg, "clip": clip2 } };
 
-            // 인페인트 조건화: 마스크 영역만 다시 그리도록 positive/negative/latent 구성
-            wf["17"] = { "class_type": "InpaintModelConditioning", "inputs": _comfyNodeInputs("InpaintModelConditioning",
-                { "noise_mask": true },
-                { "positive": ["6", 0], "negative": ["7", 0], "vae": vaeRef, "pixels": ["10", 0], "mask": maskRef }) };
-            const posC = ["17", 0], negC = ["17", 1], latC = ["17", 2];
-
-            // Fooocus 인페인트 패치 적용 (설치된 패키지에 맞춰 배선)
-            if (fooocusKind === 'acly') {
-                // Acly comfyui-inpaint-nodes: Load → Apply (2노드)
-                wf["18"] = { "class_type": "INPAINT_LoadFooocusInpaint", "inputs": { "head": fHead, "patch": fPatch } };
-                wf["19"] = { "class_type": "INPAINT_ApplyFooocusInpaint", "inputs": { "model": modelRef, "patch": ["18", 0], "latent": latC } };
-                modelRef = ["19", 0];
-            } else if (fooocusKind === 'easy') {
-                // comfyui-easy-use: Easy Apply Fooocus Inpaint (단일 노드, head/patch 내장)
-                wf["19"] = { "class_type": "easy applyFooocusInpaint", "inputs": { "model": modelRef, "latent": latC, "head": fHead, "patch": fPatch } };
-                modelRef = ["19", 0];
+            // ── 인페인트 조건화 + 잠재 준비 ──
+            //  ⚠ Fooocus 인페인트 패치와 InpaintModelConditioning은 '절대' 함께 쓰지 않는다.
+            //    (둘 다 마스크 조건화를 하므로 이중 적용 → 마스크 영역이 무지개빛으로 녹아내림)
+            //  · Fooocus 있음 → 표준 Fooocus 워크플로우: VAEEncodeForInpaint + 평범한 조건(6/7) + Fooocus 패치
+            //  · Fooocus 없음 → InpaintModelConditioning 단독(폴백)
+            let posC, negC, latC;
+            if (fooocusKind) {
+                wf["17"] = { "class_type": "VAEEncodeForInpaint", "inputs": { "pixels": ["10", 0], "vae": vaeRef, "mask": maskRef, "grow_mask_by": 0 } };
+                posC = ["6", 0]; negC = ["7", 0]; latC = ["17", 0];
+                if (fooocusKind === 'acly') {
+                    // Acly comfyui-inpaint-nodes: Load → Apply (2노드)
+                    wf["18"] = { "class_type": "INPAINT_LoadFooocusInpaint", "inputs": { "head": fHead, "patch": fPatch } };
+                    wf["19"] = { "class_type": "INPAINT_ApplyFooocusInpaint", "inputs": { "model": modelRef, "patch": ["18", 0], "latent": latC } };
+                    modelRef = ["19", 0];
+                } else {
+                    // comfyui-easy-use: Easy Apply Fooocus Inpaint (단일 노드, head/patch 내장)
+                    wf["19"] = { "class_type": "easy applyFooocusInpaint", "inputs": { "model": modelRef, "latent": latC, "head": fHead, "patch": fPatch } };
+                    modelRef = ["19", 0];
+                }
+            } else {
+                wf["17"] = { "class_type": "InpaintModelConditioning", "inputs": _comfyNodeInputs("InpaintModelConditioning",
+                    { "noise_mask": true },
+                    { "positive": ["6", 0], "negative": ["7", 0], "vae": vaeRef, "pixels": ["10", 0], "mask": maskRef }) };
+                posC = ["17", 0]; negC = ["17", 1]; latC = ["17", 2];
             }
 
             wf["3"] = { "class_type": "KSampler", "inputs": { "seed": seed, "steps": steps, "cfg": cfg, "sampler_name": sampler, "scheduler": scheduler, "denoise": dn, "model": modelRef, "positive": posC, "negative": negC, "latent_image": latC } };
