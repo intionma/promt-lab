@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.30.2 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.30.3 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1129,7 +1129,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.30.2 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.30.3 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1895,7 +1895,15 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.30.2', date: '2026-07-12', time: '최신',
+                version: 'v9.30.3', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지 변환] '기본값으로 초기화' 버튼을 추가했습니다 (기존 '권장 세팅' 버튼) — 고급 옵션을 잘못 만져서 안 될 때 누르면 denoise·스텝·모델·모든 고급 토글이 안전한 기본값으로 한 번에 돌아옵니다",
+                    "[이미지 변환] 고급 파이프라인 위에 쉬운 안내문을 넣었습니다 — 처음이면 안 건드려도 되고, 원본과 너무 다르면 ControlNet, 얼굴이 다르면 IPAdapter를 켜라고 알려줍니다",
+                ]
+            },
+            {
+                version: 'v9.30.2', date: '2026-07-12', time: '',
                 tag: 'fix',
                 items: [
                     "[이미지 변환] 모바일을 클래식·스튜디오처럼 좌우 스와이프로 바꿨습니다 — 하단 탭(에디터 · 이미지 · 결과)으로 넘기거나 손가락으로 밀어서 한 화면씩 보게 했습니다",
@@ -5090,8 +5098,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         window.__i2iAnalyzeAndFill = _i2iAnalyzeAndFill;
         // Pony Realism 코스프레 변환 권장 세팅 원클릭
+        // 권장 기본값으로 "초기화" — 생성 파라미터 + 고급 파이프라인을 안전한 기본 상태로 되돌림
+        // (뭔가 잘못 바꿔서 안 될 때 한 방에 복구)
         function _i2iApplyRecommendedSettings() {
             const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+            // 생성 파라미터 (Pony Realism 권장)
             set('comfy-sampler', 'dpmpp_2m');
             set('comfy-scheduler', 'karras');
             set('comfy-steps', '30');
@@ -5099,8 +5110,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const ck = document.getElementById('comfy-ckpt');
             if (ck && !ck.value.trim()) ck.value = 'ponyRealism_V22.safetensors';
             _img2imgSetDenoise(0.5);
+            // 고급 파이프라인 → 안전한 기본값 (전부 끔 · 모델명/수치 기본값 · 자동태깅 켬)
+            _img2img.loras = [];
+            _img2img.controlnet = false; _img2img.cnModel = 'OpenPoseXL2.safetensors'; _img2img.cnStrength = 0.55;
+            _img2img.ipadapter = false; _img2img.ipaWeight = 0.75;
+            _img2img.faceDetailer = false; _img2img.fdModel = 'bbox/face_yolov8m.pt';
+            _img2img.upscale = false; _img2img.upscaleModel = '4x-UltraSharp.pth'; _img2img.upscaleBy = 2;
+            _img2img.autoTag = true; _img2img.addRealism = true; _img2img.maxSide = 1152;
+            _img2img.wd14Model = 'wd-v1-4-moat-tagger-v2'; _img2img.wd14Threshold = 0.35;
+            _img2imgSave();
             try { _comfySaveSettings(); } catch (e) {}
-            showToast('Pony Realism 권장 세팅 적용 — denoise 0.5 · 30스텝 · CFG 6.5 · dpmpp_2m/karras · CLIP skip 2', 'success', 3800);
+            showToast('기본값으로 초기화했습니다 — denoise 0.5 · 30스텝 · CFG 6.5 · 고급 옵션 전부 OFF (필요한 것만 다시 켜세요)', 'success', 4200);
         }
         window.__i2iApplyRecommended = _i2iApplyRecommendedSettings;
 
@@ -18421,7 +18441,23 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
             const pipeRefresh = el('button', { class: 'action-btn', style: 'font-size:11px; padding:5px 10px;', html: '<i class="fa-solid fa-rotate"></i> 설치 목록 새로고침', onclick: () => { enumFills.forEach(f => { try { f(); } catch (e) {} }); showToast('설치 목록 새로고침', 'info', 1500); } });
 
+            // 초기화 버튼이 상태를 바꾼 뒤, 모든 컨트롤을 _img2img 값에 맞춰 다시 그림
+            function _syncPipelineUI() {
+                cnChk.checked = _img2img.controlnet; cnBody.style.display = _img2img.controlnet ? 'flex' : 'none';
+                cnStr.value = _img2img.cnStrength; cnStrVal.textContent = (+_img2img.cnStrength).toFixed(2);
+                ipaChk.checked = _img2img.ipadapter; ipaBody.style.display = _img2img.ipadapter ? 'flex' : 'none';
+                ipaStr.value = _img2img.ipaWeight; ipaVal.textContent = (+_img2img.ipaWeight).toFixed(2);
+                fdChk.checked = _img2img.faceDetailer;
+                upChk.checked = _img2img.upscale; upBody.style.display = _img2img.upscale ? 'flex' : 'none'; upByeSel.value = String(_img2img.upscaleBy);
+                autoChk.checked = _img2img.autoTag; realismChk.checked = _img2img.addRealism;
+                thrInput.value = _img2img.wd14Threshold; sizeInput.value = _img2img.maxSide;
+                try { renderLoras(); } catch (e) {}
+                try { enumFills.forEach(f => f()); } catch (e) {}
+                try { syncDn(); } catch (e) {}
+            }
+
             const pipeBody = el('div', { style: 'display:none; flex-direction:column; gap:16px; padding-top:12px;' },
+                el('div', { style: 'background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:10px; padding:12px; font-size:12px; color:var(--text-dim); line-height:1.7;', html: '💡 <b style="color:var(--text-main);">여기는 선택 옵션이에요.</b> 처음이면 <b>아무것도 안 건드려도</b> 됩니다 (자동 태깅 + 변환 강도만으로 충분).<br>· 결과가 원본과 너무 달라지면 → <b>ControlNet</b>만 켜보세요 (포즈·구도 고정).<br>· 얼굴이 딴사람 같으면 → <b>IPAdapter FaceID</b> 켜기.<br>· <b style="color:#f59e0b;">뭔가 꼬여서 안 되면 위의 “기본값으로 초기화” 버튼</b>을 누르면 다 정상으로 돌아옵니다.' }),
                 el('div', {}, lbl('체크포인트 (실사 모델)'), ckptSel),
                 el('div', {}, lbl('LoRA (얼굴 일관성·스타일)'),
                     el('div', { style: 'display:flex; gap:6px; align-items:center; margin-bottom:8px;' }, loraAddSel, loraAddBtn), loraList),
@@ -18447,7 +18483,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         el('div', { style: 'display:flex; gap:6px; margin-top:10px;' }, ...presetEls),
                         el('div', { style: 'font-size:11px; color:var(--text-dim); margin-top:8px; line-height:1.5;' }, '낮을수록 원본 구도·형태를 유지하고, 높을수록 프롬프트대로 많이 바뀝니다. 실사 코스프레는 0.5~0.6 권장.')
                     ),
-                    el('button', { class: 'action-btn', style: 'width:100%; background:var(--accent-green); color:#fff; border:none; font-weight:800; padding:9px;', html: '<i class="fa-solid fa-sliders"></i> Pony Realism 권장 세팅 적용', onclick: () => { _i2iApplyRecommendedSettings(); syncDn(); } }),
+                    el('button', { class: 'action-btn', style: 'width:100%; background:var(--accent-green); color:#fff; border:none; font-weight:800; padding:9px;', title: '뭔가 잘못 바꿔서 안 될 때 눌러 안전한 기본값으로 되돌립니다', html: '<i class="fa-solid fa-rotate-left"></i> 기본값으로 초기화 (권장 세팅)', onclick: () => { _i2iApplyRecommendedSettings(); _syncPipelineUI(); } }),
                     pipeWrap,
                     advWrap
                 )
