@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.36.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.36.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1156,7 +1156,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.36.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.36.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1922,7 +1922,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.36.0', date: '2026-07-12', time: '최신',
+                version: 'v9.36.1', date: '2026-07-12', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[ComfyUI] 생성이 몇 초 만에 끝나는데 결과가 안 나오던 문제를 잡았습니다 — ComfyUI 쪽 실행 오류(예: 'IPAdapter model not found')를 이제 화면에 원인과 해결책까지 표시합니다 (해당 고급 옵션을 끄라고 안내)",
+                ]
+            },
+            {
+                version: 'v9.36.0', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[이미지 인페인팅] 인페인팅 전용 레이아웃으로 새로 짰습니다 — 왼쪽에 큰 이미지+브러시, 오른쪽에 결과. 7단 에디터 대신 '칠한 곳에 넣을 것' 간단 프롬프트 한 칸 + 빠른 프리셋(다른 옷·배경·얼굴·헤어·지우기)으로 바로 편집하세요",
@@ -6009,8 +6016,50 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (!_comfyJobs[d.prompt_id]._multi) {
                     _comfyStageImages(d.prompt_id, d.output.images, d.node);
                 }
+            } else if (msg.type === 'execution_error') {
+                _comfyOnExecError(d);
             }
         }
+
+        // 흔한 ComfyUI 실행 오류를 사용자 언어로 안내 (원인 + 해결책)
+        function _comfyExecErrorHint(nodeType, exMsg) {
+            const s = ((nodeType || '') + ' ' + (exMsg || '')).toLowerCase();
+            if (/ipadapter model not found|ipadapter/.test(s)) return '💡 IPAdapter FaceID 모델이 없어요. 오른쪽 고급 파이프라인에서 <b>IPAdapter를 끄</b>거나, 모델(FaceID+CLIP-Vision)을 설치하세요.';
+            if (/controlnet|openpose/.test(s)) return '💡 ControlNet(OpenPose) 노드/모델이 없어요. 고급 파이프라인에서 <b>ControlNet을 끄</b>거나 OpenPoseXL2 + comfyui_controlnet_aux를 설치하세요.';
+            if (/facedetailer|ultralytics|impact/.test(s)) return '💡 FaceDetailer(Impact Pack) 노드/모델이 없어요. <b>FaceDetailer를 끄</b>거나 Impact Pack + 얼굴 감지 모델을 설치하세요.';
+            if (/upscale|upscalemodel/.test(s)) return '💡 업스케일러 모델이 없어요. <b>업스케일을 끄</b>거나 업스케일 모델을 설치하세요.';
+            if (/inpaint|fooocus/.test(s)) return '💡 인페인트 패치/노드 문제예요. 인페인팅에서 <b>Fooocus 패치를 끄</b>면 일반 인페인트로 동작합니다.';
+            if (/checkpoint|ckpt|not in list/.test(s)) return '💡 모델(체크포인트/LoRA 등) 파일명이 설치본과 안 맞아요. 목록에서 다시 선택하세요.';
+            return '💡 해당 노드의 모델/설정을 확인하세요. (고급 옵션을 하나씩 꺼보면 원인을 좁힐 수 있어요)';
+        }
+        // ComfyUI 실행 오류 표시 + 해당 작업 정리 (조용히 결과 없이 끝나던 문제 해결)
+        function _comfyOnExecError(d) {
+            const pid = d && d.prompt_id;
+            const nodeType = d && (d.node_type || d.class_type) || '알 수 없는 노드';
+            const exMsg = (d && (d.exception_message || d.exception_type)) || '실행 오류';
+            const hint = _comfyExecErrorHint(nodeType, exMsg);
+            showToast(`❌ ComfyUI 생성 실패\n[${nodeType}] ${String(exMsg).slice(0, 200)}`, 'error', 9000);
+            // 결과창에 원인+해결책을 눈에 띄게 표시
+            try {
+                const host = document.getElementById('comfy-inline-pos') || document.getElementById('comfy-gallery');
+                let box = document.getElementById('comfy-exec-error');
+                if (!box && host) { box = document.createElement('div'); box.id = 'comfy-exec-error'; box.style.cssText = 'margin:10px 0; padding:11px 13px; border:1px solid var(--accent-danger); background:color-mix(in srgb,var(--accent-danger) 12%,transparent); border-radius:9px; font-size:12.5px; line-height:1.6; color:var(--text-main);'; host.parentElement ? host.parentElement.insertBefore(box, host) : host.appendChild(box); }
+                if (box) box.innerHTML = `<b style="color:var(--accent-danger);">❌ 생성 실패 — ${_esc0(nodeType)}</b><br><span style="color:var(--text-dim);">${_esc0(String(exMsg).slice(0,220))}</span><br>${hint}`;
+            } catch (e) {}
+            // 작업 정리(큐/진행바 리셋)
+            if (pid && _comfyJobs[pid]) {
+                const jobInline = _comfyJobs[pid].inline;
+                delete _comfyJobs[pid];
+                _comfyJobMeta[pid] = { ...(_comfyJobMeta[pid] || {}), done: true, error: true };
+                _comfyQueueCount = Math.max(0, _comfyQueueCount - 1);
+                _comfySaveJobs();
+                comfyRenderQueue();
+                _comfySetProgress(100, '❌ 실패', jobInline);
+            }
+            _comfyRunningPid = null;
+            if (_comfyQueueCount <= 0) { _comfyBatchTotal = 0; _comfyBatchDone = 0; _comfyOnAllDone(); }
+        }
+        function _esc0(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
         // 노드 id가 미리보기 단계로 선택됐는지 + 라벨
         function _comfyPreviewInfo(nodeId) {
@@ -6576,6 +6625,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 return;
             }
             _comfySendingFor.add(lockKey);
+            try { const eb = document.getElementById('comfy-exec-error'); if (eb) eb.remove(); } catch (e) {} // 이전 실행 오류 표시 정리
 
             try {
                 let pos = (document.getElementById('final-positive').value || '').trim();
