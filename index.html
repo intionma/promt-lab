@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.36.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.36.2 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1156,7 +1156,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.36.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.36.2 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1922,7 +1922,15 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.36.1', date: '2026-07-12', time: '최신',
+                version: 'v9.36.2', date: '2026-07-12', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[이미지 인페인팅] 예전에 다른 레이어에 적어둔 태그가 최종 프롬프트에 계속 남는데 지울 수 없던 문제를 고쳤습니다 — 인페인팅에 들어가면 흩어진 태그를 '칠한 곳에 넣을 것' 한 칸으로 모아, 거기서 지우거나 고칠 수 있습니다",
+                    "[ComfyUI] 체크포인트에서 CLIP을 못 불러와 생성이 바로 실패할 때(‘NoneType object has no attribute clone’) 원인과 해결책(다른 체크포인트로 교체)을 안내하도록 했습니다",
+                ]
+            },
+            {
+                version: 'v9.36.1', date: '2026-07-12', time: '',
                 tag: 'fix',
                 items: [
                     "[ComfyUI] 생성이 몇 초 만에 끝나는데 결과가 안 나오던 문제를 잡았습니다 — ComfyUI 쪽 실행 오류(예: 'IPAdapter model not found')를 이제 화면에 원인과 해결책까지 표시합니다 (해당 고급 옵션을 끄라고 안내)",
@@ -6029,6 +6037,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (/facedetailer|ultralytics|impact/.test(s)) return '💡 FaceDetailer(Impact Pack) 노드/모델이 없어요. <b>FaceDetailer를 끄</b>거나 Impact Pack + 얼굴 감지 모델을 설치하세요.';
             if (/upscale|upscalemodel/.test(s)) return '💡 업스케일러 모델이 없어요. <b>업스케일을 끄</b>거나 업스케일 모델을 설치하세요.';
             if (/inpaint|fooocus/.test(s)) return '💡 인페인트 패치/노드 문제예요. 인페인팅에서 <b>Fooocus 패치를 끄</b>면 일반 인페인트로 동작합니다.';
+            if (/clipsetlastlayer|set_last_layer|nonetype.*clone|clip.*clone/.test(s)) return '💡 체크포인트에서 CLIP(텍스트 인코더)을 못 불러왔어요. 이 체크포인트는 CLIP 내장 SDXL 모델이 아닐 수 있어요(예: UNET 전용). <b>체크포인트를 일반 SDXL/Pony 모델로 바꿔보세요.</b>';
             if (/checkpoint|ckpt|not in list/.test(s)) return '💡 모델(체크포인트/LoRA 등) 파일명이 설치본과 안 맞아요. 목록에서 다시 선택하세요.';
             return '💡 해당 노드의 모델/설정을 확인하세요. (고급 옵션을 하나씩 꺼보면 원인을 좁힐 수 있어요)';
         }
@@ -19108,8 +19117,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     _presetChip('🙂 얼굴 보정', 'detailed face, beautiful detailed eyes'),
                     _presetChip('💇 헤어 변경', 'long hair'),
                     _presetChip('🧹 지우기(배경으로)', 'simple background, empty')));
-            // 세션 진입 시 layer-1 값으로 초기화(이전에 적어둔 것 복원)
-            setTimeout(() => { const ta = document.getElementById('layer-1'); if (ta && !simplePrompt.value) simplePrompt.value = ta.value; }, 0);
+            // 인페인팅 진입 시: 흩어진 7개 레이어를 전부 layer-1(간단 프롬프트)로 합침 →
+            // 예전에 다른 레이어에 적어둔 태그(예: penis)도 이 박스에서 보이고 지울 수 있게.
+            function _flattenToSimplePrompt() {
+                const st = (typeof contextStates !== 'undefined' && contextStates[currentContext]) ? contextStates[currentContext] : null;
+                if (!st) return;
+                while (st.length < 7) st.push('');
+                const all = [];
+                for (let i = 0; i < 7; i++) (st[i] || '').split(',').map(s => s.trim()).filter(Boolean).forEach(t => { if (!all.some(x => x.toLowerCase() === t.toLowerCase())) all.push(t); });
+                st[0] = all.join(', ');
+                for (let i = 1; i < 7; i++) st[i] = '';
+                for (let i = 1; i <= 7; i++) { const ta = document.getElementById('layer-' + i); if (ta) ta.value = st[i - 1]; }
+                simplePrompt.value = st[0];
+                try { saveTabsAndStates(); } catch (e) {}
+                try { updateMasterOutput(); } catch (e) {}
+            }
+            if (IS_INPAINT) setTimeout(_flattenToSimplePrompt, 0);
 
             const introDiv = el('div', { style: 'font-size:12px; color:var(--text-dim); line-height:1.6;', html: IS_INPAINT
                 ? '🖌 <b>부분 편집(인페인팅)</b>: <b>①</b> 이미지 넣기 → <b>②</b> 바꿀 곳 브러시로 칠하기 → <b>③</b> 아래 "칠한 곳에 넣을 것"에 적기 → <b>④</b> 오른쪽 <b>ComfyUI 전송</b>.'
