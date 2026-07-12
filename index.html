@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.23.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.24.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1110,7 +1110,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.23.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.24.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1878,7 +1878,16 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.23.0', date: '2026-07-12', time: '최신',
+                version: 'v9.24.0', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지 변환] 넣은 원본 이미지가 생성 후나 화면 전환·새로고침에도 사라지지 않고 유지됩니다 — 직접 교체하거나 제거하기 전까지 그대로 남습니다",
+                    "[이미지 변환] 이미지 URL로도 넣을 수 있게 했습니다 — 주소를 붙여넣고 '불러오기' (일부 사이트는 외부 접근을 막아 안 될 수 있는데, 그럴 땐 저장 후 드래그하세요)",
+                    "[프리셋] 다른 화면(예: 이미지 변환)에서 저장한 프리셋을 텍스트→이미지에서 '적용'해도 아무 태그가 안 들어오던 문제를 고쳤습니다 — 이제 항상 현재 편집칸에 태그가 들어옵니다",
+                ]
+            },
+            {
+                version: 'v9.23.0', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[이미지 변환] 이제 '이미지 변환' 테마는 태그·최종 프롬프트를 별도로 씁니다 — 클래식·스튜디오(둘 다 텍스트→이미지)는 서로 공유하지만, 이미지 변환(이미지→이미지)은 완전히 독립된 작업공간이라 서로 섞이지 않습니다",
@@ -4669,14 +4678,26 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _img2img.denoise = Math.max(0.05, Math.min(1, n));
             _img2imgSave();
         }
+        // 원본 이미지는 사용자가 교체/제거하기 전까지 유지(새로고침·재렌더 포함). dataURL은 localStorage에 best-effort 저장.
+        const I2I_SRC_KEY = 'comfy_img2img_src_v1';
+        function _img2imgPersistSrc() {
+            try {
+                if (_img2img.dataURL) localStorage.setItem(I2I_SRC_KEY, JSON.stringify({ d: _img2img.dataURL, n: _img2img.fileName }));
+                else localStorage.removeItem(I2I_SRC_KEY);
+            } catch (e) { /* 용량 초과 등은 무시 — 메모리에는 남음 */ }
+        }
+        function _img2imgRestoreSrc() {
+            try { const s = JSON.parse(localStorage.getItem(I2I_SRC_KEY) || 'null'); if (s && s.d) { _img2img.dataURL = s.d; _img2img.fileName = s.n || 'source.png'; _img2img.file = null; _img2img.uploadedName = null; } } catch (e) {}
+        }
         // 원본 이미지 지정(File 또는 dataURL). 새 이미지를 넣으면 업로드 캐시를 무효화.
         function _img2imgSetImage(file, dataURL, name) {
             _img2img.file = file || null;
             _img2img.dataURL = dataURL || null;
             _img2img.fileName = name || (file && file.name) || 'source.png';
             _img2img.uploadedName = null; // 새 이미지 → 다시 업로드해야 함
+            _img2imgPersistSrc();
         }
-        function _img2imgClearImage() { _img2img.file = null; _img2img.dataURL = null; _img2img.uploadedName = null; _img2img.fileName = ''; }
+        function _img2imgClearImage() { _img2img.file = null; _img2img.dataURL = null; _img2img.uploadedName = null; _img2img.fileName = ''; _img2imgPersistSrc(); }
         function _img2imgHasImage() { return !!(_img2img.file || _img2img.dataURL); }
 
         // dataURL → Blob (붙여넣기/드롭된 dataURL을 업로드용 Blob으로)
@@ -15328,7 +15349,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } else if (savedData.states) {
                 // states가 현재 탭 구조와 맞으면 그대로, 아니면 현재 탭에 병합
                 const saved = JSON.parse(JSON.stringify(savedData.states));
-                Object.keys(saved).forEach(k => { if (contextStates[k] !== undefined) contextStates[k] = saved[k]; });
+                let applied = 0;
+                Object.keys(saved).forEach(k => { if (contextStates[k] !== undefined) { contextStates[k] = saved[k]; applied++; } });
+                if (!applied) {
+                    // 탭/세션 구조가 달라 매칭되는 탭이 없음(예: 이미지변환에서 저장→text2img에서 적용)
+                    // → 저장된 모든 탭의 태그를 현재 탭에 계층별로 합쳐서 무조건 적용(적용해도 아무것도 안 들어오던 버그 방지)
+                    const merged = ["", "", "", "", "", "", ""];
+                    Object.values(saved).forEach(arr => { if (Array.isArray(arr)) for (let i = 0; i < 7; i++) { const add = (arr[i] || '').trim(); if (add) merged[i] = merged[i] ? merged[i] + ', ' + add : add; } });
+                    contextStates[currentContext] = merged;
+                }
                 if(document.getElementById('generation-memo')) document.getElementById('generation-memo').value = savedData.memo || "";
             } else {
                 const saved = JSON.parse(JSON.stringify(savedData));
@@ -17871,6 +17900,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 el('div', { html: '<i class="fa-solid fa-images"></i>', style: 'font-size:34px; color:var(--text-dim);' }),
                 el('div', { html: '여기로 이미지를 <b>드래그</b>하거나 <b>클릭</b>해서 선택<br><span style="font-size:11px; color:var(--text-dim);">· <b>Ctrl+V</b> 로 붙여넣기도 가능 ·</span>', style: 'font-size:13px; color:var(--text-main); line-height:1.5;' })
             );
+            // 이미지 URL로 넣기
+            const urlInput = el('input', { type: 'text', placeholder: '이미지 URL 붙여넣기 (https://...)', style: 'flex:1; min-width:0; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:7px; padding:8px 10px; color:var(--text-main); font-size:12px; font-family:var(--font-code); outline:none;', onkeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); loadFromUrl(urlInput.value); } } });
+            const urlBtn = el('button', { class: 'action-btn', style: 'flex:0 0 auto; font-size:12px; padding:8px 12px;', onclick: () => loadFromUrl(urlInput.value) }, '불러오기');
+            const urlRow = el('div', { style: 'display:flex; gap:6px; align-items:center;' }, urlInput, urlBtn);
 
             // 변환 강도
             const dnVal = el('span', { style: 'font-weight:800; color:var(--accent-blue); white-space:nowrap; font-size:13px;' });
@@ -17885,8 +17918,28 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             function setDn(v) { _img2imgSetDenoise(v); syncDn(); }
 
             function loadFile(file) { const r = new FileReader(); r.onload = () => setImg(file, r.result); r.readAsDataURL(file); }
-            function setImg(file, dataURL) { _img2imgSetImage(file, dataURL, file && file.name); thumbImg.src = dataURL; thumbWrap.style.display = 'block'; drop.style.display = 'none'; }
-            function clearImg() { _img2imgClearImage(); thumbImg.src = ''; thumbWrap.style.display = 'none'; drop.style.display = 'flex'; fileInput.value = ''; }
+            function setImg(file, dataURL) { _img2imgSetImage(file, dataURL, file && file.name); syncThumb(); }
+            function clearImg() { _img2imgClearImage(); syncThumb(); fileInput.value = ''; }
+            // 썸네일을 현재 _img2img 상태에 맞춰 그림 — 재렌더/재진입/생성 후에도 원본이 유지되게
+            function syncThumb() {
+                if (_img2img.dataURL) { thumbImg.src = _img2img.dataURL; thumbWrap.style.display = 'block'; drop.style.display = 'none'; }
+                else { thumbImg.src = ''; thumbWrap.style.display = 'none'; drop.style.display = 'flex'; }
+            }
+            // 이미지 URL → 바이트를 받아 원본으로 사용 (CORS 허용 호스트만 가능)
+            async function loadFromUrl(url) {
+                url = (url || '').trim(); if (!url) return;
+                if (!/^https?:\/\//i.test(url)) { showToast('http(s):// 로 시작하는 이미지 주소를 넣어주세요.', 'warning'); return; }
+                urlBtn.disabled = true; urlBtn.textContent = '불러오는 중…';
+                try {
+                    const res = await fetch(url, { mode: 'cors' });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    const blob = await res.blob();
+                    if (!/^image\//.test(blob.type)) throw new Error('이미지가 아님');
+                    const r = new FileReader(); r.onload = () => { setImg(new File([blob], 'url_src.png', { type: blob.type }), r.result); urlInput.value = ''; }; r.readAsDataURL(blob);
+                } catch (e) {
+                    showToast('URL에서 이미지를 못 가져왔습니다 (사이트가 외부 접근을 막았을 수 있음). 이미지를 저장해서 드래그해 주세요.', 'error', 5000);
+                } finally { urlBtn.disabled = false; urlBtn.textContent = '불러오기'; }
+            }
 
             const panel = el('section', { class: 'panel', id: 'i2i-source' },
                 el('div', { class: 'panel-header', style: 'display:flex; align-items:center; gap:8px;' },
@@ -17894,7 +17947,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 ),
                 el('div', { class: 'panel-content', style: 'padding:14px; overflow-y:auto; display:flex; flex-direction:column; gap:16px;' },
                     el('div', { style: 'font-size:12px; color:var(--text-dim); line-height:1.6;', html: '2D·씹덕 이미지를 넣고, <b>가운데 에디터</b>에서 "어떤 인물/실사로 바꿀지" 태그를 담은 뒤 <b>오른쪽 결과창의 ComfyUI 전송</b>을 누르세요. 원본은 참고하고 프롬프트대로 다시 그려집니다.' }),
-                    thumbWrap, drop, fileInput,
+                    thumbWrap, drop, urlRow, fileInput,
                     el('div', {},
                         el('div', { style: 'font-size:12px; font-weight:800; color:var(--text-main); margin-bottom:8px;' }, '변환 강도 (denoise)'),
                         el('div', { style: 'display:flex; align-items:center; gap:12px;' }, slider, dnVal),
@@ -17907,6 +17960,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const right = document.getElementById('panel-right');
             if (right && right.parentElement) right.parentElement.insertBefore(panel, right);
             syncDn();
+            // 이전에 넣어둔 원본 이미지 복원 (메모리에 없으면 localStorage에서) → 생성/재렌더 후에도 유지
+            try { if (!_img2img.dataURL) _img2imgRestoreSrc(); } catch (e) {}
+            syncThumb();
             try { if (window.comfyUpdateQuickButtons) comfyUpdateQuickButtons(); } catch (e) {}
 
             // 드래그&드롭
