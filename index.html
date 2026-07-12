@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.30.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.30.2 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1051,23 +1051,9 @@
             body[data-layout] #panel-mid,
             body[data-layout] #panel-right { order:0 !important; display:flex !important; max-width:100vw !important; margin:0 !important; }
             body[data-layout] .app-container { padding:0 !important; }
-            /* 이미지 변환 모바일: 스와이프 트랙을 세로 스택으로 강제 (에디터→원본→결과, 한 화면 스크롤) */
-            body[data-layout="img2img"] #mobile-tabbar { display:none !important; }
-            body[data-layout="img2img"] #panel-left,
-            body[data-layout="img2img"] #resize-handle-1,
-            body[data-layout="img2img"] #resize-handle-2 { display:none !important; }
-            body[data-layout="img2img"] .app-container { flex-direction:column !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch; padding:0 !important; }
-            body[data-layout="img2img"] #mobile-panel-track { display:flex !important; flex-direction:column !important; transform:none !important; transition:none !important; width:100% !important; height:auto !important; gap:10px; padding:8px; }
-            /* 모바일 흐름: 원본(이미지 넣기) → 에디터(태그) → 결과(전송) */
-            body[data-layout="img2img"] #i2i-source { order:1 !important; }
-            body[data-layout="img2img"] #panel-mid { order:2 !important; }
-            body[data-layout="img2img"] #panel-right { order:3 !important; }
-            body[data-layout="img2img"] #panel-mid,
-            body[data-layout="img2img"] #i2i-source,
-            body[data-layout="img2img"] #panel-right { display:flex !important; width:100% !important; max-width:100% !important; height:auto !important; min-height:auto !important; flex:0 0 auto !important; margin:0 !important; border-radius:12px; border:1px solid var(--border-dim); }
-            body[data-layout="img2img"] #panel-mid .panel-content,
-            body[data-layout="img2img"] #i2i-source .panel-content,
-            body[data-layout="img2img"] #panel-right .panel-content { overflow:visible !important; height:auto !important; }
+            /* 이미지 변환 모바일: 앱 고유 가로 스와이프 트랙 사용 (에디터 · 이미지 · 결과 3탭) — JS의 __setMobilePanels가 처리 */
+            body[data-layout="img2img"] #panel-left { display:none !important; }       /* 스와이프 세트에서 제외 */
+            body[data-layout="img2img"] #i2i-source { order:0 !important; }            /* 데스크톱 order 무력화 → 트랙 DOM 순서대로 스와이프 */
             /* 스튜디오 모바일: 3-스텝(①간편조합 ②추천 ③결과) · 에디터는 오버레이 소환 */
             body[data-layout="studio"] .pl-studio-fabs { display:none !important; }  /* 데스크탑 FAB 숨김 */
             body[data-layout="studio"] #panel-mid { display:none !important; }        /* 에디터는 트랙에서 제외 */
@@ -1143,7 +1129,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.30.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.30.2 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1909,10 +1895,17 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.30.1', date: '2026-07-12', time: '최신',
+                version: 'v9.30.2', date: '2026-07-12', time: '최신',
                 tag: 'fix',
                 items: [
-                    "[이미지 변환] 모바일에서 화면이 이상하게 겹쳐 보이던 걸 고쳤습니다 — 이제 세로로 원본 → 에디터 → 결과 순서로 깔끔하게 쌓이고 한 화면에서 위아래로 스크롤됩니다",
+                    "[이미지 변환] 모바일을 클래식·스튜디오처럼 좌우 스와이프로 바꿨습니다 — 하단 탭(에디터 · 이미지 · 결과)으로 넘기거나 손가락으로 밀어서 한 화면씩 보게 했습니다",
+                ]
+            },
+            {
+                version: 'v9.30.1', date: '2026-07-12', time: '',
+                tag: 'fix',
+                items: [
+                    "[이미지 변환] 모바일 레이아웃 정리 (좌우 스와이프로 개선)",
                 ]
             },
             {
@@ -18460,19 +18453,37 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 )
             );
 
-            // 원본 패널을 항상 결과 패널 바로 앞에 유지 (모바일 스와이프 트랙이 나중에 생겨 패널을 옮겨가도 순서 보존)
-            let _i2iAlive = true;
-            function keepSourceBeforeResult() {
-                if (!_i2iAlive) return; // 테어다운 후 예약된 타이머가 패널을 되살리지 않게
-                const r = document.getElementById('panel-right');
-                if (r && r.parentElement && (panel.parentElement !== r.parentElement || panel.nextElementSibling !== r)) {
-                    r.parentElement.insertBefore(panel, r);
-                }
+            // 원본 패널을 결과 패널 바로 앞에 삽입 (데스크톱 3열 / 모바일 스와이프 트랙 공통)
+            const right = document.getElementById('panel-right');
+            if (right && right.parentElement) right.parentElement.insertBefore(panel, right);
+
+            // ── 모바일: 클래식/스튜디오처럼 앱 고유 가로 스와이프 (에디터 · 이미지 · 결과 3탭) ──
+            const IMG2IMG_MB = 1024;
+            let _i2iMobileOn = false;
+            const IMG2IMG_PANELS = [
+                { id: 'panel-mid',   label: '에디터', icon: 'fa-layer-group' },
+                { id: 'i2i-source',  label: '이미지', icon: 'fa-image' },
+                { id: 'panel-right', label: '결과',   icon: 'fa-terminal' },
+            ];
+            function _i2iSetupMobile() {
+                if (_i2iMobileOn) return;
+                if (!window.__setMobilePanels || !window.__getMobileTrack || !window.__getMobileTrack()) return;
+                window.__setMobilePanels(IMG2IMG_PANELS); // 3패널을 트랙에 순서대로 + 하단 탭바 생성
+                _i2iMobileOn = true;
             }
-            keepSourceBeforeResult();
-            const _i2iReinsert = () => keepSourceBeforeResult();
-            window.addEventListener('resize', _i2iReinsert);
-            const _i2iT1 = setTimeout(keepSourceBeforeResult, 120), _i2iT2 = setTimeout(keepSourceBeforeResult, 500); // 트랙 생성 타이밍 대비
+            function _i2iTeardownMobile() {
+                if (!_i2iMobileOn) return;
+                if (window.__setMobilePanels) window.__setMobilePanels(null); // 기본 3패널 복원
+                _i2iMobileOn = false;
+            }
+            function _i2iEvalMode() {
+                const m = window.innerWidth <= IMG2IMG_MB;
+                if (m && !_i2iMobileOn) _i2iSetupMobile();
+                else if (!m && _i2iMobileOn) _i2iTeardownMobile();
+            }
+            const _i2iOnResize = () => _i2iEvalMode();
+            window.addEventListener('resize', _i2iOnResize);
+            setTimeout(_i2iEvalMode, 0); // initMobileNav 초기화 이후 적용
             syncDn();
             // 이전에 넣어둔 원본 이미지 복원 (메모리에 없으면 localStorage에서) → 생성/재렌더 후에도 유지
             try { if (!_img2img.dataURL) _img2imgRestoreSrc(); } catch (e) {}
@@ -18504,10 +18515,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
             return () => {
                 _img2img.enabled = false;
-                _i2iAlive = false;
-                clearTimeout(_i2iT1); clearTimeout(_i2iT2);
+                window.removeEventListener('resize', _i2iOnResize);
+                try { _i2iTeardownMobile(); } catch (e) {} // 기본 모바일 패널 세트 복원(패널 제거 전에)
                 document.removeEventListener('paste', onPaste);
-                window.removeEventListener('resize', _i2iReinsert);
                 panel.remove();
                 // text2img 세션으로 복원 (클래식/스튜디오는 원래 태그 그대로)
                 try { if (window.__i2iExitSession) window.__i2iExitSession(); } catch (e) {}
