@@ -5,14 +5,16 @@
 
 ## 🔴 진행/대기 (Open)
 
-- [ ] **[audit] 고급 노드 회귀** — 원래 잘 되던 **FaceDetailer / ControlNet / IPAdapter FaceID**가 앱 수정 후 안 됨.
-  `_comfyBuildImg2ImgWorkflow`의 노드 배선(20/21/22 ControlNet, 30/31 FaceDetailer, 60/61 IPAdapter)을
-  예전 동작본과 비교해 **회귀 원인**을 찾는다. (사용자 설치 정상 — impact-pack, controlnet_aux, ipadapter_plus, faceanalysis 모두 있음)
-- [ ] **[확인] IPAdapter .bin** — `models/ipadapter/`에 `ip-adapter-faceid-plusv2_sdxl.bin` 있는지 확인 요청함.
-  ("IPAdapter model not found" 원인 후보). 사용자에게 `ls models\ipadapter` 요청.
-- [ ] **[대기] 사용자 추가 요청** — 사용자가 추가 요청 예정. 받으면 여기 기입 후 진행.
+- [~] **[audit] 고급 노드 회귀** — ✅원인 찾음+수정(v9.37.1). `_comfyNodeInputs` 병합순서 오류로 설치본
+  기본값이 내가 지정한 IPAdapter `preset`("FACEID PLUS V2")을 덮어써 SD1.5용 'FACEID'로 바뀜 →
+  'IPAdapter model not found'. `Object.assign(defs, fallback, overrides)`로 수정. ⏳ **사용자 실기 확인 대기.**
+- [x] **[확인] IPAdapter .bin** — `models/ipadapter/ip-adapter-faceid-plusv2_sdxl.bin`(1.45GB) 존재 확인 → 파일 문제 아님(코드 회귀).
+- [~] **[미리보기] 이미지 테마 결과창 미리보기 안 뜸** — 가설: IPAdapter/CLIP 오류로 생성 전체 실패 → 미리보기 안 나옴.
+  v9.37.1 + Pony 체크포인트로 해소 기대. ⏳ **오류 없이 성공했는데도 안 뜨면 별도 조사**(_comfyStageImages/comfy-inline-pos).
 - [ ] **[미해결/재현안됨] 새로고침 시 클래식 복귀** — 현재 코드/테스트로는 정상 유지 확인됨.
   사용자가 재발 보고 시 정확한 재현 조건(PC/모바일, 테마, 순서) 받아 재조사.
+- [ ] **[anima-preview2 CLIP 없음]** — 이 체크포인트는 CLIP 미탑재로 인페인팅/변환 시 CLIPSetLastLayer 오류.
+  Pony 등 CLIP 내장 모델 쓰면 됨(앱이 오류 안내함). 별도 조치 불필요.
 
 ## ✅ 사용자 환경 (ComfyUI 설치 현황, 확인됨)
 
