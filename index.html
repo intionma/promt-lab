@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.42.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.42.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1156,7 +1156,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.42.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.42.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1922,7 +1922,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.42.0', date: '2026-07-12', time: '최신',
+                version: 'v9.42.1', date: '2026-07-12', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[모바일] 에디터·이미지·결과를 가로로 스와이프해 넘길 때, 어느 순간 화면이 한쪽으로 살짝 밀린 채 고정되던(새로고침해야 돌아오던) 버그를 고쳤습니다 — 스와이프와 스냅이 서로 다른 폭 기준을 써서 생긴 어긋남을, 실제 패널 폭으로 통일해 항상 정확히 정렬되게 했습니다",
+                ]
+            },
+            {
+                version: 'v9.42.0', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[이미지 변환] 씹덕/애니를 실사로 바꿀 때 얼굴이 기괴해지던 문제를 위한 토글 2종을 추가했습니다 (고급 파이프라인 → 얼굴 처리). ① '실사 얼굴 비율로 교정' — 켜면 애니 특유의 큰 눈·과장 비율을 억제해 실사 얼굴에 맞춥니다(기본 켜짐). ② '원본 표정 안 가져오기' — 켜면 원본의 표정·감정 태그를 빼고 얼굴을 더 강하게 새로 그려 원본 표정을 덜 따라갑니다.",
@@ -18590,6 +18597,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             let currentIdx = Math.max(0, Math.min(PANELS.length - 1, savedIdx));
             let isMobile = window.innerWidth <= MOBILE_BP;
 
+            // 패널 한 칸의 '실제' 렌더 폭(px). 스냅·드래그가 동일 단위를 쓰게 해서 vw/px 불일치로
+            // 트랙이 살짝 밀리는 버그를 방지. (측정 실패 시 innerWidth로 폴백)
+            function panelW() {
+                const first = PANELS[0] && document.getElementById(PANELS[0].id);
+                const w = first ? Math.round(first.getBoundingClientRect().width) : 0;
+                return w || window.innerWidth;
+            }
+
             // 트랜지션 없이 즉시 이동 (탭바 버튼용)
             // fromPop: 뒤로가기(popstate)로 호출된 경우 → 히스토리 다시 push 안 함
             function snapToIndex(idx, animate, fromPop) {
@@ -18598,7 +18613,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 currentIdx = newIdx;
                 _lsSet(PANEL_IDX_KEY, currentIdx);
                 track.style.transition = animate ? 'transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)' : 'none';
-                track.style.transform = `translateX(${-currentIdx * 100}vw)`;
+                track.style.transform = `translateX(${-currentIdx * panelW()}px)`;
                 // 탭바 하이라이트
                 tabbar.querySelectorAll('button').forEach((btn, i) => btn.classList.toggle('active', i === currentIdx));
                 // mobile-active 클래스 동기화 (다른 코드가 참조하는 경우 대비)
@@ -18692,8 +18707,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
             let swStartX = null, swStartY = null, swLocked = null, swDragging = false;
 
-            // 현재 track의 베이스 offset (px)
-            const baseOffset = () => -currentIdx * VW();
+            // 현재 track의 베이스 offset (px) — 스냅과 동일한 '실제 패널 폭' 사용 (밀림 방지)
+            const baseOffset = () => -currentIdx * panelW();
 
             // transition 없이 즉각 이동
             function setTrackX(x) {
@@ -18738,7 +18753,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
                 // 엣지 rubber band
                 let offset = baseOffset() + dx;
-                const minX = -(PANELS.length - 1) * VW();
+                const minX = -(PANELS.length - 1) * panelW();
                 if (offset > 0) {
                     // 첫 패널 오른쪽으로 당김
                     offset = dx * RUBBER_K;
