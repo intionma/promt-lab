@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.24.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.25.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1110,7 +1110,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.24.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.25.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1878,7 +1878,16 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.24.0', date: '2026-07-12', time: '최신',
+                version: 'v9.25.0', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지 변환] 자동 태깅(WD14)을 추가했습니다 — 이미지를 넣으면 자동으로 분석해 danbooru 태그(노출·행위 태그 포함)를 에디터에 채워줍니다. 이제 '올리면 태그가 알아서 채워지고 → 전송 딸깍' 흐름이 됩니다 (ComfyUI에 WD14 Tagger 노드 필요)",
+                    "[이미지 변환] 실사 변환 태그(source_photo, realistic 등)를 분석 결과에 자동으로 얹어줍니다. '이미지 분석' 버튼으로 언제든 다시 분석할 수 있고, 자동 분석 끄기·모델명·임계값은 고급 설정에서 조절합니다",
+                    "[이미지 변환] 원본이 너무 크면(예: 8000×4000) 긴 변을 기본 1152px로 자동 축소해서 넣습니다 — 업로드·VRAM 폭주를 막습니다 (최대 크기는 고급 설정에서 변경 가능)",
+                ]
+            },
+            {
+                version: 'v9.24.0', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[이미지 변환] 넣은 원본 이미지가 생성 후나 화면 전환·새로고침에도 사라지지 않고 유지됩니다 — 직접 교체하거나 제거하기 전까지 그대로 남습니다",
@@ -4650,14 +4659,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             autoTag: true,                        // 업로드 시 자동으로 이미지 분석(태깅)
             wd14Model: 'wd-v1-4-moat-tagger-v2',  // WD14 태거 모델 (사용자 설치본에 맞게 수정 가능)
             wd14Threshold: 0.35,                  // 태그 채택 임계값
-            addRealism: true                      // 분석 후 실사 변환 태그 자동 추가
+            addRealism: true,                     // 분석 후 실사 변환 태그 자동 추가
+            maxSide: 1152                         // 원본이 크면 긴 변을 이 값으로 축소(업로드·VRAM 폭주 방지)
         };
         function _img2imgSave() {
             // 이미지 원본(dataURL)은 용량이 커 localStorage에 넣지 않음. 설정값만 영속.
             try {
                 localStorage.setItem(IMG2IMG_KEY, JSON.stringify({
                     denoise: _img2img.denoise, autoTag: _img2img.autoTag,
-                    wd14Model: _img2img.wd14Model, wd14Threshold: _img2img.wd14Threshold, addRealism: _img2img.addRealism
+                    wd14Model: _img2img.wd14Model, wd14Threshold: _img2img.wd14Threshold, addRealism: _img2img.addRealism, maxSide: _img2img.maxSide
                 }));
             } catch (e) {}
         }
@@ -4669,7 +4679,30 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (typeof s.wd14Model === 'string' && s.wd14Model) _img2img.wd14Model = s.wd14Model;
                 if (typeof s.wd14Threshold === 'number') _img2img.wd14Threshold = s.wd14Threshold;
                 if (typeof s.addRealism === 'boolean') _img2img.addRealism = s.addRealism;
+                if (typeof s.maxSide === 'number') _img2img.maxSide = s.maxSide;
             } catch (e) {}
+        }
+        // 큰 원본을 긴 변 기준 maxSide로 축소(비율 유지). 이미 작으면 그대로.
+        function _i2iPrepImage(dataURL, maxSide) {
+            maxSide = maxSide || _img2img.maxSide || 1152;
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const w0 = img.naturalWidth || img.width, h0 = img.naturalHeight || img.height;
+                    const long = Math.max(w0, h0);
+                    if (!long || long <= maxSide) { resolve({ dataURL, w: w0, h: h0, resized: false }); return; }
+                    const scale = maxSide / long;
+                    let w = Math.round(w0 * scale), h = Math.round(h0 * scale);
+                    w = Math.max(8, Math.round(w / 8) * 8); h = Math.max(8, Math.round(h / 8) * 8); // 8의 배수로 맞춤(잠재공간 친화)
+                    try {
+                        const c = document.createElement('canvas'); c.width = w; c.height = h;
+                        c.getContext('2d').drawImage(img, 0, 0, w, h);
+                        resolve({ dataURL: c.toDataURL('image/png'), w, h, resized: true });
+                    } catch (e) { resolve({ dataURL, w: w0, h: h0, resized: false }); }
+                };
+                img.onerror = () => resolve({ dataURL, w: 0, h: 0, resized: false });
+                img.src = dataURL;
+            });
         }
         // 실사 변환용 스타일 태그 (분석 태그 앞에 붙여 "실사화" 방향을 잡아줌)
         const _I2I_REALISM_TAGS = ['source_photo', 'realistic', 'photorealistic', 'photography', 'detailed skin', 'film grain'];
@@ -4758,6 +4791,76 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 "11": { "class_type": "VAEEncode", "inputs": { "pixels": ["10", 0], "vae": ["4", 2] } }
             };
         }
+
+        // ── WD14 자동 태깅: 이미지 → danbooru 태그 ──────────────────────
+        // 실행 결과(태그 문자열)를 ComfyUI /history 출력에서 회수
+        function _wd14ExtractTags(outputs) {
+            if (!outputs) return null;
+            for (const nid in outputs) {
+                const o = outputs[nid]; if (!o) continue;
+                const pick = (v) => (v == null ? null : (Array.isArray(v) ? v.join(', ') : String(v)));
+                if (o.tags != null) return pick(o.tags);      // WD14 Tagger(pysssss)
+                if (o.text != null) return pick(o.text);       // 문자열 출력 계열
+                if (o.string != null) return pick(o.string);
+                if (o.STRING != null) return pick(o.STRING);
+            }
+            return null;
+        }
+        async function _comfyWD14Tag(imageName) {
+            // 가상(개발자) 모드: 실제 ComfyUI 없이 흐름 테스트용 더미 태그
+            if (typeof DevMode !== 'undefined' && DevMode.feature && DevMode.feature('mockGen')) {
+                await new Promise(r => setTimeout(r, 300));
+                return '1girl, solo, long hair, blue eyes, looking at viewer, dress, standing, blush, indoors';
+            }
+            const cid = _comfyClientId || (_comfyClientId = _comfyUUID());
+            const wf = {
+                "1": { "class_type": "LoadImage", "inputs": { "image": imageName } },
+                "2": { "class_type": "WD14Tagger|pysssss", "inputs": {
+                    "image": ["1", 0],
+                    "model": _img2img.wd14Model || 'wd-v1-4-moat-tagger-v2',
+                    "threshold": _img2img.wd14Threshold || 0.35,
+                    "character_threshold": 0.85,
+                    "replace_underscore": true,
+                    "trailing_comma": false,
+                    "exclude_tags": ""
+                }}
+            };
+            const res = await fetch(_comfyBase() + '/prompt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: wf, client_id: cid }) });
+            if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error('태깅 요청 실패 (HTTP ' + res.status + ') ' + t.slice(0, 160)); }
+            const data = await res.json();
+            const pid = data.prompt_id;
+            if (!pid) throw new Error('prompt_id 없음 — WD14 노드가 설치돼 있는지 확인하세요');
+            for (let i = 0; i < 80; i++) {          // 최대 ~40초 대기
+                await new Promise(r => setTimeout(r, 500));
+                let h; try { h = await fetch(_comfyBase() + '/history/' + pid).then(r => r.json()); } catch (e) { continue; }
+                const entry = h && h[pid]; if (!entry) continue;
+                const tags = _wd14ExtractTags(entry.outputs);
+                if (tags != null) return tags;
+                const st = entry.status;
+                if (st && st.status_str === 'error') throw new Error('ComfyUI 태깅 실행 오류 — WD14 노드/모델명을 확인하세요');
+                if (st && st.completed) { const t2 = _wd14ExtractTags(entry.outputs); if (t2 != null) return t2; break; }
+            }
+            throw new Error('태그 결과를 받지 못했습니다 — WD14 노드/모델명을 확인하세요');
+        }
+        // 원본 이미지를 업로드→분석→감지 태그(+실사 태그)를 img2img 에디터에 채움
+        async function _i2iAnalyzeAndFill() {
+            if (!_img2imgHasImage()) { showToast('먼저 원본 이미지를 넣어주세요.', 'warning'); return false; }
+            const mock = (typeof DevMode !== 'undefined' && DevMode.feature && DevMode.feature('mockGen'));
+            if (!_comfyConnectedOnce && !mock) { showToast('이미지 분석은 ComfyUI 연결이 필요합니다. (개발자 모드면 가상)', 'error', 4000); return false; }
+            let name;
+            try { name = await _img2imgEnsureUploaded(); } catch (e) { showToast('이미지 업로드 실패: ' + (e && e.message || e), 'error', 5000); return false; }
+            let tagStr;
+            try { tagStr = await _comfyWD14Tag(name); } catch (e) { showToast('자동 분석 실패: ' + (e && e.message || e), 'error', 6000); return false; }
+            const tags = (tagStr || '').split(',').map(s => s.trim()).filter(Boolean);
+            if (!tags.length) { showToast('감지된 태그가 없습니다.', 'info'); return false; }
+            const finalTags = [];
+            if (_img2img.addRealism) _I2I_REALISM_TAGS.forEach(t => finalTags.push(t));
+            tags.forEach(t => { if (!finalTags.some(x => x.toLowerCase() === t.toLowerCase())) finalTags.push(t); });
+            try { importPromptToEditor(finalTags, 'replace'); } catch (e) {}
+            showToast(`${tags.length}개 태그 감지 → 에디터에 채웠습니다`, 'success', 2500);
+            return true;
+        }
+        window.__i2iAnalyzeAndFill = _i2iAnalyzeAndFill;
 
         // 내 워크플로우(API JSON)에 프롬프트 주입 (전송 대상에 따라 긍정/부정 선택)
         function _comfyBuildCustomWorkflow(pos, neg) {
@@ -17917,7 +18020,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
             function setDn(v) { _img2imgSetDenoise(v); syncDn(); }
 
-            function loadFile(file) { const r = new FileReader(); r.onload = () => setImg(file, r.result); r.readAsDataURL(file); }
+            // 새 원본 이미지를 넣은 직후 — 자동 분석 켜져 있으면 태깅해서 에디터 채움
+            function afterNewImage() { if (_img2img.autoTag) { try { _i2iAnalyzeAndFill(); } catch (e) {} } }
+            // dataURL을 (필요 시) 축소해서 원본으로 지정
+            async function useImage(dataURL, name) {
+                const prep = await _i2iPrepImage(dataURL);
+                const blob = _dataURLtoBlob(prep.dataURL);
+                setImg(new File([blob], name || 'source.png', { type: blob.type }), prep.dataURL);
+                if (prep.resized) showToast(`원본이 커서 ${prep.w}×${prep.h}로 줄여서 넣었습니다`, 'info', 3000);
+                afterNewImage();
+            }
+            function loadFile(file) { const r = new FileReader(); r.onload = () => useImage(r.result, file.name); r.readAsDataURL(file); }
             function setImg(file, dataURL) { _img2imgSetImage(file, dataURL, file && file.name); syncThumb(); }
             function clearImg() { _img2imgClearImage(); syncThumb(); fileInput.value = ''; }
             // 썸네일을 현재 _img2img 상태에 맞춰 그림 — 재렌더/재진입/생성 후에도 원본이 유지되게
@@ -17935,25 +18048,50 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                     const blob = await res.blob();
                     if (!/^image\//.test(blob.type)) throw new Error('이미지가 아님');
-                    const r = new FileReader(); r.onload = () => { setImg(new File([blob], 'url_src.png', { type: blob.type }), r.result); urlInput.value = ''; }; r.readAsDataURL(blob);
+                    const r = new FileReader(); r.onload = () => { urlInput.value = ''; useImage(r.result, 'url_src.png'); }; r.readAsDataURL(blob);
                 } catch (e) {
                     showToast('URL에서 이미지를 못 가져왔습니다 (사이트가 외부 접근을 막았을 수 있음). 이미지를 저장해서 드래그해 주세요.', 'error', 5000);
                 } finally { urlBtn.disabled = false; urlBtn.textContent = '불러오기'; }
             }
+
+            // ── 자동 태깅(WD14) ──
+            const analyzeBtn = el('button', { class: 'action-btn', style: 'flex:1; background:#f59e0b; color:#fff; border:none; font-weight:800; padding:9px; min-width:160px;', html: '<i class="fa-solid fa-magnifying-glass-chart"></i> 이미지 분석 (자동 태그)', onclick: () => runAnalyze() });
+            async function runAnalyze() {
+                const old = analyzeBtn.innerHTML; analyzeBtn.disabled = true; analyzeBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 분석 중…';
+                try { await _i2iAnalyzeAndFill(); } finally { analyzeBtn.disabled = false; analyzeBtn.innerHTML = old; }
+            }
+            const autoChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.autoTag = e.target.checked; _img2imgSave(); } }); autoChk.checked = _img2img.autoTag;
+            const analyzeRow = el('div', { style: 'display:flex; align-items:center; gap:10px; flex-wrap:wrap;' },
+                analyzeBtn,
+                el('label', { style: 'display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-dim); cursor:pointer; white-space:nowrap;' }, autoChk, '넣으면 자동 분석'));
+
+            // 고급 설정(접이식): 실사 태그 추가 · WD14 모델 · 임계값 · 최대 크기
+            const realismChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.addRealism = e.target.checked; _img2imgSave(); } }); realismChk.checked = _img2img.addRealism;
+            const modelInput = el('input', { type: 'text', value: _img2img.wd14Model, style: 'flex:1; min-width:0; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:6px; padding:6px 8px; color:var(--text-main); font-size:11px; font-family:var(--font-code); outline:none;', onchange: (e) => { _img2img.wd14Model = e.target.value.trim() || 'wd-v1-4-moat-tagger-v2'; _img2imgSave(); } });
+            const thrInput = el('input', { type: 'number', min: '0.1', max: '0.9', step: '0.05', value: _img2img.wd14Threshold, style: 'width:72px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:6px; padding:6px 8px; color:var(--text-main); font-size:12px; outline:none;', onchange: (e) => { let v = parseFloat(e.target.value); if (isNaN(v)) v = 0.35; _img2img.wd14Threshold = Math.max(0.1, Math.min(0.9, v)); _img2imgSave(); } });
+            const sizeInput = el('input', { type: 'number', min: '512', max: '2048', step: '64', value: _img2img.maxSide, style: 'width:82px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:6px; padding:6px 8px; color:var(--text-main); font-size:12px; outline:none;', onchange: (e) => { let v = parseInt(e.target.value); if (isNaN(v)) v = 1152; _img2img.maxSide = Math.max(512, Math.min(2048, v)); _img2imgSave(); } });
+            const advBody = el('div', { style: 'display:none; flex-direction:column; gap:11px; padding-top:11px;' },
+                el('label', { style: 'display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-main); cursor:pointer;' }, realismChk, '실사 변환 태그 자동 추가 (source_photo, realistic …)'),
+                el('div', {}, el('div', { style: 'font-size:11px; color:var(--text-dim); margin-bottom:4px;' }, 'WD14 태거 모델명 (설치본에 맞게)'), modelInput),
+                el('div', { style: 'display:flex; align-items:center; gap:8px; flex-wrap:wrap;' }, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, '태그 임계값'), thrInput, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, '· 최대 크기(긴 변)'), sizeInput, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, 'px')));
+            const advToggle = el('div', { style: 'font-size:11px; color:var(--text-dim); cursor:pointer; user-select:none;', html: '▼ 자동 태깅 고급 설정 (WD14)', onclick: () => { const on = advBody.style.display === 'none'; advBody.style.display = on ? 'flex' : 'none'; advToggle.innerHTML = (on ? '▲' : '▼') + ' 자동 태깅 고급 설정 (WD14)'; } });
+            const advWrap = el('div', { style: 'border-top:1px solid var(--border-dim); padding-top:12px;' }, advToggle, advBody);
 
             const panel = el('section', { class: 'panel', id: 'i2i-source' },
                 el('div', { class: 'panel-header', style: 'display:flex; align-items:center; gap:8px;' },
                     el('span', { html: '<i class="fa-solid fa-wand-magic-sparkles" style="color:#f59e0b;"></i> 원본 → 변환', style: 'font-weight:800;' })
                 ),
                 el('div', { class: 'panel-content', style: 'padding:14px; overflow-y:auto; display:flex; flex-direction:column; gap:16px;' },
-                    el('div', { style: 'font-size:12px; color:var(--text-dim); line-height:1.6;', html: '2D·씹덕 이미지를 넣고, <b>가운데 에디터</b>에서 "어떤 인물/실사로 바꿀지" 태그를 담은 뒤 <b>오른쪽 결과창의 ComfyUI 전송</b>을 누르세요. 원본은 참고하고 프롬프트대로 다시 그려집니다.' }),
+                    el('div', { style: 'font-size:12px; color:var(--text-dim); line-height:1.6;', html: '2D·씹덕 이미지를 넣으면 자동으로 분석해 태그를 채웁니다. <b>가운데 에디터</b>에서 손보고 <b>오른쪽 결과창의 ComfyUI 전송</b>을 누르면 원본을 참고해 다시 그려집니다.' }),
                     thumbWrap, drop, urlRow, fileInput,
+                    analyzeRow,
                     el('div', {},
                         el('div', { style: 'font-size:12px; font-weight:800; color:var(--text-main); margin-bottom:8px;' }, '변환 강도 (denoise)'),
                         el('div', { style: 'display:flex; align-items:center; gap:12px;' }, slider, dnVal),
                         el('div', { style: 'display:flex; gap:6px; margin-top:10px;' }, ...presetEls),
                         el('div', { style: 'font-size:11px; color:var(--text-dim); margin-top:8px; line-height:1.5;' }, '낮을수록 원본 구도·형태를 유지하고, 높을수록 프롬프트대로 많이 바뀝니다. 실사 코스프레는 0.55~0.7 권장.')
-                    )
+                    ),
+                    advWrap
                 )
             );
 
