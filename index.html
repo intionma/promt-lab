@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.30.3 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.31.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1129,7 +1129,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.30.3 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.31.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1895,7 +1895,17 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.30.3', date: '2026-07-12', time: '최신',
+                version: 'v9.31.0', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지 변환] 실사 변환 품질을 크게 끌어올렸습니다 — Pony Realism이 제대로 실사화되도록 품질 태그(score_9 등)와 실사·피부 질감 태그를 전송 시 긍정 프롬프트 맨 앞에 자동으로 넣어줍니다 (분석을 안 돌렸어도 항상 적용)",
+                    "[이미지 변환] 애니·CG·플라스틱 느낌을 더 강하게 억제하도록 자동 부정 태그를 보강했습니다 (3d·cg·flat color·plastic skin 등)",
+                    "[이미지 변환] 품질이 아쉬울 때 증상별 처방 안내를 넣었습니다 — 씹덕 느낌이 남으면 변환 강도↑, 구도가 흐트러지면 ControlNet, 얼굴이 뭉개지면 FaceDetailer/IPAdapter 식으로 무엇을 켜면 되는지 알려줍니다",
+                    "[이미지 변환] 기본 변환 강도를 0.55로 조정했습니다 (실사화가 더 잘 되면서 원본도 유지)",
+                ]
+            },
+            {
+                version: 'v9.30.3', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[이미지 변환] '기본값으로 초기화' 버튼을 추가했습니다 (기존 '권장 세팅' 버튼) — 고급 옵션을 잘못 만져서 안 될 때 누르면 denoise·스텝·모델·모든 고급 토글이 안전한 기본값으로 한 번에 돌아옵니다",
@@ -4815,10 +4825,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 img.src = dataURL;
             });
         }
-        // 실사 변환용 스타일 태그 (분석 태그 앞에 붙여 "실사화" 방향을 잡아줌) — Pony Realism 코스프레 방향
-        const _I2I_REALISM_TAGS = ['source_photo', 'photorealistic', 'realistic', 'cosplay photo', 'detailed skin texture'];
-        // 실사 변환 시 자동으로 넣는 부정 태그 (애니 느낌 억제) — 이미지 변환 모드에서만 최종 부정에 합쳐짐
-        const _I2I_NEG_TAGS = ['source_anime', 'anime', 'cartoon', '2d', 'cel shading', 'score_6', 'score_5', 'score_4'];
+        // 실사 변환용 스타일 태그 (긍정 프롬프트 맨 앞에 자동 주입해 "실사화" 방향을 잡아줌) — Pony Realism 코스프레 방향
+        // ⚠ Pony 계열은 score_9/score_8_up/score_7_up 접두가 없으면 품질이 확 떨어짐 → 실사화 품질의 핵심.
+        const _I2I_REALISM_TAGS = ['score_9', 'score_8_up', 'score_7_up', 'photo', 'realistic', 'photorealistic', 'realistic skin texture', 'detailed skin', 'raw photo', 'cosplay photo', 'professional lighting'];
+        // 실사 변환 시 자동으로 넣는 부정 태그 (애니/CG/플라스틱 느낌 억제) — 이미지 변환 모드에서만 최종 부정에 합쳐짐
+        const _I2I_NEG_TAGS = ['score_6', 'score_5', 'score_4', 'source_anime', 'anime', 'cartoon', 'cg', '3d', 'cel shading', 'flat color', 'illustration', 'anime screencap', 'plastic skin', 'doll', 'smooth skin'];
         function _img2imgSetDenoise(v) {
             let n = parseFloat(v); if (isNaN(n)) n = 0.6;
             _img2img.denoise = Math.max(0.05, Math.min(1, n));
@@ -5089,11 +5100,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { tagStr = await _comfyWD14Tag(name); } catch (e) { showToast('자동 분석 실패: ' + (e && e.message || e), 'error', 6000); return false; }
             const tags = (tagStr || '').split(',').map(s => s.trim()).filter(Boolean);
             if (!tags.length) { showToast('감지된 태그가 없습니다.', 'info'); return false; }
+            // 실사/스코어 태그는 최종 출력 단계에서 자동 주입되므로 여기선 감지 태그만 채움(에디터는 깔끔하게)
             const finalTags = [];
-            if (_img2img.addRealism) _I2I_REALISM_TAGS.forEach(t => finalTags.push(t));
             tags.forEach(t => { if (!finalTags.some(x => x.toLowerCase() === t.toLowerCase())) finalTags.push(t); });
             try { importPromptToEditor(finalTags, 'replace'); } catch (e) {}
-            showToast(`${tags.length}개 태그 감지 → 에디터에 채웠습니다`, 'success', 2500);
+            showToast(`${tags.length}개 태그 감지 → 에디터에 채웠습니다 (실사·품질 태그는 전송 시 자동 추가)`, 'success', 2800);
             return true;
         }
         window.__i2iAnalyzeAndFill = _i2iAnalyzeAndFill;
@@ -5109,7 +5120,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             set('comfy-cfg', '6.5');
             const ck = document.getElementById('comfy-ckpt');
             if (ck && !ck.value.trim()) ck.value = 'ponyRealism_V22.safetensors';
-            _img2imgSetDenoise(0.5);
+            _img2imgSetDenoise(0.55);
             // 고급 파이프라인 → 안전한 기본값 (전부 끔 · 모델명/수치 기본값 · 자동태깅 켬)
             _img2img.loras = [];
             _img2img.controlnet = false; _img2img.cnModel = 'OpenPoseXL2.safetensors'; _img2img.cnStrength = 0.55;
@@ -5120,7 +5131,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _img2img.wd14Model = 'wd-v1-4-moat-tagger-v2'; _img2img.wd14Threshold = 0.35;
             _img2imgSave();
             try { _comfySaveSettings(); } catch (e) {}
-            showToast('기본값으로 초기화했습니다 — denoise 0.5 · 30스텝 · CFG 6.5 · 고급 옵션 전부 OFF (필요한 것만 다시 켜세요)', 'success', 4200);
+            showToast('기본값으로 초기화했습니다 — denoise 0.55 · 30스텝 · CFG 6.5 · 고급 옵션 전부 OFF (필요한 것만 다시 켜세요)', 'success', 4200);
         }
         window.__i2iApplyRecommended = _i2iApplyRecommendedSettings;
 
@@ -15304,6 +15315,26 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 finalOutput = validBlocks.map(b => b.content).join(useBreak ? ", BREAK, " : ", ");
             }
             finalOutput = _applyFixedPrefix(finalOutput.trim(), outputFormat, useBreak);
+            // 이미지 변환(img2img) 모드: 실사/피부 태그를 긍정 프롬프트 앞쪽에 자동 주입.
+            // 분석을 안 돌렸거나 지웠어도 Pony Realism이 제대로 실사화되도록 — 실사 품질의 핵심 레버.
+            // Pony 스코어 태그(score_9 등)는 맨 앞을 유지해야 효과가 좋으므로, 실사 태그는 스코어 접두 "뒤"에 끼워넣는다.
+            try {
+                if (typeof _img2img !== 'undefined' && _img2img.enabled && _img2img.addRealism) {
+                    const present = new Set((finalOutput || '').toLowerCase().split(/[,\n]/).map(s => s.trim()).filter(Boolean));
+                    const scoreTags = _I2I_REALISM_TAGS.filter(t => /^score_/i.test(t));
+                    const styleAdds = _I2I_REALISM_TAGS.filter(t => !/^score_/i.test(t) && !present.has(t.toLowerCase()));
+                    const scoreAdds = scoreTags.filter(t => !present.has(t.toLowerCase()));
+                    const m = (finalOutput || '').match(/^((?:\s*score_[^,\n]+\s*,\s*)+)/i);
+                    if (m) {
+                        // 이미 스코어 접두가 있으면 그 뒤에 실사 태그 삽입 (스코어는 맨 앞 유지)
+                        finalOutput = m[1] + (styleAdds.length ? styleAdds.join(', ') + ', ' : '') + finalOutput.slice(m[1].length);
+                        if (scoreAdds.length) finalOutput = scoreAdds.join(', ') + ', ' + finalOutput;
+                    } else {
+                        const lead = scoreAdds.concat(styleAdds);
+                        if (lead.length) finalOutput = lead.join(', ') + (finalOutput ? ', ' + finalOutput : '');
+                    }
+                }
+            } catch (e) {}
             document.getElementById('final-positive').value = finalOutput || "";
 
             // 각 BREAK 청크별로 토큰을 세어 최대 청크 기준으로 판정 (SD는 75토큰/청크)
@@ -18457,7 +18488,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
 
             const pipeBody = el('div', { style: 'display:none; flex-direction:column; gap:16px; padding-top:12px;' },
-                el('div', { style: 'background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:10px; padding:12px; font-size:12px; color:var(--text-dim); line-height:1.7;', html: '💡 <b style="color:var(--text-main);">여기는 선택 옵션이에요.</b> 처음이면 <b>아무것도 안 건드려도</b> 됩니다 (자동 태깅 + 변환 강도만으로 충분).<br>· 결과가 원본과 너무 달라지면 → <b>ControlNet</b>만 켜보세요 (포즈·구도 고정).<br>· 얼굴이 딴사람 같으면 → <b>IPAdapter FaceID</b> 켜기.<br>· <b style="color:#f59e0b;">뭔가 꼬여서 안 되면 위의 “기본값으로 초기화” 버튼</b>을 누르면 다 정상으로 돌아옵니다.' }),
+                el('div', { style: 'background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:10px; padding:12px; font-size:12px; color:var(--text-dim); line-height:1.7;', html: '💡 <b style="color:var(--text-main);">품질이 아쉬울 때 증상별 처방:</b> (실사·품질 태그 score_9 등은 전송 시 자동 추가됩니다)<br>· <b>씹덕/애니 느낌이 남음</b> → 변환 강도(denoise)를 <b>0.6~0.65</b>로 올리기.<br>· <b>원본과 너무 달라짐 · 구도 흐트러짐</b> → <b>ControlNet</b> 켜기 (포즈·구도 고정).<br>· <b>얼굴이 뭉개짐 · 딴사람</b> → <b>FaceDetailer</b> + <b>IPAdapter FaceID</b> 켜기.<br>· <b>피부가 플라스틱·CG 같음</b> → denoise 살짝 낮추고(0.5) FaceDetailer 켜기.<br>· <b style="color:#f59e0b;">뭔가 꼬여서 안 되면 위의 “기본값으로 초기화” 버튼</b>을 누르면 다 정상으로 돌아옵니다.' }),
                 el('div', {}, lbl('체크포인트 (실사 모델)'), ckptSel),
                 el('div', {}, lbl('LoRA (얼굴 일관성·스타일)'),
                     el('div', { style: 'display:flex; gap:6px; align-items:center; margin-bottom:8px;' }, loraAddSel, loraAddBtn), loraList),
