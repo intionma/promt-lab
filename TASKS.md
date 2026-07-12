@@ -5,6 +5,12 @@
 
 ## 🔴 진행/대기 (Open)
 
+- [ ] **[미리보기/스텝] FaceDetailer 2패스(30+30) 중 스텝별 라이브 미리보기 안 뜸** — 다음 작업.
+  KSampler는 미리보기 나오는데 FaceDetailer 내부 샘플러 패스에서 스텝별 프리뷰가 안 나옴.
+  `_comfyOnSocketMessage` progress/preview 처리 + `_comfyPreviewNodes` 노드 선택 조사 필요.
+- [x] **[인페인팅 프롬프트 오염]** — ✅수정(v9.41.0). 인페인팅 최종 긍정은 '칠한 곳에 넣을 것'
+  박스만 사용하도록 `updateMasterOutput`에서 override(다른 탭·레이어 태그 차단). 노이즈 핵심 원인.
+- [x] **[자동분석 피드백]** — ✅수정(v9.41.0). `_i2iAnalyzeAndFill` 시작 시 '분석 중…' 토스트.
 - [x] **[테마별 추천 설정]** — ✅완료(v9.40.0). 변환/인페인팅 각각 추천 생성설정.
   · ComfyUI 설정 키를 테마별 분리: `COMFY_TRANSFORM_KEY`/`COMFY_INPAINT_KEY`(+구 `COMFY_IMG_KEY` 폴백),
     `_comfyActiveSettingsKey()`가 `_comfyImgKind`로 선택. `_comfyEnterImageSettings(kind)`.
