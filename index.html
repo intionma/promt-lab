@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.21.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.22.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1002,6 +1002,18 @@
         .pl-cmdk-item.sel, .pl-cmdk-item:hover { background:color-mix(in srgb,var(--accent-blue) 22%,transparent); }
         .pl-cmdk-item .pl-cmdk-grp { margin-left:auto; font-size:10px; color:var(--text-dim); }
 
+        /* 이미지 변환(img2img) 테마 — 3열: [에디터] · [원본+강도] · [결과] (원본↔결과 나란히) */
+        body[data-layout="img2img"] #panel-left,
+        body[data-layout="img2img"] #resize-handle-1,
+        body[data-layout="img2img"] #resize-handle-2 { display:none !important; }
+        body[data-layout="img2img"] #panel-mid { order:1; flex:1 1 0 !important; min-width:0 !important; }
+        body[data-layout="img2img"] #i2i-source { order:2; flex:1 1 0; min-width:0; }
+        body[data-layout="img2img"] #panel-right { order:3; flex:1 1 0 !important; }
+        #i2i-source .i2i-drop { border:2px dashed var(--border-dim); border-radius:12px; padding:26px 16px; display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; cursor:pointer; transition:border-color .15s, background .15s; }
+        #i2i-source .i2i-drop:hover { border-color:var(--accent-blue); }
+        #i2i-source .i2i-drop.drag { border-color:var(--accent-blue); background:color-mix(in srgb,var(--accent-blue) 12%,transparent); }
+        #i2i-source .i2i-preset { border:1px solid var(--border-dim); background:var(--bg-surface); color:var(--text-dim); border-radius:7px; padding:5px 11px; font-size:12px; font-weight:700; cursor:pointer; font-family:var(--font-ui); }
+        #i2i-source .i2i-preset.on { background:var(--accent-blue); color:#fff; border-color:transparent; }
 
         /* =========================================================
            모바일/태블릿(≤1024px) — 구조형 레이아웃은 앱 고유 슬라이드
@@ -1015,6 +1027,14 @@
             body[data-layout] #panel-mid,
             body[data-layout] #panel-right { order:0 !important; display:flex !important; max-width:100vw !important; margin:0 !important; }
             body[data-layout] .app-container { padding:0 !important; }
+            /* 이미지 변환 모바일: 스와이프 트랙 대신 세로 스택으로 (에디터→원본→결과) */
+            body[data-layout="img2img"] #mobile-panel-track { display:contents; }
+            body[data-layout="img2img"] #mobile-tabbar { display:none !important; }
+            body[data-layout="img2img"] .app-container { flex-direction:column !important; height:auto !important; min-height:100dvh; overflow-y:auto !important; }
+            body[data-layout="img2img"] #panel-mid,
+            body[data-layout="img2img"] #i2i-source,
+            body[data-layout="img2img"] #panel-right { order:0 !important; width:100% !important; max-width:100% !important; height:auto !important; min-height:auto !important; flex:0 0 auto !important; }
+            body[data-layout="img2img"] #i2i-source { display:flex !important; }
             /* 스튜디오 모바일: 3-스텝(①간편조합 ②추천 ③결과) · 에디터는 오버레이 소환 */
             body[data-layout="studio"] .pl-studio-fabs { display:none !important; }  /* 데스크탑 FAB 숨김 */
             body[data-layout="studio"] #panel-mid { display:none !important; }        /* 에디터는 트랙에서 제외 */
@@ -1090,7 +1110,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.21.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.22.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1858,7 +1878,15 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.21.1', date: '2026-07-12', time: '최신',
+                version: 'v9.22.0', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[레이아웃] '이미지 변환' 테마를 새로 추가했습니다 (레이아웃 변경에서 선택) — 2D·씹덕 이미지를 넣고 원하는 인물/실사로 바꾸는 이미지→이미지(img2img) 전용 화면입니다. 왼쪽 에디터에서 태그를 담고, 가운데에 원본 이미지를 드래그·붙여넣기(Ctrl+V)로 넣고, 오른쪽 결과창에서 ComfyUI 전송하면 원본을 참고해 다시 그립니다",
+                    "[이미지 변환] 변환 강도(denoise) 슬라이더 추가 — 약하게(원본 많이 유지)/보통/강하게(많이 변함), 기본값 0.6. 원본↔결과를 나란히 비교할 수 있습니다",
+                ]
+            },
+            {
+                version: 'v9.21.1', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[ComfyUI 전송] 긍정 결과창의 'ComfyUI 전송' 옆에 '부정 포함' 체크박스를 추가했습니다 — 켜면 부정 프롬프트도 함께, 끄면 긍정만 전송합니다. (기본값: 꺼짐=긍정만, 선택은 저장됨)",
@@ -4595,6 +4623,93 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             };
         }
 
+        // ══════════════════════════════════════════════════════════
+        //  이미지 → 이미지 (img2img) 엔진
+        //  원본 이미지를 ComfyUI에 업로드 → LoadImage→VAEEncode→KSampler(denoise) 로 변환
+        // ══════════════════════════════════════════════════════════
+        const IMG2IMG_KEY = 'comfy_img2img_v1';
+        let _img2img = { enabled: false, file: null, dataURL: null, uploadedName: null, denoise: 0.6, fileName: '' };
+        function _img2imgSave() {
+            // 이미지 원본(dataURL)은 용량이 커 localStorage에 넣지 않음. 강도만 영속.
+            try { localStorage.setItem(IMG2IMG_KEY, JSON.stringify({ denoise: _img2img.denoise })); } catch (e) {}
+        }
+        function _img2imgRestore() {
+            try { const s = JSON.parse(localStorage.getItem(IMG2IMG_KEY) || '{}'); if (typeof s.denoise === 'number') _img2img.denoise = s.denoise; } catch (e) {}
+        }
+        function _img2imgSetDenoise(v) {
+            let n = parseFloat(v); if (isNaN(n)) n = 0.6;
+            _img2img.denoise = Math.max(0.05, Math.min(1, n));
+            _img2imgSave();
+        }
+        // 원본 이미지 지정(File 또는 dataURL). 새 이미지를 넣으면 업로드 캐시를 무효화.
+        function _img2imgSetImage(file, dataURL, name) {
+            _img2img.file = file || null;
+            _img2img.dataURL = dataURL || null;
+            _img2img.fileName = name || (file && file.name) || 'source.png';
+            _img2img.uploadedName = null; // 새 이미지 → 다시 업로드해야 함
+        }
+        function _img2imgClearImage() { _img2img.file = null; _img2img.dataURL = null; _img2img.uploadedName = null; _img2img.fileName = ''; }
+        function _img2imgHasImage() { return !!(_img2img.file || _img2img.dataURL); }
+
+        // dataURL → Blob (붙여넣기/드롭된 dataURL을 업로드용 Blob으로)
+        function _dataURLtoBlob(dataURL) {
+            const [head, body] = dataURL.split(',');
+            const mime = (head.match(/data:([^;]+)/) || [, 'image/png'])[1];
+            const bin = atob(body); const len = bin.length; const arr = new Uint8Array(len);
+            for (let i = 0; i < len; i++) arr[i] = bin.charCodeAt(i);
+            return new Blob([arr], { type: mime });
+        }
+
+        // ComfyUI에 이미지 업로드 → 참조용 파일명 반환 (subfolder 포함)
+        async function _comfyUploadImage(fileOrBlob, name) {
+            const fd = new FormData();
+            const fname = name || (fileOrBlob && fileOrBlob.name) || ('promptlab_src_' + Date.now() + '.png');
+            fd.append('image', fileOrBlob, fname);
+            fd.append('overwrite', 'true');
+            const res = await fetch(_comfyBase() + '/upload/image', { method: 'POST', body: fd });
+            if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error('이미지 업로드 실패 (HTTP ' + res.status + ') ' + t.slice(0, 160)); }
+            const d = await res.json();
+            return d.subfolder ? (d.subfolder + '/' + d.name) : d.name;
+        }
+
+        // 필요 시 업로드 수행 후 ComfyUI가 참조할 파일명을 확보
+        async function _img2imgEnsureUploaded() {
+            if (_img2img.uploadedName) return _img2img.uploadedName;
+            let blob = _img2img.file;
+            if (!blob && _img2img.dataURL) blob = _dataURLtoBlob(_img2img.dataURL);
+            if (!blob) throw new Error('원본 이미지가 없습니다.');
+            const name = await _comfyUploadImage(blob, _img2img.fileName);
+            _img2img.uploadedName = name;
+            return name;
+        }
+
+        // img2img 워크플로우 빌드 (기본 모드 기반 + LoadImage/VAEEncode)
+        function _comfyBuildImg2ImgWorkflow(pos, neg, imageName, denoise) {
+            const seedInput = parseInt(document.getElementById('comfy-seed').value);
+            const seed = (isNaN(seedInput) || seedInput < 0) ? Math.floor(Math.random() * 1e15) : seedInput;
+            if (_comfyTarget === 'pos') neg = '';
+            if (_comfyTarget === 'neg') pos = '';
+            const dn = Math.max(0.05, Math.min(1, denoise || 0.6));
+            return {
+                "3": { "class_type": "KSampler", "inputs": {
+                    "seed": seed,
+                    "steps": parseInt(document.getElementById('comfy-steps').value) || 28,
+                    "cfg": parseFloat(document.getElementById('comfy-cfg').value) || 7,
+                    "sampler_name": document.getElementById('comfy-sampler').value,
+                    "scheduler": document.getElementById('comfy-scheduler').value,
+                    "denoise": dn,
+                    "model": ["4", 0], "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["11", 0]
+                }},
+                "4": { "class_type": "CheckpointLoaderSimple", "inputs": { "ckpt_name": document.getElementById('comfy-ckpt').value } },
+                "6": { "class_type": "CLIPTextEncode", "inputs": { "text": pos, "clip": ["4", 1] } },
+                "7": { "class_type": "CLIPTextEncode", "inputs": { "text": neg, "clip": ["4", 1] } },
+                "8": { "class_type": "VAEDecode", "inputs": { "samples": ["3", 0], "vae": ["4", 2] } },
+                "9": { "class_type": "SaveImage", "inputs": { "filename_prefix": "PromptLab_i2i", "images": ["8", 0] } },
+                "10": { "class_type": "LoadImage", "inputs": { "image": imageName } },
+                "11": { "class_type": "VAEEncode", "inputs": { "pixels": ["10", 0], "vae": ["4", 2] } }
+            };
+        }
+
         // 내 워크플로우(API JSON)에 프롬프트 주입 (전송 대상에 따라 긍정/부정 선택)
         function _comfyBuildCustomWorkflow(pos, neg) {
             if (!_comfyCustomWF) { showToast('워크플로우 JSON을 먼저 분석하세요.', 'error'); return null; }
@@ -4726,6 +4841,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 return workflow;
             } else {
                 if (!document.getElementById('comfy-ckpt').value.trim()) { showToast('체크포인트(모델 파일명)를 입력하세요.', 'error'); return null; }
+                // 이미지 변환 모드: 원본 이미지를 업로드하고 img2img 워크플로우로 빌드
+                if (_img2img.enabled) {
+                    if (!_img2imgHasImage()) { showToast('원본 이미지를 먼저 넣어주세요.', 'error'); return null; }
+                    let name;
+                    try { name = await _img2imgEnsureUploaded(); }
+                    catch (e) { showToast('원본 이미지 업로드 실패: ' + (e && e.message || e), 'error', 6000); return null; }
+                    return _comfyBuildImg2ImgWorkflow(pos, neg, name, _img2img.denoise);
+                }
                 return _comfyBuildWorkflow(pos, neg);
             }
         }
@@ -17649,6 +17772,85 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             };
         }
 
+        // ── 이미지 변환 (img2img): 원본 이미지 + 강도 · 에디터/결과 재사용 ──
+        function mountImg2img() {
+            try { _img2imgRestore(); } catch (e) {}
+            _img2img.enabled = true;
+
+            const dnHint = (d) => d <= 0.5 ? ' (원본 많이 유지)' : (d >= 0.72 ? ' (많이 변함)' : ' (보통)');
+
+            // 썸네일 미리보기 + 제거
+            const thumbImg = el('img', { class: 'i2i-thumb', style: 'width:100%; border-radius:10px; display:block; max-height:360px; object-fit:contain; background:var(--bg-base); border:1px solid var(--border-dim);' });
+            const removeBtn = el('button', { title: '원본 제거', html: '<i class="fa-solid fa-xmark"></i>', style: 'position:absolute; top:8px; right:8px; width:30px; height:30px; border-radius:8px; border:none; background:rgba(0,0,0,0.6); color:#fff; cursor:pointer; font-size:14px;', onclick: () => clearImg() });
+            const thumbWrap = el('div', { style: 'display:none; position:relative;' }, thumbImg, removeBtn);
+
+            const fileInput = el('input', { type: 'file', accept: 'image/*', style: 'display:none;', onchange: (e) => { const f = e.target.files && e.target.files[0]; if (f) loadFile(f); } });
+            const drop = el('div', { class: 'i2i-drop', onclick: () => fileInput.click() },
+                el('div', { html: '<i class="fa-solid fa-images"></i>', style: 'font-size:34px; color:var(--text-dim);' }),
+                el('div', { html: '여기로 이미지를 <b>드래그</b>하거나 <b>클릭</b>해서 선택<br><span style="font-size:11px; color:var(--text-dim);">· <b>Ctrl+V</b> 로 붙여넣기도 가능 ·</span>', style: 'font-size:13px; color:var(--text-main); line-height:1.5;' })
+            );
+
+            // 변환 강도
+            const dnVal = el('span', { style: 'font-weight:800; color:var(--accent-blue); white-space:nowrap; font-size:13px;' });
+            const slider = el('input', { type: 'range', min: '0.2', max: '0.9', step: '0.05', style: 'flex:1; accent-color:var(--accent-blue);', oninput: (e) => setDn(e.target.value) });
+            const presetEls = [['약하게', 0.45], ['보통', 0.6], ['강하게', 0.75]].map(([lbl, v]) =>
+                el('button', { class: 'i2i-preset', 'data-v': v, onclick: () => setDn(v) }, lbl));
+            function syncDn() {
+                const d = _img2img.denoise;
+                slider.value = d; dnVal.textContent = d.toFixed(2) + dnHint(d);
+                presetEls.forEach(b => b.classList.toggle('on', Math.abs(parseFloat(b.getAttribute('data-v')) - d) < 0.001));
+            }
+            function setDn(v) { _img2imgSetDenoise(v); syncDn(); }
+
+            function loadFile(file) { const r = new FileReader(); r.onload = () => setImg(file, r.result); r.readAsDataURL(file); }
+            function setImg(file, dataURL) { _img2imgSetImage(file, dataURL, file && file.name); thumbImg.src = dataURL; thumbWrap.style.display = 'block'; drop.style.display = 'none'; }
+            function clearImg() { _img2imgClearImage(); thumbImg.src = ''; thumbWrap.style.display = 'none'; drop.style.display = 'flex'; fileInput.value = ''; }
+
+            const panel = el('section', { class: 'panel', id: 'i2i-source' },
+                el('div', { class: 'panel-header', style: 'display:flex; align-items:center; gap:8px;' },
+                    el('span', { html: '<i class="fa-solid fa-wand-magic-sparkles" style="color:#f59e0b;"></i> 원본 → 변환', style: 'font-weight:800;' })
+                ),
+                el('div', { class: 'panel-content', style: 'padding:14px; overflow-y:auto; display:flex; flex-direction:column; gap:16px;' },
+                    el('div', { style: 'font-size:12px; color:var(--text-dim); line-height:1.6;', html: '2D·씹덕 이미지를 넣고, <b>가운데 에디터</b>에서 "어떤 인물/실사로 바꿀지" 태그를 담은 뒤 <b>오른쪽 결과창의 ComfyUI 전송</b>을 누르세요. 원본은 참고하고 프롬프트대로 다시 그려집니다.' }),
+                    thumbWrap, drop, fileInput,
+                    el('div', {},
+                        el('div', { style: 'font-size:12px; font-weight:800; color:var(--text-main); margin-bottom:8px;' }, '변환 강도 (denoise)'),
+                        el('div', { style: 'display:flex; align-items:center; gap:12px;' }, slider, dnVal),
+                        el('div', { style: 'display:flex; gap:6px; margin-top:10px;' }, ...presetEls),
+                        el('div', { style: 'font-size:11px; color:var(--text-dim); margin-top:8px; line-height:1.5;' }, '낮을수록 원본 구도·형태를 유지하고, 높을수록 프롬프트대로 많이 바뀝니다. 실사 코스프레는 0.55~0.7 권장.')
+                    )
+                )
+            );
+
+            const right = document.getElementById('panel-right');
+            if (right && right.parentElement) right.parentElement.insertBefore(panel, right);
+            syncDn();
+            try { if (window.comfyUpdateQuickButtons) comfyUpdateQuickButtons(); } catch (e) {}
+
+            // 드래그&드롭
+            const onDragOver = (e) => { e.preventDefault(); drop.classList.add('drag'); };
+            const onDragLeave = () => drop.classList.remove('drag');
+            const onDrop = (e) => { e.preventDefault(); drop.classList.remove('drag'); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f && /^image\//.test(f.type)) loadFile(f); };
+            drop.addEventListener('dragover', onDragOver);
+            drop.addEventListener('dragleave', onDragLeave);
+            drop.addEventListener('drop', onDrop);
+
+            // 붙여넣기 (이 레이아웃일 때만)
+            const onPaste = (e) => {
+                if (_plCurrent !== 'img2img') return;
+                const items = e.clipboardData && e.clipboardData.items; if (!items) return;
+                for (const it of items) { if (it.type && it.type.startsWith('image/')) { const f = it.getAsFile(); if (f) { loadFile(f); e.preventDefault(); break; } } }
+            };
+            document.addEventListener('paste', onPaste);
+
+            return () => {
+                _img2img.enabled = false;
+                document.removeEventListener('paste', onPaste);
+                panel.remove();
+                try { if (window.comfyUpdateQuickButtons) comfyUpdateQuickButtons(); } catch (e) {}
+            };
+        }
+
         // ── 커맨드 팔레트 ────────────────────────────────────────
         let cmdkBox, cmdkInput, cmdkList, cmdkItems = [], cmdkSel = 0;
         function buildCmdK() {
@@ -17707,11 +17909,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // ════════════════════════════════════════════════════════
         const mini = {
             cols3: '<div class="pl-mini"><div style="flex:.6"></div><div style="flex:1.4"></div><div style="flex:1"></div></div>',
-            studio: '<div class="pl-mini" style="background:rgba(120,130,150,0.15);gap:6px;padding:8px"><div style="flex:1;background:var(--bg-panel);border:1px solid var(--border-dim)"></div><div style="flex:1;background:var(--bg-panel);border:1px solid var(--border-dim)"></div></div>'
+            studio: '<div class="pl-mini" style="background:rgba(120,130,150,0.15);gap:6px;padding:8px"><div style="flex:1;background:var(--bg-panel);border:1px solid var(--border-dim)"></div><div style="flex:1;background:var(--bg-panel);border:1px solid var(--border-dim)"></div></div>',
+            img2img: '<div class="pl-mini" style="gap:5px;padding:7px"><div style="flex:1"></div><div style="flex:1;background:linear-gradient(135deg,#f59e0b33,#f59e0b11);border:1px solid #f59e0b66"></div><div style="flex:1;background:linear-gradient(135deg,#38bdf833,#38bdf811);border:1px solid #38bdf866"></div></div>'
         };
         const LAYOUTS = [
             { id: 'classic', name: '클래식', group: '레이아웃', icon: 'fa-table-columns', accent: '#3b82f6', desc: '기본 3분할 (상세태그 · 에디터 · 결과) · 다크 테마', mini: mini.cols3 },
-            { id: 'studio', name: '스튜디오', group: '레이아웃', icon: 'fa-wand-magic-sparkles', accent: '#6366f1', desc: '미니멀 라이트 — 간편 조합 + 결과/ComfyUI · 에디터는 원할 때 소환 · 추천 빠른 실행', mini: mini.studio, isNew: true, init: mountStudio }
+            { id: 'studio', name: '스튜디오', group: '레이아웃', icon: 'fa-wand-magic-sparkles', accent: '#6366f1', desc: '미니멀 라이트 — 간편 조합 + 결과/ComfyUI · 에디터는 원할 때 소환 · 추천 빠른 실행', mini: mini.studio, isNew: true, init: mountStudio },
+            { id: 'img2img', name: '이미지 변환', group: '레이아웃', icon: 'fa-images', accent: '#f59e0b', desc: '이미지 → 이미지 (img2img) — 2D·씹덕 이미지를 원하는 인물/실사로 변환 · 원본↔결과 나란히 비교', mini: mini.img2img, isNew: true, init: mountImg2img }
         ];
 
         // ════════════════════════════════════════════════════════
