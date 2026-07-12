@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.34.2 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.35.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1026,13 +1026,16 @@
         .pl-cmdk-item.sel, .pl-cmdk-item:hover { background:color-mix(in srgb,var(--accent-blue) 22%,transparent); }
         .pl-cmdk-item .pl-cmdk-grp { margin-left:auto; font-size:10px; color:var(--text-dim); }
 
-        /* 이미지 변환(img2img) 테마 — 3열: [에디터] · [원본+강도] · [결과] (원본↔결과 나란히) */
+        /* 이미지 변환(img2img)·인페인팅 테마 — 3열: [에디터] · [원본+도구] · [결과] (원본↔결과 나란히) */
         body[data-layout="img2img"] #panel-left,
         body[data-layout="img2img"] #resize-handle-1,
-        body[data-layout="img2img"] #resize-handle-2 { display:none !important; }
-        body[data-layout="img2img"] #panel-mid { order:1; flex:1 1 0 !important; min-width:0 !important; }
-        body[data-layout="img2img"] #i2i-source { order:2; flex:1 1 0; min-width:0; }
-        body[data-layout="img2img"] #panel-right { order:3; flex:1 1 0 !important; }
+        body[data-layout="img2img"] #resize-handle-2,
+        body[data-layout="inpaint"] #panel-left,
+        body[data-layout="inpaint"] #resize-handle-1,
+        body[data-layout="inpaint"] #resize-handle-2 { display:none !important; }
+        body[data-layout="img2img"] #panel-mid, body[data-layout="inpaint"] #panel-mid { order:1; flex:1 1 0 !important; min-width:0 !important; }
+        body[data-layout="img2img"] #i2i-source, body[data-layout="inpaint"] #i2i-source { order:2; flex:1 1 0; min-width:0; }
+        body[data-layout="img2img"] #panel-right, body[data-layout="inpaint"] #panel-right { order:3; flex:1 1 0 !important; }
         #i2i-source .i2i-drop { border:2px dashed var(--border-dim); border-radius:12px; padding:26px 16px; display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; cursor:pointer; transition:border-color .15s, background .15s; }
         #i2i-source .i2i-drop:hover { border-color:var(--accent-blue); }
         #i2i-source .i2i-drop.drag { border-color:var(--accent-blue); background:color-mix(in srgb,var(--accent-blue) 12%,transparent); }
@@ -1069,8 +1072,8 @@
             body[data-layout] #panel-right { order:0 !important; display:flex !important; max-width:100vw !important; margin:0 !important; }
             body[data-layout] .app-container { padding:0 !important; }
             /* 이미지 변환 모바일: 앱 고유 가로 스와이프 트랙 사용 (에디터 · 이미지 · 결과 3탭) — JS의 __setMobilePanels가 처리 */
-            body[data-layout="img2img"] #panel-left { display:none !important; }       /* 스와이프 세트에서 제외 */
-            body[data-layout="img2img"] #i2i-source { order:0 !important; }            /* 데스크톱 order 무력화 → 트랙 DOM 순서대로 스와이프 */
+            body[data-layout="img2img"] #panel-left, body[data-layout="inpaint"] #panel-left { display:none !important; }       /* 스와이프 세트에서 제외 */
+            body[data-layout="img2img"] #i2i-source, body[data-layout="inpaint"] #i2i-source { order:0 !important; }            /* 데스크톱 order 무력화 → 트랙 DOM 순서대로 스와이프 */
             /* 스튜디오 모바일: 3-스텝(①간편조합 ②추천 ③결과) · 에디터는 오버레이 소환 */
             body[data-layout="studio"] .pl-studio-fabs { display:none !important; }  /* 데스크탑 FAB 숨김 */
             body[data-layout="studio"] #panel-mid { display:none !important; }        /* 에디터는 트랙에서 제외 */
@@ -1146,7 +1149,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.34.2 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.35.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1912,7 +1915,18 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.34.2', date: '2026-07-12', time: '최신',
+                version: 'v9.35.0', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[테마] '이미지 인페인팅'을 별도 테마로 분리했습니다 — '이미지 변환'은 2D→실사 전체 변환 전용, 칠한 곳만 다시 그리는 부분 편집은 새 '이미지 인페인팅' 테마에서 하세요 (모드 토글 제거)",
+                    "[이미지 변환] 이미지 테마가 내 ComfyUI 생성 설정(스텝·CFG·샘플러·스케줄러·체크포인트)을 덮어쓰던 문제를 고쳤습니다 — 이제 내가 설정한 값을 그대로 사용합니다",
+                    "[ComfyUI] 잘 연결됐는데도 '브라우저가 차단했다'는 오류가 뜨던 문제 수정 — 한 번 연결에 성공하면 그 안내를 다시 띄우지 않습니다",
+                    "[ComfyUI] 1장 뽑은 뒤 2장째가 '연결 확인'에서 막히던 문제 수정 — 이미 연결된 상태면 잠깐의 확인 실패로 생성을 막지 않습니다",
+                    "[전체] 태그가 권장 레이어와 다른 곳에 있으면 결과창에 경고 + '자동 정리' 버튼을 띄웁니다 — 누르면 올바른 레이어로 한 번에 옮깁니다",
+                ]
+            },
+            {
+                version: 'v9.34.2', date: '2026-07-12', time: '',
                 tag: 'fix',
                 items: [
                     "[이미지 변환] 부분 편집(인페인팅)이 통째로 새 이미지로 나오던 문제를 잡았습니다 — 인페인트를 항상 최우선으로 처리해 원본+마스크가 확실히 쓰이도록 했습니다",
@@ -4740,6 +4754,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // HTTPS 페이지 → 내부망 http 주소 조합이면 브라우저가 요청 자체를 차단(혼합 콘텐츠). 인자는 테스트 주입용
         function _comfyMixedBlocked(pageProto, base) {
             try {
+                // 한 번이라도 성공적으로 연결된 적 있으면(사용자가 이미 http 허용) 혼합콘텐츠 차단이 아님 → 오탐 방지
+                if (_comfyConnectedOnce) return false;
                 if ((pageProto || location.protocol) !== 'https:') return false;
                 const u = new URL(base || _comfyBase());
                 return u.protocol === 'http:' && !/^(127\.0\.0\.1|localhost|\[::1\]|::1)$/i.test(u.hostname);
@@ -5329,16 +5345,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // 권장 기본값으로 "초기화" — 생성 파라미터 + 고급 파이프라인을 안전한 기본 상태로 되돌림
         // (뭔가 잘못 바꿔서 안 될 때 한 방에 복구)
         function _i2iApplyRecommendedSettings() {
-            const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-            // 생성 파라미터 (Pony Realism 권장)
-            set('comfy-sampler', 'dpmpp_2m');
-            set('comfy-scheduler', 'karras');
-            set('comfy-steps', '30');
-            set('comfy-cfg', '6.5');
-            const ck = document.getElementById('comfy-ckpt');
-            if (ck && !ck.value.trim()) ck.value = 'ponyRealism_V22.safetensors';
+            // ⚠ 사용자의 전역 ComfyUI 설정(스텝·CFG·샘플러·스케줄러·체크포인트)은 절대 건드리지 않는다.
+            //   (이미지 변환/인페인트는 사용자가 설정한 생성 파라미터를 그대로 사용)
             _img2imgSetDenoise(0.5);
-            // 고급 파이프라인 → 기본값 (ControlNet만 ON = 원본 포즈·구도 유지 · 나머지 OFF · 자동태깅 켬)
+            // 고급 파이프라인만 기본값으로 (ControlNet만 ON = 원본 포즈·구도 유지 · 나머지 OFF · 자동태깅 켬)
             _img2img.loras = [];
             _img2img.controlnet = true; _img2img.cnModel = 'OpenPoseXL2.safetensors'; _img2img.cnStrength = 0.7;
             _img2img.ipadapter = false; _img2img.ipaWeight = 0.75;
@@ -5347,8 +5357,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _img2img.autoTag = true; _img2img.addRealism = true; _img2img.maxSide = 1152;
             _img2img.wd14Model = 'wd-v1-4-moat-tagger-v2'; _img2img.wd14Threshold = 0.35;
             _img2imgSave();
-            try { _comfySaveSettings(); } catch (e) {}
-            showToast('기본값으로 초기화했습니다 — denoise 0.5 · ControlNet ON(원본 포즈 유지) · 나머지 고급 옵션 OFF', 'success', 4200);
+            showToast('이미지 옵션만 기본값으로 초기화했습니다 (내 ComfyUI 스텝·CFG·샘플러 설정은 그대로 유지)', 'success', 4200);
         }
         window.__i2iApplyRecommended = _i2iApplyRecommendedSettings;
 
@@ -6557,13 +6566,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     statusEl.style.color = 'var(--text-dim)';
                     // 한 번 튀는 와이파이로 생성이 통째로 막히지 않도록 재시도(2회) 후에만 실패 처리
                     const ok = await _comfyPing(2, 6000);
-                    if (!ok) {
+                    // 이미 성공적으로 연결된 적 있으면(1장 뽑은 뒤 등) 핑이 잠깐 실패해도 막지 않고 그대로 진행 —
+                    // 실제 /prompt 전송에서 진짜 문제가 있으면 그때 정확한 오류를 보여줌 (핑 오탐으로 2장째가 막히던 문제)
+                    if (!ok && !_comfyConnectedOnce) {
                         statusEl.innerHTML = '❌ 연결 안 됨';
                         statusEl.style.color = 'var(--accent-danger)';
                         showToast(_comfyMixedBlocked() ? _COMFY_MIXED_TOAST : '⚠️ ComfyUI에 연결할 수 없습니다.\n주소를 확인하고 [연결 확인·모델 불러오기] 버튼을 눌러보세요.', 'error', 7000);
                         _comfyAbortInline('연결 안 됨');
                         return;
                     }
+                    if (!ok) { statusEl.textContent = '연결 확인 생략(계속 진행)'; statusEl.style.color = 'var(--text-dim)'; }
                     statusEl.textContent = '✅ 연결됨';
                     statusEl.style.color = 'var(--accent-green)';
                 }
@@ -13573,6 +13585,78 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return null; // 미분류
         }
 
+        // ── 레이어 재배치 경고: 태그가 권장 레이어와 다른 곳에 있으면 결과창에 알림 (모든 테마 공통) ──
+        const _LAYER_SHORT = ['화질', '구도', '외형·얼굴', '의상', '액션', '배경', '조명'];
+        // 현재 컨텍스트의 7개 레이어를 훑어 잘못 배치된 태그 목록 반환: [{tag, from, to}]
+        function _detectMisplacedTags() {
+            const st = (typeof contextStates !== 'undefined' && contextStates[currentContext]) ? contextStates[currentContext] : null;
+            if (!st) return [];
+            const out = [];
+            for (let li = 0; li < 7 && li < st.length; li++) {
+                const toks = (st[li] || '').split(',').map(t => t.trim()).filter(Boolean);
+                for (const tok of toks) {
+                    const rec = _classifyTokenLayer(tok);
+                    if (rec != null && rec >= 1 && rec <= 7 && rec !== li + 1) out.push({ tag: tok, from: li + 1, to: rec });
+                }
+            }
+            return out;
+        }
+        // 잘못 배치된 태그를 권장 레이어로 이동 (현재 컨텍스트)
+        function _autoRearrangeLayers() {
+            const st = (typeof contextStates !== 'undefined' && contextStates[currentContext]) ? contextStates[currentContext] : null;
+            if (!st) return;
+            while (st.length < 7) st.push('');
+            const layers = st.map(s => (s || '').split(',').map(t => t.trim()).filter(Boolean));
+            let moved = 0;
+            for (let li = 0; li < 7; li++) {
+                const keep = [];
+                for (const tok of layers[li]) {
+                    const rec = _classifyTokenLayer(tok);
+                    if (rec != null && rec >= 1 && rec <= 7 && rec !== li + 1) { layers[rec - 1].push(tok); moved++; }
+                    else keep.push(tok);
+                }
+                layers[li] = keep;
+            }
+            if (!moved) { showToast('옮길 태그가 없습니다.', 'info', 2000); return; }
+            // 이동 후 각 레이어 내 중복 제거(가중치/괄호 무시 비교)
+            const norm = (t) => t.toLowerCase().replace(/^[\(\[]+/, '').replace(/[\)\]]+$/, '').replace(/:\s*[\d.]+\s*$/, '').trim();
+            for (let li = 0; li < 7; li++) { const seen = new Set(); layers[li] = layers[li].filter(t => { const k = norm(t); if (seen.has(k)) return false; seen.add(k); return true; }); }
+            for (let li = 0; li < 7; li++) st[li] = layers[li].join(', ');
+            try { saveTabsAndStates(); } catch (e) {}
+            // 현재 테마에 레이어 textarea가 있으면 반영 + 정식 동기화, 없으면 출력만 갱신
+            let hasDom = false;
+            for (let i = 1; i <= 7; i++) { const ta = document.getElementById('layer-' + i); if (ta) { hasDom = true; ta.value = st[i - 1]; } }
+            if (hasDom) { for (let i = 1; i <= 7; i++) { try { syncFromManualInput(i); } catch (e) {} } }
+            else { try { updateMasterOutput(); } catch (e) {} }
+            showToast(`${moved}개 태그를 권장 레이어로 옮겼습니다`, 'success', 2600);
+        }
+        window.__autoRearrangeLayers = _autoRearrangeLayers;
+        // 결과창에 경고 박스 렌더(없으면 생성). updateMasterOutput 끝에서 호출.
+        let _layerWarnEl = null;
+        function _renderLayerWarning() {
+            const fp = document.getElementById('final-positive');
+            if (!fp) return;
+            if (!_layerWarnEl || !document.body.contains(_layerWarnEl)) {
+                _layerWarnEl = document.createElement('div');
+                _layerWarnEl.id = 'layer-rearrange-warn';
+                _layerWarnEl.style.cssText = 'display:none; margin:0 0 10px; padding:10px 12px; border:1px solid #f59e0b; background:color-mix(in srgb, #f59e0b 12%, transparent); border-radius:9px; font-size:12px; line-height:1.6; color:var(--text-main);';
+                fp.parentElement.insertBefore(_layerWarnEl, fp);
+            }
+            const moves = _detectMisplacedTags();
+            if (!moves.length) { _layerWarnEl.style.display = 'none'; return; }
+            const _esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const ex = moves.slice(0, 3).map(m => `<b>${_esc(m.tag)}</b> → ${_LAYER_SHORT[m.to - 1]}`).join(', ');
+            const more = moves.length > 3 ? ` 외 ${moves.length - 3}개` : '';
+            _layerWarnEl.style.display = 'block';
+            _layerWarnEl.innerHTML =
+                `<div style="display:flex; align-items:flex-start; gap:8px; flex-wrap:wrap;">
+                    <span style="flex:1; min-width:180px;">⚠️ <b>${moves.length}개 태그</b>가 권장 레이어와 다른 곳에 있어요.<br><span style="color:var(--text-dim);">${ex}${more}</span></span>
+                    <button id="btn-layer-rearrange" style="flex:0 0 auto; border:none; background:#f59e0b; color:#111; font-weight:800; font-size:12px; padding:7px 12px; border-radius:7px; cursor:pointer;"><i class="fa-solid fa-wand-magic-sparkles"></i> 자동 정리</button>
+                </div>`;
+            const btn = _layerWarnEl.querySelector('#btn-layer-rearrange');
+            if (btn) btn.onclick = () => _autoRearrangeLayers();
+        }
+
         function openPromptImportModal() {
             const prev = document.getElementById('__prompt-import');
             if (prev) prev.remove();
@@ -15587,6 +15671,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }
             } catch (e) {}
             document.getElementById('final-positive').value = finalOutput || "";
+            try { _renderLayerWarning(); } catch (e) {} // 레이어 재배치 경고(모든 테마)
 
             // 각 BREAK 청크별로 토큰을 세어 최대 청크 기준으로 판정 (SD는 75토큰/청크)
             const _chunks = finalOutput.split(/\bBREAK\b/).map(s => s.trim()).filter(Boolean);
@@ -18580,6 +18665,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function mountImg2img() {
             try { _img2imgRestore(); } catch (e) {}
             _img2img.enabled = true;
+            // 이 마운트가 '이미지 변환'인지 '이미지 인페인팅'인지 — 레이아웃 id로 결정. 테마별로 모드 고정(토글 없음).
+            const IS_INPAINT = (_plCurrent === 'inpaint');
+            _img2img.editMode = IS_INPAINT ? 'inpaint' : 'transform';
             // 이미지 변환은 별도 세션(탭·태그·최종프롬프트)을 쓰도록 전환 — 클래식/스튜디오와 공유하지 않음
             try { if (window.__i2iEnterSession) window.__i2iEnterSession(); } catch (e) {}
 
@@ -18899,11 +18987,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
             const panel = el('section', { class: 'panel', id: 'i2i-source' },
                 el('div', { class: 'panel-header', style: 'display:flex; align-items:center; gap:8px;' },
-                    el('span', { html: '<i class="fa-solid fa-wand-magic-sparkles" style="color:#f59e0b;"></i> 원본 → 변환', style: 'font-weight:800;' })
+                    el('span', { html: IS_INPAINT ? '<i class="fa-solid fa-paintbrush" style="color:#ec4899;"></i> 이미지 인페인팅' : '<i class="fa-solid fa-wand-magic-sparkles" style="color:#f59e0b;"></i> 원본 → 실사 변환', style: 'font-weight:800;' })
                 ),
                 el('div', { class: 'panel-content', style: 'padding:14px; overflow-y:auto; display:flex; flex-direction:column; gap:16px;' },
-                    el('div', { style: 'font-size:12px; color:var(--text-dim); line-height:1.6;', html: '<b>🎨 실사 변환</b>: 2D 이미지를 실사로 전체 변환. &nbsp;<b>🖌 부분 편집</b>: 원본 위에 칠한 부분만 다시 그리기(옷·배경 교체 등). <b>가운데 에디터</b>에서 프롬프트를 손보고 <b>오른쪽 ComfyUI 전송</b>을 누르세요.' }),
-                    modeRow,
+                    el('div', { style: 'font-size:12px; color:var(--text-dim); line-height:1.6;', html: IS_INPAINT
+                        ? '🖌 <b>부분 편집(인페인팅)</b>: 원본 위에 <b>칠한 부분만</b> 프롬프트대로 다시 그립니다 (옷·배경 교체, 부위 수정 등). <b>가운데 에디터</b>에 "그 자리에 무엇이 있을지"를 적고 <b>오른쪽 ComfyUI 전송</b>을 누르세요.'
+                        : '🎨 <b>실사 변환</b>: 2D 이미지를 실사로 <b>전체 변환</b>합니다. <b>가운데 에디터</b>에서 프롬프트를 손보고 <b>오른쪽 ComfyUI 전송</b>을 누르세요.' }),
                     thumbWrap, drop, urlRow, fileInput,
                     analyzeRow,
                     transformDnBlock,
@@ -18969,7 +19058,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
             // 붙여넣기 (이 레이아웃일 때만)
             const onPaste = (e) => {
-                if (_plCurrent !== 'img2img') return;
+                if (_plCurrent !== 'img2img' && _plCurrent !== 'inpaint') return;
                 const items = e.clipboardData && e.clipboardData.items; if (!items) return;
                 for (const it of items) { if (it.type && it.type.startsWith('image/')) { const f = it.getAsFile(); if (f) { loadFile(f); e.preventDefault(); break; } } }
             };
@@ -19052,7 +19141,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         const LAYOUTS = [
             { id: 'classic', name: '클래식', group: '레이아웃', icon: 'fa-table-columns', accent: '#3b82f6', desc: '기본 3분할 (상세태그 · 에디터 · 결과) · 다크 테마', mini: mini.cols3 },
             { id: 'studio', name: '스튜디오', group: '레이아웃', icon: 'fa-wand-magic-sparkles', accent: '#6366f1', desc: '미니멀 라이트 — 간편 조합 + 결과/ComfyUI · 에디터는 원할 때 소환 · 추천 빠른 실행', mini: mini.studio, isNew: true, init: mountStudio },
-            { id: 'img2img', name: '이미지 변환', group: '레이아웃', icon: 'fa-images', accent: '#f59e0b', desc: '이미지 → 이미지 (img2img) — 2D·씹덕 이미지를 원하는 인물/실사로 변환 · 원본↔결과 나란히 비교', mini: mini.img2img, isNew: true, init: mountImg2img }
+            { id: 'img2img', name: '이미지 변환', group: '레이아웃', icon: 'fa-images', accent: '#f59e0b', desc: '이미지 → 이미지 (img2img) — 2D·씹덕 이미지를 원하는 인물/실사로 전체 변환 · 원본↔결과 나란히 비교', mini: mini.img2img, isNew: true, init: mountImg2img },
+            { id: 'inpaint', name: '이미지 인페인팅', group: '레이아웃', icon: 'fa-paintbrush', accent: '#ec4899', desc: '부분 편집 — 원본 위에 칠한 부분만 프롬프트대로 다시 그리기 (옷·배경 교체, 부위 수정) · Fooocus 인페인트', mini: mini.img2img, isNew: true, init: mountImg2img }
         ];
 
         // ════════════════════════════════════════════════════════
