@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.37.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.37.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1156,7 +1156,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.37.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.37.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1922,7 +1922,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.37.0', date: '2026-07-12', time: '최신',
+                version: 'v9.37.1', date: '2026-07-12', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[이미지] IPAdapter FaceID·FaceDetailer 등 고급 노드가 'IPAdapter model not found' 등으로 실패하던 회귀를 고쳤습니다 — 설치본 기본값이 제가 지정한 값(FaceID 프리셋 등)을 덮어쓰던 문제. 이제 지정값이 우선되고 빠진 값만 설치본에서 채웁니다 (이 오류로 생성 전체가 실패해 미리보기도 안 뜨던 것 함께 해결 기대)",
+                ]
+            },
+            {
+                version: 'v9.37.0', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[이미지] 이미지 변환·인페인팅이 이제 ComfyUI 생성 설정(체크포인트·스텝·CFG·샘플러·스케줄러·시드·워크플로우 모드)을 메인과 완전히 분리해서 씁니다 — 이미지 테마를 아무리 써도 클래식/스튜디오에서 쓰던 내 커스텀 워크플로우·설정이 절대 안 바뀝니다 (반복해서 설정 날아가던 문제 해결)",
@@ -5366,9 +5373,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         // 노드 입력 = (설치본 기본값 있으면 그걸, 없으면 내 폴백) + 내 연결/핵심 오버라이드
         function _comfyNodeInputs(cls, fallbackScalars, overrides) {
-            const defs = _comfyNodeDefCache[cls];
-            const base = (defs && Object.keys(defs).length) ? defs : (fallbackScalars || {});
-            return Object.assign({}, base, overrides);
+            // 순서 중요: 설치본 실제 기본값(defs)은 "내가 안 지정한 필수값을 채우는 용도"로만 쓰고,
+            // 내가 지정한 값(fallbackScalars, 예: IPAdapter preset)과 연결/핵심(overrides)이 반드시 우선한다.
+            // (예전엔 defs가 fallbackScalars를 덮어써서 preset이 노드 기본값으로 바뀌어 IPAdapter가 깨졌음)
+            const defs = _comfyNodeDefCache[cls] || {};
+            return Object.assign({}, defs, fallbackScalars || {}, overrides || {});
         }
         async function _comfyWD14Tag(imageName) {
             // 가상(개발자) 모드: 실제 ComfyUI 없이 흐름 테스트용 더미 태그
