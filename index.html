@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.29.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.30.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -589,9 +589,12 @@
         .preview-box { background-color: var(--folder-bg); border: 1px dashed var(--border-dim); border-radius: 8px; padding: 16px; color: var(--text-dim); font-size: 14px; line-height: 1.6; min-height: 60px; }
 
         .copy-btn-group { display: flex; gap: 12px; margin-top: auto; flex-shrink: 0; }
-        .btn-copy { flex: 1; color: #fff; border: none; padding: 14px; border-radius: 8px; font-size: 14px; font-weight: 800; font-family: var(--font-heading); cursor: pointer; transition: 0.2s;}
+        .btn-copy { flex: 1; color: #fff; border: none; padding: 11px 14px; border-radius: var(--r-md); font-size: 13px; font-weight: 800; font-family: var(--font-heading); cursor: pointer; transition: 0.2s; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
         .btn-copy:hover { filter: brightness(1.1); }
         .btn-copy.pos { background-color: var(--accent-blue); } .btn-copy.neg { background-color: var(--text-dim); }
+        /* 보조 액션 — 주 버튼(복사·전송)보다 시각적으로 낮춰 위계를 만든다 */
+        .btn-copy.secondary { background: transparent !important; border: 1px solid var(--border-dim) !important; color: var(--text-dim) !important; font-weight: 700; }
+        .btn-copy.secondary:hover { color: var(--text-main) !important; border-color: var(--text-dim) !important; filter: none; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--overlay-bg); display: none; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: none; }
         .modal-content {
@@ -1131,7 +1134,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.29.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.30.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1323,12 +1326,12 @@
                     </div>
                     <div id="pos-action-row" style="padding:8px 0 4px; display:flex; gap:8px; flex-wrap:wrap;">
                         <button class="btn-copy pos" style="flex:1 1 110px;" onclick="copyPrompt('pos')"><i class="fa-solid fa-copy"></i> 긍정 복사</button>
-                        <button id="btn-grok-pos" class="btn-copy" style="flex:1 1 110px; background:#1f2937; border-color:#4b5563;" onclick="openInGrok('pos')" title="Grok으로 프롬프트를 들고 열기 (복사도 함께)"><i class="fa-solid fa-arrow-up-right-from-square"></i> Grok으로 열기</button>
+                        <button id="btn-grok-pos" class="btn-copy secondary" style="flex:1 1 110px;" onclick="openInGrok('pos')" title="Grok으로 프롬프트를 들고 열기 (복사도 함께)"><i class="fa-solid fa-arrow-up-right-from-square"></i> Grok으로 열기</button>
                         <button id="btn-comfy-send-pos" class="btn-copy" style="flex:1 1 110px; display:none; background:#38bdf8; border-color:#38bdf8;" onclick="comfyQuickSend('pos')"><i class="fa-solid fa-paper-plane"></i> ComfyUI 전송</button>
                         <label id="comfy-send-neg-wrap" style="display:none; align-items:center; gap:5px; font-size:12px; color:var(--text-dim); cursor:pointer; white-space:nowrap; flex:0 0 auto;" title="켜면 ComfyUI 전송 시 부정 프롬프트도 함께 보냅니다. 끄면 긍정 프롬프트만 전송합니다.">
                             <input type="checkbox" id="comfy-send-neg-toggle" onchange="_comfySendNegSave()"> 부정 포함
                         </label>
-                        <button id="btn-multigen-pos" class="btn-copy" style="flex:0 0 auto; display:none; background:#a855f7; border-color:#a855f7; padding-left:14px; padding-right:14px;" onclick="openMultiGen()" title="다중 결과 생성"><i class="fa-solid fa-bolt"></i> 다중</button>
+                        <button id="btn-multigen-pos" class="btn-copy secondary" style="flex:0 0 auto; display:none; padding-left:14px; padding-right:14px;" onclick="openMultiGen()" title="다중 결과 생성"><i class="fa-solid fa-bolt" style="color:#a855f7;"></i> 다중</button>
                     </div>
                     <div id="comfy-inline-pos" style="display:none; padding-top:10px;">
                         <div id="comfy-inline-prog-pos" style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
@@ -1897,7 +1900,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.29.0', date: '2026-07-12', time: '최신',
+                version: 'v9.30.0', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[디자인] 결과창 버튼에 위계를 줬습니다 — 복사·ComfyUI 전송은 눈에 띄게, Grok·다중은 보조 버튼으로 낮춰 한눈에 뭘 눌러야 할지 보이게 했습니다",
+                ]
+            },
+            {
+                version: 'v9.29.0', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[이미지 변환] IPAdapter FaceID를 추가했습니다 — 원본 이미지의 얼굴을 참조해 실사 변환 후에도 인상을 유지합니다. 고급 파이프라인에서 켜고 강도 조절 (얼굴 일관성)",
