@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.25.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.26.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -30,6 +30,10 @@
             --glass-shadow: rgba(0,0,0,0.5);
             --glass-tint: rgba(120,170,255,0.06);
             --overlay-bg: rgba(0,0,0,0.12);
+            /* 간격·크기 스케일 (일관된 여백/정렬/크기용) */
+            --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px;
+            --r-sm: 6px; --r-md: 8px; --r-lg: 12px;
+            --ctl-h: 32px;
         }
 
         [data-theme="light"] {
@@ -561,6 +565,23 @@
 
         .result-box-container { display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
         .result-label { font-size: 14px; font-weight: 800; font-family: var(--font-heading); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+
+        /* ── 결과 패널 정돈 레이어 (일관 간격·정렬·위계) ── */
+        .rp-box { display: flex; flex-direction: column; gap: var(--sp-2); }
+        .rp-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
+        .rp-label { font-size: 11px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--text-dim); font-family: var(--font-heading); }
+        .rp-metrics { font-size: 12px; color: var(--text-dim); font-family: var(--font-code); white-space: nowrap; }
+        .rp-metrics b { color: var(--text-main); font-weight: 700; }
+        .rp-opts { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+        .rp-opts .sep { flex: 1; }
+        .ctl { height: var(--ctl-h); background: var(--input-bg); border: 1px solid var(--border-dim); border-radius: var(--r-md); color: var(--text-main); font-size: 12px; font-family: var(--font-ui); padding: 0 10px; outline: none; }
+        select.ctl { cursor: pointer; }
+        .ctl-chk { display: inline-flex; align-items: center; gap: 6px; height: var(--ctl-h); font-size: 12px; color: var(--text-dim); cursor: pointer; white-space: nowrap; }
+        .ctl-chk input { margin: 0; }
+        /* 경고 배너 — 문제 있을 때만 뜨는 조용한 톤 */
+        .rp-warn { display: none; align-items: center; gap: var(--sp-2); flex-wrap: wrap; font-size: 12px; font-weight: 700; padding: 8px 10px; border-radius: var(--r-md); border: 1px solid var(--border-dim); background: var(--bg-surface); }
+        .rp-warn .rp-warn-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+        .rp-warn button { font-size: 11px; padding: 4px 10px; border: none; border-radius: var(--r-sm); cursor: pointer; font-family: var(--font-ui); font-weight: 700; white-space: nowrap; color: #fff; }
 
         .result-textarea { width: 100%; min-height: 100px; background-color: var(--input-bg); border: 1px solid var(--border-dim); border-radius: 8px; padding: 16px; color: var(--text-main); font-family: var(--font-code); font-size: 14px; line-height: 1.6; resize: vertical; transition:0.3s;}
         /* 라이트박스 화살표 버튼 hover */
@@ -1110,7 +1131,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.25.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.26.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1242,29 +1263,27 @@
                 <!-- 긍정 탭 -->
                 <div class="result-tab-content active" id="rtab-content-pos">
                     <div class="result-box-container">
-                        <div class="result-label">
-                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                <span style="color:var(--accent-blue); white-space:nowrap;">통합 긍정 프롬프트</span>
-                                <select id="output-format-toggle" onchange="updateMasterOutput()" style="background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-dim); border-radius:6px; font-size:11px; padding:3px 6px; outline:none; font-family:var(--font-ui); cursor:pointer;">
-                                    <option value="labeled">구분자 포함</option>
-                                    <option value="comma" selected>순수 쉼표</option>
-                                </select>
-                                <label style="display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-dim); cursor:pointer;" title="켜면 복사와 ComfyUI 전송 모두 75토큰마다 BREAK로 나눠서 내보냅니다 (초과 태그도 온전히 반영). ComfyUI는 BREAK 지원 노드일 때만 효과.">
-                                    <input type="checkbox" id="break-toggle" onchange="updateMasterOutput()"> BREAK
-                                </label>
-                            </div>
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <span id="pos-count" style="color:var(--text-dim); font-weight:bold; font-family:var(--font-code); transition: color 0.3s; cursor:help; font-size: 13px;">0</span>
-                                <span id="token-count" style="color:var(--text-dim); font-weight:bold; font-family:var(--font-code); transition: color 0.3s; font-size: 11px;">약 0토큰</span>
-                            </div>
-                        </div>
-                        <div style="display:flex; align-items:center; gap:8px; margin:2px 0 6px; flex-wrap:wrap;">
-                            <label style="display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-dim); cursor:pointer; white-space:nowrap;">
-                                <input type="checkbox" id="fixed-prefix-toggle" onchange="_fixedPrefixSave()"> 고정 접두 태그 항상 넣기
-                            </label>
-                            <input type="text" id="fixed-prefix-text" oninput="_fixedPrefixSave()" placeholder="score_9, score_8_up, ..." title="추천·조합을 담아도 이 태그들은 항상 최종 프롬프트 맨 앞에 포함됩니다" style="flex:1 1 180px; min-width:0; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:6px; padding:5px 9px; color:var(--text-main); font-family:var(--font-code); font-size:12px; outline:none;">
+                        <div class="rp-head">
+                            <span class="rp-label">긍정 프롬프트</span>
+                            <span class="rp-metrics"><b id="pos-count">0</b> 태그 · <b id="token-count">약 0토큰</b></span>
                         </div>
                         <textarea class="result-textarea" id="final-positive" readonly></textarea>
+                        <div class="rp-opts">
+                            <select id="output-format-toggle" class="ctl" onchange="updateMasterOutput()">
+                                <option value="labeled">구분자 포함</option>
+                                <option value="comma" selected>순수 쉼표</option>
+                            </select>
+                            <label class="ctl-chk" title="켜면 복사와 ComfyUI 전송 모두 75토큰마다 BREAK로 나눠서 내보냅니다 (초과 태그도 온전히 반영). ComfyUI는 BREAK 지원 노드일 때만 효과.">
+                                <input type="checkbox" id="break-toggle" onchange="updateMasterOutput()"> BREAK
+                            </label>
+                            <span class="sep"></span>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:var(--sp-1);">
+                            <label class="ctl-chk" style="height:auto; color:var(--text-main); font-weight:600;">
+                                <input type="checkbox" id="fixed-prefix-toggle" onchange="_fixedPrefixSave()"> 고정 접두 태그 항상 넣기
+                            </label>
+                            <input type="text" id="fixed-prefix-text" class="ctl" oninput="_fixedPrefixSave()" placeholder="score_9, score_8_up, ..." title="추천·조합을 담아도 이 태그들은 항상 최종 프롬프트 맨 앞에 포함됩니다" style="width:100%; font-family:var(--font-code);">
+                        </div>
                         <div id="syntax-warning" style="display:none; margin-top:4px;">
                             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                                 <span style="color:var(--accent-danger);font-size:12px;font-weight:bold;flex:1 1 140px;min-width:120px;word-break:break-word;overflow-wrap:anywhere;"><i class="fa-solid fa-triangle-exclamation"></i> 문법 경고: <span id="syntax-warning-text"></span></span>
@@ -1878,7 +1897,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.25.1', date: '2026-07-12', time: '최신',
+                version: 'v9.26.0', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[디자인] 결과 패널을 정돈했습니다 (3개 테마 공통) — 제목을 조용한 소제목으로 낮추고 '태그 수·토큰 수'를 깔끔한 지표로, 프롬프트를 위로 크게, 포맷·BREAK·고정접두는 아래 일관된 크기의 보조 컨트롤로 재배치했습니다. 여백·정렬·크기를 통일해 한눈에 들어오게 했습니다",
+                ]
+            },
+            {
+                version: 'v9.25.1', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[이미지 변환] WD14 태거 모델을 직접 타이핑하지 않고 ComfyUI에 설치된 목록에서 드롭다운으로 고르게 했습니다 — 고급 설정에서 선택, 옆 새로고침 버튼으로 목록 갱신 (연결 안 되면 현재 모델만 표시)",
