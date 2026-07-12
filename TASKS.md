@@ -5,6 +5,16 @@
 
 ## 🔴 진행/대기 (Open)
 
+- [x] **[테마별 추천 설정]** — ✅완료(v9.40.0). 변환/인페인팅 각각 추천 생성설정.
+  · ComfyUI 설정 키를 테마별 분리: `COMFY_TRANSFORM_KEY`/`COMFY_INPAINT_KEY`(+구 `COMFY_IMG_KEY` 폴백),
+    `_comfyActiveSettingsKey()`가 `_comfyImgKind`로 선택. `_comfyEnterImageSettings(kind)`.
+  · `_img2img` 파이프라인도 테마별 저장: `_img2imgKey()` → `comfy_img2img_transform_v1`/`_inpaint_v1`.
+  · 추천값: `_i2iRecommendedValues(kind)` (변환 30/6/dpmpp_2m_sde/karras/den0.5/CN0.65/FD ON,
+    인페인트 30/7/den0.85/grow10/Fooocus/CN·FD OFF). `_i2iApplyRecommendedFor(kind,silent)`.
+  · **최초 1회만** 자동 주입: `comfy_<kind>_seeded_v1` 플래그. 이후엔 버튼(추천 설정으로)만.
+  · **메인 보호**: gen 파라미터는 `_comfyImgSettingsOn`일 때만 씀(격리 밖에선 절대 안 씀). 테스트 vimgset.js.
+- [x] **[실사태그 토글 버그]** — ✅수정(v9.40.0). `addRealism` 체크박스 onchange가 상태만 바꾸고
+  `updateMasterOutput()`를 안 불러 결과창에 실사 태그가 남던 것 → onchange에 재계산 추가. 테스트 vrealtoggle.js.
 - [x] **[갤러리 개별 삭제]** — ✅완료(v9.39.0). 썸네일 hover(모바일 상시) X 버튼 + 우클릭/롱프레스
   메뉴 '이 이미지 삭제'. `galleryDeleteImage(url)`이 `_galleryUrls`/`_galleryMeta`에서 제거+저장+재렌더.
   라이트박스에선 삭제 제외(화면 상태 꼬임 방지). 테스트 vgaldel.js.

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.39.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.40.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1156,7 +1156,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.39.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.40.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1922,7 +1922,15 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.39.0', date: '2026-07-12', time: '최신',
+                version: 'v9.40.0', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지 변환·인페인팅] 두 테마 각각에 맞춘 추천 생성 설정을 넣었습니다 — 처음 그 테마에 들어갈 때 딱 한 번만 추천값(Steps·CFG·샘플러·스케줄러·변환강도·ControlNet/FaceDetailer 등)이 자동으로 채워지고, 그 뒤로는(테마 이동·새로고침 포함) 절대 자동으로 바뀌지 않습니다. 직접 값을 바꿔도 되고, '추천 설정으로' 버튼을 누르면 언제든 그 테마의 추천값으로 되돌아옵니다. 변환/인페인팅 설정은 서로 완전히 별개이며, 클래식·스튜디오(내 ComfyUI 워크플로우·스텝·시드)는 전혀 건드리지 않습니다",
+                    "[이미지 변환] '실사 변환 태그 자동 추가' 체크를 끄면 결과창의 실사 태그(photo, realistic 등)가 즉시 사라지도록 고쳤습니다 (이전엔 껐는데도 최종 프롬프트에 남아 있었음)",
+                ]
+            },
+            {
+                version: 'v9.39.0', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[갤러리] 이미지를 한 장씩 삭제할 수 있습니다 — 갤러리 썸네일에 마우스를 올리면(모바일은 상시) 오른쪽 위에 X 버튼이 뜨고, 누르면 그 이미지만 목록에서 지워집니다. 이미지를 우클릭/꾹 누르면 뜨는 메뉴에도 '이 이미지 삭제'가 추가됐습니다. (ComfyUI에 저장된 원본 파일은 그대로 두고 갤러리 목록에서만 제거)",
@@ -4274,9 +4282,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         const COMFY_KEY = 'comfy_settings_v1';
         // 이미지 변환·인페인팅 전용 ComfyUI 설정 저장소 — 메인(클래식/스튜디오 text2img)과 완전 분리.
         // 이미지 테마에 있을 땐 저장/복원이 이 키로 가서, 사용자의 메인 워크플로우·스텝·시드 등을 절대 안 건드림.
-        const COMFY_IMG_KEY = 'comfy_settings_image_v1';
+        const COMFY_IMG_KEY = 'comfy_settings_image_v1';                 // (구버전) 변환·인페인팅 공용 키 — 마이그레이션용 폴백
+        const COMFY_TRANSFORM_KEY = 'comfy_settings_transform_v1';       // 이미지 변환(2D→실사) 전용
+        const COMFY_INPAINT_KEY = 'comfy_settings_inpaint_v1';           // 이미지 인페인팅 전용
         let _comfyImgSettingsOn = false; // 현재 이미지 테마 설정을 편집 중인지
-        function _comfyActiveSettingsKey() { return _comfyImgSettingsOn ? COMFY_IMG_KEY : COMFY_KEY; }
+        let _comfyImgKind = null;        // 'transform' | 'inpaint' | null(메인)
+        function _comfyActiveSettingsKey() {
+            if (!_comfyImgSettingsOn) return COMFY_KEY;
+            return _comfyImgKind === 'inpaint' ? COMFY_INPAINT_KEY : COMFY_TRANSFORM_KEY;
+        }
         let _comfySocket = null;
         let _comfyClientId = null;
         let _comfyConnectedOnce = false;
@@ -4519,18 +4533,36 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // ── 이미지 테마(변환·인페인팅) ComfyUI 설정 분리 ──
         // 진입: 메인 설정 저장 → (첫 진입이면 메인을 복제) → 이미지 설정 로드 → 기본 모드 강제(커스텀 워크플로우 안 씀)
         // 이탈: 이미지 설정 저장 → 메인 설정 복원. 메인 키는 이미지 편집 중 절대 안 건드려짐.
-        function _comfyEnterImageSettings() {
-            if (_comfyImgSettingsOn) return;
-            _comfySaveSettings(); // 현재 메인 설정 확정 저장(메인 키)
-            try { if (!localStorage.getItem(COMFY_IMG_KEY)) { const m = localStorage.getItem(COMFY_KEY); if (m) localStorage.setItem(COMFY_IMG_KEY, m); } } catch (e) {} // 첫 진입: 메인 복제(URL 등 그대로)
+        function _comfyEnterImageSettings(kind) {
+            kind = (kind === 'inpaint') ? 'inpaint' : 'transform';
+            if (_comfyImgSettingsOn && _comfyImgKind === kind) return;
+            _comfySaveSettings(); // 현재 폼(메인) 확정 저장(메인 키) — 이미지 테마 전환은 항상 메인 경유(exit→enter)
             _comfyImgSettingsOn = true;
-            _comfyRestoreSettings(); // 이미지 키 → 폼
+            _comfyImgKind = kind;
+            const themeKey = _comfyActiveSettingsKey();
+            // 첫 진입: 이 테마 키가 없으면 (구버전 공용키 → 없으면 메인) 복제해서 URL·체크포인트 등 이어받음
+            try {
+                if (!localStorage.getItem(themeKey)) {
+                    const base = localStorage.getItem(COMFY_IMG_KEY) || localStorage.getItem(COMFY_KEY);
+                    if (base) localStorage.setItem(themeKey, base);
+                }
+            } catch (e) {}
+            _comfyRestoreSettings(); // 테마 키 → 폼
             try { comfySetWfMode('basic'); } catch (e) {} // 이미지 테마는 항상 기본 워크플로우(커스텀 JSON 안 건드림)
+            // ★ '완전 처음' 이 테마에 들어온 경우에만 딱 한 번 추천값 자동 주입.
+            //   이후로는(테마 전환·새로고침 포함) 절대 자동 주입 안 함 — 사용자가 버튼 누를 때만.
+            let firstEver = false;
+            try { firstEver = !localStorage.getItem('comfy_' + kind + '_seeded_v1'); } catch (e) {}
+            if (firstEver) {
+                try { _i2iApplyRecommendedFor(kind, true); } catch (e) {} // silent(토스트 없이)
+                try { localStorage.setItem('comfy_' + kind + '_seeded_v1', '1'); } catch (e) {}
+            }
         }
         function _comfyExitImageSettings() {
             if (!_comfyImgSettingsOn) return;
-            _comfySaveSettings(); // 이미지 설정 저장(이미지 키)
+            _comfySaveSettings(); // 이미지 설정 저장(현재 테마 키)
             _comfyImgSettingsOn = false;
+            _comfyImgKind = null;
             _comfyRestoreSettings(); // 메인 키 → 폼 (내 커스텀 워크플로우·스텝·시드 원상복구)
         }
         window.__comfyEnterImageSettings = _comfyEnterImageSettings;
@@ -4999,10 +5031,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             fooocusHead: 'fooocus_inpaint_head.pth',
             fooocusPatch: 'inpaint_v26.fooocus.patch'
         };
+        // 변환/인페인팅은 파이프라인 옵션도 각각 별도 저장 (서로 안 섞이게). 구버전 공용키는 폴백.
+        function _img2imgKey() { return _img2img.editMode === 'inpaint' ? 'comfy_img2img_inpaint_v1' : 'comfy_img2img_transform_v1'; }
         function _img2imgSave() {
             // 이미지 원본(dataURL)은 용량이 커 localStorage에 넣지 않음. 설정값만 영속.
             try {
-                localStorage.setItem(IMG2IMG_KEY, JSON.stringify({
+                localStorage.setItem(_img2imgKey(), JSON.stringify({
                     denoise: _img2img.denoise, autoTag: _img2img.autoTag,
                     wd14Model: _img2img.wd14Model, wd14Threshold: _img2img.wd14Threshold, addRealism: _img2img.addRealism, maxSide: _img2img.maxSide,
                     loras: _img2img.loras, controlnet: _img2img.controlnet, cnModel: _img2img.cnModel, cnStrength: _img2img.cnStrength,
@@ -5014,7 +5048,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         function _img2imgRestore() {
             try {
-                const s = JSON.parse(localStorage.getItem(IMG2IMG_KEY) || '{}');
+                let raw = localStorage.getItem(_img2imgKey());
+                if (raw == null) raw = localStorage.getItem(IMG2IMG_KEY); // 구버전 공용키에서 이어받기
+                const s = JSON.parse(raw || '{}');
                 if (typeof s.denoise === 'number') _img2img.denoise = s.denoise;
                 if (typeof s.autoTag === 'boolean') _img2img.autoTag = s.autoTag;
                 if (typeof s.wd14Model === 'string' && s.wd14Model) _img2img.wd14Model = s.wd14Model;
@@ -5474,20 +5510,56 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // Pony Realism 코스프레 변환 권장 세팅 원클릭
         // 권장 기본값으로 "초기화" — 생성 파라미터 + 고급 파이프라인을 안전한 기본 상태로 되돌림
         // (뭔가 잘못 바꿔서 안 될 때 한 방에 복구)
-        function _i2iApplyRecommendedSettings() {
-            // ⚠ 사용자의 전역 ComfyUI 설정(스텝·CFG·샘플러·스케줄러·체크포인트)은 절대 건드리지 않는다.
-            //   (이미지 변환/인페인트는 사용자가 설정한 생성 파라미터를 그대로 사용)
-            _img2imgSetDenoise(0.5);
-            // 고급 파이프라인만 기본값으로 (ControlNet만 ON = 원본 포즈·구도 유지 · 나머지 OFF · 자동태깅 켬)
-            _img2img.loras = [];
-            _img2img.controlnet = true; _img2img.cnModel = 'OpenPoseXL2.safetensors'; _img2img.cnStrength = 0.7;
-            _img2img.ipadapter = false; _img2img.ipaWeight = 0.75;
-            _img2img.faceDetailer = false; _img2img.fdModel = 'bbox/face_yolov8m.pt';
-            _img2img.upscale = false; _img2img.upscaleModel = '4x-UltraSharp.pth'; _img2img.upscaleBy = 2;
-            _img2img.autoTag = true; _img2img.addRealism = true; _img2img.maxSide = 1152;
-            _img2img.wd14Model = 'wd-v1-4-moat-tagger-v2'; _img2img.wd14Threshold = 0.35;
+        // 테마별 추천값 정의 (gen = ComfyUI 생성 파라미터 / img = 파이프라인·이미지 옵션)
+        // ⚠ 이 값들은 격리된 이미지 테마 키에만 반영됨 — 메인(클래식/스튜디오) 설정은 절대 안 건드림.
+        function _i2iRecommendedValues(kind) {
+            if (kind === 'inpaint') {
+                return {
+                    gen: { steps: 30, cfg: 7, sampler: 'dpmpp_2m_sde', scheduler: 'karras' },
+                    img: {
+                        inpaintDenoise: 0.85, maskGrow: 10, fooocus: true,
+                        controlnet: false, ipadapter: false, faceDetailer: false, upscale: false,
+                        autoTag: false, addRealism: false, loras: []
+                    }
+                };
+            }
+            // transform (2D→실사)
+            return {
+                gen: { steps: 30, cfg: 6, sampler: 'dpmpp_2m_sde', scheduler: 'karras' },
+                img: {
+                    denoise: 0.50,
+                    controlnet: true, cnModel: 'OpenPoseXL2.safetensors', cnStrength: 0.65,
+                    faceDetailer: true, fdModel: 'bbox/face_yolov8m.pt',
+                    ipadapter: false, ipaWeight: 0.75, upscale: false, upscaleModel: '4x-UltraSharp.pth', upscaleBy: 2,
+                    autoTag: true, addRealism: true, maxSide: 1152,
+                    wd14Model: 'wd-v1-4-moat-tagger-v2', wd14Threshold: 0.35, loras: []
+                }
+            };
+        }
+        // 추천값 적용 — 격리 상태(이미지 테마)에서만 호출됨. silent=true면 토스트 없음(최초 자동 주입용).
+        function _i2iApplyRecommendedFor(kind, silent) {
+            kind = (kind === 'inpaint') ? 'inpaint' : 'transform';
+            const rec = _i2iRecommendedValues(kind);
+            // 1) ComfyUI 생성 파라미터 → 격리(이미지 테마)일 때만 반영. 어떤 경우에도 메인(클래식/스튜디오) 키엔 안 씀.
+            if (_comfyImgSettingsOn) {
+                const setV = (id, v) => { const e = document.getElementById(id); if (e != null) e.value = v; };
+                setV('comfy-steps', rec.gen.steps);
+                setV('comfy-cfg', rec.gen.cfg);
+                const selOpt = (id, v) => { const e = document.getElementById(id); if (e && [...e.options].some(o => o.value === v || o.text === v)) e.value = v; };
+                selOpt('comfy-sampler', rec.gen.sampler);
+                selOpt('comfy-scheduler', rec.gen.scheduler);
+                try { _comfySaveSettings(); } catch (e) {} // 활성 키 = 이미지 테마 키
+            }
+            // 2) 파이프라인·이미지 옵션
+            Object.assign(_img2img, rec.img);
             _img2imgSave();
-            showToast('이미지 옵션만 기본값으로 초기화했습니다 (내 ComfyUI 스텝·CFG·샘플러 설정은 그대로 유지)', 'success', 4200);
+            if (!silent) showToast(kind === 'inpaint'
+                ? '인페인팅 추천 설정으로 되돌렸어요 (내 클래식/스튜디오 설정은 그대로)'
+                : '이미지 변환 추천 설정으로 되돌렸어요 (내 클래식/스튜디오 설정은 그대로)', 'success', 4200);
+        }
+        // 현재 테마 기준 추천값 복원 (버튼용)
+        function _i2iApplyRecommendedSettings() {
+            _i2iApplyRecommendedFor(_img2img.editMode === 'inpaint' ? 'inpaint' : 'transform', false);
         }
         window.__i2iApplyRecommended = _i2iApplyRecommendedSettings;
 
@@ -18923,15 +18995,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         // ── 이미지 변환 (img2img): 원본 이미지 + 강도 · 에디터/결과 재사용 ──
         function mountImg2img() {
-            try { _img2imgRestore(); } catch (e) {}
-            _img2img.enabled = true;
             // 이 마운트가 '이미지 변환'인지 '이미지 인페인팅'인지 — 레이아웃 id로 결정. 테마별로 모드 고정(토글 없음).
             const IS_INPAINT = (_plCurrent === 'inpaint');
-            _img2img.editMode = IS_INPAINT ? 'inpaint' : 'transform';
+            _img2img.editMode = IS_INPAINT ? 'inpaint' : 'transform'; // 복원 전에 확정 → 테마별 저장키가 맞게 선택됨
+            try { _img2imgRestore(); } catch (e) {}
+            _img2img.editMode = IS_INPAINT ? 'inpaint' : 'transform'; // 복원값이 덮어써도 테마 기준으로 다시 고정
+            _img2img.enabled = true;
             // 변환/인페인팅은 각각 별도 세션(탭·태그) — 서로도, 클래식/스튜디오와도 공유하지 않음
             try { if (window.__i2iEnterSession) window.__i2iEnterSession(IS_INPAINT ? 'inpaint' : 'transform'); } catch (e) {}
-            // ComfyUI 생성 설정도 이미지 전용으로 분리(메인 커스텀 워크플로우·스텝·시드 보호)
-            try { if (window.__comfyEnterImageSettings) window.__comfyEnterImageSettings(); } catch (e) {}
+            // ComfyUI 생성 설정도 이미지 전용으로 분리(메인 커스텀 워크플로우·스텝·시드 보호). 완전 최초 1회만 추천값 주입.
+            try { if (window.__comfyEnterImageSettings) window.__comfyEnterImageSettings(IS_INPAINT ? 'inpaint' : 'transform'); } catch (e) {}
 
             // ── 설정별 도움말 내용 + "?" 버튼 헬퍼 (아래 UI 구성보다 먼저 정의돼야 함) ──
             const HLP = {
@@ -19131,7 +19204,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 chkHelp('analyze'));
 
             // 고급 설정(접이식): 실사 태그 추가 · WD14 모델 · 임계값 · 최대 크기
-            const realismChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.addRealism = e.target.checked; _img2imgSave(); } }); realismChk.checked = _img2img.addRealism;
+            const realismChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.addRealism = e.target.checked; _img2imgSave(); try { updateMasterOutput(); } catch (e) {} } }); realismChk.checked = _img2img.addRealism; // 끄면 결과창의 실사·부정 태그가 즉시 빠지도록 재계산
             const modelSelect = el('select', { class: 'comfy-num', style: 'flex:1; min-width:0; font-size:11px; font-family:var(--font-code);', onchange: (e) => { _img2img.wd14Model = e.target.value; _img2imgSave(); } });
             const modelRefresh = el('button', { class: 'action-btn', title: '설치된 모델 목록 새로고침', style: 'flex:0 0 auto; font-size:11px; padding:6px 9px;', html: '<i class="fa-solid fa-rotate"></i>', onclick: () => fillModels(true) });
             // 설치된 모델 목록으로 드롭다운 채움 (실패하면 현재 값만 표시)
@@ -19252,9 +19325,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 upChk.checked = _img2img.upscale; upBody.style.display = _img2img.upscale ? 'flex' : 'none'; upByeSel.value = String(_img2img.upscaleBy);
                 autoChk.checked = _img2img.autoTag; realismChk.checked = _img2img.addRealism;
                 thrInput.value = _img2img.wd14Threshold; sizeInput.value = _img2img.maxSide;
+                try { growInput.value = _img2img.maskGrow; } catch (e) {} // 인페인트 마스크 확장
+                try { fooChk.checked = _img2img.fooocus; } catch (e) {}   // Fooocus 패치
                 try { renderLoras(); } catch (e) {}
                 try { enumFills.forEach(f => f()); } catch (e) {}
                 try { syncDn(); } catch (e) {}
+                try { syncIpDn(); } catch (e) {} // 인페인트 강도
             }
 
             const pipeBody = el('div', { style: 'display:none; flex-direction:column; gap:16px; padding-top:12px;' },
@@ -19304,7 +19380,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const introDiv = el('div', { style: 'font-size:12px; color:var(--text-dim); line-height:1.6;', html: IS_INPAINT
                 ? '🖌 <b>부분 편집(인페인팅)</b>: <b>①</b> 이미지 넣기 → <b>②</b> 바꿀 곳 브러시로 칠하기 → <b>③</b> 아래 "칠한 곳에 넣을 것"에 적기 → <b>④</b> 오른쪽 <b>ComfyUI 전송</b>.'
                 : '🎨 <b>실사 변환</b>: 2D 이미지를 실사로 <b>전체 변환</b>합니다. <b>왼쪽 에디터</b>에서 프롬프트를 손보고 <b>오른쪽 ComfyUI 전송</b>을 누르세요.' });
-            const resetBtn = el('button', { class: 'action-btn', style: 'width:100%; background:var(--accent-green); color:#fff; border:none; font-weight:800; padding:9px;', title: '이미지 옵션만 안전한 기본값으로 되돌립니다(내 ComfyUI 생성설정은 유지)', html: '<i class="fa-solid fa-rotate-left"></i> 이미지 옵션 기본값으로', onclick: () => { _i2iApplyRecommendedSettings(); _syncPipelineUI(); } });
+            const resetBtn = el('button', { class: 'action-btn', style: 'width:100%; background:var(--accent-green); color:#fff; border:none; font-weight:800; padding:9px;', title: (IS_INPAINT ? '인페인팅' : '이미지 변환') + ' 전용 추천값(Steps·CFG·샘플러·강도·파이프라인)으로 되돌립니다. 이 테마 설정에만 적용되고 클래식/스튜디오 및 다른 이미지 테마는 안 건드립니다.', html: '<i class="fa-solid fa-rotate-left"></i> ' + (IS_INPAINT ? '인페인팅' : '실사 변환') + ' 추천 설정으로', onclick: () => { _i2iApplyRecommendedSettings(); _syncPipelineUI(); } });
 
             const contentKids = IS_INPAINT
                 ? [introDiv, thumbWrap, drop, urlRow, fileInput, inpaintTools, simpleWrap, resetBtn, pipeWrap]
