@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.21.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.21.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1090,7 +1090,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.21.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.21.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1858,10 +1858,10 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.21.0', date: '2026-07-12', time: '최신',
+                version: 'v9.21.1', date: '2026-07-12', time: '최신',
                 tag: 'feat',
                 items: [
-                    "[ComfyUI 전송] 긍정 결과창의 'ComfyUI 전송' 옆에 '부정 포함' 체크박스를 추가했습니다 — 켜면 부정 프롬프트도 함께, 끄면 긍정만 전송합니다. (기본값: 켜짐, 선택은 저장됨)",
+                    "[ComfyUI 전송] 긍정 결과창의 'ComfyUI 전송' 옆에 '부정 포함' 체크박스를 추가했습니다 — 켜면 부정 프롬프트도 함께, 끄면 긍정만 전송합니다. (기본값: 꺼짐=긍정만, 선택은 저장됨)",
                 ]
             },
             {
@@ -4054,9 +4054,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function comfyToggleMockMode() { DevMode.toggle(); }
 
         // 긍정/부정 탭에서 바로 전송 — 모달 없이 인라인 진행바·미리보기로 실행
-        // 긍정 전송 시 "부정 포함" 여부 (기본 ON) — localStorage 영속
+        // 긍정 전송 시 "부정 포함" 여부 (기본 OFF = 긍정만) — localStorage 영속
         const COMFY_SENDNEG_KEY = 'comfy_send_neg_v1';
-        function _comfySendNegOn() { const v = localStorage.getItem(COMFY_SENDNEG_KEY); return v === null ? true : v === '1'; }
+        function _comfySendNegOn() { const v = localStorage.getItem(COMFY_SENDNEG_KEY); return v === null ? false : v === '1'; }
         function _comfySendNegSave() { const cb = document.getElementById('comfy-send-neg-toggle'); if (cb) { try { localStorage.setItem(COMFY_SENDNEG_KEY, cb.checked ? '1' : '0'); } catch (e) {} } }
         function _comfySendNegRestore() { const cb = document.getElementById('comfy-send-neg-toggle'); if (cb) cb.checked = _comfySendNegOn(); }
 
