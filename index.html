@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.25.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.25.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1110,7 +1110,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.25.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.25.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1878,7 +1878,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.25.0', date: '2026-07-12', time: '최신',
+                version: 'v9.25.1', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지 변환] WD14 태거 모델을 직접 타이핑하지 않고 ComfyUI에 설치된 목록에서 드롭다운으로 고르게 했습니다 — 고급 설정에서 선택, 옆 새로고침 버튼으로 목록 갱신 (연결 안 되면 현재 모델만 표시)",
+                ]
+            },
+            {
+                version: 'v9.25.0', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[이미지 변환] 자동 태깅(WD14)을 추가했습니다 — 이미지를 넣으면 자동으로 분석해 danbooru 태그(노출·행위 태그 포함)를 에디터에 채워줍니다. 이제 '올리면 태그가 알아서 채워지고 → 전송 딸깍' 흐름이 됩니다 (ComfyUI에 WD14 Tagger 노드 필요)",
@@ -4805,6 +4812,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (o.STRING != null) return pick(o.STRING);
             }
             return null;
+        }
+        // ComfyUI에 설치된 WD14 태거 모델 목록 (/object_info에서 enum 회수)
+        async function _comfyWD14Models() {
+            if (typeof DevMode !== 'undefined' && DevMode.feature && DevMode.feature('mockGen')) {
+                return ['wd-eva02-large-tagger-v3', 'wd-vit-tagger-v3', 'wd-swinv2-tagger-v3', 'wd-convnext-tagger-v3', 'wd-v1-4-moat-tagger-v2'];
+            }
+            try {
+                const cls = 'WD14Tagger|pysssss';
+                const res = await fetch(_comfyBase() + '/object_info/' + encodeURIComponent(cls));
+                if (!res.ok) return null;
+                const data = await res.json();
+                const node = data && data[cls];
+                const m = node && node.input && node.input.required && node.input.required.model;
+                const list = Array.isArray(m) ? m[0] : null;
+                return (Array.isArray(list) && list.length) ? list : null;
+            } catch (e) { return null; }
         }
         async function _comfyWD14Tag(imageName) {
             // 가상(개발자) 모드: 실제 ComfyUI 없이 흐름 테스트용 더미 태그
@@ -18067,12 +18090,30 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
             // 고급 설정(접이식): 실사 태그 추가 · WD14 모델 · 임계값 · 최대 크기
             const realismChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.addRealism = e.target.checked; _img2imgSave(); } }); realismChk.checked = _img2img.addRealism;
-            const modelInput = el('input', { type: 'text', value: _img2img.wd14Model, style: 'flex:1; min-width:0; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:6px; padding:6px 8px; color:var(--text-main); font-size:11px; font-family:var(--font-code); outline:none;', onchange: (e) => { _img2img.wd14Model = e.target.value.trim() || 'wd-v1-4-moat-tagger-v2'; _img2imgSave(); } });
+            const modelSelect = el('select', { class: 'comfy-num', style: 'flex:1; min-width:0; font-size:11px; font-family:var(--font-code);', onchange: (e) => { _img2img.wd14Model = e.target.value; _img2imgSave(); } });
+            const modelRefresh = el('button', { class: 'action-btn', title: '설치된 모델 목록 새로고침', style: 'flex:0 0 auto; font-size:11px; padding:6px 9px;', html: '<i class="fa-solid fa-rotate"></i>', onclick: () => fillModels(true) });
+            // 설치된 모델 목록으로 드롭다운 채움 (실패하면 현재 값만 표시)
+            async function fillModels(toast) {
+                const cur = _img2img.wd14Model;
+                let list = await _comfyWD14Models();
+                if (!list || !list.length) {
+                    modelSelect.innerHTML = '';
+                    modelSelect.appendChild(el('option', { value: cur }, cur + ' (목록 못 불러옴 — 연결 확인)'));
+                    modelSelect.value = cur;
+                    if (toast) showToast('설치된 모델 목록을 못 불러왔습니다. ComfyUI 연결/노드를 확인하세요.', 'warning', 4000);
+                    return;
+                }
+                if (!list.includes(cur)) list = [cur, ...list];
+                modelSelect.innerHTML = '';
+                list.forEach(m => modelSelect.appendChild(el('option', { value: m }, m)));
+                modelSelect.value = cur;
+                if (toast) showToast(`설치된 태거 모델 ${list.length}개 불러옴`, 'success', 2000);
+            }
             const thrInput = el('input', { type: 'number', min: '0.1', max: '0.9', step: '0.05', value: _img2img.wd14Threshold, style: 'width:72px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:6px; padding:6px 8px; color:var(--text-main); font-size:12px; outline:none;', onchange: (e) => { let v = parseFloat(e.target.value); if (isNaN(v)) v = 0.35; _img2img.wd14Threshold = Math.max(0.1, Math.min(0.9, v)); _img2imgSave(); } });
             const sizeInput = el('input', { type: 'number', min: '512', max: '2048', step: '64', value: _img2img.maxSide, style: 'width:82px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:6px; padding:6px 8px; color:var(--text-main); font-size:12px; outline:none;', onchange: (e) => { let v = parseInt(e.target.value); if (isNaN(v)) v = 1152; _img2img.maxSide = Math.max(512, Math.min(2048, v)); _img2imgSave(); } });
             const advBody = el('div', { style: 'display:none; flex-direction:column; gap:11px; padding-top:11px;' },
                 el('label', { style: 'display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-main); cursor:pointer;' }, realismChk, '실사 변환 태그 자동 추가 (source_photo, realistic …)'),
-                el('div', {}, el('div', { style: 'font-size:11px; color:var(--text-dim); margin-bottom:4px;' }, 'WD14 태거 모델명 (설치본에 맞게)'), modelInput),
+                el('div', {}, el('div', { style: 'font-size:11px; color:var(--text-dim); margin-bottom:4px;' }, 'WD14 태거 모델 (설치된 것 중 선택)'), el('div', { style: 'display:flex; gap:6px; align-items:center;' }, modelSelect, modelRefresh)),
                 el('div', { style: 'display:flex; align-items:center; gap:8px; flex-wrap:wrap;' }, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, '태그 임계값'), thrInput, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, '· 최대 크기(긴 변)'), sizeInput, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, 'px')));
             const advToggle = el('div', { style: 'font-size:11px; color:var(--text-dim); cursor:pointer; user-select:none;', html: '▼ 자동 태깅 고급 설정 (WD14)', onclick: () => { const on = advBody.style.display === 'none'; advBody.style.display = on ? 'flex' : 'none'; advToggle.innerHTML = (on ? '▲' : '▼') + ' 자동 태깅 고급 설정 (WD14)'; } });
             const advWrap = el('div', { style: 'border-top:1px solid var(--border-dim); padding-top:12px;' }, advToggle, advBody);
@@ -18101,6 +18142,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 이전에 넣어둔 원본 이미지 복원 (메모리에 없으면 localStorage에서) → 생성/재렌더 후에도 유지
             try { if (!_img2img.dataURL) _img2imgRestoreSrc(); } catch (e) {}
             syncThumb();
+            try { fillModels(false); } catch (e) {} // 설치된 WD14 모델 목록 채우기(비동기)
             try { if (window.comfyUpdateQuickButtons) comfyUpdateQuickButtons(); } catch (e) {}
 
             // 드래그&드롭
