@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.26.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.27.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1131,7 +1131,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.26.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.27.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1897,7 +1897,15 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.26.0', date: '2026-07-12', time: '최신',
+                version: 'v9.27.0', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지 변환] Pony Realism 코스프레 변환 품질을 끌어올렸습니다 — 실사 태그를 코스프레 방향(source_photo, cosplay photo, detailed skin texture)으로 바꾸고, 애니 느낌을 억제하는 부정 태그(source_anime, cel shading 등)를 자동으로 넣고, Pony에 필요한 CLIP skip 2를 워크플로우에 적용했습니다",
+                    "[이미지 변환] 'Pony Realism 권장 세팅 적용' 버튼 추가 — 누르면 denoise 0.5 · 30스텝 · CFG 6.5 · dpmpp_2m/karras가 한 번에 세팅됩니다",
+                ]
+            },
+            {
+                version: 'v9.26.0', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[디자인] 결과 패널을 정돈했습니다 (3개 테마 공통) — 제목을 조용한 소제목으로 낮추고 '태그 수·토큰 수'를 깔끔한 지표로, 프롬프트를 위로 크게, 포맷·BREAK·고정접두는 아래 일관된 크기의 보조 컨트롤로 재배치했습니다. 여백·정렬·크기를 통일해 한눈에 들어오게 했습니다",
@@ -4737,8 +4745,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 img.src = dataURL;
             });
         }
-        // 실사 변환용 스타일 태그 (분석 태그 앞에 붙여 "실사화" 방향을 잡아줌)
-        const _I2I_REALISM_TAGS = ['source_photo', 'realistic', 'photorealistic', 'photography', 'detailed skin', 'film grain'];
+        // 실사 변환용 스타일 태그 (분석 태그 앞에 붙여 "실사화" 방향을 잡아줌) — Pony Realism 코스프레 방향
+        const _I2I_REALISM_TAGS = ['source_photo', 'photorealistic', 'realistic', 'cosplay photo', 'detailed skin texture'];
+        // 실사 변환 시 자동으로 넣는 부정 태그 (애니 느낌 억제) — 이미지 변환 모드에서만 최종 부정에 합쳐짐
+        const _I2I_NEG_TAGS = ['source_anime', 'anime', 'cartoon', '2d', 'cel shading', 'score_6', 'score_5', 'score_4'];
         function _img2imgSetDenoise(v) {
             let n = parseFloat(v); if (isNaN(n)) n = 0.6;
             _img2img.denoise = Math.max(0.05, Math.min(1, n));
@@ -4816,12 +4826,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     "model": ["4", 0], "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["11", 0]
                 }},
                 "4": { "class_type": "CheckpointLoaderSimple", "inputs": { "ckpt_name": document.getElementById('comfy-ckpt').value } },
-                "6": { "class_type": "CLIPTextEncode", "inputs": { "text": pos, "clip": ["4", 1] } },
-                "7": { "class_type": "CLIPTextEncode", "inputs": { "text": neg, "clip": ["4", 1] } },
+                "6": { "class_type": "CLIPTextEncode", "inputs": { "text": pos, "clip": ["12", 0] } },
+                "7": { "class_type": "CLIPTextEncode", "inputs": { "text": neg, "clip": ["12", 0] } },
                 "8": { "class_type": "VAEDecode", "inputs": { "samples": ["3", 0], "vae": ["4", 2] } },
                 "9": { "class_type": "SaveImage", "inputs": { "filename_prefix": "PromptLab_i2i", "images": ["8", 0] } },
                 "10": { "class_type": "LoadImage", "inputs": { "image": imageName } },
-                "11": { "class_type": "VAEEncode", "inputs": { "pixels": ["10", 0], "vae": ["4", 2] } }
+                "11": { "class_type": "VAEEncode", "inputs": { "pixels": ["10", 0], "vae": ["4", 2] } },
+                "12": { "class_type": "CLIPSetLastLayer", "inputs": { "clip": ["4", 1], "stop_at_clip_layer": -2 } }
             };
         }
 
@@ -4910,6 +4921,20 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return true;
         }
         window.__i2iAnalyzeAndFill = _i2iAnalyzeAndFill;
+        // Pony Realism 코스프레 변환 권장 세팅 원클릭
+        function _i2iApplyRecommendedSettings() {
+            const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+            set('comfy-sampler', 'dpmpp_2m');
+            set('comfy-scheduler', 'karras');
+            set('comfy-steps', '30');
+            set('comfy-cfg', '6.5');
+            const ck = document.getElementById('comfy-ckpt');
+            if (ck && !ck.value.trim()) ck.value = 'ponyRealism_V22.safetensors';
+            _img2imgSetDenoise(0.5);
+            try { _comfySaveSettings(); } catch (e) {}
+            showToast('Pony Realism 권장 세팅 적용 — denoise 0.5 · 30스텝 · CFG 6.5 · dpmpp_2m/karras · CLIP skip 2', 'success', 3800);
+        }
+        window.__i2iApplyRecommended = _i2iApplyRecommendedSettings;
 
         // 내 워크플로우(API JSON)에 프롬프트 주입 (전송 대상에 따라 긍정/부정 선택)
         function _comfyBuildCustomWorkflow(pos, neg) {
@@ -15231,6 +15256,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const extra = guard.filter(t => !negLc.has(t) && !allPosTagsStr.includes(t));
                 if (extra.length) finalNegOutput = (finalNegOutput ? finalNegOutput + ', ' : '') + extra.join(', ');
             }
+            // 이미지 변환(img2img) 모드: 애니 느낌 억제용 부정 태그를 자동으로 합침 (실사 변환 방향 고정)
+            try {
+                if (typeof _img2img !== 'undefined' && _img2img.enabled && _img2img.addRealism) {
+                    const negLc2 = new Set(finalNegOutput.toLowerCase().split(',').map(s => s.trim()).filter(Boolean));
+                    const add2 = _I2I_NEG_TAGS.filter(t => !negLc2.has(t.toLowerCase()));
+                    if (add2.length) finalNegOutput = (finalNegOutput ? finalNegOutput + ', ' : '') + add2.join(', ');
+                }
+            } catch (e) {}
             document.getElementById('final-negative').value = finalNegOutput;
 
             const negPreviewBox = document.getElementById('negative-korean-preview');
@@ -18156,8 +18189,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         el('div', { style: 'font-size:12px; font-weight:800; color:var(--text-main); margin-bottom:8px;' }, '변환 강도 (denoise)'),
                         el('div', { style: 'display:flex; align-items:center; gap:12px;' }, slider, dnVal),
                         el('div', { style: 'display:flex; gap:6px; margin-top:10px;' }, ...presetEls),
-                        el('div', { style: 'font-size:11px; color:var(--text-dim); margin-top:8px; line-height:1.5;' }, '낮을수록 원본 구도·형태를 유지하고, 높을수록 프롬프트대로 많이 바뀝니다. 실사 코스프레는 0.55~0.7 권장.')
+                        el('div', { style: 'font-size:11px; color:var(--text-dim); margin-top:8px; line-height:1.5;' }, '낮을수록 원본 구도·형태를 유지하고, 높을수록 프롬프트대로 많이 바뀝니다. 실사 코스프레는 0.5~0.6 권장.')
                     ),
+                    el('button', { class: 'action-btn', style: 'width:100%; background:var(--accent-green); color:#fff; border:none; font-weight:800; padding:9px;', html: '<i class="fa-solid fa-sliders"></i> Pony Realism 권장 세팅 적용', onclick: () => { _i2iApplyRecommendedSettings(); syncDn(); } }),
                     advWrap
                 )
             );
