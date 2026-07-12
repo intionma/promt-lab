@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.37.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.37.2 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1156,7 +1156,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.37.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.37.2 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1922,7 +1922,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.37.1', date: '2026-07-12', time: '최신',
+                version: 'v9.37.2', date: '2026-07-12', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[이미지] IPAdapter FaceID를 2D·애니 원본에 쓰면 'No face detected'가 나던 것에 대해 정확한 안내를 추가했습니다 — InsightFace는 애니 얼굴을 인식 못 하니 2D→실사 변환에선 IPAdapter를 끄고 FaceDetailer로 얼굴 품질을 잡으라고 알려줍니다 (도움말·오류 메시지 모두 갱신)",
+                ]
+            },
+            {
+                version: 'v9.37.1', date: '2026-07-12', time: '',
                 tag: 'fix',
                 items: [
                     "[이미지] IPAdapter FaceID·FaceDetailer 등 고급 노드가 'IPAdapter model not found' 등으로 실패하던 회귀를 고쳤습니다 — 설치본 기본값이 제가 지정한 값(FaceID 프리셋 등)을 덮어쓰던 문제. 이제 지정값이 우선되고 빠진 값만 설치본에서 채웁니다 (이 오류로 생성 전체가 실패해 미리보기도 안 뜨던 것 함께 해결 기대)",
@@ -6081,7 +6088,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // 흔한 ComfyUI 실행 오류를 사용자 언어로 안내 (원인 + 해결책)
         function _comfyExecErrorHint(nodeType, exMsg) {
             const s = ((nodeType || '') + ' ' + (exMsg || '')).toLowerCase();
-            if (/ipadapter model not found|ipadapter/.test(s)) return '💡 IPAdapter FaceID 모델이 없어요. 오른쪽 고급 파이프라인에서 <b>IPAdapter를 끄</b>거나, 모델(FaceID+CLIP-Vision)을 설치하세요.';
+            if (/no face detected|insightface/.test(s)) return '💡 IPAdapter FaceID가 원본에서 <b>얼굴을 못 찾았어요</b>. InsightFace는 <b>2D·애니 얼굴을 인식 못 합니다</b> → 2D→실사 변환에선 <b>IPAdapter를 끄세요</b> (얼굴 품질은 FaceDetailer로). IPAdapter는 실제 사람 얼굴 참조용이에요.';
+            if (/ipadapter model not found/.test(s)) return '💡 IPAdapter FaceID 모델이 없어요. 고급 파이프라인에서 <b>IPAdapter를 끄</b>거나, 모델(FaceID .bin + CLIP-Vision)을 설치하세요.';
+            if (/ipadapter/.test(s)) return '💡 IPAdapter 관련 오류예요. 2D 원본이면 <b>IPAdapter를 끄세요</b> (애니 얼굴은 참조 불가). 실제 사람 얼굴에만 쓰세요.';
             if (/controlnet|openpose/.test(s)) return '💡 ControlNet(OpenPose) 노드/모델이 없어요. 고급 파이프라인에서 <b>ControlNet을 끄</b>거나 OpenPoseXL2 + comfyui_controlnet_aux를 설치하세요.';
             if (/facedetailer|ultralytics|impact/.test(s)) return '💡 FaceDetailer(Impact Pack) 노드/모델이 없어요. <b>FaceDetailer를 끄</b>거나 Impact Pack + 얼굴 감지 모델을 설치하세요.';
             if (/upscale|upscalemodel/.test(s)) return '💡 업스케일러 모델이 없어요. <b>업스케일을 끄</b>거나 업스케일 모델을 설치하세요.';
@@ -18834,7 +18843,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 ckpt: ['체크포인트 (실사 모델)', '그림을 실제로 그려내는 <b>메인 AI 모델</b>입니다. 실사 코스프레 변환에는 실사 계열(예: Pony Realism V22)을 쓰세요.<br><br>· 목록은 ComfyUI에 설치된 모델에서 불러옵니다.<br>· 모델 종류에 따라 잘 먹는 프롬프트가 달라집니다(Pony 계열은 score_9 등).'],
                 lora: ['LoRA (추가 학습 파일)', '메인 모델 위에 얹는 <b>보조 스타일/캐릭터/디테일</b> 파일입니다. 특정 화풍·인물·표현을 강화할 때 씁니다.<br><br>· 강도는 보통 0.6~1.0.<br>· 여러 개 쌓을 수 있지만 많으면 서로 충돌해 이상해질 수 있어요. 필요한 것만.'],
                 controlnet: ['ControlNet — 포즈/구도 고정', '원본의 <b>사람 골격(포즈)</b>을 추출해 결과가 <b>같은 포즈·구도</b>를 유지하도록 강제합니다. "원본이랑 너무 달라진다" 할 때의 핵심 해결책.<br><br>· <b>강도 0.5~0.7</b>: 자연스럽게 유지<br>· <b>0.8~1.0</b>: 포즈를 아주 강하게 고정<br>· OpenPose 노드가 없으면 오류가 나니 그럴 땐 끄세요.'],
-                ipadapter: ['IPAdapter FaceID — 얼굴 일관성', '원본의 <b>얼굴 특징</b>을 참조해 결과 얼굴이 <b>원본과 닮게</b> 유지합니다. "얼굴이 딴사람이 된다" 할 때 켜세요.<br><br>· 강도 0.6~0.9 권장.<br>· 전용 노드/모델(IPAdapter FaceID)이 설치돼 있어야 합니다.'],
+                ipadapter: ['IPAdapter FaceID — 얼굴 일관성', '원본의 <b>얼굴 특징</b>을 참조해 결과 얼굴이 <b>원본과 닮게</b> 유지합니다.<br><br>⚠️ <b style="color:#f59e0b;">2D·애니 원본에는 쓰지 마세요.</b> InsightFace가 애니 얼굴을 인식 못 해 "No face detected" 오류가 납니다. <b>실제 사람 얼굴 사진</b>을 원본으로 쓸 때만 켜세요.<br>· 2D→실사 변환의 얼굴 품질은 <b>FaceDetailer</b>로 잡으세요.<br>· 강도 0.6~0.9 권장.'],
                 faceDetailer: ['FaceDetailer — 얼굴 복구', '결과에서 <b>얼굴만 감지해 고해상도로 다시 그려</b> 인상을 또렷하게 만듭니다. 멀거나 작은 얼굴이 뭉개질 때 특히 효과적.<br><br>· 시간이 조금 더 걸립니다.<br>· Impact Pack(FaceDetailer) 노드가 필요합니다.'],
                 upscale: ['업스케일 — 고해상도', '완성 이미지를 타일 방식으로 <b>더 큰 해상도</b>로 키우며 디테일을 보강합니다.<br><br>· <b>느립니다</b> — 마음에 드는 최종 컷에만 켜세요.<br>· 타일(768px) 방식이라 12GB VRAM에서도 비교적 안전.'],
             };
