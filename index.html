@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.35.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.35.2 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1149,7 +1149,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.35.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.35.2 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1915,7 +1915,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.35.1', date: '2026-07-12', time: '최신',
+                version: 'v9.35.2', date: '2026-07-12', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[이미지 인페인팅] 인페인팅 에디터에 '이미지 변환'에서 쓰던 태그가 딸려오던 문제를 고쳤습니다 — 이제 이미지 변환 / 이미지 인페인팅 / 클래식·스튜디오가 각각 별도의 태그 저장소를 씁니다",
+                ]
+            },
+            {
+                version: 'v9.35.1', date: '2026-07-12', time: '',
                 tag: 'fix',
                 items: [
                     "[이미지 변환] 실사 변환이 원본 이미지를 전혀 안 따라가던 문제를 잡았습니다 — 이미지 테마는 이제 어떤 상황(커스텀 워크플로우 모드 포함)에서도 반드시 원본을 참고하는 img2img 방식으로 생성합니다",
@@ -7841,12 +7848,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // 이미지 변환(img2img)은 완전히 별도의 탭/상태/저장소를 쓴다.
         const TABS_KEY_I2I = 'context_tabs_i2i_v1';
         const STATES_KEY_I2I = 'context_states_i2i_v1';
-        let _inI2iSession = false;   // 현재 img2img 세션 편집 중인지
-        let _t2iBackup = null;       // img2img 진입 시 백업해둔 text2img 세션
+        const TABS_KEY_INPAINT = 'context_tabs_inpaint_v1';
+        const STATES_KEY_INPAINT = 'context_states_inpaint_v1';
+        let _i2iSessionKind = null;  // null(text2img) | 'transform'(이미지 변환) | 'inpaint'(인페인팅) — 각각 별도 태그 저장소
+        let _inI2iSession = false;   // (호환) 이미지 세션 편집 중인지
+        let _t2iBackup = null;       // 이미지 세션 진입 시 백업해둔 text2img 세션
+        // 세션 종류별 저장 키/기본 탭 이름
+        function _i2iSessionKeys(kind) {
+            if (kind === 'inpaint') return { t: TABS_KEY_INPAINT, s: STATES_KEY_INPAINT, name: '이미지 인페인팅', main: 'inpaint-main' };
+            return { t: TABS_KEY_I2I, s: STATES_KEY_I2I, name: '이미지 변환', main: 'i2i-main' };
+        }
 
         function saveTabsAndStates() {
-            safeSetStorage(_inI2iSession ? TABS_KEY_I2I : TABS_KEY, contextTabs);
-            safeSetStorage(_inI2iSession ? STATES_KEY_I2I : STATES_KEY, contextStates);
+            const k = _i2iSessionKind ? _i2iSessionKeys(_i2iSessionKind) : null;
+            safeSetStorage(k ? k.t : TABS_KEY, contextTabs);
+            safeSetStorage(k ? k.s : STATES_KEY, contextStates);
             // 에디터 내용이 바뀌면 추천도 최신화 (변화 없으면 내부에서 생략)
             try { if (typeof renderRecommendArea === 'function') renderRecommendArea(); } catch (e) {}
         }
@@ -7862,20 +7878,23 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { initApp(); } catch (e) {}
             try { updateMasterOutput(); } catch (e) {}
         }
-        function _i2iEnterSession() {
-            if (_inI2iSession) return;
+        function _i2iEnterSession(kind) {
+            kind = (kind === 'inpaint') ? 'inpaint' : 'transform';
+            if (_i2iSessionKind === kind) return;      // 이미 그 세션이면 그대로
+            if (_i2iSessionKind) _i2iExitSession();     // 다른 이미지 세션이면 먼저 정상 종료(그 키로 저장 후 text2img 복원)
             saveTabsAndStates(); // 현재 text2img 세션을 t2i 키에 저장
             _t2iBackup = { tabs: JSON.parse(JSON.stringify(contextTabs)), states: JSON.parse(JSON.stringify(contextStates)), current: currentContext };
+            const keys = _i2iSessionKeys(kind);
             let iTabs, iStates;
-            try { iTabs = JSON.parse(localStorage.getItem(TABS_KEY_I2I) || 'null'); iStates = JSON.parse(localStorage.getItem(STATES_KEY_I2I) || 'null'); } catch (e) {}
-            if (!iTabs || !iTabs.length) { iTabs = [{ id: 'i2i-main', name: '이미지 변환' }]; iStates = { 'i2i-main': ["", "", "", "", "", "", ""] }; }
-            _inI2iSession = true;
+            try { iTabs = JSON.parse(localStorage.getItem(keys.t) || 'null'); iStates = JSON.parse(localStorage.getItem(keys.s) || 'null'); } catch (e) {}
+            if (!iTabs || !iTabs.length) { iTabs = [{ id: keys.main, name: keys.name }]; iStates = { [keys.main]: ["", "", "", "", "", "", ""] }; }
+            _i2iSessionKind = kind; _inI2iSession = true;
             _swapSession(iTabs, iStates, iTabs[0].id);
         }
         function _i2iExitSession() {
-            if (!_inI2iSession) return;
-            saveTabsAndStates(); // 현재 img2img 세션을 i2i 키에 저장
-            _inI2iSession = false; // 복원 저장이 t2i 키로 가도록 먼저 해제
+            if (!_i2iSessionKind) return;
+            saveTabsAndStates(); // 현재 이미지 세션을 해당 종류 키에 저장
+            _i2iSessionKind = null; _inI2iSession = false; // 복원 저장이 t2i 키로 가도록 먼저 해제
             const bk = _t2iBackup || { tabs: _defaultTabs(), states: null, current: null };
             _t2iBackup = null;
             _swapSession(bk.tabs, bk.states, bk.current);
@@ -18657,8 +18676,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 이 마운트가 '이미지 변환'인지 '이미지 인페인팅'인지 — 레이아웃 id로 결정. 테마별로 모드 고정(토글 없음).
             const IS_INPAINT = (_plCurrent === 'inpaint');
             _img2img.editMode = IS_INPAINT ? 'inpaint' : 'transform';
-            // 이미지 변환은 별도 세션(탭·태그·최종프롬프트)을 쓰도록 전환 — 클래식/스튜디오와 공유하지 않음
-            try { if (window.__i2iEnterSession) window.__i2iEnterSession(); } catch (e) {}
+            // 변환/인페인팅은 각각 별도 세션(탭·태그) — 서로도, 클래식/스튜디오와도 공유하지 않음
+            try { if (window.__i2iEnterSession) window.__i2iEnterSession(IS_INPAINT ? 'inpaint' : 'transform'); } catch (e) {}
 
             // ── 설정별 도움말 내용 + "?" 버튼 헬퍼 (아래 UI 구성보다 먼저 정의돼야 함) ──
             const HLP = {
