@@ -5,6 +5,9 @@
 
 ## 🔴 진행/대기 (Open)
 
+- [x] **[변환 검열 태그 필터]** — ✅완료(v9.44.0). `dropCensor`(기본 ON). `_I2I_CENSOR_TAGS`.
+  `_i2iAnalyzeAndFill`에서 분석 태그 임포트 시 제거 + `updateMasterOutput` 긍정 제거 + 부정에 핵심 검열
+  억제 태그 추가. uncensored는 보존. UI는 advBody(자동 태깅 고급). 테스트 vcensor.js.
 - [x] **[변환 조합 드로어]** — ✅완료(v9.43.0). 이미지 변환 좌하단 '조합' FAB → panel-left(combo 모드)를
   왼쪽 드로어로 소환(간편/추천/추가/폴더). body로 이동+`pl-i2i-combo` 클래스, 스크림·닫기X·Esc·뒤로가기.
   teardown에서 panel-left 트랙 복귀+요소 제거. 인페인팅 제외. 테스트 vcombo.js.

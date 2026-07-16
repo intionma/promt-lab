@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.43.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.44.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1180,7 +1180,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.43.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.44.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1946,7 +1946,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.43.0', date: '2026-07-12', time: '최신',
+                version: 'v9.44.0', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지 변환] '검열·모자이크 태그 안 불러오기' 옵션을 추가했습니다 (자동 태깅 고급 설정, 기본 켜짐) — 원본에 모자이크·검열 막대가 있어도 이미지 분석 때 검열 태그(censored, mosaic censoring, bar censor, pixelated 등)를 아예 안 불러오고, 최종 프롬프트에서도 빼며, 부정 프롬프트에 넣어 결과에 모자이크가 안 그려지게 합니다. (uncensored 같은 무검열 태그는 유지)",
+                ]
+            },
+            {
+                version: 'v9.43.0', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[이미지 변환] 화면 좌하단 '조합' 버튼으로 간편 조합·추천 조합 창을 바로 열고 닫을 수 있습니다 — 이미지 변환 중에도 조합을 넣거나 뺄 수 있어요. 버튼을 누르면 왼쪽에서 조합 서랍이 나오고(조합 추가·폴더·추천 모두 포함), 다시 누르거나 X·바깥 터치·뒤로가기로 닫힙니다.",
@@ -5081,6 +5088,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             faceDetailer: false,                  // 얼굴 복구(FaceDetailer)
             faceRealism: true,                    // (변환) 실사 얼굴 비율로 교정 — 큰 눈 등 애니 비율 억제
             dropExpression: false,                // (변환) 원본 표정 안 가져오기 — 표정 태그 제거 + 얼굴 새로 그림
+            dropCensor: true,                     // (변환) 검열·모자이크 태그 안 불러오기 — 분석 태그·최종 프롬프트에서 제거
             fdModel: 'bbox/face_yolov8m.pt',      // 얼굴 감지 모델(bbox)
             upscale: false,                       // 업스케일(느림 — 기본 꺼짐)
             upscaleModel: '4x-UltraSharp.pth',    // 업스케일러
@@ -5103,7 +5111,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     wd14Model: _img2img.wd14Model, wd14Threshold: _img2img.wd14Threshold, addRealism: _img2img.addRealism, maxSide: _img2img.maxSide,
                     loras: _img2img.loras, controlnet: _img2img.controlnet, cnModel: _img2img.cnModel, cnStrength: _img2img.cnStrength,
                     ipadapter: _img2img.ipadapter, ipaWeight: _img2img.ipaWeight,
-                    faceDetailer: _img2img.faceDetailer, faceRealism: _img2img.faceRealism, dropExpression: _img2img.dropExpression, fdModel: _img2img.fdModel, upscale: _img2img.upscale, upscaleModel: _img2img.upscaleModel, upscaleBy: _img2img.upscaleBy,
+                    faceDetailer: _img2img.faceDetailer, faceRealism: _img2img.faceRealism, dropExpression: _img2img.dropExpression, dropCensor: _img2img.dropCensor, fdModel: _img2img.fdModel, upscale: _img2img.upscale, upscaleModel: _img2img.upscaleModel, upscaleBy: _img2img.upscaleBy,
                     editMode: _img2img.editMode, inpaintDenoise: _img2img.inpaintDenoise, maskGrow: _img2img.maskGrow, fooocus: _img2img.fooocus, fooocusHead: _img2img.fooocusHead, fooocusPatch: _img2img.fooocusPatch
                 }));
             } catch (e) {}
@@ -5128,6 +5136,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (typeof s.faceDetailer === 'boolean') _img2img.faceDetailer = s.faceDetailer;
                 if (typeof s.faceRealism === 'boolean') _img2img.faceRealism = s.faceRealism;
                 if (typeof s.dropExpression === 'boolean') _img2img.dropExpression = s.dropExpression;
+                if (typeof s.dropCensor === 'boolean') _img2img.dropCensor = s.dropCensor;
                 if (typeof s.fdModel === 'string' && s.fdModel) _img2img.fdModel = s.fdModel;
                 if (typeof s.upscale === 'boolean') _img2img.upscale = s.upscale;
                 if (typeof s.upscaleModel === 'string' && s.upscaleModel) _img2img.upscaleModel = s.upscaleModel;
@@ -5169,6 +5178,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         const _I2I_NEG_TAGS = ['score_6', 'score_5', 'score_4', 'source_anime', 'anime', 'cartoon', 'cg', '3d', 'cel shading', 'flat color', 'illustration', 'anime screencap', 'plastic skin', 'doll', 'smooth skin'];
         // (변환) '실사 얼굴 비율로 교정' ON → 애니 특유의 큰 눈/과장 비율을 부정에 넣어 실사 얼굴로 유도
         const _I2I_FACE_NEG_TAGS = ['large eyes', 'huge eyes', 'oversized eyes', 'anime eyes', 'big eyes', 'doll eyes', 'chibi', 'deformed face', 'disproportionate face'];
+        // (변환) '검열·모자이크 태그 안 불러오기' ON → 분석 태그 임포트와 최종 긍정에서 이 검열 태그들을 제거.
+        //   ('uncensored'는 오히려 원하는 방향이므로 제거하지 않음)
+        const _I2I_CENSOR_TAGS = ['censored', 'censoring', 'censor', 'mosaic censoring', 'mosaic censorship', 'mosaic', 'pixelization', 'pixelated', 'bar censor', 'bar censoring', 'black bars', 'convenient censoring', 'light censor', 'blur censor', 'soft censor', 'heart censor', 'novelty censor', 'hair censor', 'steam censor', 'steam censoring', 'tail censor', 'hand censor', 'wall censor', 'character censor', 'censor bar', 'censor bars', 'black censor bar', 'white censor bar', 'pointless censoring', 'pubic hair censor', 'nipple censor', 'censored nipples', 'text censor', 'yaoi censor', 'identity censor'];
         // (변환) '원본 표정 안 가져오기' ON → 최종 긍정에서 이 표정/감정 태그들을 제거(원본 표정 재현 방지). 에디터 원본은 그대로 둠.
         const _I2I_EXPRESSION_TAGS = ['blush', 'blush stickers', 'nose blush', 'smile', 'light smile', 'evil smile', 'seductive smile', 'grin', 'evil grin', 'smirk', 'open mouth', 'closed mouth', 'parted lips', 'frown', 'pout', 'wink', 'one eye closed', 'closed eyes', 'half-closed eyes', 'heart-shaped pupils', 'tongue', 'tongue out', 'ahegao', 'drooling', 'saliva', 'clenched teeth', 'teeth', 'crying', 'tears', 'streaming tears', 'angry', 'annoyed', 'surprised', 'shocked', 'embarrassed', 'nervous', 'scared', 'happy', 'sad', 'naughty face', 'aroused', 'orgasm', 'ecstasy', 'trembling', 'flying sweatdrops', 'sweatdrop', 'expressionless', 'serious', 'licking lips', 'tongue out', ':d', ':o', ':3', ':p', 'open mouth', 'screaming', 'moaning', 'gritted teeth'];
         function _img2imgSetDenoise(v) {
@@ -5576,13 +5588,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 else showToast('자동 분석 실패: ' + (e && e.message || e), 'error', 6000);
                 return false;
             }
-            const tags = (tagStr || '').split(',').map(s => s.trim()).filter(Boolean);
+            let tags = (tagStr || '').split(',').map(s => s.trim()).filter(Boolean);
+            if (!tags.length) { showToast('감지된 태그가 없습니다.', 'info'); return false; }
+            // 검열·모자이크 태그 안 불러오기 옵션 → 분석 결과에서 미리 제거 (에디터에 아예 안 들어감)
+            let _censorDropped = 0;
+            if (_img2img.dropCensor) {
+                const cset = new Set(_I2I_CENSOR_TAGS.map(t => t.toLowerCase()));
+                const before = tags.length;
+                tags = tags.filter(t => !cset.has(t.toLowerCase().replace(/^\(+|\)+$/g, '').replace(/:\s*[\d.]+\s*$/, '').trim()));
+                _censorDropped = before - tags.length;
+            }
             if (!tags.length) { showToast('감지된 태그가 없습니다.', 'info'); return false; }
             // 실사/스코어 태그는 최종 출력 단계에서 자동 주입되므로 여기선 감지 태그만 채움(에디터는 깔끔하게)
             const finalTags = [];
             tags.forEach(t => { if (!finalTags.some(x => x.toLowerCase() === t.toLowerCase())) finalTags.push(t); });
             try { importPromptToEditor(finalTags, 'replace'); } catch (e) {}
-            showToast(`${tags.length}개 태그 감지 → 에디터에 채웠습니다 (실사·품질 태그는 전송 시 자동 추가)`, 'success', 2800);
+            showToast(`${tags.length}개 태그 감지 → 에디터에 채웠습니다${_censorDropped ? ` (검열·모자이크 태그 ${_censorDropped}개 제외)` : ''} (실사·품질 태그는 전송 시 자동 추가)`, 'success', 3000);
             return true;
         }
         window.__i2iAnalyzeAndFill = _i2iAnalyzeAndFill;
@@ -5609,7 +5630,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     denoise: 0.50,
                     controlnet: true, cnModel: 'OpenPoseXL2.safetensors', cnStrength: 0.65,
                     faceDetailer: true, fdModel: 'bbox/face_yolov8m.pt',
-                    faceRealism: true, dropExpression: false,
+                    faceRealism: true, dropExpression: false, dropCensor: true,
                     ipadapter: false, ipaWeight: 0.75, upscale: false, upscaleModel: '4x-UltraSharp.pth', upscaleBy: 2,
                     autoTag: true, addRealism: true, maxSide: 1152,
                     wd14Model: 'wd-v1-4-moat-tagger-v2', wd14Threshold: 0.35, loras: []
@@ -16078,9 +16099,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         }
                     }
                 }
-                // (변환) '원본 표정 안 가져오기' ON → 최종 긍정에서 표정/감정 태그 제거 (원본 표정 재현 방지)
-                if (typeof _img2img !== 'undefined' && _img2img.enabled && _img2img.editMode !== 'inpaint' && _img2img.dropExpression) {
-                    const dropSet = new Set(_I2I_EXPRESSION_TAGS.map(t => t.toLowerCase()));
+                // (변환) 최종 긍정에서 특정 태그 제거: '원본 표정 안 가져오기' + '검열·모자이크 안 불러오기'
+                if (typeof _img2img !== 'undefined' && _img2img.enabled && _img2img.editMode !== 'inpaint' && (_img2img.dropExpression || _img2img.dropCensor)) {
+                    const dropSet = new Set();
+                    if (_img2img.dropExpression) _I2I_EXPRESSION_TAGS.forEach(t => dropSet.add(t.toLowerCase()));
+                    if (_img2img.dropCensor) _I2I_CENSOR_TAGS.forEach(t => dropSet.add(t.toLowerCase()));
                     finalOutput = finalOutput.split('\n').map(line => {
                         const tl = line.trim();
                         if (!tl || tl === 'BREAK' || tl.startsWith('[')) return line; // 구분자·라벨 보존
@@ -16241,6 +16264,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const negLcF = new Set(finalNegOutput.toLowerCase().split(',').map(s => s.trim()).filter(Boolean));
                     const addF = _I2I_FACE_NEG_TAGS.filter(t => !negLcF.has(t.toLowerCase()));
                     if (addF.length) finalNegOutput = (finalNegOutput ? finalNegOutput + ', ' : '') + addF.join(', ');
+                }
+                // (변환) '검열·모자이크 안 불러오기' ON → 결과에 모자이크·검열이 안 그려지도록 핵심 검열 태그를 부정에 추가
+                if (typeof _img2img !== 'undefined' && _img2img.enabled && _img2img.editMode !== 'inpaint' && _img2img.dropCensor) {
+                    const negLcC = new Set(finalNegOutput.toLowerCase().split(',').map(s => s.trim()).filter(Boolean));
+                    const addC = ['censored', 'censoring', 'mosaic censoring', 'bar censor', 'mosaic', 'pixelated'].filter(t => !negLcC.has(t));
+                    if (addC.length) finalNegOutput = (finalNegOutput ? finalNegOutput + ', ' : '') + addC.join(', ');
                 }
                 // 인페인팅 + Pony 계열: 부정 스코어/품질 기본선이 없으면 마스크 영역이 저품질로 뭉개진다.
                 // 화풍 중립인 저품질 억제 태그만 최소한으로 보강. (실사 억제 태그는 넣지 않음)
@@ -19131,6 +19160,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 faceDetailer: ['FaceDetailer — 얼굴 복구', '결과에서 <b>얼굴만 감지해 고해상도로 다시 그려</b> 인상을 또렷하게 만듭니다. 멀거나 작은 얼굴이 뭉개질 때 특히 효과적.<br><br>· 시간이 조금 더 걸립니다.<br>· Impact Pack(FaceDetailer) 노드가 필요합니다.'],
                 faceRealism: ['실사 얼굴 비율로 교정', '씹덕/애니 원본은 <b>눈이 과장되게 크고</b> 이목구비 비율이 실사와 달라, 그대로 실사화하면 <b>기괴(언캐니)</b>해집니다.<br><br>켜면 <b>부정 프롬프트에 "큰 눈·애니 눈·과장 비율" 억제 태그</b>를 자동으로 넣어 실사에 맞는 얼굴 비율로 유도합니다. FaceDetailer도 이 부정 태그를 반영해 얼굴을 다시 그립니다.<br>· 원본 눈 크기를 살리고 싶으면 끄세요.'],
                 dropExpression: ['원본 표정 안 가져오기', '원본의 <b>표정(웃음·홍조·혀·눈 감음 등)을 그대로 가져오고 싶지 않을 때</b> 켜세요.<br><br>· 최종 프롬프트에서 <b>표정·감정 태그를 자동으로 빼고</b>(에디터 원본은 그대로 둠), FaceDetailer가 얼굴을 <b>더 강하게 새로</b> 그려 원본 표정을 덜 따라가게 합니다(편집 강도 0.5→0.65).<br>· 특정 표정을 원하면 이 토글을 켠 뒤 원하는 표정 태그(예: neutral expression)를 직접 넣으세요.<br>· 얼굴을 실제로 다시 그리려면 <b>FaceDetailer를 함께 켜는 것</b>이 효과적입니다.'],
+                dropCensor: ['검열·모자이크 태그 안 불러오기', '원본에 <b>모자이크·검열 막대</b> 등이 있으면 실사로 바꿔도 그게 따라오는데, 이걸 막습니다.<br><br>· 켜면 이미지 분석(자동 태그) 때 <b>검열 관련 태그를 아예 안 불러오고</b>(censored, mosaic censoring, bar censor, pixelated 등), 최종 프롬프트에서도 빼며, <b>부정 프롬프트에 넣어</b> 결과에 모자이크가 안 그려지게 합니다.<br>· (uncensored 같은 "무검열" 태그는 그대로 둡니다.)'],
                 upscale: ['업스케일 — 고해상도', '완성 이미지를 타일 방식으로 <b>더 큰 해상도</b>로 키우며 디테일을 보강합니다.<br><br>· <b>느립니다</b> — 마음에 드는 최종 컷에만 켜세요.<br>· 타일(768px) 방식이라 12GB VRAM에서도 비교적 안전.'],
             };
             const lblH = (text, key) => el('div', { style: 'display:flex; align-items:center; gap:6px; margin-bottom:6px;' },
@@ -19320,6 +19350,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 얼굴 처리 토글 2종 (2D→실사 전용) — 켜면 결과창(부정/긍정)이 즉시 재계산되게 updateMasterOutput 호출
             const faceRealismChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.faceRealism = e.target.checked; _img2imgSave(); try { updateMasterOutput(); } catch (e) {} } }); faceRealismChk.checked = _img2img.faceRealism;
             const dropExprChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.dropExpression = e.target.checked; _img2imgSave(); try { updateMasterOutput(); } catch (e) {} } }); dropExprChk.checked = _img2img.dropExpression;
+            const dropCensorChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.dropCensor = e.target.checked; _img2imgSave(); try { updateMasterOutput(); } catch (e) {} } }); dropCensorChk.checked = _img2img.dropCensor;
             const modelSelect = el('select', { class: 'comfy-num', style: 'flex:1; min-width:0; font-size:11px; font-family:var(--font-code);', onchange: (e) => { _img2img.wd14Model = e.target.value; _img2imgSave(); } });
             const modelRefresh = el('button', { class: 'action-btn', title: '설치된 모델 목록 새로고침', style: 'flex:0 0 auto; font-size:11px; padding:6px 9px;', html: '<i class="fa-solid fa-rotate"></i>', onclick: () => fillModels(true) });
             // 설치된 모델 목록으로 드롭다운 채움 (실패하면 현재 값만 표시)
@@ -19343,6 +19374,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const sizeInput = el('input', { type: 'number', min: '512', max: '2048', step: '64', value: _img2img.maxSide, style: 'width:82px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:6px; padding:6px 8px; color:var(--text-main); font-size:12px; outline:none;', onchange: (e) => { let v = parseInt(e.target.value); if (isNaN(v)) v = 1152; _img2img.maxSide = Math.max(512, Math.min(2048, v)); _img2imgSave(); } });
             const advBody = el('div', { style: 'display:none; flex-direction:column; gap:11px; padding-top:11px;' },
                 rowHelp(el('label', { style: 'display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-main); cursor:pointer;' }, realismChk, '실사 변환 태그 자동 추가 (photo, realistic …)'), 'addRealism'),
+                rowHelp(el('label', { style: 'display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-main); cursor:pointer;' }, dropCensorChk, '검열·모자이크 태그 안 불러오기'), 'dropCensor'),
                 el('div', {}, el('div', { style: 'display:flex; align-items:center; gap:6px; margin-bottom:4px;' }, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, 'WD14 태거 모델 (설치된 것 중 선택)'), chkHelp('wd14Model')), el('div', { style: 'display:flex; gap:6px; align-items:center;' }, modelSelect, modelRefresh)),
                 el('div', { style: 'display:flex; align-items:center; gap:8px; flex-wrap:wrap;' }, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, '태그 임계값'), chkHelp('threshold'), thrInput, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, '· 최대 크기(긴 변)'), chkHelp('maxSide'), sizeInput, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, 'px')));
             const advToggle = el('div', { style: 'font-size:11px; color:var(--text-dim); cursor:pointer; user-select:none;', html: '▼ 자동 태깅 고급 설정 (WD14)', onclick: () => { const on = advBody.style.display === 'none'; advBody.style.display = on ? 'flex' : 'none'; advToggle.innerHTML = (on ? '▲' : '▼') + ' 자동 태깅 고급 설정 (WD14)'; } });
@@ -19439,6 +19471,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 fdChk.checked = _img2img.faceDetailer;
                 try { faceRealismChk.checked = _img2img.faceRealism; } catch (e) {}
                 try { dropExprChk.checked = _img2img.dropExpression; } catch (e) {}
+                try { dropCensorChk.checked = _img2img.dropCensor; } catch (e) {}
                 upChk.checked = _img2img.upscale; upBody.style.display = _img2img.upscale ? 'flex' : 'none'; upByeSel.value = String(_img2img.upscaleBy);
                 autoChk.checked = _img2img.autoTag; realismChk.checked = _img2img.addRealism;
                 thrInput.value = _img2img.wd14Threshold; sizeInput.value = _img2img.maxSide;
