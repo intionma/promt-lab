@@ -5,6 +5,11 @@
 
 ## 🔴 진행/대기 (Open)
 
+- [x] **[새로고침 시 클래식 복귀]** — ✅수정(v9.46.3). 근본원인: `restore()`가 window 'load' 이벤트에
+  걸려 있어 외부 CDN(fonts.googleapis/gstatic, cdnjs FontAwesome, jsdelivr three.js)이 느리거나
+  막히면 load가 안 떠서 복원이 영영 안 돌고 클래식에 머묾. DOMContentLoaded 기준(+250ms)으로 실행
+  +load는 안전망(idempotent `_plRestored`). 테스트 vrestore.js(정상)/vrestore2.js(CDN 행 시에도 복원).
+  ↳ 예전 TASKS의 '새로고침 시 클래식 복귀 재현안됨' 항목의 진짜 원인이었음.
 - [x] **[설정 격리 누수 — 새로고침]** — ✅수정(v9.46.2). 재현: 이미지 테마 상태로 새로고침하면 메인
   ComfyUI 설정이 기본값(steps28/cfg7/ckpt''/basic)으로 초기화. 원인: 부팅 시 폼이 메인값으로
   복원되기 전(HTML 기본값)에 `restore()`→`applyLayout(이미지테마)`→`_comfyEnterImageSettings`가

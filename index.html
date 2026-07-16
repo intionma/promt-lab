@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.46.2 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.46.3 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1180,7 +1180,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.46.2 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.46.3 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1946,7 +1946,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.46.2', date: '2026-07-12', time: '최신',
+                version: 'v9.46.3', date: '2026-07-12', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[레이아웃] 새로고침하면 보고 있던 화면(이미지 변환·인페인팅·스튜디오)이 유지돼야 하는데 늘 클래식으로 돌아가던 문제를 고쳤습니다 — 저장된 레이아웃 복원이 '외부 폰트·아이콘 CDN까지 다 불러온 뒤'에야 실행되게 돼 있어서, 그 CDN이 느리거나 막히면 복원이 아예 안 돌고 클래식에 머물렀습니다. 이제 외부 리소스와 무관하게 화면이 준비되는 즉시 복원합니다.",
+                ]
+            },
+            {
+                version: 'v9.46.2', date: '2026-07-12', time: '',
                 tag: 'fix',
                 items: [
                     "[설정 격리] 이미지 변환·인페인팅을 쓴 뒤 새로고침하면 클래식·스튜디오의 ComfyUI 설정(스텝·CFG·체크포인트·워크플로우)이 통째로 초기화되던 심각한 버그를 고쳤습니다 — 이미지 테마 상태로 새로고침하면, 폼에 메인 설정이 채워지기 전(기본값 상태)에 그 기본값이 메인 설정을 덮어쓰고 있었습니다. 이제 메인 설정이 실제로 로드된 뒤에만 저장하도록 막아, 이미지 테마를 아무리 써도 클래식·스튜디오 설정은 그대로 유지됩니다.",
@@ -19928,9 +19935,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (saved && saved !== 'classic') applyLayout(saved);
             else { const lbl = document.getElementById('pl-current-name'); if (lbl) lbl.textContent = '현재: 클래식'; document.body.setAttribute('data-layout', 'classic'); }
         }
-        // 앱 초기화 이후 복원 (initApp 등이 끝난 뒤)
-        if (document.readyState === 'complete') setTimeout(restore, 300);
-        else window.addEventListener('load', () => setTimeout(restore, 300));
+        // 저장된 레이아웃 복원 — 외부 리소스(load 이벤트)에 절대 의존하지 않게 DOMContentLoaded 기준으로 실행.
+        //  ★ 예전엔 window 'load' 이벤트를 기다렸는데, 폰트·아이콘·three.js CDN이 느리거나 막히면
+        //    load가 영영 안 떠서 복원이 실행되지 않아 "새로고침하면 늘 클래식으로 돌아가던" 버그의 원인이었음.
+        //    DOMContentLoaded는 외부 리소스와 무관하게 HTML 파싱 직후 뜨므로 항상 복원이 돈다. load는 안전망만.
+        let _plRestored = false;
+        function _plDoRestore() { if (_plRestored) return; _plRestored = true; try { restore(); } catch (e) { console.error('layout restore error', e); } }
+        function _plScheduleRestore() { setTimeout(_plDoRestore, 250); } // init() 완료 여유
+        if (document.readyState === 'complete' || document.readyState === 'interactive') _plScheduleRestore();
+        else document.addEventListener('DOMContentLoaded', _plScheduleRestore);
+        window.addEventListener('load', () => setTimeout(_plDoRestore, 300)); // 안전망(이미 복원했으면 무시)
     })();
     </script>
 
