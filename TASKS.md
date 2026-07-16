@@ -5,6 +5,11 @@
 
 ## 🔴 진행/대기 (Open)
 
+- [x] **[미리보기 진짜 원인]** — ✅수정(v9.46.1). 클래식/스튜디오는 정상인데 이미지 테마만 안 뜬 이유:
+  `_comfyPreviewInfo`가 `_comfyPreviewNodes`(메인 커스텀 워크플로우에서 물려받음, node 9 없음) 때문에
+  이미지 워크플로우 SaveImage(9)를 show:false로 걸러 `_comfyStageImages`가 통째로 스킵. 필터는
+  `_comfyWfMode==='custom'`일 때만 적용하도록 수정(basic이면 항상 표시). 클래식/스튜디오 코드 안 건드림.
+  테스트 vprevinfo.js. (v9.46.0 바이너리 프리뷰는 서버가 보낼 때 뜨는 보너스로 유지)
 - [x] **[미리보기 전수조사]** — ✅수정(v9.46.0). 근본 2원인:
   ① ComfyUI 단계별 미리보기는 '바이너리' 웹소켓 프레임인데 `_comfyOnSocketMessage`가 non-string 전부
      무시 → 단계별 프리뷰 아예 안 뜸. `sock.binaryType='arraybuffer'` + `_comfyHandleBinaryPreview`

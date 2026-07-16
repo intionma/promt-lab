@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.46.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.46.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1180,7 +1180,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.46.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.46.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1946,7 +1946,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.46.0', date: '2026-07-12', time: '최신',
+                version: 'v9.46.1', date: '2026-07-12', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[미리보기] 이미지 변환·인페인팅에서만 생성 미리보기가 안 뜨던 진짜 원인을 잡았습니다 (클래식·스튜디오는 정상) — 미리보기 표시 대상 노드를 거르는 로직이, 메인 커스텀 워크플로우에서 물려받은 노드 목록 때문에 이미지 테마가 만든 노드를 걸러내 미리보기를 통째로 숨기고 있었습니다. 이 필터는 '커스텀 워크플로우'에서만 적용되고 기본 모드(이미지 테마)에선 항상 표시하도록 바로잡았습니다.",
+                ]
+            },
+            {
+                version: 'v9.46.0', date: '2026-07-12', time: '',
                 tag: 'fix',
                 items: [
                     "[미리보기] 생성 중 '단계별 미리보기'가 안 뜨던 문제를 전면 수정했습니다 — ComfyUI가 샘플링 중 보내는 미리보기가 '바이너리' 신호라 앱이 통째로 무시하고 있었습니다. 이제 이 신호를 받아 결과창에 그림이 그려지는 과정을 실시간으로 보여줍니다 (이미지 변환·인페인팅 공통). ※ ComfyUI 쪽 미리보기가 꺼져 있으면(--preview-method none) 안 보일 수 있어요.",
@@ -6397,7 +6404,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         // 노드 id가 미리보기 단계로 선택됐는지 + 라벨
         function _comfyPreviewInfo(nodeId) {
-            if (!_comfyPreviewNodes.length) return { show: true, label: '' }; // 선택 정보 없으면 전부 표시
+            // ★ 미리보기 노드 '선택'은 커스텀 워크플로우에서만 의미가 있다. 기본(간단) 모드에선 항상 표시.
+            //   (클래식/스튜디오와 달리 이미지 변환·인페인팅에서 미리보기가 통째로 안 뜨던 원인:
+            //    이미지 테마는 항상 basic이라 자체 워크플로우를 만드는데, 메인 커스텀 워크플로우에서
+            //    물려받은 _comfyPreviewNodes 목록에 그 노드(SaveImage 등)가 없어 show:false로 걸러졌음.)
+            if (_comfyWfMode !== 'custom' || !_comfyPreviewNodes.length) return { show: true, label: '' };
             const p = _comfyPreviewNodes.find(x => String(x.id) === String(nodeId));
             if (!p) return { show: false, label: '' };
             return { show: !!p.enabled, label: p.label || '' };
