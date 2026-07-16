@@ -5,6 +5,12 @@
 
 ## 🔴 진행/대기 (Open)
 
+- [x] **[설정 격리 누수 — 새로고침]** — ✅수정(v9.46.2). 재현: 이미지 테마 상태로 새로고침하면 메인
+  ComfyUI 설정이 기본값(steps28/cfg7/ckpt''/basic)으로 초기화. 원인: 부팅 시 폼이 메인값으로
+  복원되기 전(HTML 기본값)에 `restore()`→`applyLayout(이미지테마)`→`_comfyEnterImageSettings`가
+  진입부에서 `_comfySaveSettings()`로 그 기본값을 메인 키에 저장. 수정: `_comfyMainLoaded` 가드
+  (`_comfyRestoreSettings`가 flag=false로 실제 로드됐을 때만 true) → 진입부 저장은 `_comfyMainLoaded`일
+  때만. 테스트 vleak.js/vleak2.js(reload)/vimgset.js. 클래식/스튜디오 코드 안 건드림.
 - [x] **[미리보기 진짜 원인]** — ✅수정(v9.46.1). 클래식/스튜디오는 정상인데 이미지 테마만 안 뜬 이유:
   `_comfyPreviewInfo`가 `_comfyPreviewNodes`(메인 커스텀 워크플로우에서 물려받음, node 9 없음) 때문에
   이미지 워크플로우 SaveImage(9)를 show:false로 걸러 `_comfyStageImages`가 통째로 스킵. 필터는

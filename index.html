@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.46.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.46.2 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1180,7 +1180,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.46.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.46.2 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1946,7 +1946,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.46.1', date: '2026-07-12', time: '최신',
+                version: 'v9.46.2', date: '2026-07-12', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[설정 격리] 이미지 변환·인페인팅을 쓴 뒤 새로고침하면 클래식·스튜디오의 ComfyUI 설정(스텝·CFG·체크포인트·워크플로우)이 통째로 초기화되던 심각한 버그를 고쳤습니다 — 이미지 테마 상태로 새로고침하면, 폼에 메인 설정이 채워지기 전(기본값 상태)에 그 기본값이 메인 설정을 덮어쓰고 있었습니다. 이제 메인 설정이 실제로 로드된 뒤에만 저장하도록 막아, 이미지 테마를 아무리 써도 클래식·스튜디오 설정은 그대로 유지됩니다.",
+                ]
+            },
+            {
+                version: 'v9.46.1', date: '2026-07-12', time: '',
                 tag: 'fix',
                 items: [
                     "[미리보기] 이미지 변환·인페인팅에서만 생성 미리보기가 안 뜨던 진짜 원인을 잡았습니다 (클래식·스튜디오는 정상) — 미리보기 표시 대상 노드를 거르는 로직이, 메인 커스텀 워크플로우에서 물려받은 노드 목록 때문에 이미지 테마가 만든 노드를 걸러내 미리보기를 통째로 숨기고 있었습니다. 이 필터는 '커스텀 워크플로우'에서만 적용되고 기본 모드(이미지 테마)에선 항상 표시하도록 바로잡았습니다.",
@@ -4384,6 +4391,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         const COMFY_INPAINT_KEY = 'comfy_settings_inpaint_v1';           // 이미지 인페인팅 전용
         let _comfyImgSettingsOn = false; // 현재 이미지 테마 설정을 편집 중인지
         let _comfyImgKind = null;        // 'transform' | 'inpaint' | null(메인)
+        let _comfyMainLoaded = false;    // 메인 설정이 폼에 '실제로' 로드된 적 있는지 (부팅 직후 기본값을 메인에 덮어쓰는 사고 방지)
         function _comfyActiveSettingsKey() {
             if (!_comfyImgSettingsOn) return COMFY_KEY;
             return _comfyImgKind === 'inpaint' ? COMFY_INPAINT_KEY : COMFY_TRANSFORM_KEY;
@@ -4625,6 +4633,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 comfyRenderFavNodes();
             } catch (e) {}
             if (!document.getElementById('comfy-url').value) document.getElementById('comfy-url').value = 'http://127.0.0.1:8188';
+            // 메인 설정을 폼에 실제로 로드한 순간 표시 → 이후 이미지 테마 진입 시 "폼=메인" 저장이 안전함이 보장됨
+            if (!_comfyImgSettingsOn) _comfyMainLoaded = true;
         }
 
         // ── 이미지 테마(변환·인페인팅) ComfyUI 설정 분리 ──
@@ -4633,7 +4643,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _comfyEnterImageSettings(kind) {
             kind = (kind === 'inpaint') ? 'inpaint' : 'transform';
             if (_comfyImgSettingsOn && _comfyImgKind === kind) return;
-            _comfySaveSettings(); // 현재 폼(메인) 확정 저장(메인 키) — 이미지 테마 전환은 항상 메인 경유(exit→enter)
+            // ★ 폼이 '메인 설정'을 실제로 담고 있을 때만 메인 키에 저장한다.
+            //   (부팅 직후 저장된 레이아웃이 이미지 테마면, 폼엔 아직 HTML 기본값(steps 28 등)만 있는데
+            //    이걸 메인에 저장해 클래식/스튜디오 설정이 통째로 초기화되던 버그 — 이 가드로 차단.)
+            if (_comfyMainLoaded) _comfySaveSettings();
             _comfyImgSettingsOn = true;
             _comfyImgKind = kind;
             const themeKey = _comfyActiveSettingsKey();
