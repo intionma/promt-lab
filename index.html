@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.44.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.45.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1180,7 +1180,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.44.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.45.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1946,7 +1946,15 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.44.0', date: '2026-07-12', time: '최신',
+                version: 'v9.45.0', date: '2026-07-12', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지 변환] '⚡ 분석 끝나면 바로 생성' 토글을 추가했습니다 — 켜두면 이미지를 넣고 자동 태그 분석이 끝나는 즉시 ComfyUI 전송(생성)까지 알아서 이어집니다. (이미지 분석 옵션 옆)",
+                    "[성능] 생성 중 백그라운드에서 결과를 확인하려고 0.5초마다 계속 서버를 찌르던 폴링을 1.5초 간격으로 완화해, 웹소켓이 살아 있을 때의 불필요한 네트워크 부하를 줄였습니다 (멈칫거림 완화).",
+                ]
+            },
+            {
+                version: 'v9.44.0', date: '2026-07-12', time: '',
                 tag: 'feat',
                 items: [
                     "[이미지 변환] '검열·모자이크 태그 안 불러오기' 옵션을 추가했습니다 (자동 태깅 고급 설정, 기본 켜짐) — 원본에 모자이크·검열 막대가 있어도 이미지 분석 때 검열 태그(censored, mosaic censoring, bar censor, pixelated 등)를 아예 안 불러오고, 최종 프롬프트에서도 빼며, 부정 프롬프트에 넣어 결과에 모자이크가 안 그려지게 합니다. (uncensored 같은 무검열 태그는 유지)",
@@ -5074,6 +5082,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         let _img2img = {
             enabled: false, file: null, dataURL: null, uploadedName: null, denoise: 0.5, fileName: '',
             autoTag: true,                        // 업로드 시 자동으로 이미지 분석(태깅)
+            autoGenerate: false,                  // (변환) 이미지 넣고 분석 끝나면 바로 ComfyUI 전송(자동 생성)
             wd14Model: 'wd-v1-4-moat-tagger-v2',  // WD14 태거 모델 (사용자 설치본에 맞게 수정 가능)
             wd14Threshold: 0.35,                  // 태그 채택 임계값
             addRealism: true,                     // 분석 후 실사 변환 태그 자동 추가
@@ -5107,7 +5116,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 이미지 원본(dataURL)은 용량이 커 localStorage에 넣지 않음. 설정값만 영속.
             try {
                 localStorage.setItem(_img2imgKey(), JSON.stringify({
-                    denoise: _img2img.denoise, autoTag: _img2img.autoTag,
+                    denoise: _img2img.denoise, autoTag: _img2img.autoTag, autoGenerate: _img2img.autoGenerate,
                     wd14Model: _img2img.wd14Model, wd14Threshold: _img2img.wd14Threshold, addRealism: _img2img.addRealism, maxSide: _img2img.maxSide,
                     loras: _img2img.loras, controlnet: _img2img.controlnet, cnModel: _img2img.cnModel, cnStrength: _img2img.cnStrength,
                     ipadapter: _img2img.ipadapter, ipaWeight: _img2img.ipaWeight,
@@ -5123,6 +5132,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const s = JSON.parse(raw || '{}');
                 if (typeof s.denoise === 'number') _img2img.denoise = s.denoise;
                 if (typeof s.autoTag === 'boolean') _img2img.autoTag = s.autoTag;
+                if (typeof s.autoGenerate === 'boolean') _img2img.autoGenerate = s.autoGenerate;
                 if (typeof s.wd14Model === 'string' && s.wd14Model) _img2img.wd14Model = s.wd14Model;
                 if (typeof s.wd14Threshold === 'number') _img2img.wd14Threshold = s.wd14Threshold;
                 if (typeof s.addRealism === 'boolean') _img2img.addRealism = s.addRealism;
@@ -6975,7 +6985,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (_comfyPollActive.has(pid)) return; // 중복 폴링 방지
                 _comfyPollActive.add(pid);
             }
-            if (tries > 1200) { _comfyPollActive.delete(pid); return; } // 최대 ~10분
+            if (tries > 400) { _comfyPollActive.delete(pid); return; } // 최대 ~10분 (1.5초 간격)
             if (!_comfyJobs[pid] || _comfyJobs[pid].done) { _comfyPollActive.delete(pid); return; }
             try {
                 const res = await fetch(_comfyBase() + '/history/' + pid, { signal: AbortSignal.timeout(20000) });
@@ -6987,7 +6997,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     }
                 }
             } catch (e) {}
-            setTimeout(() => _comfyPollResult(pid, tries + 1), 500);
+            // 웹소켓이 살아 있으면 폴링은 '보험'일 뿐이라 자주 돌 필요 없음 → 간격을 늘려 백그라운드 부하 감소
+            //  (웹소켓 완료를 놓친 경우에도 1.5초 내 회수). tries 상한도 이에 맞춰 조정.
+            setTimeout(() => _comfyPollResult(pid, tries + 1), 1500);
         }
 
         // ── 이미지 갤러리 탭 ──────────────────────────────────────────
@@ -19299,7 +19311,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
             // 새 원본 이미지를 넣은 직후 — 자동 분석 켜져 있으면 태깅해서 에디터 채움
             // 인페인팅은 전체 이미지 자동 태깅을 하지 않음(짧은 프롬프트가 목적이라 태그가 오염됨)
-            function afterNewImage() { if (!IS_INPAINT && _img2img.autoTag) { try { _i2iAnalyzeAndFill(); } catch (e) {} } }
+            async function afterNewImage() {
+                if (IS_INPAINT) return;
+                // 자동 태깅(켜져 있으면) → 끝나면, '자동 생성'이 켜져 있으면 바로 ComfyUI 전송
+                let analyzed = false;
+                if (_img2img.autoTag) { try { analyzed = await _i2iAnalyzeAndFill(); } catch (e) {} }
+                if (_img2img.autoGenerate) {
+                    try { updateMasterOutput(); } catch (e) {}
+                    // 프롬프트 반영/렌더 후 전송 (연결 안 됐으면 comfyGenerate가 알아서 안내)
+                    setTimeout(() => { try { if (_plCurrent === 'img2img' && _img2img.enabled && typeof comfyGenerate === 'function') comfyGenerate(); } catch (e) {} }, 200);
+                }
+            }
             // dataURL을 (필요 시) 축소해서 원본으로 지정
             async function useImage(dataURL, name) {
                 const prep = await _i2iPrepImage(dataURL);
@@ -19340,10 +19362,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 try { await _i2iAnalyzeAndFill(); } finally { analyzeBtn.disabled = false; analyzeBtn.innerHTML = old; }
             }
             const autoChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.autoTag = e.target.checked; _img2imgSave(); } }); autoChk.checked = _img2img.autoTag;
+            const autoGenChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.autoGenerate = e.target.checked; _img2imgSave(); } }); autoGenChk.checked = _img2img.autoGenerate;
             const analyzeRow = el('div', { style: 'display:flex; align-items:center; gap:10px; flex-wrap:wrap;' },
                 analyzeBtn,
                 el('label', { style: 'display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-dim); cursor:pointer; white-space:nowrap;' }, autoChk, '넣으면 자동 분석'),
-                chkHelp('analyze'));
+                chkHelp('analyze'),
+                el('label', { style: 'display:flex; align-items:center; gap:5px; font-size:12px; color:var(--accent-green); font-weight:700; cursor:pointer; white-space:nowrap;', title: '이미지를 넣고 태그 분석이 끝나면 자동으로 ComfyUI 전송(생성)까지 이어서 합니다' }, autoGenChk, '⚡ 분석 끝나면 바로 생성'));
 
             // 고급 설정(접이식): 실사 태그 추가 · WD14 모델 · 임계값 · 최대 크기
             const realismChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.addRealism = e.target.checked; _img2imgSave(); try { updateMasterOutput(); } catch (e) {} } }); realismChk.checked = _img2img.addRealism; // 끄면 결과창의 실사·부정 태그가 즉시 빠지도록 재계산
@@ -19474,6 +19498,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 try { dropCensorChk.checked = _img2img.dropCensor; } catch (e) {}
                 upChk.checked = _img2img.upscale; upBody.style.display = _img2img.upscale ? 'flex' : 'none'; upByeSel.value = String(_img2img.upscaleBy);
                 autoChk.checked = _img2img.autoTag; realismChk.checked = _img2img.addRealism;
+                try { autoGenChk.checked = _img2img.autoGenerate; } catch (e) {}
                 thrInput.value = _img2img.wd14Threshold; sizeInput.value = _img2img.maxSide;
                 try { growInput.value = _img2img.maskGrow; } catch (e) {} // 인페인트 마스크 확장
                 try { fooChk.checked = _img2img.fooocus; } catch (e) {}   // Fooocus 패치

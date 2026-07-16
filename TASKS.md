@@ -5,6 +5,12 @@
 
 ## 🔴 진행/대기 (Open)
 
+- [~] **[생성 멈춤/느낌 조사]** — ⚙️일부 완화(v9.45.0). 매 생성마다 웹소켓과 별개로 500ms 폴백 폴링을
+  돌려 백그라운드 부하 → 1500ms로 완화(+tries 상한 400). ⏳ **실제 멈춤 재현 조건 사용자 확인 대기**
+  (전체 UI 무응답인지 / 진행바만 멈춘 건지(FaceDetailer 2패스 중 progress 미발생) / 갤러리 170장 렌더 부하인지).
+- [x] **[변환 자동 생성 토글]** — ✅완료(v9.45.0). `autoGenerate`(기본 OFF). `afterNewImage` async화 →
+  autoTag 분석 완료 후 autoGenerate면 `updateMasterOutput`+`comfyGenerate`(200ms 지연). UI는 analyzeRow.
+  save/restore/_syncPipelineUI 연결. 테스트 vautogen.js.
 - [x] **[변환 검열 태그 필터]** — ✅완료(v9.44.0). `dropCensor`(기본 ON). `_I2I_CENSOR_TAGS`.
   `_i2iAnalyzeAndFill`에서 분석 태그 임포트 시 제거 + `updateMasterOutput` 긍정 제거 + 부정에 핵심 검열
   억제 태그 추가. uncensored는 보존. UI는 advBody(자동 태깅 고급). 테스트 vcensor.js.
