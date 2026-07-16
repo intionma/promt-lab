@@ -5,6 +5,13 @@
 
 ## 🔴 진행/대기 (Open)
 
+- [x] **[미리보기 전수조사]** — ✅수정(v9.46.0). 근본 2원인:
+  ① ComfyUI 단계별 미리보기는 '바이너리' 웹소켓 프레임인데 `_comfyOnSocketMessage`가 non-string 전부
+     무시 → 단계별 프리뷰 아예 안 뜸. `sock.binaryType='arraybuffer'` + `_comfyHandleBinaryPreview`
+     (헤더 8B: event=1, fmt 1=JPEG/2=PNG) + `_comfyShowLiveFrame`(인라인/모달 단일 갱신 프레임).
+  ② 자동생성이 `comfyGenerate()`(inline=null)라 모달로 감→안 보임. `comfyQuickSend('pos')`로 변경.
+  실행 시작 시 `_comfyClearLive`로 라이브 영역 초기화. 테스트 vpreview.js/vautogen2.js.
+  ⚠ 서버가 --preview-method none이면 프레임 안 옴(사용자 안내). ↳ #31 FaceDetailer 2패스 프리뷰도 이걸로 해결될 가능성.
 - [x] **[대기열 이미지 섞임]** — ✅수정(v9.45.1). 근본 원인 발견. `_img2imgEnsureUploaded`가
   원본 파일명(source.png 등)+overwrite=true로 업로드 → 큐 남은 상태에서 다른 이미지 올리면 서버
   같은 파일 덮어써 대기 작업이 새 이미지로 뒤바뀜. 업로드마다 고유명(promptlab_src_ts_seq_rand.ext)

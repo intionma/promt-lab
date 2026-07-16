@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.45.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.46.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1180,7 +1180,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.45.1 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.46.0 &nbsp;·&nbsp; 2026-07-12 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1946,7 +1946,15 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.45.1', date: '2026-07-12', time: '최신',
+                version: 'v9.46.0', date: '2026-07-12', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[미리보기] 생성 중 '단계별 미리보기'가 안 뜨던 문제를 전면 수정했습니다 — ComfyUI가 샘플링 중 보내는 미리보기가 '바이너리' 신호라 앱이 통째로 무시하고 있었습니다. 이제 이 신호를 받아 결과창에 그림이 그려지는 과정을 실시간으로 보여줍니다 (이미지 변환·인페인팅 공통). ※ ComfyUI 쪽 미리보기가 꺼져 있으면(--preview-method none) 안 보일 수 있어요.",
+                    "[이미지 변환] '분석 끝나면 바로 생성'으로 자동 생성될 때 미리보기가 결과창이 아닌 다른 곳으로 가서 안 보이던 문제를 고쳤습니다 — 이제 자동 생성도 결과창 미리보기 영역에 정상 표시됩니다.",
+                ]
+            },
+            {
+                version: 'v9.45.1', date: '2026-07-12', time: '',
                 tag: 'fix',
                 items: [
                     "[이미지 변환] 대기열을 여러 개 쌓아둔 상태에서 다른 이미지로 바꾸면, 앞서 쌓아둔 작업까지 새 이미지로 뒤바뀌어 기괴하게 나오던 버그를 고쳤습니다 — 원본을 서버에 올릴 때 매번 '고유 파일명'을 쓰도록 바꿔, 새 이미지가 이미 대기 중인 작업의 원본을 덮어쓰지 않습니다. 이제 각 작업이 눌렀을 당시의 이미지를 그대로 유지합니다.",
@@ -6059,6 +6067,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try {
                 const wsBase = _comfyBase().replace(/^http/, 'ws');
                 const sock = new WebSocket(`${wsBase}/ws?clientId=${_comfyClientId}`);
+                sock.binaryType = 'arraybuffer'; // ComfyUI 단계별 미리보기는 '바이너리' 프레임으로 옴 → 받으려면 필수
                 sock.onmessage = _comfyOnSocketMessage;
                 sock.onopen = () => { _comfyWsRetry = 0; }; // 연결 성공 → 백오프 리셋
                 sock.onclose = () => { if (_comfySocket === sock) _comfySocket = null; _comfyScheduleReconnect(); };
@@ -6273,7 +6282,47 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }, 1600);
         }
 
+        // ── 단계별 라이브 미리보기(바이너리 프레임) ──────────────────────────
+        // ComfyUI는 샘플링 중 미리보기 이미지를 '바이너리 웹소켓 프레임'으로 보냄:
+        //   [4바이트 이벤트타입=1(PREVIEW_IMAGE)] + [4바이트 포맷 1=JPEG/2=PNG] + [이미지 바이트]
+        // 예전엔 문자열이 아니면 전부 무시해서 단계별 미리보기가 안 나왔음.
+        let _comfyLiveFrameURL = null;
+        function _comfyHandleBinaryPreview(buf) {
+            try {
+                if (!buf || buf.byteLength < 8) return;
+                const dv = new DataView(buf);
+                const eventType = dv.getUint32(0, false); // big-endian
+                if (eventType !== 1) return;              // 1 = PREVIEW_IMAGE
+                const fmt = dv.getUint32(4, false);       // 1=JPEG, 2=PNG
+                const mime = fmt === 2 ? 'image/png' : 'image/jpeg';
+                const blob = new Blob([buf.slice(8)], { type: mime });
+                const url = URL.createObjectURL(blob);
+                _comfyShowLiveFrame(url);
+            } catch (e) {}
+        }
+        function _comfyShowLiveFrame(url) {
+            const job = _comfyRunningPid ? _comfyJobs[_comfyRunningPid] : null;
+            const inline = job ? job.inline : null;
+            const containerId = inline ? ('comfy-inline-thumbs-' + inline) : 'comfy-live-thumbs';
+            const container = document.getElementById(containerId);
+            if (!inline) { const lw = document.getElementById('comfy-live-wrap'); if (lw) lw.style.display = 'block'; }
+            if (!container) { try { URL.revokeObjectURL(url); } catch (e) {} return; }
+            let frame = container.querySelector('.comfy-live-frame');
+            if (!frame) {
+                frame = document.createElement('img');
+                frame.className = 'comfy-live-frame';
+                frame.title = '생성 중 미리보기 (단계별)';
+                frame.style.cssText = 'max-height:var(--lb-h,320px); max-width:100%; width:auto; height:auto; border-radius:10px; border:2px solid var(--accent-blue,#38bdf8); box-shadow:0 0 0 3px rgba(56,189,248,0.15); display:block; margin:0 auto 8px;';
+                container.insertBefore(frame, container.firstChild);
+            }
+            frame.src = url;
+            if (_comfyLiveFrameURL) { try { URL.revokeObjectURL(_comfyLiveFrameURL); } catch (e) {} }
+            _comfyLiveFrameURL = url;
+            if (window._lbRefresh) window._lbRefresh(); // 라이트박스 열려있으면 반영
+        }
+
         function _comfyOnSocketMessage(ev) {
+            if (ev.data instanceof ArrayBuffer) { _comfyHandleBinaryPreview(ev.data); return; } // 단계별 미리보기
             if (typeof ev.data !== 'string') return;
             let msg; try { msg = JSON.parse(ev.data); } catch (e) { return; }
             const d = msg.data || {};
@@ -6285,8 +6334,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 } else if (d.prompt_id && _comfyJobs[d.prompt_id]) {
                     const job = _comfyJobs[d.prompt_id];
                     _comfyRunningPid = d.prompt_id;
-                    if (!job._runStart) job._runStart = Date.now(); // 생성 시작 시각 기록
-                    // 라이브는 '새 이미지가 도착할 때' 비움(_comfyStageImages) → 이전 미리보기가 교체 직전까지 유지됨
+                    // 이 작업의 첫 실행 이벤트 → 라이브 영역을 한번 비워 이전 결과/프레임 제거(단계별 미리보기가 깨끗한 곳에 뜸)
+                    if (!job._runStart) { job._runStart = Date.now(); job.cleared = false; try { _comfyClearLive(job.inline); } catch (e) {} }
                     _comfySetProgress(5, `${_comfyQ()}생성 중...`, job.inline);
                     comfyRenderQueue();
                 }
@@ -6779,6 +6828,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (lw) lw.style.display = 'block';
             if (lt) lt.innerHTML = '';
             if (inline) { const t = document.getElementById('comfy-inline-thumbs-' + inline); if (t) t.innerHTML = ''; }
+            if (_comfyLiveFrameURL) { try { URL.revokeObjectURL(_comfyLiveFrameURL); } catch (e) {} _comfyLiveFrameURL = null; } // 단계별 프레임 URL 정리
         }
 
         // maxH 기준으로 비율 유지 — 작은 얼굴 크롭은 작게, 큰 이미지는 maxH까지
@@ -19332,8 +19382,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (_img2img.autoTag) { try { analyzed = await _i2iAnalyzeAndFill(); } catch (e) {} }
                 if (_img2img.autoGenerate) {
                     try { updateMasterOutput(); } catch (e) {}
-                    // 프롬프트 반영/렌더 후 전송 (연결 안 됐으면 comfyGenerate가 알아서 안내)
-                    setTimeout(() => { try { if (_plCurrent === 'img2img' && _img2img.enabled && typeof comfyGenerate === 'function') comfyGenerate(); } catch (e) {} }, 200);
+                    // 프롬프트 반영/렌더 후 전송. comfyQuickSend('pos')로 보내야 결과창 인라인 미리보기 영역에 뜸
+                    // (comfyGenerate()만 부르면 인라인 타깃이 없어 모달 쪽으로 가서 안 보임)
+                    setTimeout(() => { try { if (_plCurrent === 'img2img' && _img2img.enabled && typeof comfyQuickSend === 'function') comfyQuickSend('pos'); } catch (e) {} }, 200);
                 }
             }
             // dataURL을 (필요 시) 축소해서 원본으로 지정
