@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.48.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.49.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1180,7 +1180,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.48.1 &nbsp;·&nbsp; 2026-07-17 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.49.0 &nbsp;·&nbsp; 2026-07-17 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1946,7 +1946,15 @@
         const CHANGELOG = [
             // ── 2026-07-17 ──────────────────────────────────────────────────
             {
-                version: 'v9.48.1', date: '2026-07-17', time: '최신',
+                version: 'v9.49.0', date: '2026-07-17', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지 변환] '흑백 이미지를 컬러로 변환' 설정을 추가했습니다 — 켜면 컬러 유도 태그(colorful, vibrant colors 등)를 넣고 흑백·세피아 억제 태그를 부정에 넣어, 흑백/세피아 원본을 색이 들어간 결과로 바꿔줍니다. (자동 태깅 고급 설정에 위치 · 색이 잘 안 들어가면 변환 강도를 0.6~0.75로 올리세요)",
+                    "[비교 패널] 가로로 긴 이미지가 미리보기에서 잘려 보이던 문제를 고쳤습니다 — 이제 원본·결과 모두 잘리지 않고 전체가 보입니다.",
+                ]
+            },
+            {
+                version: 'v9.48.1', date: '2026-07-17', time: '',
                 tag: 'fix',
                 items: [
                     "[비교 패널] 라이트 모드에서 패널 배경·버튼이 어둡게 잘못 나오던 문제를 고쳤습니다 — 이제 밝은 테마에 맞게 색이 제대로 적용됩니다.",
@@ -5177,6 +5185,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             faceRealism: true,                    // (변환) 실사 얼굴 비율로 교정 — 큰 눈 등 애니 비율 억제
             dropExpression: false,                // (변환) 원본 표정 안 가져오기 — 표정 태그 제거 + 얼굴 새로 그림
             dropCensor: true,                     // (변환) 검열·모자이크 태그 안 불러오기 — 분석 태그·최종 프롬프트에서 제거
+            colorize: false,                      // (변환) 흑백 이미지를 컬러로 — 컬러 유도 태그(+흑백 억제 부정) 주입
             fdModel: 'bbox/face_yolov8m.pt',      // 얼굴 감지 모델(bbox)
             upscale: false,                       // 업스케일(느림 — 기본 꺼짐)
             upscaleModel: '4x-UltraSharp.pth',    // 업스케일러
@@ -5199,7 +5208,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     wd14Model: _img2img.wd14Model, wd14Threshold: _img2img.wd14Threshold, addRealism: _img2img.addRealism, maxSide: _img2img.maxSide,
                     loras: _img2img.loras, controlnet: _img2img.controlnet, cnModel: _img2img.cnModel, cnStrength: _img2img.cnStrength,
                     ipadapter: _img2img.ipadapter, ipaWeight: _img2img.ipaWeight,
-                    faceDetailer: _img2img.faceDetailer, faceRealism: _img2img.faceRealism, dropExpression: _img2img.dropExpression, dropCensor: _img2img.dropCensor, fdModel: _img2img.fdModel, upscale: _img2img.upscale, upscaleModel: _img2img.upscaleModel, upscaleBy: _img2img.upscaleBy,
+                    faceDetailer: _img2img.faceDetailer, faceRealism: _img2img.faceRealism, dropExpression: _img2img.dropExpression, dropCensor: _img2img.dropCensor, colorize: _img2img.colorize, fdModel: _img2img.fdModel, upscale: _img2img.upscale, upscaleModel: _img2img.upscaleModel, upscaleBy: _img2img.upscaleBy,
                     editMode: _img2img.editMode, inpaintDenoise: _img2img.inpaintDenoise, maskGrow: _img2img.maskGrow, fooocus: _img2img.fooocus, fooocusHead: _img2img.fooocusHead, fooocusPatch: _img2img.fooocusPatch
                 }));
             } catch (e) {}
@@ -5226,6 +5235,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (typeof s.faceRealism === 'boolean') _img2img.faceRealism = s.faceRealism;
                 if (typeof s.dropExpression === 'boolean') _img2img.dropExpression = s.dropExpression;
                 if (typeof s.dropCensor === 'boolean') _img2img.dropCensor = s.dropCensor;
+                if (typeof s.colorize === 'boolean') _img2img.colorize = s.colorize;
                 if (typeof s.fdModel === 'string' && s.fdModel) _img2img.fdModel = s.fdModel;
                 if (typeof s.upscale === 'boolean') _img2img.upscale = s.upscale;
                 if (typeof s.upscaleModel === 'string' && s.upscaleModel) _img2img.upscaleModel = s.upscaleModel;
@@ -5296,6 +5306,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         const _I2I_NEG_TAGS = ['score_6', 'score_5', 'score_4', 'source_anime', 'anime', 'cartoon', 'cg', '3d', 'cel shading', 'flat color', 'illustration', 'anime screencap', 'plastic skin', 'doll', 'smooth skin'];
         // (변환) '실사 얼굴 비율로 교정' ON → 애니 특유의 큰 눈/과장 비율을 부정에 넣어 실사 얼굴로 유도
         const _I2I_FACE_NEG_TAGS = ['large eyes', 'huge eyes', 'oversized eyes', 'anime eyes', 'big eyes', 'doll eyes', 'chibi', 'deformed face', 'disproportionate face'];
+        // (변환) '흑백→컬러' ON — 컬러 유도(긍정) + 흑백/세피아 억제(부정). 흑백 원본을 색이 들어간 결과로.
+        const _I2I_COLOR_POS_TAGS = ['colorful', 'vibrant colors', 'vivid colors', 'full color', 'natural skin color'];
+        const _I2I_COLOR_NEG_TAGS = ['monochrome', 'greyscale', 'grayscale', 'black and white', 'sepia', 'desaturated', 'monochrome photo'];
         // (변환) '검열·모자이크 태그 안 불러오기' ON → 분석 태그 임포트와 최종 긍정에서 이 검열 태그들을 제거.
         //   ('uncensored'는 오히려 원하는 방향이므로 제거하지 않음)
         const _I2I_CENSOR_TAGS = ['censored', 'censoring', 'censor', 'mosaic censoring', 'mosaic censorship', 'mosaic', 'pixelization', 'pixelated', 'bar censor', 'bar censoring', 'black bars', 'convenient censoring', 'light censor', 'blur censor', 'soft censor', 'heart censor', 'novelty censor', 'hair censor', 'steam censor', 'steam censoring', 'tail censor', 'hand censor', 'wall censor', 'character censor', 'censor bar', 'censor bars', 'black censor bar', 'white censor bar', 'pointless censoring', 'pubic hair censor', 'nipple censor', 'censored nipples', 'text censor', 'yaoi censor', 'identity censor'];
@@ -6156,8 +6169,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
               .cmp-side{display:grid;grid-template-columns:1fr 1fr;gap:12px}
               .cmp-side figure{margin:0}
               .cmp-lbl{font-size:11px;color:var(--text-dim,#8a97a8);font-weight:700;margin:0 0 6px 2px}
-              .cmp-frame{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border-dim,#2a3342);background:#000;aspect-ratio:3/4}
-              .cmp-frame img{display:block;width:100%;height:100%;object-fit:cover}
+              .cmp-frame{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border-dim,#2a3342);background:#0b0e13;aspect-ratio:3/4}
+              /* 가로로 긴 이미지도 잘리지 않게 전체를 보여준다(레터박스) */
+              .cmp-frame img{display:block;width:100%;height:100%;object-fit:contain}
               .cmp-frame.nores{display:grid;place-items:center}
               .cmp-cap{position:absolute;left:8px;top:8px;font-size:10.5px;font-weight:800;background:rgba(0,0,0,.55);color:#fff;padding:3px 8px;border-radius:7px}
               .cmp-cap.right{left:auto;right:8px;background:#0ea5e9;color:#04222f}
@@ -16762,6 +16776,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         }
                     }
                 }
+                // (변환) '흑백→컬러' ON → 컬러 유도 태그를 긍정에 주입 (스코어 접두 뒤, addRealism과 무관하게 독립)
+                if (typeof _img2img !== 'undefined' && _img2img.enabled && _img2img.editMode !== 'inpaint' && _img2img.colorize) {
+                    const presentC = new Set((finalOutput || '').toLowerCase().split(/[,\n]/).map(s => s.trim()).filter(Boolean));
+                    const colAdds = _I2I_COLOR_POS_TAGS.filter(t => !presentC.has(t.toLowerCase()));
+                    if (colAdds.length) {
+                        const m = (finalOutput || '').match(/^((?:\s*score_[^,\n]+\s*,\s*)+)/i);
+                        if (m) finalOutput = m[1] + colAdds.join(', ') + ', ' + finalOutput.slice(m[1].length);
+                        else finalOutput = colAdds.join(', ') + (finalOutput ? ', ' + finalOutput : '');
+                    }
+                }
                 // (변환) 최종 긍정에서 특정 태그 제거: '원본 표정 안 가져오기' + '검열·모자이크 안 불러오기'
                 if (typeof _img2img !== 'undefined' && _img2img.enabled && _img2img.editMode !== 'inpaint' && (_img2img.dropExpression || _img2img.dropCensor)) {
                     const dropSet = new Set();
@@ -16933,6 +16957,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const negLcC = new Set(finalNegOutput.toLowerCase().split(',').map(s => s.trim()).filter(Boolean));
                     const addC = ['censored', 'censoring', 'mosaic censoring', 'bar censor', 'mosaic', 'pixelated'].filter(t => !negLcC.has(t));
                     if (addC.length) finalNegOutput = (finalNegOutput ? finalNegOutput + ', ' : '') + addC.join(', ');
+                }
+                // (변환) '흑백→컬러' ON → 흑백/세피아/무채색을 부정에 추가해 색이 확실히 들어가게
+                if (typeof _img2img !== 'undefined' && _img2img.enabled && _img2img.editMode !== 'inpaint' && _img2img.colorize) {
+                    const negLcCol = new Set(finalNegOutput.toLowerCase().split(',').map(s => s.trim()).filter(Boolean));
+                    const addCol = _I2I_COLOR_NEG_TAGS.filter(t => !negLcCol.has(t.toLowerCase()));
+                    if (addCol.length) finalNegOutput = (finalNegOutput ? finalNegOutput + ', ' : '') + addCol.join(', ');
                 }
                 // 인페인팅 + Pony 계열: 부정 스코어/품질 기본선이 없으면 마스크 영역이 저품질로 뭉개진다.
                 // 화풍 중립인 저품질 억제 태그만 최소한으로 보강. (실사 억제 태그는 넣지 않음)
@@ -19824,6 +19854,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 faceRealism: ['실사 얼굴 비율로 교정', '씹덕/애니 원본은 <b>눈이 과장되게 크고</b> 이목구비 비율이 실사와 달라, 그대로 실사화하면 <b>기괴(언캐니)</b>해집니다.<br><br>켜면 <b>부정 프롬프트에 "큰 눈·애니 눈·과장 비율" 억제 태그</b>를 자동으로 넣어 실사에 맞는 얼굴 비율로 유도합니다. FaceDetailer도 이 부정 태그를 반영해 얼굴을 다시 그립니다.<br>· 원본 눈 크기를 살리고 싶으면 끄세요.'],
                 dropExpression: ['원본 표정 안 가져오기', '원본의 <b>표정(웃음·홍조·혀·눈 감음 등)을 그대로 가져오고 싶지 않을 때</b> 켜세요.<br><br>· 최종 프롬프트에서 <b>표정·감정 태그를 자동으로 빼고</b>(에디터 원본은 그대로 둠), FaceDetailer가 얼굴을 <b>더 강하게 새로</b> 그려 원본 표정을 덜 따라가게 합니다(편집 강도 0.5→0.65).<br>· 특정 표정을 원하면 이 토글을 켠 뒤 원하는 표정 태그(예: neutral expression)를 직접 넣으세요.<br>· 얼굴을 실제로 다시 그리려면 <b>FaceDetailer를 함께 켜는 것</b>이 효과적입니다.'],
                 dropCensor: ['검열·모자이크 태그 안 불러오기', '원본에 <b>모자이크·검열 막대</b> 등이 있으면 실사로 바꿔도 그게 따라오는데, 이걸 막습니다.<br><br>· 켜면 이미지 분석(자동 태그) 때 <b>검열 관련 태그를 아예 안 불러오고</b>(censored, mosaic censoring, bar censor, pixelated 등), 최종 프롬프트에서도 빼며, <b>부정 프롬프트에 넣어</b> 결과에 모자이크가 안 그려지게 합니다.<br>· (uncensored 같은 "무검열" 태그는 그대로 둡니다.)'],
+                colorize: ['흑백 이미지를 컬러로 변환', '원본이 <b>흑백·세피아·무채색</b>일 때, 색이 들어간 결과로 유도합니다.<br><br>· 켜면 긍정 프롬프트에 <b>컬러 유도 태그</b>(colorful, vibrant colors, natural skin color 등)를 넣고, 부정 프롬프트에 <b>흑백·세피아 억제 태그</b>(monochrome, greyscale, sepia 등)를 넣습니다.<br>· 색이 잘 안 들어가면 <b>변환 강도(denoise)를 0.6~0.75로 올려</b> 보세요 — 강도가 너무 낮으면 원본의 무채색이 그대로 남습니다.'],
                 upscale: ['업스케일 — 고해상도', '완성 이미지를 타일 방식으로 <b>더 큰 해상도</b>로 키우며 디테일을 보강합니다.<br><br>· <b>느립니다</b> — 마음에 드는 최종 컷에만 켜세요.<br>· 타일(768px) 방식이라 12GB VRAM에서도 비교적 안전.'],
             };
             const lblH = (text, key) => el('div', { style: 'display:flex; align-items:center; gap:6px; margin-bottom:6px;' },
@@ -20073,6 +20104,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const faceRealismChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.faceRealism = e.target.checked; _img2imgSave(); try { updateMasterOutput(); } catch (e) {} } }); faceRealismChk.checked = _img2img.faceRealism;
             const dropExprChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.dropExpression = e.target.checked; _img2imgSave(); try { updateMasterOutput(); } catch (e) {} } }); dropExprChk.checked = _img2img.dropExpression;
             const dropCensorChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.dropCensor = e.target.checked; _img2imgSave(); try { updateMasterOutput(); } catch (e) {} } }); dropCensorChk.checked = _img2img.dropCensor;
+            const colorizeChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.colorize = e.target.checked; _img2imgSave(); try { updateMasterOutput(); } catch (e) {} } }); colorizeChk.checked = _img2img.colorize;
             const modelSelect = el('select', { class: 'comfy-num', style: 'flex:1; min-width:0; font-size:11px; font-family:var(--font-code);', onchange: (e) => { _img2img.wd14Model = e.target.value; _img2imgSave(); } });
             const modelRefresh = el('button', { class: 'action-btn', title: '설치된 모델 목록 새로고침', style: 'flex:0 0 auto; font-size:11px; padding:6px 9px;', html: '<i class="fa-solid fa-rotate"></i>', onclick: () => fillModels(true) });
             // 설치된 모델 목록으로 드롭다운 채움 (실패하면 현재 값만 표시)
@@ -20097,6 +20129,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const advBody = el('div', { style: 'display:none; flex-direction:column; gap:11px; padding-top:11px;' },
                 rowHelp(el('label', { style: 'display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-main); cursor:pointer;' }, realismChk, '실사 변환 태그 자동 추가 (photo, realistic …)'), 'addRealism'),
                 rowHelp(el('label', { style: 'display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-main); cursor:pointer;' }, dropCensorChk, '검열·모자이크 태그 안 불러오기'), 'dropCensor'),
+                rowHelp(el('label', { style: 'display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-main); cursor:pointer;' }, colorizeChk, '흑백 이미지를 컬러로 변환'), 'colorize'),
                 el('div', {}, el('div', { style: 'display:flex; align-items:center; gap:6px; margin-bottom:4px;' }, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, 'WD14 태거 모델 (설치된 것 중 선택)'), chkHelp('wd14Model')), el('div', { style: 'display:flex; gap:6px; align-items:center;' }, modelSelect, modelRefresh)),
                 el('div', { style: 'display:flex; align-items:center; gap:8px; flex-wrap:wrap;' }, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, '태그 임계값'), chkHelp('threshold'), thrInput, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, '· 최대 크기(긴 변)'), chkHelp('maxSide'), sizeInput, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, 'px')));
             const advToggle = el('div', { style: 'font-size:11px; color:var(--text-dim); cursor:pointer; user-select:none;', html: '▼ 자동 태깅 고급 설정 (WD14)', onclick: () => { const on = advBody.style.display === 'none'; advBody.style.display = on ? 'flex' : 'none'; advToggle.innerHTML = (on ? '▲' : '▼') + ' 자동 태깅 고급 설정 (WD14)'; } });
@@ -20250,6 +20283,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 try { faceRealismChk.checked = _img2img.faceRealism; } catch (e) {}
                 try { dropExprChk.checked = _img2img.dropExpression; } catch (e) {}
                 try { dropCensorChk.checked = _img2img.dropCensor; } catch (e) {}
+                try { colorizeChk.checked = _img2img.colorize; } catch (e) {}
                 upChk.checked = _img2img.upscale; upBody.style.display = _img2img.upscale ? 'flex' : 'none'; upByeSel.value = String(_img2img.upscaleBy);
                 autoChk.checked = _img2img.autoTag; realismChk.checked = _img2img.addRealism;
                 try { autoGenChk.checked = _img2img.autoGenerate; } catch (e) {}
