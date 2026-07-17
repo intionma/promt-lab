@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.49.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.49.2 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1197,7 +1197,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.49.1 &nbsp;·&nbsp; 2026-07-17 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.49.2 &nbsp;·&nbsp; 2026-07-17 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1963,7 +1963,15 @@
         const CHANGELOG = [
             // ── 2026-07-17 ──────────────────────────────────────────────────
             {
-                version: 'v9.49.1', date: '2026-07-17', time: '최신',
+                version: 'v9.49.2', date: '2026-07-17', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[비교 패널] 이미지를 크게 볼 수 있게 했습니다 — 원본·결과 이미지 오른쪽 아래의 🔍 버튼(또는 좌우 나란히 모드에서 이미지 탭)을 누르면 전체화면으로 크게 보이고, 손가락으로 확대·축소하거나 원본↔결과를 넘겨볼 수 있습니다.",
+                    "[비교 패널] 탭 전환 모드에서 이미지를 누르면 원본↔결과가 바로 전환됩니다 (위의 원본/결과 버튼과 동일).",
+                ]
+            },
+            {
+                version: 'v9.49.1', date: '2026-07-17', time: '',
                 tag: 'fix',
                 items: [
                     "[성능] 모바일에서 사이트가 무겁고 자주 멈추던(프리징) 문제를 크게 개선했습니다 — 화면 곳곳의 반투명 유리 효과(배경 흐림, backdrop-filter)가 모바일 GPU에서 스크롤·애니메이션마다 무거운 재계산을 일으키던 것이 원인이었습니다. 모바일에서는 이 흐림 효과를 끄고 불투명 배경으로 대체해(가독성은 유지) 훨씬 가볍게 만들었습니다. (PC는 기존 유리 효과 그대로)",
@@ -6004,16 +6012,24 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const src = it.src;
                 const cur = it.results[it.sel];
                 const gen = cur ? cur.url : null;
+                // 크게 보기: 앱 공용 라이트박스(줌·스와이프·뒤로가기) 재사용. 원본↔결과 스와이프 가능.
+                const openLB = (startIdx) => { try { if (window.openLightbox) { const urls = gen ? [src, gen] : [src]; const idx = Math.max(0, Math.min(urls.length - 1, startIdx)); window.openLightbox(urls[idx], urls, idx); } } catch (e) {} };
+                // 프레임 우하단에 🔍 '크게 보기' 버튼 추가
+                const addZoom = (frameEl, idx) => { const z = elc('button', 'cmp-zoom', '🔍'); z.title = '크게 보기'; z.onclick = (e) => { e.stopPropagation(); openLB(idx); }; frameEl.appendChild(z); };
                 if (!gen) {
                     const w = elc('div', 'cmp-side');
                     w.innerHTML = `<figure><div class="cmp-frame"><img src="${src}"><span class="cmp-cap">원본</span></div></figure>` +
                         `<figure><div class="cmp-frame nores"><img src="${ph(it.status === 'gen' ? '생성 중…' : '결과 없음')}"></div></figure>`;
+                    const f0 = w.querySelector('.cmp-frame'); if (f0) { f0.style.cursor = 'zoom-in'; f0.onclick = () => openLB(0); addZoom(f0, 0); }
                     return w;
                 }
                 if (viewMode === 'side') {
                     const w = elc('div', 'cmp-side');
                     w.innerHTML = `<figure><div class="cmp-lbl">원본</div><div class="cmp-frame"><img src="${src}"><span class="cmp-cap">원본</span></div></figure>` +
                         `<figure><div class="cmp-lbl">결과 · ${it.sel + 1}/${it.results.length}</div><div class="cmp-frame"><img src="${gen}"><span class="cmp-cap right">결과</span></div></figure>`;
+                    const frames = w.querySelectorAll('.cmp-frame');
+                    if (frames[0]) { frames[0].style.cursor = 'zoom-in'; frames[0].onclick = () => openLB(0); addZoom(frames[0], 0); }
+                    if (frames[1]) { frames[1].style.cursor = 'zoom-in'; frames[1].onclick = () => openLB(1); addZoom(frames[1], 1); }
                     return w;
                 }
                 if (viewMode === 'slider') {
@@ -6025,14 +6041,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const move = (cx) => { const r = base.getBoundingClientRect(); let p = (cx - r.left) / r.width * 100; p = Math.max(2, Math.min(98, p)); it.clip = p; over.style.width = p + '%'; handle.style.left = p + '%'; };
                     const down = (e) => { e.preventDefault(); const mv = ev => move((ev.touches ? ev.touches[0] : ev).clientX); const up = () => { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); document.removeEventListener('touchmove', mv); document.removeEventListener('touchend', up); save(); }; document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up); document.addEventListener('touchmove', mv, { passive: false }); document.addEventListener('touchend', up); };
                     handle.addEventListener('mousedown', down); handle.addEventListener('touchstart', down, { passive: false });
+                    // 🔍 버튼만 크게 보기 (프레임 클릭은 슬라이더 조작과 헷갈릴 수 있어 버튼으로 분리)
+                    const bf = base.querySelector('.cmp-frame'); if (bf) addZoom(bf, 1);
                     return w;
                 }
-                // tab
+                // tab — 이미지를 누르면 원본↔결과 전환(버튼과 동일), 🔍로 크게 보기
                 const w = elc('div', 'cmp-tab');
                 const showSrc = it.tab === 'src';
                 w.innerHTML = `<div class="tabs"><button data-t="src" aria-pressed="${showSrc}">원본</button><button data-t="gen" aria-pressed="${!showSrc}">결과</button></div>
                     <div class="tabwrap"><div class="cmp-frame"><img src="${showSrc ? src : gen}"><span class="cmp-cap ${showSrc ? '' : 'right'}">${showSrc ? '원본' : '결과'}</span></div></div>`;
                 w.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { it.tab = b.dataset.t; render(); save(); });
+                const tf = w.querySelector('.cmp-frame');
+                if (tf) { tf.style.cursor = 'pointer'; tf.title = '탭하면 원본↔결과 전환'; tf.onclick = () => { it.tab = showSrc ? 'gen' : 'src'; render(); save(); }; addZoom(tf, showSrc ? 0 : 1); }
                 return w;
             }
             function adjust(it) {
@@ -6199,6 +6219,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
               .cmp-frame.nores{display:grid;place-items:center}
               .cmp-cap{position:absolute;left:8px;top:8px;font-size:10.5px;font-weight:800;background:rgba(0,0,0,.55);color:#fff;padding:3px 8px;border-radius:7px}
               .cmp-cap.right{left:auto;right:8px;background:#0ea5e9;color:#04222f}
+              .cmp-zoom{position:absolute;right:8px;bottom:8px;width:32px;height:32px;border-radius:9px;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:14px;cursor:pointer;display:grid;place-items:center;z-index:6;opacity:.9;line-height:1}
+              .cmp-zoom:hover{opacity:1;background:rgba(0,0,0,.78)}
               .cmp-slider{position:relative;max-width:340px;margin:0 auto}
               .cmp-slider .base{position:relative}
               .cmp-slider .over{position:absolute;inset:0;overflow:hidden;width:50%}
