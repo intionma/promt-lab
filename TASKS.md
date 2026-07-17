@@ -5,6 +5,10 @@
 
 ## 🔴 진행/대기 (Open)
 
+- [x] **[연속 붙여넣기 배치 생성]** — ✅완료(v9.47.0). autoGenerate ON+변환 테마에서 이미지 연달아 넣으면
+  `useImage`가 `_i2iEnqueueBatch`로 큐잉 → `_i2iBatchRun` 워커가 하나씩 [prep→setImg→analyze→
+  updateMasterOutput→`await comfyQuickSend('pos')`] 직렬 처리. comfyQuickSend가 comfyGenerate Promise
+  반환하도록 변경(await 가능, 락은 내부 finally 해제). 진행 배지(batchBadge). 테스트 vbatch.js(직렬 순서 검증).
 - [x] **[외부 감사 1차 5건]** — ✅검증+수정(v9.46.4). AUDIT_FINDINGS_2026-07-17.md(외부 모델). 5건 모두 실제
   코드 근거 확인됨(환각 없음). ①`comfyGenerate` 연결상태 성공문구가 실패를 무조건 덮어씀→else 분기.
   ②`_comfyAbortInline` 호출에 `inline` 미전달→인라인 탭 상태 미갱신, 전부 inline 전달. ③`_comfyAssembleWorkflow`

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.46.4 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.47.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1180,7 +1180,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.46.4 &nbsp;·&nbsp; 2026-07-17 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.47.0 &nbsp;·&nbsp; 2026-07-17 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1946,7 +1946,14 @@
         const CHANGELOG = [
             // ── 2026-07-12 ──────────────────────────────────────────────────
             {
-                version: 'v9.46.4', date: '2026-07-17', time: '최신',
+                version: 'v9.47.0', date: '2026-07-17', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지 변환] 연속 붙여넣기 자동 생성 — '분석 끝나면 바로 생성'을 켜둔 상태에서 이미지를 연달아 붙여넣으면(또는 드래그·클립보드), 기다릴 필요 없이 각 이미지를 큐에 쌓아 하나씩 '분석 → 태그 → 전송'을 자동으로 처리합니다. 화면에는 '연속 생성 N/M 처리 중 · 대기 K장' 배지가 뜨고, 각 이미지가 서로 섞이지 않게 순서대로 ComfyUI 큐로 들어갑니다.",
+                ]
+            },
+            {
+                version: 'v9.46.4', date: '2026-07-17', time: '',
                 tag: 'fix',
                 items: [
                     "[안정성] 외부 코드 감사에서 나온 경합(타이밍) 문제 5건을 정리했습니다 — ① 생성 준비 중 테마(변환↔인페인팅)를 바꾸면 뒤섞인 워크플로우가 전송되던 것을 감지해 안전하게 취소하고 다시 누르라고 안내, ② 준비 중 전송 대상(긍정/부정)을 바꿔도 라벨·검증이 실제 전송과 어긋나지 않게 클릭 시점 값으로 고정, ③ 연결 확인이 실패했는데도 '연결됨'으로 표시되던 문구 수정, ④ 긍정/부정 탭에서 오류 시 해당 탭 상태 문구가 갱신되지 않던 것 수정, ⑤ 설정 복원 도중 불필요한 저장이 발생하던 구조를 차단.",
@@ -4546,7 +4553,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 document.getElementById('comfy-inline-bar-' + t).style.width = '2%';
                 document.getElementById('comfy-inline-status-' + t).textContent = '전송 준비...';
             }
-            comfyGenerate(t); // 개발자 모드면 comfyGenerate 내부에서 가상 처리
+            return comfyGenerate(t); // 개발자 모드면 comfyGenerate 내부에서 가상 처리 (Promise 반환 → 배치에서 await 가능)
         }
 
         function _comfyBase() {
@@ -19439,8 +19446,54 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     setTimeout(() => { try { if (_plCurrent === 'img2img' && _img2img.enabled && typeof comfyQuickSend === 'function') comfyQuickSend('pos'); } catch (e) {} }, 200);
                 }
             }
+            // ── 연속 붙여넣기 배치 파이프라인 ──────────────────────────────
+            //  '자동 생성' ON 상태에서 이미지를 연달아 넣으면, 각 이미지를 큐에 쌓아
+            //  하나씩 [원본지정 → 분석 → 태그 → 전송]을 직렬 처리한다. (서로 안 섞이고 매끄럽게)
+            //  실제 GPU 생성은 ComfyUI 큐가 순서대로 돌린다. 전송(POST)까지만 기다리고 다음으로 넘어감.
+            const batchBadge = el('div', { class: 'i2i-batch-badge', style: 'display:none; align-items:center; gap:6px; font-size:12px; font-weight:800; color:var(--text-main); background:color-mix(in srgb, #f59e0b 14%, transparent); border:1px solid color-mix(in srgb, #f59e0b 45%, transparent); border-radius:10px; padding:8px 12px;' });
+            const _i2iBatch = { q: [], busy: false, total: 0, done: 0 };
+            function _i2iBatchBadge() {
+                if (!batchBadge) return;
+                const pending = _i2iBatch.q.length;
+                const active = _i2iBatch.busy;
+                if (!pending && !active) { batchBadge.style.display = 'none'; return; }
+                batchBadge.style.display = 'flex';
+                batchBadge.innerHTML = `<i class="fa-solid fa-bolt" style="color:#f59e0b;"></i> 연속 생성 &nbsp;<b>${_i2iBatch.done}/${_i2iBatch.total}</b>&nbsp; 처리 중` + (pending ? ` · 대기 ${pending}장` : '');
+            }
+            async function _i2iBatchRun() {
+                if (_i2iBatch.busy) return;
+                _i2iBatch.busy = true; _i2iBatchBadge();
+                try {
+                    while (_i2iBatch.q.length && _plCurrent === 'img2img' && _img2img.enabled) {
+                        const item = _i2iBatch.q.shift();
+                        _i2iBatchBadge();
+                        try {
+                            const prep = await _i2iPrepImage(item.dataURL);
+                            const blob = _dataURLtoBlob(prep.dataURL);
+                            setImg(new File([blob], item.name || 'source.png', { type: blob.type }), prep.dataURL);
+                            if (_img2img.autoTag) { try { await _i2iAnalyzeAndFill(); } catch (e) {} }
+                            try { updateMasterOutput(); } catch (e) {}
+                            // ComfyUI 큐에 등록될 때까지만 대기(내부 finally에서 전송 락 해제) → 다음 이미지로
+                            await comfyQuickSend('pos');
+                        } catch (e) {}
+                        _i2iBatch.done++; _i2iBatchBadge();
+                    }
+                } finally {
+                    _i2iBatch.busy = false;
+                    if (!_i2iBatch.q.length) { _i2iBatch.total = 0; _i2iBatch.done = 0; }
+                    _i2iBatchBadge();
+                }
+            }
+            function _i2iEnqueueBatch(dataURL, name) {
+                _i2iBatch.q.push({ dataURL, name }); _i2iBatch.total++;
+                showToast('연속 생성 큐에 추가 · 자동으로 분석→전송해요', 'info', 1500);
+                _i2iBatchBadge(); _i2iBatchRun();
+            }
+
             // dataURL을 (필요 시) 축소해서 원본으로 지정
             async function useImage(dataURL, name) {
+                // 자동 생성 ON + 변환 테마 → 배치 큐로 (연달아 넣어도 하나씩 분석→전송)
+                if (!IS_INPAINT && _img2img.autoGenerate) { _i2iEnqueueBatch(dataURL, name); return; }
                 const prep = await _i2iPrepImage(dataURL);
                 const blob = _dataURLtoBlob(prep.dataURL);
                 setImg(new File([blob], name || 'source.png', { type: blob.type }), prep.dataURL);
@@ -19680,7 +19733,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
             const contentKids = IS_INPAINT
                 ? [introDiv, thumbWrap, drop, urlRow, fileInput, inpaintTools, simpleWrap, resetBtn, pipeWrap]
-                : [introDiv, thumbWrap, drop, urlRow, fileInput, analyzeRow, transformDnBlock, inpaintTools, resetBtn, pipeWrap, advWrap];
+                : [introDiv, thumbWrap, drop, urlRow, fileInput, analyzeRow, batchBadge, transformDnBlock, inpaintTools, resetBtn, pipeWrap, advWrap];
 
             const panel = el('section', { class: 'panel', id: 'i2i-source' },
                 el('div', { class: 'panel-header', style: 'display:flex; align-items:center; gap:8px;' },
