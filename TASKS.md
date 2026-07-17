@@ -5,6 +5,13 @@
 
 ## 🔴 진행/대기 (Open)
 
+- [x] **[외부 감사 1차 5건]** — ✅검증+수정(v9.46.4). AUDIT_FINDINGS_2026-07-17.md(외부 모델). 5건 모두 실제
+  코드 근거 확인됨(환각 없음). ①`comfyGenerate` 연결상태 성공문구가 실패를 무조건 덮어씀→else 분기.
+  ②`_comfyAbortInline` 호출에 `inline` 미전달→인라인 탭 상태 미갱신, 전부 inline 전달. ③`_comfyAssembleWorkflow`
+  await 도중 테마/모드 전환 레이스→`_mode0` 스냅샷+`_themeChanged()` 가드로 취소. ④`_comfyTarget` 미스냅샷
+  →클릭시점 `_tgt` 고정(검증·라벨). ⑤`_comfyRestoreSettings`가 내부 setWfMode/setTarget로 복원 중 저장 유발
+  →`_comfyRestoring` 가드로 복원 중 `_comfySaveSettings` no-op. 테스트 vaudit.js. 회귀 전부 통과.
+  ⏳ 외부 전수감사 다음 회차 대기(같은 파일 누적 예정).
 - [x] **[새로고침 시 클래식 복귀]** — ✅수정(v9.46.3). 근본원인: `restore()`가 window 'load' 이벤트에
   걸려 있어 외부 CDN(fonts.googleapis/gstatic, cdnjs FontAwesome, jsdelivr three.js)이 느리거나
   막히면 load가 안 떠서 복원이 영영 안 돌고 클래식에 머묾. DOMContentLoaded 기준(+250ms)으로 실행
