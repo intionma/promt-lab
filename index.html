@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.48.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.48.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1180,7 +1180,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.48.0 &nbsp;·&nbsp; 2026-07-17 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.48.1 &nbsp;·&nbsp; 2026-07-17 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1946,7 +1946,17 @@
         const CHANGELOG = [
             // ── 2026-07-17 ──────────────────────────────────────────────────
             {
-                version: 'v9.48.0', date: '2026-07-17', time: '최신',
+                version: 'v9.48.1', date: '2026-07-17', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[비교 패널] 라이트 모드에서 패널 배경·버튼이 어둡게 잘못 나오던 문제를 고쳤습니다 — 이제 밝은 테마에 맞게 색이 제대로 적용됩니다.",
+                    "[비교 패널] 여는 버튼을 왼쪽 아래 '조합' 버튼 위로 옮겨, 모바일 하단 탭바에 가려지지 않게 했습니다.",
+                    "[비교 패널] 이미지를 추가하면 최신 항목이 맨 위에 오도록 정렬했습니다 (아래로 스크롤하면 먼저 넣은 것).",
+                    "[비교 패널] 뒤로가기(휴대폰 뒤로 가기 포함)로 패널이 닫히지 않던 문제를 고쳤습니다.",
+                ]
+            },
+            {
+                version: 'v9.48.0', date: '2026-07-17', time: '',
                 tag: 'feat',
                 items: [
                     "[이미지 변환·인페인팅] 내 얼굴 프롬프트로 교정 — 얼굴이 기괴하게 나올 때, 얼굴만 다시 그리는 FaceDetailer의 프롬프트를 내가 직접 짠 얼굴 프롬프트로 갈아끼울 수 있습니다. 여러 개를 이름 붙여 저장해두고 드롭다운으로 골라 쓰며, 켜면 FaceDetailer도 자동으로 켜집니다. 품질 태그(score_9 등)는 앞에 자동으로 붙어 품질이 떨어지지 않습니다. (고급 파이프라인 → '🧑 내 얼굴 프롬프트로 교정')",
@@ -5872,7 +5882,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const src = await toThumb(dataURL, 768);
                 const d = DEF();
                 const it = { id: uid(), name: name || ('이미지_' + (items.length + 1)), src, results: [], sel: 0, tab: 'gen', clip: 50, tune: false, den: d.den, cn: d.cn, seed: -1, status: 'idle' };
-                items.push(it); render(); save();
+                items.unshift(it); render(); save(); // 최신이 맨 위 (스크롤 내리면 먼저 추가한 것)
                 enqueue(it);
             }
             function fileToDataURL(file) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); }); }
@@ -6034,7 +6044,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 });
                 render();
             }
-            function open() { ensureDom(); dom.style.display = 'flex'; document.body.style.overflow = 'hidden'; render(); setTimeout(() => { try { dom.focus(); } catch (e) {} }, 30); }
+            function open() {
+                ensureDom(); dom.style.display = 'flex'; document.body.style.overflow = 'hidden'; render();
+                // 뒤로가기(브라우저·안드로이드 백)로 닫히게 앱 공용 헬퍼에 등록
+                try { if (window.registerModalBack) window.registerModalBack(dom, close); } catch (e) {}
+                setTimeout(() => { try { dom.focus(); } catch (e) {} }, 30);
+            }
             function close() { if (dom) dom.style.display = 'none'; document.body.style.overflow = ''; }
 
             // ── FAB (이미지 변환 레이아웃에서만 노출) ──
@@ -6085,33 +6100,36 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
               </div>`;
 
             const CMP_CSS = `
-              #cmp-fab{position:fixed;right:20px;bottom:20px;z-index:900;width:58px;height:58px;border-radius:18px;border:none;
-                background:linear-gradient(135deg,#38bdf8,#0ea5e9);color:#04222f;font-size:22px;cursor:pointer;display:none;
+              /* 좌하단 '조합' 버튼(bottom:20px) 바로 위에 쌓는다 */
+              #cmp-fab{position:fixed;left:16px;bottom:80px;z-index:8500;width:56px;height:56px;border-radius:18px;border:none;
+                background:linear-gradient(135deg,#38bdf8,#0ea5e9);color:#04222f;font-size:21px;cursor:pointer;display:none;
                 align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(14,165,233,.45);transition:transform .15s,box-shadow .15s}
               #cmp-fab:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 14px 38px rgba(14,165,233,.6)}
-              #cmp-overlay{position:fixed;inset:0;z-index:950;background:var(--bg-main,#0d1017);display:flex;flex-direction:column;overflow:hidden}
+              /* 모바일: 조합 버튼이 safe-area+68px에 있으니 그 위로 */
+              @media (max-width:1024px){ #cmp-fab{bottom:calc(env(safe-area-inset-bottom,0px) + 128px)} }
+              #cmp-overlay{position:fixed;inset:0;z-index:9500;background:var(--bg-base,#0d1017);display:flex;flex-direction:column;overflow:hidden}
               #cmp-overlay *{box-sizing:border-box}
               .cmp-top{position:sticky;top:0;display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg-surface,#151b26);border-bottom:1px solid var(--border-dim,#2a3342)}
               .cmp-brand{display:flex;flex-direction:column;gap:2px;min-width:0}
               .cmp-brand b{font-size:15px;color:var(--text-main,#e7edf5);white-space:nowrap}
               .cmp-brand span{font-size:11px;color:var(--text-dim,#8a97a8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
               .cmp-spacer{flex:1}
-              .cmp-seg{display:inline-flex;background:var(--bg-main,#0d1017);border:1px solid var(--border-dim,#2a3342);border-radius:10px;padding:3px;gap:2px}
+              .cmp-seg{display:inline-flex;background:var(--bg-base,#0d1017);border:1px solid var(--border-dim,#2a3342);border-radius:10px;padding:3px;gap:2px}
               .cmp-seg button{border:0;background:transparent;color:var(--text-dim,#8a97a8);font-family:inherit;font-weight:700;font-size:12px;padding:7px 12px;border-radius:8px;cursor:pointer}
               .cmp-seg button[aria-pressed="true"]{background:#38bdf8;color:#04222f}
-              .cmp-icon{width:36px;height:36px;border-radius:10px;border:1px solid var(--border-dim,#2a3342);background:var(--bg-main,#0d1017);color:var(--text-main,#e7edf5);cursor:pointer;font-size:15px}
+              .cmp-icon{width:36px;height:36px;border-radius:10px;border:1px solid var(--border-dim,#2a3342);background:var(--bg-base,#0d1017);color:var(--text-main,#e7edf5);cursor:pointer;font-size:15px}
               .cmp-body{flex:1;overflow-y:auto;max-width:1120px;width:100%;margin:0 auto;padding:16px 16px 90px;display:flex;flex-direction:column;gap:16px}
-              .cmp-paste{border:1.5px dashed var(--border-strong,#374357);border-radius:16px;background:var(--bg-surface,#151b26);
+              .cmp-paste{border:1.5px dashed var(--border-dim,#374357);border-radius:16px;background:var(--bg-surface,#151b26);
                 padding:20px 18px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;min-height:150px;justify-content:center;transition:.15s}
               .cmp-paste.drag{border-color:#38bdf8;background:rgba(56,189,248,.08)}
-              .cmp-paste .big{width:52px;height:52px;border-radius:14px;background:var(--bg-main,#0d1017);display:grid;place-items:center;font-size:26px;margin-bottom:2px}
+              .cmp-paste .big{width:52px;height:52px;border-radius:14px;background:var(--bg-base,#0d1017);display:grid;place-items:center;font-size:26px;margin-bottom:2px}
               .cmp-paste .t1{font-weight:800;font-size:16px;color:var(--text-main,#e7edf5)}
               .cmp-paste .t2{color:var(--text-dim,#8a97a8);font-size:12px;max-width:440px;line-height:1.55}
               .cmp-pbtns{margin-top:12px;display:flex;flex-direction:row;gap:10px;width:100%;max-width:440px}
               .cmp-go{flex:1;min-width:0;background:#38bdf8;color:#04222f;border:0;font-family:inherit;font-weight:800;font-size:14px;
                 padding:16px 14px;border-radius:13px;cursor:pointer;white-space:nowrap;transition:.14s}
               .cmp-go:hover{filter:brightness(1.06)}
-              .cmp-go.ghost{background:var(--bg-main,#0d1017);color:var(--text-main,#e7edf5);border:1px solid var(--border-strong,#374357)}
+              .cmp-go.ghost{background:var(--bg-base,#0d1017);color:var(--text-main,#e7edf5);border:1px solid var(--border-dim,#374357)}
               .cmp-go.ghost:hover{border-color:#38bdf8;color:#38bdf8}
               .cmp-batch{display:none;align-items:center;gap:9px;font-size:12px;font-weight:800;color:#f59e0b;
                 background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:11px;padding:9px 13px}
@@ -6119,13 +6137,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
               @keyframes cmpPulse{50%{opacity:.35}}
               .cmp-listhead{display:flex;align-items:baseline;gap:10px}
               .cmp-listhead h2{margin:0;font-size:12px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;color:var(--text-dim,#8a97a8)}
-              .cmp-listhead .count{font-size:12px;color:var(--text-faint,#5c6878)}
+              .cmp-listhead .count{font-size:12px;color:var(--text-dim,#5c6878)}
               .cmp-list{display:flex;flex-direction:column;gap:14px}
-              .cmp-empty{text-align:center;color:var(--text-faint,#5c6878);padding:44px 20px;font-size:13px;line-height:1.7;border:1px dashed var(--border-dim,#2a3342);border-radius:16px}
+              .cmp-empty{text-align:center;color:var(--text-dim,#5c6878);padding:44px 20px;font-size:13px;line-height:1.7;border:1px dashed var(--border-dim,#2a3342);border-radius:16px}
               .cmp-card{background:var(--bg-surface,#151b26);border:1px solid var(--border-dim,#2a3342);border-radius:16px;overflow:hidden}
               .cmp-card.gen{border-color:rgba(56,189,248,.5)}
               .cmp-chead{display:flex;align-items:center;gap:10px;padding:11px 13px;border-bottom:1px solid var(--border-dim,#2a3342)}
-              .cmp-idx{font-size:12px;color:var(--text-faint,#5c6878);background:var(--bg-main,#0d1017);border-radius:7px;padding:3px 8px;font-weight:700}
+              .cmp-idx{font-size:12px;color:var(--text-dim,#5c6878);background:var(--bg-base,#0d1017);border-radius:7px;padding:3px 8px;font-weight:700}
               .cmp-fname{font-size:13px;font-weight:700;color:var(--text-main,#e7edf5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
               .cmp-chip{font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;flex:0 0 auto}
               .cmp-chip.done{color:#22c55e;background:rgba(34,197,94,.15)}
@@ -6150,23 +6168,23 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
               .cmp-slider .handle{position:absolute;top:0;bottom:0;left:50%;width:3px;background:#38bdf8;transform:translateX(-50%);cursor:ew-resize;z-index:5}
               .cmp-slider .handle::after{content:"⇋";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;background:#38bdf8;color:#04222f;display:grid;place-items:center;font-weight:900}
               .cmp-tab{max-width:340px;margin:0 auto}
-              .cmp-tab .tabs{display:flex;width:max-content;margin:0 auto 10px;gap:2px;background:var(--bg-main,#0d1017);border:1px solid var(--border-dim,#2a3342);border-radius:9px;padding:3px}
+              .cmp-tab .tabs{display:flex;width:max-content;margin:0 auto 10px;gap:2px;background:var(--bg-base,#0d1017);border:1px solid var(--border-dim,#2a3342);border-radius:9px;padding:3px}
               .cmp-tab .tabs button{border:0;background:transparent;color:var(--text-dim,#8a97a8);font-family:inherit;font-weight:700;font-size:12px;padding:6px 16px;border-radius:7px;cursor:pointer}
               .cmp-tab .tabs button[aria-pressed="true"]{background:var(--bg-surface,#151b26);color:var(--text-main,#e7edf5)}
               .cmp-tab .tabwrap{display:flex;justify-content:center}
               .cmp-tab .cmp-frame{max-width:300px}
               .cmp-cands{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
-              .cmp-cands .lab{font-size:11px;color:var(--text-faint,#5c6878);font-weight:700}
+              .cmp-cands .lab{font-size:11px;color:var(--text-dim,#5c6878);font-weight:700}
               .cmp-cand{position:relative;width:50px;height:66px;border-radius:8px;overflow:hidden;border:2px solid var(--border-dim,#2a3342);cursor:pointer;flex:0 0 auto}
               .cmp-cand.sel{border-color:#38bdf8}
               .cmp-cand img{width:100%;height:100%;object-fit:cover;display:block}
               .cmp-cand .x{position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:10px;line-height:16px;text-align:center;opacity:0;transition:.12s}
               .cmp-cand:hover .x{opacity:1}
-              .cmp-cand.ph{display:grid;place-items:center;background:var(--bg-main,#0d1017);border-style:dashed;cursor:default}
+              .cmp-cand.ph{display:grid;place-items:center;background:var(--bg-base,#0d1017);border-style:dashed;cursor:default}
               .cmp-cand.ph .sp{width:16px;height:16px;border:2px solid #38bdf8;border-right-color:transparent;border-radius:50%;animation:cmpSpin .7s linear infinite}
-              .cmp-actions{display:flex;flex-direction:column;gap:8px;padding:12px 13px;border-top:1px solid var(--border-dim,#2a3342);background:var(--bg-main,#0d1017)}
+              .cmp-actions{display:flex;flex-direction:column;gap:8px;padding:12px 13px;border-top:1px solid var(--border-dim,#2a3342);background:var(--bg-base,#0d1017)}
               .cmp-actrow{display:flex;gap:8px}
-              .cmp-btn{appearance:none;border:1px solid var(--border-strong,#374357);background:var(--bg-surface,#151b26);color:var(--text-main,#e7edf5);font-family:inherit;font-weight:700;font-size:12.5px;padding:11px 14px;border-radius:10px;cursor:pointer;transition:.14s}
+              .cmp-btn{appearance:none;border:1px solid var(--border-dim,#374357);background:var(--bg-surface,#151b26);color:var(--text-main,#e7edf5);font-family:inherit;font-weight:700;font-size:12.5px;padding:11px 14px;border-radius:10px;cursor:pointer;transition:.14s}
               .cmp-actrow .cmp-btn{flex:1}
               .cmp-btn:hover{border-color:#38bdf8;color:#38bdf8}
               .cmp-btn.primary{background:#38bdf8;border-color:#38bdf8;color:#04222f}
@@ -6182,9 +6200,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
               .cmp-adjust .arow input[type=range]{width:100%;accent-color:#a78bfa}
               .cmp-adjust .arow .val{font-size:12.5px;font-weight:700;text-align:right;color:var(--text-main,#e7edf5)}
               .cmp-adjust .seedrow{display:grid;grid-template-columns:110px 1fr auto auto;gap:8px;align-items:center}
-              .cmp-adjust .seedrow input[type=text]{background:var(--bg-main,#0d1017);border:1px solid var(--border-dim,#2a3342);border-radius:9px;padding:8px 10px;color:var(--text-main,#e7edf5);font-size:12.5px;width:100%}
-              .cmp-adjust .seedrow .mini{background:var(--bg-main,#0d1017);border:1px solid var(--border-dim,#2a3342);border-radius:9px;padding:8px 11px;color:var(--text-main,#e7edf5);cursor:pointer;font-size:13px}
-              .cmp-adjust .note{font-size:11.5px;color:var(--text-faint,#5c6878);line-height:1.5}
+              .cmp-adjust .seedrow input[type=text]{background:var(--bg-base,#0d1017);border:1px solid var(--border-dim,#2a3342);border-radius:9px;padding:8px 10px;color:var(--text-main,#e7edf5);font-size:12.5px;width:100%}
+              .cmp-adjust .seedrow .mini{background:var(--bg-base,#0d1017);border:1px solid var(--border-dim,#2a3342);border-radius:9px;padding:8px 11px;color:var(--text-main,#e7edf5);cursor:pointer;font-size:13px}
+              .cmp-adjust .note{font-size:11.5px;color:var(--text-dim,#5c6878);line-height:1.5}
               @media (max-width:560px){
                 .cmp-brand span{display:none}
                 .cmp-seg button{padding:8px 10px}
