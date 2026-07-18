@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.52.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.52.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1206,7 +1206,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.52.0 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.52.1 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1972,7 +1972,14 @@
         const CHANGELOG = [
             // ── 2026-07-18 ──────────────────────────────────────────────────
             {
-                version: 'v9.52.0', date: '2026-07-18', time: '최신',
+                version: 'v9.52.1', date: '2026-07-18', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] 'HTTP 400 · required_input_missing' 오류를 근본적으로 막았습니다 — 워크플로우를 만들 때 각 노드의 필수 입력값을 설치본 기준으로 빠짐없이 채웁니다(기본값이 없는 항목도 안전값으로 채움). 그래도 문제가 생기면, 이제 오류 메시지가 정확히 어느 노드의 어떤 입력이 빠졌는지 이름까지 보여줍니다.",
+                ]
+            },
+            {
+                version: 'v9.52.0', date: '2026-07-18', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 프롬프트 옵션 토글을 추가했습니다 — 프롬프트 아래 칩을 켜면 그 내용이 기본 프롬프트 뒤에 자동으로 붙고, 끄면 빠집니다. '후타나리' 옵션이 기본 제공되며(danbooru 정식 태그로 다듬은 버전), '✏️ 옵션 편집'에서 원하는 프롬프트로 이름·내용을 바꾸거나 새 옵션을 얼마든지 추가·삭제할 수 있습니다(새로고침해도 유지).",
@@ -3649,8 +3656,8 @@
         }
 
         function showToast(msg, type = 'info', duration = 2500) {
-            // 모바일(폰)에선 알림이 오래 떠 있으면 화면을 가려 답답 → 최대 2.2초로 제한 (탭하면 즉시 닫힘)
-            try { if (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) duration = Math.min(duration, 2200); } catch (e) {}
+            // 모바일(폰)에선 알림이 오래 떠 있으면 답답 → 짧게 제한. 단, 에러는 읽어야 하니 조금 더 길게(4초). (탭하면 즉시 닫힘)
+            try { if (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) duration = Math.min(duration, type === 'error' ? 4000 : 2200); } catch (e) {}
             const container = document.getElementById('toast-container');
             const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
             const toast = document.createElement('div');
@@ -6474,8 +6481,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         if (!isWidget) continue;              // 연결형(MODEL/IMAGE 등)은 스킵
                         names.push(k);
                         const meta = spec[1];
-                        if (meta && typeof meta === 'object' && 'default' in meta) defaults[k] = meta.default;     // 스칼라 기본값
-                        else if (Array.isArray(t) && t.length) defaults[k] = t[0];                                  // enum 첫 항목
+                        // 모든 필수 위젯에 반드시 값이 들어가게(누락 방지): 설치본 기본값 > enum 첫 항목 > 타입별 안전값
+                        if (meta && typeof meta === 'object' && 'default' in meta) defaults[k] = meta.default;
+                        else if (Array.isArray(t) && t.length) defaults[k] = t[0];
+                        else if (t === 'INT' || t === 'FLOAT') defaults[k] = 0;
+                        else if (t === 'STRING') defaults[k] = '';
+                        else if (t === 'BOOLEAN') defaults[k] = false;
                     }
                 }
             } catch (e) {}
@@ -6595,7 +6606,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 } else { wf = await _animaBuildWorkflow(prompt, name); }
                 const cid = (typeof _comfyClientId !== 'undefined' && _comfyClientId) ? _comfyClientId : (typeof _comfyUUID === 'function' ? _comfyUUID() : String(Math.random()));
                 const res = await fetch(base + '/prompt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: wf, client_id: cid }) });
-                if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error('HTTP ' + res.status + ' ' + t.slice(0, 220)); }
+                if (!res.ok) {
+                    const t = await res.text().catch(() => '');
+                    let detail = '';
+                    try {
+                        const j = JSON.parse(t);
+                        if (j && j.node_errors && Object.keys(j.node_errors).length) {
+                            const parts = [];
+                            for (const nid in j.node_errors) {
+                                const cls = (wf[nid] && wf[nid].class_type) || '?';
+                                (j.node_errors[nid].errors || []).forEach(er => parts.push('노드' + nid + '(' + cls + '): ' + (er.message || er.type) + (er.extra_info && er.extra_info.input_name ? ' [' + er.extra_info.input_name + ']' : '')));
+                            }
+                            detail = parts.join(' / ');
+                        } else if (j && j.error && j.error.message) detail = j.error.message;
+                    } catch (e) {}
+                    throw new Error('HTTP ' + res.status + ' — ' + (detail || t.slice(0, 300)));
+                }
                 const data = await res.json();
                 if (!data || !data.prompt_id) throw new Error('prompt_id 없음');
                 showToast('생성 요청됨 — 잠시만요…', 'info', 2000);
