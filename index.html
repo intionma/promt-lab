@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.49.3 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.50.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1206,7 +1206,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.49.3 &nbsp;·&nbsp; 2026-07-17 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.50.0 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1970,9 +1970,17 @@
         // 토스트 알림
         // ── 업데이트 내역 ────────────────────────────────────────────────────
         const CHANGELOG = [
-            // ── 2026-07-17 ──────────────────────────────────────────────────
+            // ── 2026-07-18 ──────────────────────────────────────────────────
             {
-                version: 'v9.49.3', date: '2026-07-17', time: '최신',
+                version: 'v9.50.0', date: '2026-07-18', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[새 테마] 'Anima 편집' 테마를 추가했습니다 — 레이아웃 선택에서 고를 수 있어요. 원본 이미지를 참고해 프롬프트대로 다시 그려주는 초심플 편집 테마로, 흐름은 딱 세 단계입니다: ① 이미지 넣기(붙여넣기·클립보드·파일·드래그) → ② 프롬프트 → ③ 실행. 결과는 원본과 나란히 비교하고, 🔍로 크게 볼 수 있으며(확대·스와이프), 지난 결과도 골라볼 수 있습니다.",
+                    "[Anima 편집] 이 테마는 다른 테마와 설정을 전혀 공유하지 않는 완전 독립 테마입니다 — 모델·스텝·강도 등 모든 설정이 따로 저장되고, 클래식/스튜디오/이미지 변환에 영향을 주지 않습니다. 고급 설정(모델 파일명·스텝·CFG·참조 강도 등)은 접혀 있어 필요할 때만 펼치면 됩니다. (Anima + Cosmos Reference 워크플로우 기반 · 해당 모델과 노드가 ComfyUI에 설치돼 있어야 동작)",
+                ]
+            },
+            {
+                version: 'v9.49.3', date: '2026-07-17', time: '',
                 tag: 'fix',
                 items: [
                     "[비교 패널] 이미지를 크게 본 뒤 닫으면(X·클릭·뒤로가기) 비교 창까지 함께 닫히던 문제를 고쳤습니다 — 이제 크게 보기만 닫히고 비교 창은 그대로 남습니다.",
@@ -6293,6 +6301,365 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 새로고침 후 대기 중이던(결과 0장) 항목은 그대로 두되 자동 재생성은 하지 않음 (사용자가 추가 생성으로 재개)
         })();
 
+        // ═══════════════════════════════════════════════════════════════════
+        //  Anima 편집 테마 — 완전 독립. "업로드 → 실행 → 끝" 초심플 UX.
+        //  · 워크플로우: Anima(UNET) + Cosmos Reference 편집 (V8F를 API 형식으로 변환)
+        //  · 생성 파이프라인/대기열/실시간 미리보기/갤러리는 기존 comfyGenerate 재사용
+        //  · 붙여넣기·클립보드·파일 입력, 라이트박스(크게 보기), 원본↔결과 비교 재사용
+        //  · 설정(모델·스텝·워크플로우)은 anima_settings_v1로 완전 격리 (서버 주소만 공유)
+        // ═══════════════════════════════════════════════════════════════════
+        let _anima = {
+            prompt: 'masterpiece, best quality, score_7, (nude, uncensored:2), ',
+            steps: 8, cfg: 1, denoise: 1, sampler: 'euler_ancestral', scheduler: 'simple', seed: -1,
+            megapixels: 2, upscaleMethod: 'lanczos', refWeight: 1, refMode: 'kv_gating',
+            unetName: 'anima-base-v1.0.safetensors', clipName: 'qwen_3_06b_base.safetensors', clipType: 'stable_diffusion',
+            vaeName: 'qwen_image_vae.safetensors',
+            lora1Name: 'AnimaEditV1.safetensors', lora1: 1,
+            lora2Name: 'Cosmos-Predict2.5-2B-base-distilled-LoRA.safetensors', lora2: 1,
+            imgThumb: null,             // 영속(축소본)
+            // 세션 전용(비영속): img{dataURL,name}, uploadedName, results[]
+            img: null, uploadedName: null, results: []
+        };
+        const ANIMA_KEY = 'anima_settings_v1';
+        function _animaSave() {
+            try {
+                const p = {};
+                ['prompt', 'steps', 'cfg', 'denoise', 'sampler', 'scheduler', 'seed', 'megapixels', 'upscaleMethod', 'refWeight', 'refMode',
+                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'imgThumb'].forEach(k => p[k] = _anima[k]);
+                localStorage.setItem(ANIMA_KEY, JSON.stringify(p));
+            } catch (e) {}
+        }
+        function _animaRestore() {
+            try {
+                const s = JSON.parse(localStorage.getItem(ANIMA_KEY) || 'null');
+                if (s && typeof s === 'object') {
+                    Object.keys(s).forEach(k => { if (k in _anima && s[k] != null) _anima[k] = s[k]; });
+                    if (_anima.imgThumb) { _anima.img = { dataURL: _anima.imgThumb, name: 'image' }; _anima.uploadedName = null; }
+                }
+            } catch (e) {}
+        }
+        _animaRestore();
+        const ANIMA_DEFAULTS = JSON.parse(JSON.stringify((() => { const d = { prompt: 'masterpiece, best quality, score_7, (nude, uncensored:2), ', steps: 8, cfg: 1, denoise: 1, sampler: 'euler_ancestral', scheduler: 'simple', megapixels: 2, upscaleMethod: 'lanczos', refWeight: 1, refMode: 'kv_gating', unetName: 'anima-base-v1.0.safetensors', clipName: 'qwen_3_06b_base.safetensors', clipType: 'stable_diffusion', vaeName: 'qwen_image_vae.safetensors', lora1Name: 'AnimaEditV1.safetensors', lora1: 1, lora2Name: 'Cosmos-Predict2.5-2B-base-distilled-LoRA.safetensors', lora2: 1 }; return d; })()));
+
+        function _animaHasImage() { return !!(_anima.img && _anima.img.dataURL); }
+        function _animaThumb(dataURL, maxSide) {
+            maxSide = maxSide || 768;
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const long = Math.max(img.naturalWidth, img.naturalHeight) || 1;
+                    const sc = long > maxSide ? maxSide / long : 1;
+                    const w = Math.max(8, Math.round(img.naturalWidth * sc)), h = Math.max(8, Math.round(img.naturalHeight * sc));
+                    try { const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(img, 0, 0, w, h); resolve(c.toDataURL('image/jpeg', 0.85)); }
+                    catch (e) { resolve(dataURL); }
+                };
+                img.onerror = () => resolve(dataURL);
+                img.src = dataURL;
+            });
+        }
+        async function _animaEnsureUploaded() {
+            if (_anima.uploadedName) return _anima.uploadedName;
+            if (!_animaHasImage()) throw new Error('이미지 없음');
+            const blob = _dataURLtoBlob(_anima.img.dataURL);
+            const ext = (_anima.img.dataURL.match(/^data:image\/(\w+)/) || [, 'png'])[1];
+            const uniq = 'promptlab_anima_' + Date.now() + '_' + Math.floor(Math.random() * 1e9) + '.' + (ext === 'jpeg' ? 'jpg' : ext);
+            _anima.uploadedName = await _comfyUploadImage(blob, uniq); // 기존 업로더 재사용(_comfyBase 서버)
+            return _anima.uploadedName;
+        }
+
+        // ── V8F → API 형식 노드 변환 (설치본 object_info로 위젯 이름을 정확히 매핑, 오프라인/목업 폴백) ──
+        const _ANIMA_FALLBACK_NAMES = {
+            CLIPLoader: ['clip_name', 'type', 'device'], VAELoader: ['vae_name'], UNETLoader: ['unet_name', 'weight_dtype'],
+            LoraLoaderModelOnly: ['lora_name', 'strength_model'], ApplyCosmosReferenceModelPatch: [], CLIPTextEncode: ['text'],
+            ConditioningZeroOut: [], LoadImage: ['image'], ImageScaleToTotalPixels: ['upscale_method', 'megapixels'], VAEEncode: [],
+            CosmosReferenceConditioning: ['reference_weight', 'gating'], KSampler: ['seed', 'steps', 'cfg', 'sampler_name', 'scheduler', 'denoise'],
+            VAEDecode: [], SaveImage: ['filename_prefix']
+        };
+        const _animaObjCache = {};
+        function _animaMock() { return (typeof _comfyMockMode !== 'undefined' && _comfyMockMode) || (window.DevMode && DevMode.feature && DevMode.feature('mockGen')); }
+        async function _animaLoadNodeInfo(cls) {
+            if (_animaObjCache[cls]) return _animaObjCache[cls];
+            if (_animaMock()) { _animaObjCache[cls] = (_ANIMA_FALLBACK_NAMES[cls] || []).slice(); return _animaObjCache[cls]; }
+            try {
+                const res = await fetch(_comfyBase() + '/object_info/' + encodeURIComponent(cls));
+                if (!res.ok) throw new Error('no info');
+                const data = await res.json();
+                const req = (data[cls] && data[cls].input && data[cls].input.required) || {};
+                const names = [];
+                for (const k in req) {
+                    const spec = req[k]; const t = spec && spec[0];
+                    const isWidget = Array.isArray(t) || t === 'INT' || t === 'FLOAT' || t === 'STRING' || t === 'BOOLEAN';
+                    if (isWidget) names.push(k);
+                }
+                _animaObjCache[cls] = names.length ? names : (_ANIMA_FALLBACK_NAMES[cls] || []);
+            } catch (e) { _animaObjCache[cls] = (_ANIMA_FALLBACK_NAMES[cls] || []).slice(); }
+            return _animaObjCache[cls];
+        }
+        function _animaNode(cls, widgetVals, links) {
+            const names = _animaObjCache[cls] || _ANIMA_FALLBACK_NAMES[cls] || [];
+            const inputs = {};
+            names.forEach((n, i) => { if (i < widgetVals.length) inputs[n] = widgetVals[i]; });
+            Object.assign(inputs, links || {});
+            return { class_type: cls, inputs };
+        }
+        async function _animaBuildWorkflow(pos, imageName) {
+            const S = _anima;
+            const classes = ['CLIPLoader', 'VAELoader', 'UNETLoader', 'LoraLoaderModelOnly', 'ApplyCosmosReferenceModelPatch', 'CLIPTextEncode', 'ConditioningZeroOut', 'LoadImage', 'ImageScaleToTotalPixels', 'VAEEncode', 'CosmosReferenceConditioning', 'KSampler', 'VAEDecode'];
+            try { await Promise.all(classes.map(_animaLoadNodeInfo)); } catch (e) {}
+            const seed = (S.seed == null || S.seed < 0) ? Math.floor(Math.random() * 1e15) : S.seed;
+            const wf = {};
+            wf['61'] = _animaNode('CLIPLoader', [S.clipName, S.clipType, 'default'], {});
+            wf['62'] = _animaNode('VAELoader', [S.vaeName], {});
+            wf['68'] = _animaNode('UNETLoader', [S.unetName, 'default'], {});
+            wf['84'] = _animaNode('LoraLoaderModelOnly', [S.lora1Name, S.lora1], { model: ['68', 0] });
+            wf['87'] = _animaNode('LoraLoaderModelOnly', [S.lora2Name, S.lora2], { model: ['84', 0] });
+            wf['69'] = _animaNode('ApplyCosmosReferenceModelPatch', [], { model: ['87', 0] });
+            wf['67'] = _animaNode('CLIPTextEncode', [pos], { clip: ['61', 0] });
+            wf['88'] = _animaNode('ConditioningZeroOut', [], { conditioning: ['67', 0] });
+            wf['73'] = _animaNode('LoadImage', [imageName], {});
+            wf['82'] = _animaNode('ImageScaleToTotalPixels', [S.upscaleMethod, S.megapixels], { image: ['73', 0] });
+            wf['76'] = _animaNode('VAEEncode', [], { pixels: ['82', 0], vae: ['62', 0] });
+            wf['71'] = _animaNode('CosmosReferenceConditioning', [S.refWeight, S.refMode], { positive: ['67', 0], negative: ['88', 0], reference_latent: ['76', 0] });
+            wf['66'] = _animaNode('KSampler', [seed, S.steps, S.cfg, S.sampler, S.scheduler, S.denoise], { model: ['69', 0], positive: ['71', 0], negative: ['71', 1], latent_image: ['76', 0] });
+            wf['63'] = _animaNode('VAEDecode', [], { samples: ['66', 0], vae: ['62', 0] });
+            wf['9'] = { class_type: 'SaveImage', inputs: { filename_prefix: 'PromptLab_anima', images: ['63', 0] } };
+            return wf;
+        }
+
+        // ── 결과 훅 (comfyGenerate 완료 시 finalize가 호출) ──
+        window._animaOnResult = function (url, seed) {
+            _anima.results.unshift({ url, seed: (seed == null ? null : seed) });
+            if (_anima.results.length > 24) _anima.results.length = 24;
+            _animaBusy = false;
+            try { _animaRenderResult(); } catch (e) {}
+        };
+
+        let _animaDom = null, _animaBusy = false;
+        function _animaSetBusy(b) { _animaBusy = b; try { _animaRenderRun(); } catch (e) {} }
+
+        async function _animaSetImage(dataURL, name) {
+            if (!dataURL) return;
+            _anima.img = { dataURL, name: name || 'image' };
+            _anima.uploadedName = null;
+            try { _anima.imgThumb = await _animaThumb(dataURL, 768); } catch (e) { _anima.imgThumb = dataURL; }
+            _animaSave();
+            try { _animaRenderInput(); _animaRenderResult(); } catch (e) {}
+        }
+        function _animaFileToDataURL(file) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); }); }
+        async function _animaAddFile(fileList) {
+            const f = Array.from(fileList || []).find(x => /^image\//.test(x.type));
+            if (f) { try { await _animaSetImage(await _animaFileToDataURL(f), f.name.replace(/\.[^.]+$/, '')); } catch (e) {} }
+        }
+        async function _animaClipboard() {
+            try {
+                if (!navigator.clipboard || !navigator.clipboard.read) { showToast('이 브라우저는 클립보드 읽기를 지원 안 해요. 붙여넣기(Ctrl+V)나 파일을 쓰세요.', 'warning', 3500); return; }
+                const items = await navigator.clipboard.read();
+                for (const ci of items) { const t = ci.types.find(x => /^image\//.test(x)); if (t) { const blob = await ci.getType(t); await _animaSetImage(await _animaFileToDataURL(blob), 'clipboard'); return; } }
+                showToast('클립보드에 이미지가 없어요.', 'info', 2500);
+            } catch (e) { showToast('클립보드를 읽지 못했어요. 붙여넣기(Ctrl+V)를 써보세요.', 'warning', 3000); }
+        }
+
+        async function _animaGenerate() {
+            if (_animaBusy) return;
+            if (!_animaHasImage()) { showToast('먼저 이미지를 넣어주세요.', 'warning', 2500); return; }
+            const prompt = (_anima.prompt || '').trim();
+            if (!prompt) { showToast('프롬프트를 입력하세요.', 'warning', 2500); return; }
+            const fp = document.getElementById('final-positive'); if (fp) fp.value = prompt;
+            try { if (typeof comfySetTarget === 'function') comfySetTarget('pos'); } catch (e) {}
+            window._animaActiveGen = true;
+            _animaSetBusy(true);
+            try { await comfyGenerate(null); }
+            catch (e) { showToast('생성 실패: ' + (e && e.message || e), 'error', 5000); }
+            finally {
+                window._animaActiveGen = false;
+                // 큐에 안 올라갔으면(검증 실패 등) busy 해제 — 올라갔으면 결과 훅이 해제
+                if (!(_comfyQueueCount > 0 || _comfyRunningPid)) _animaSetBusy(false);
+            }
+        }
+
+        // ── UI ──
+        function _animaEl(sel) { return _animaDom ? _animaDom.querySelector(sel) : null; }
+        function _animaRenderInput() {
+            const box = _animaEl('#anima-input'); if (!box) return;
+            if (_animaHasImage()) {
+                box.classList.add('has');
+                box.innerHTML = `<div class="anima-thumb"><img src="${_anima.img.dataURL}" alt="원본"><button class="anima-thumb-x" title="이미지 제거">✕</button></div>
+                    <div class="anima-input-btns"><button class="anima-btn ghost" data-a="clip">📋 클립보드</button><button class="anima-btn ghost" data-a="file">🖼 다른 이미지</button></div>`;
+                box.querySelector('.anima-thumb-x').onclick = (e) => { e.stopPropagation(); _anima.img = null; _anima.uploadedName = null; _anima.imgThumb = null; _animaSave(); _animaRenderInput(); _animaRenderResult(); };
+            } else {
+                box.classList.remove('has');
+                box.innerHTML = `<div class="anima-drop-in"><div class="big">🖼</div><div class="t1">여기에 이미지 넣기</div>
+                    <div class="t2">PC는 Ctrl+V·드래그, 모바일은 아래 버튼</div>
+                    <div class="anima-input-btns"><button class="anima-btn" data-a="clip">📋 클립보드</button><button class="anima-btn ghost" data-a="file">🖼 갤러리·파일</button></div></div>`;
+            }
+            box.querySelectorAll('[data-a=clip]').forEach(b => b.onclick = (e) => { e.stopPropagation(); _animaClipboard(); });
+            box.querySelectorAll('[data-a=file]').forEach(b => b.onclick = (e) => { e.stopPropagation(); _animaEl('#anima-file').click(); });
+        }
+        function _animaRenderRun() {
+            const btn = _animaEl('#anima-run-btn'); if (!btn) return;
+            btn.disabled = _animaBusy;
+            btn.innerHTML = _animaBusy ? '<span class="anima-sp"></span> 생성 중…' : '✨ 실행 (생성)';
+        }
+        function _animaRenderResult() {
+            const box = _animaEl('#anima-result'); if (!box) return;
+            const cur = _anima.results[0];
+            if (!_animaHasImage() && !cur) { box.innerHTML = `<div class="anima-empty">이미지를 넣고 <b>실행</b>을 누르면 여기에 결과가 나오고, 원본과 비교할 수 있어요.</div>`; return; }
+            const src = _animaHasImage() ? _anima.img.dataURL : null;
+            const gen = cur ? cur.url : null;
+            let html = '<div class="anima-cmp">';
+            if (src) html += `<figure><div class="anima-lbl">원본</div><div class="anima-frame" data-lb="0"><img src="${src}"><button class="anima-zoom" title="크게 보기">🔍</button></div></figure>`;
+            html += `<figure><div class="anima-lbl">결과</div><div class="anima-frame ${gen ? '' : 'nores'}" data-lb="1">${gen ? `<img src="${gen}"><button class="anima-zoom" title="크게 보기">🔍</button>` : (_animaBusy ? '<span class="anima-sp big"></span>' : '<span class="anima-nores-t">아직 결과 없음</span>')}</div></figure>`;
+            html += '</div>';
+            if (_anima.results.length > 1) {
+                html += '<div class="anima-strip"><span class="lab">지난 결과</span>';
+                _anima.results.forEach((r, i) => { html += `<div class="anima-cand${i === 0 ? ' sel' : ''}" data-i="${i}"><img src="${r.url}"></div>`; });
+                html += '</div>';
+            }
+            box.innerHTML = html;
+            const openLB = (startIdx) => { try { if (window.openLightbox) { const urls = [src, gen].filter(Boolean); const idx = Math.max(0, Math.min(urls.length - 1, src ? startIdx : startIdx - 1)); window.openLightbox(urls[idx] || urls[0], urls, idx); } } catch (e) {} };
+            box.querySelectorAll('.anima-frame').forEach(fr => { const lb = parseInt(fr.dataset.lb); if ((lb === 0 && src) || (lb === 1 && gen)) { fr.style.cursor = 'zoom-in'; fr.onclick = () => openLB(lb); } });
+            box.querySelectorAll('.anima-cand').forEach(cd => cd.onclick = () => { const i = parseInt(cd.dataset.i); const picked = _anima.results.splice(i, 1)[0]; _anima.results.unshift(picked); _animaRenderResult(); });
+        }
+
+        const ANIMA_HTML = `
+          <div class="anima-wrap">
+            <div class="anima-head"><b>🎨 Anima 편집</b><span>업로드 → 실행 → 끝. 원본을 참고해 프롬프트대로 다시 그려요.</span></div>
+            <div class="anima-card">
+              <div class="anima-step"><span class="n">1</span> 이미지 넣기</div>
+              <div class="anima-input" id="anima-input"></div>
+              <input type="file" id="anima-file" accept="image/*" hidden>
+            </div>
+            <div class="anima-card">
+              <div class="anima-step"><span class="n">2</span> 프롬프트</div>
+              <textarea id="anima-prompt" class="anima-ta" placeholder="원하는 결과를 적으세요 (편집 프롬프트)"></textarea>
+              <div class="anima-runrow">
+                <button id="anima-run-btn" class="anima-run">✨ 실행 (생성)</button>
+                <div class="anima-seed"><label>시드</label><input type="text" id="anima-seed" placeholder="-1(랜덤)"><button id="anima-seed-rand" title="랜덤">🎲</button></div>
+              </div>
+            </div>
+            <div class="anima-card">
+              <div class="anima-adv-toggle" id="anima-adv-toggle">▼ 고급 설정 (모델·스텝·강도)</div>
+              <div class="anima-adv" id="anima-adv" style="display:none"></div>
+            </div>
+            <div class="anima-card">
+              <div class="anima-step"><span class="n">3</span> 결과 · 비교</div>
+              <div class="anima-result" id="anima-result"></div>
+            </div>
+          </div>`;
+
+        function _animaRenderAdv() {
+            const box = _animaEl('#anima-adv'); if (!box) return;
+            const row = (label, inputHtml, hint) => `<div class="anima-arow"><label>${label}</label>${inputHtml}${hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
+            const num = (k, step, min, max) => `<input type="number" data-k="${k}" value="${_anima[k]}" step="${step}" ${min != null ? `min="${min}"` : ''} ${max != null ? `max="${max}"` : ''}>`;
+            const txt = (k) => `<input type="text" data-k="${k}" value="${_anima[k]}">`;
+            box.innerHTML =
+                row('스텝(steps)', num('steps', 1, 1, 60), '기본 8') +
+                row('CFG', num('cfg', 0.1, 0), '기본 1') +
+                row('변환 강도(denoise)', num('denoise', 0.05, 0, 1), '기본 1') +
+                row('참조 강도', num('refWeight', 0.1, 0), 'Cosmos reference 강도(기본 1)') +
+                row('메가픽셀', num('megapixels', 0.5, 0.5, 4), '입력 이미지 크기(기본 2)') +
+                row('샘플러', `<input type="text" data-k="sampler" value="${_anima.sampler}">`, '') +
+                row('스케줄러', `<input type="text" data-k="scheduler" value="${_anima.scheduler}">`, '') +
+                `<div class="anima-adv-sec">모델 파일 (설치된 이름과 정확히 일치해야 함)</div>` +
+                row('UNET', txt('unetName')) +
+                row('CLIP', txt('clipName')) +
+                row('VAE', txt('vaeName')) +
+                row('LoRA1(편집)', txt('lora1Name') + num('lora1', 0.05, 0, 2)) +
+                row('LoRA2(고속)', txt('lora2Name') + num('lora2', 0.05, 0, 2)) +
+                `<div class="anima-adv-actions"><button id="anima-reset" class="anima-btn ghost">↺ 기본값으로 복원</button></div>`;
+            box.querySelectorAll('input[data-k]').forEach(inp => {
+                inp.onchange = () => {
+                    const k = inp.dataset.k;
+                    if (inp.type === 'number') { let v = parseFloat(inp.value); if (isNaN(v)) v = ANIMA_DEFAULTS[k] != null ? ANIMA_DEFAULTS[k] : 0; _anima[k] = v; }
+                    else _anima[k] = inp.value;
+                    _animaSave();
+                };
+            });
+            const rb = box.querySelector('#anima-reset');
+            if (rb) rb.onclick = () => { Object.keys(ANIMA_DEFAULTS).forEach(k => _anima[k] = ANIMA_DEFAULTS[k]); _animaSave(); _animaRenderAdv(); const pt = _animaEl('#anima-prompt'); if (pt) pt.value = _anima.prompt; const sd = _animaEl('#anima-seed'); if (sd) sd.value = _anima.seed; showToast('기본값으로 복원했어요', 'info', 1600); };
+        }
+
+        function mountAnima() {
+            if (!document.getElementById('anima-style')) { const st = document.createElement('style'); st.id = 'anima-style'; st.textContent = ANIMA_CSS; document.head.appendChild(st); }
+            _animaDom = document.createElement('div'); _animaDom.id = 'anima-root'; _animaDom.innerHTML = ANIMA_HTML;
+            document.body.appendChild(_animaDom);
+            _animaRenderInput(); _animaRenderRun(); _animaRenderResult(); _animaRenderAdv();
+            const pt = _animaEl('#anima-prompt'); pt.value = _anima.prompt; pt.oninput = () => { _anima.prompt = pt.value; _animaSave(); };
+            const sd = _animaEl('#anima-seed'); sd.value = (_anima.seed == null ? -1 : _anima.seed); sd.onchange = () => { const v = sd.value.trim(); _anima.seed = (v === '' || v === '-1') ? -1 : (parseInt(v) || -1); _animaSave(); };
+            _animaEl('#anima-seed-rand').onclick = () => { _anima.seed = Math.floor(Math.random() * 1e9); sd.value = _anima.seed; _animaSave(); };
+            _animaEl('#anima-run-btn').onclick = _animaGenerate;
+            _animaEl('#anima-file').onchange = (e) => { _animaAddFile(e.target.files); e.target.value = ''; };
+            const advT = _animaEl('#anima-adv-toggle'); advT.onclick = () => { const b = _animaEl('#anima-adv'); const on = b.style.display === 'none'; b.style.display = on ? 'flex' : 'none'; advT.textContent = (on ? '▲' : '▼') + ' 고급 설정 (모델·스텝·강도)'; };
+            // 드래그&드롭 + 붙여넣기
+            const inbox = _animaEl('#anima-input');
+            inbox.addEventListener('dragover', e => { e.preventDefault(); inbox.classList.add('drag'); });
+            inbox.addEventListener('dragleave', () => inbox.classList.remove('drag'));
+            inbox.addEventListener('drop', e => { e.preventDefault(); inbox.classList.remove('drag'); if (e.dataTransfer && e.dataTransfer.files) _animaAddFile(e.dataTransfer.files); });
+            const onPaste = (e) => { if (_plCurrent !== 'anima') return; const items = e.clipboardData && e.clipboardData.items; if (!items) return; for (const it of items) { if (it.type && it.type.startsWith('image/')) { const f = it.getAsFile(); if (f) { _animaFileToDataURL(f).then(du => _animaSetImage(du, 'pasted')); e.preventDefault(); break; } } } };
+            document.addEventListener('paste', onPaste);
+            return () => { document.removeEventListener('paste', onPaste); if (_animaDom) { _animaDom.remove(); _animaDom = null; } };
+        }
+        window.mountAnima = mountAnima;
+
+        const ANIMA_CSS = `
+          body[data-layout="anima"] #app-container { display:none !important; }
+          body[data-layout="anima"] #mobile-tabbar { display:none !important; }
+          #anima-root { position:fixed; left:0; right:0; top:var(--pl-topbar-h,54px); bottom:0; overflow-y:auto; background:var(--bg-base); z-index:40; }
+          #anima-root * { box-sizing:border-box; }
+          .anima-wrap { max-width:1000px; margin:0 auto; padding:16px 16px 80px; display:flex; flex-direction:column; gap:14px; }
+          .anima-head { display:flex; flex-direction:column; gap:3px; padding:4px 2px; }
+          .anima-head b { font-size:18px; color:var(--text-main); }
+          .anima-head span { font-size:12.5px; color:var(--text-dim); }
+          .anima-card { background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:16px; padding:14px; display:flex; flex-direction:column; gap:12px; }
+          .anima-step { display:flex; align-items:center; gap:9px; font-size:13px; font-weight:800; color:var(--text-main); }
+          .anima-step .n { width:22px; height:22px; border-radius:50%; background:var(--accent-blue,#3b82f6); color:#fff; display:grid; place-items:center; font-size:12px; flex:0 0 auto; }
+          .anima-input { border:1.5px dashed var(--border-dim); border-radius:14px; transition:.15s; }
+          .anima-input.drag { border-color:var(--accent-blue,#3b82f6); background:color-mix(in srgb,var(--accent-blue,#3b82f6) 10%,transparent); }
+          .anima-drop-in { display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px; padding:26px 16px; }
+          .anima-drop-in .big { font-size:40px; }
+          .anima-drop-in .t1 { font-weight:800; font-size:16px; color:var(--text-main); }
+          .anima-drop-in .t2 { font-size:12px; color:var(--text-dim); }
+          .anima-input.has { display:flex; flex-direction:column; gap:10px; padding:10px; border-style:solid; }
+          .anima-thumb { position:relative; border-radius:11px; overflow:hidden; border:1px solid var(--border-dim); background:#0b0e13; max-height:340px; display:flex; justify-content:center; }
+          .anima-thumb img { max-width:100%; max-height:340px; object-fit:contain; display:block; }
+          .anima-thumb-x { position:absolute; top:8px; right:8px; width:30px; height:30px; border-radius:9px; border:none; background:rgba(0,0,0,.6); color:#fff; cursor:pointer; font-size:14px; }
+          .anima-input-btns { display:flex; gap:8px; }
+          .anima-btn { flex:1; padding:12px; border-radius:11px; border:none; background:var(--accent-blue,#3b82f6); color:#fff; font-family:inherit; font-weight:800; font-size:13.5px; cursor:pointer; }
+          .anima-btn.ghost { background:var(--bg-base); color:var(--text-main); border:1px solid var(--border-dim); }
+          .anima-ta { width:100%; min-height:84px; resize:vertical; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:11px; padding:11px 13px; color:var(--text-main); font-family:var(--font-code); font-size:13px; line-height:1.5; outline:none; }
+          .anima-runrow { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+          .anima-run { flex:1; min-width:180px; padding:15px; border-radius:13px; border:none; background:linear-gradient(135deg,#6366f1,#3b82f6); color:#fff; font-family:inherit; font-weight:800; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; }
+          .anima-run:disabled { opacity:.7; cursor:default; }
+          .anima-seed { display:flex; align-items:center; gap:6px; }
+          .anima-seed label { font-size:12px; color:var(--text-dim); font-weight:700; }
+          .anima-seed input { width:120px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:9px; padding:9px 10px; color:var(--text-main); font-size:12.5px; }
+          .anima-seed button { background:var(--bg-base); border:1px solid var(--border-dim); border-radius:9px; padding:9px 11px; cursor:pointer; color:var(--text-main); }
+          .anima-adv-toggle { font-size:12.5px; font-weight:800; color:var(--text-main); cursor:pointer; user-select:none; }
+          .anima-adv { flex-direction:column; gap:9px; }
+          .anima-arow { display:grid; grid-template-columns:120px 1fr; gap:8px 10px; align-items:center; }
+          .anima-arow label { font-size:12px; font-weight:700; color:var(--text-dim); }
+          .anima-arow input { background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:7px 9px; color:var(--text-main); font-size:12px; min-width:0; }
+          .anima-arow input[type=text] { width:100%; }
+          .anima-arow .hint { grid-column:2; font-size:11px; color:var(--text-faint,var(--text-dim)); margin-top:-2px; }
+          .anima-adv-sec { font-size:11px; font-weight:800; color:var(--text-dim); text-transform:uppercase; letter-spacing:.03em; margin-top:6px; padding-top:8px; border-top:1px solid var(--border-dim); }
+          .anima-adv-actions { margin-top:6px; }
+          .anima-empty { text-align:center; color:var(--text-dim); font-size:13px; line-height:1.7; padding:28px 16px; border:1px dashed var(--border-dim); border-radius:12px; }
+          .anima-cmp { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+          .anima-cmp figure { margin:0; }
+          .anima-lbl { font-size:11px; color:var(--text-dim); font-weight:700; margin:0 0 6px 2px; }
+          .anima-frame { position:relative; border-radius:12px; overflow:hidden; border:1px solid var(--border-dim); background:#0b0e13; aspect-ratio:3/4; display:flex; align-items:center; justify-content:center; }
+          .anima-frame img { width:100%; height:100%; object-fit:contain; display:block; }
+          .anima-frame.nores { color:var(--text-dim); font-size:12px; }
+          .anima-zoom { position:absolute; right:8px; bottom:8px; width:32px; height:32px; border-radius:9px; border:none; background:rgba(0,0,0,.55); color:#fff; font-size:14px; cursor:pointer; }
+          .anima-strip { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; align-items:center; }
+          .anima-strip .lab { font-size:11px; color:var(--text-dim); font-weight:700; }
+          .anima-cand { width:50px; height:66px; border-radius:8px; overflow:hidden; border:2px solid var(--border-dim); cursor:pointer; }
+          .anima-cand.sel { border-color:var(--accent-blue,#3b82f6); }
+          .anima-cand img { width:100%; height:100%; object-fit:cover; display:block; }
+          .anima-sp { display:inline-block; width:15px; height:15px; border:2px solid #fff; border-right-color:transparent; border-radius:50%; animation:cmpSpin .7s linear infinite; }
+          .anima-sp.big { width:34px; height:34px; border-width:3px; border-color:var(--accent-blue,#3b82f6); border-right-color:transparent; }
+          @media (max-width:600px){ .anima-arow { grid-template-columns:96px 1fr; } .anima-run { font-size:15px; } }`;
+
         // Pony Realism 코스프레 변환 권장 세팅 원클릭
         // 권장 기본값으로 "초기화" — 생성 파라미터 + 고급 파이프라인을 안전한 기본 상태로 되돌림
         // (뭔가 잘못 바꿔서 안 될 때 한 방에 복구)
@@ -6469,6 +6836,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         // 현재 모드/설정으로 실제 전송될 워크플로우를 조립 (생성·미리보기 공용)
         async function _comfyAssembleWorkflow(pos, neg) {
+            // ★ Anima 편집 테마 — 완전 독립 워크플로우(입력 이미지 필수). 자체 상태(_anima)만 사용.
+            if (typeof _plCurrent !== 'undefined' && _plCurrent === 'anima') {
+                if (!_animaHasImage()) { showToast('먼저 이미지를 넣어주세요.', 'error'); return null; }
+                let name;
+                try { name = await _animaEnsureUploaded(); }
+                catch (e) { showToast('이미지 업로드 실패: ' + (e && e.message || e), 'error', 6000); return null; }
+                if (_plCurrent !== 'anima') return null; // 조립 도중 테마 이탈 방지
+                return await _animaBuildWorkflow(pos, name);
+            }
             // ★ 이미지 테마(변환/인페인트)는 항상 최우선 — 커스텀 워크플로우 모드여도 반드시 원본 이미지를 쓰는
             //    img2img/인페인트 워크플로우로 빌드한다. (원본을 안 따라가거나 text2img로 새던 문제의 근본 해결)
             if (_img2img.enabled) {
@@ -7586,6 +7962,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             if (gallery) gallery.prepend(_comfyThumb(url, 240));
                             galleryAddImage(url, perSec, job.pos, job.neg, job.seed); // 결과 갤러리 탭에 영구 저장 (+소요 시간·생성 프롬프트)
                             try { if (window._cmpOnResult && job.cmpId) window._cmpOnResult(job.cmpId, url, job.seed); } catch (e) {} // 비교 패널로 결과 전달
+                            try { if (window._animaOnResult && job.anima) window._animaOnResult(url, job.seed); } catch (e) {} // Anima 결과 패널로 전달
                         } else if (!sawStage) {
                             _comfyStageImages(pid, [img], nodeId);
                         }
@@ -7695,7 +8072,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const pid = data.prompt_id;
                     // 임시 job → 실제 pid로 교체 (카운트 유지)
                     delete _comfyJobs[tmpKey];
-                    _comfyJobs[pid] = { inline, cleared: false, done: false, seq: tmpSeq, label, pos: _origPos, neg: _origNeg, seed: _sentSeed, cmpId: (window._cmpActiveItemId || null) };
+                    _comfyJobs[pid] = { inline, cleared: false, done: false, seq: tmpSeq, label, pos: _origPos, neg: _origNeg, seed: _sentSeed, cmpId: (window._cmpActiveItemId || null), anima: (window._animaActiveGen || false) };
                     _comfySaveJobs();
                     _comfySetProgress(3, `${_comfyQ()}큐 등록됨`, inline);
                     comfyRenderQueue();
@@ -20634,7 +21011,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { id: 'classic', name: '클래식', group: '레이아웃', icon: 'fa-table-columns', accent: '#3b82f6', desc: '기본 3분할 (상세태그 · 에디터 · 결과) · 다크 테마', mini: mini.cols3 },
             { id: 'studio', name: '스튜디오', group: '레이아웃', icon: 'fa-wand-magic-sparkles', accent: '#6366f1', desc: '미니멀 라이트 — 간편 조합 + 결과/ComfyUI · 에디터는 원할 때 소환 · 추천 빠른 실행', mini: mini.studio, isNew: true, init: mountStudio },
             { id: 'img2img', name: '이미지 변환', group: '레이아웃', icon: 'fa-images', accent: '#f59e0b', desc: '이미지 → 이미지 (img2img) — 2D·씹덕 이미지를 원하는 인물/실사로 전체 변환 · 원본↔결과 나란히 비교', mini: mini.img2img, isNew: true, init: mountImg2img },
-            { id: 'inpaint', name: '이미지 인페인팅', group: '레이아웃', icon: 'fa-paintbrush', accent: '#ec4899', desc: '부분 편집 — 원본 위에 칠한 부분만 프롬프트대로 다시 그리기 (옷·배경 교체, 부위 수정) · Fooocus 인페인트', mini: mini.img2img, isNew: true, init: mountImg2img }
+            { id: 'inpaint', name: '이미지 인페인팅', group: '레이아웃', icon: 'fa-paintbrush', accent: '#ec4899', desc: '부분 편집 — 원본 위에 칠한 부분만 프롬프트대로 다시 그리기 (옷·배경 교체, 부위 수정) · Fooocus 인페인트', mini: mini.img2img, isNew: true, init: mountImg2img },
+            { id: 'anima', name: 'Anima 편집', group: '레이아웃', icon: 'fa-palette', accent: '#8b5cf6', desc: '업로드 → 실행 → 끝. Anima + Cosmos 레퍼런스로 원본을 참고해 다시 그리는 초심플 편집 테마 (완전 독립 설정)', mini: mini.img2img, isNew: true, init: mountAnima }
         ];
 
         // ════════════════════════════════════════════════════════
