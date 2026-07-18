@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.51.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.52.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1206,7 +1206,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.51.1 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.52.0 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1972,7 +1972,15 @@
         const CHANGELOG = [
             // ── 2026-07-18 ──────────────────────────────────────────────────
             {
-                version: 'v9.51.1', date: '2026-07-18', time: '최신',
+                version: 'v9.52.0', date: '2026-07-18', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] 프롬프트 옵션 토글을 추가했습니다 — 프롬프트 아래 칩을 켜면 그 내용이 기본 프롬프트 뒤에 자동으로 붙고, 끄면 빠집니다. '후타나리' 옵션이 기본 제공되며(danbooru 정식 태그로 다듬은 버전), '✏️ 옵션 편집'에서 원하는 프롬프트로 이름·내용을 바꾸거나 새 옵션을 얼마든지 추가·삭제할 수 있습니다(새로고침해도 유지).",
+                    "[Anima 편집] 실행 시 'HTTP 400 · node 82 required_input_missing' 오류를 고쳤습니다 — 이미지 축소 노드(ImageScaleToTotalPixels)의 세 번째 필수값을 빠뜨리던 것을 채워 보냅니다.",
+                ]
+            },
+            {
+                version: 'v9.51.1', date: '2026-07-18', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] 실행할 때 '127.0.0.1 차단' 오류가 잘못 뜨던 문제를 고쳤습니다 — 다른 테마처럼 사전 차단 없이 그대로 전송을 시도합니다(브라우저가 로컬 주소를 허용하면 정상 동작). 실패할 때만 실제 사용 중인 주소로 안내가 뜹니다.",
@@ -6361,10 +6369,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             lora2Name: '', lora2: 1,
             _wf: null,                  // 워크플로우 버전 스탬프(마이그레이션용)
             customWf: '',               // 사용자가 붙여넣은 API 워크플로우(있으면 그대로 사용)
+            snippets: [],               // 프롬프트 옵션 토글 [{id,name,text,on}] — 켜면 기본 프롬프트 뒤에 붙음
             imgThumb: null,             // 영속(축소본)
             // 세션 전용(비영속): img{dataURL,name}, uploadedName, results[]
             img: null, uploadedName: null, results: []
         };
+        // 기본 제공 옵션 (후타나리) — 사용자가 준 텍스트 그대로
+        const ANIMA_DEFAULT_SNIPPETS = [{
+            id: 'futanari', name: '후타나리', on: false,
+            text: 'futanari, penis, erection, (large penis, veiny penis, glans, large testicles:1.2), ejaculation, excessive cum, projectile cum, cum string'
+        }];
         const ANIMA_KEY = 'anima_settings_v1';
         function _animaSave() {
             try {
@@ -6373,6 +6387,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', '_wf', 'customWf', 'imgThumb'].forEach(k => p[k] = _anima[k]);
                 // 이 테마에서 뽑은 결과 이미지 목록도 저장(서버 URL만, Anima 전용 · 다른 테마와 완전 분리). 최근 80장.
                 p.results = (_anima.results || []).slice(0, 80).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed }));
+                p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on }));
                 localStorage.setItem(ANIMA_KEY, JSON.stringify(p));
             } catch (e) {}
         }
@@ -6380,10 +6395,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try {
                 const s = JSON.parse(localStorage.getItem(ANIMA_KEY) || 'null');
                 if (s && typeof s === 'object') {
-                    Object.keys(s).forEach(k => { if (k === 'results') return; if (k in _anima && s[k] != null) _anima[k] = s[k]; });
+                    Object.keys(s).forEach(k => { if (k === 'results' || k === 'snippets') return; if (k in _anima && s[k] != null) _anima[k] = s[k]; });
                     if (Array.isArray(s.results)) _anima.results = s.results.filter(r => r && r.url).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed }));
+                    if (Array.isArray(s.snippets)) _anima.snippets = s.snippets.filter(x => x && x.id).map(x => ({ id: x.id, name: x.name || '옵션', text: x.text || '', on: !!x.on }));
                     if (_anima.imgThumb) { _anima.img = { dataURL: _anima.imgThumb, name: 'image' }; _anima.uploadedName = null; }
                 }
+                // 저장된 옵션이 없으면 기본(후타나리) 제공
+                if (!_anima.snippets || !_anima.snippets.length) _anima.snippets = JSON.parse(JSON.stringify(ANIMA_DEFAULT_SNIPPETS));
             } catch (e) {}
         }
         _animaRestore();
@@ -6505,7 +6523,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             wf['88'] = { class_type: 'ConditioningZeroOut', inputs: { conditioning: ['67', 0] } };
             // ── 입력 이미지 → 축소 → 인코딩(참조 latent) ──
             wf['73'] = { class_type: 'LoadImage', inputs: { image: imageName } };
-            wf['82'] = _animaNode('ImageScaleToTotalPixels', [S.upscaleMethod, S.megapixels], { image: ['73', 0] });
+            // ★ 이 노드는 설치본에 따라 위젯이 3개(upscale_method, megapixels, +64) — 원본대로 3번째 값(64)까지 보냄
+            //   (2개짜리 노드면 3번째는 자동 무시됨 → required_input_missing 방지)
+            wf['82'] = _animaNode('ImageScaleToTotalPixels', [S.upscaleMethod, S.megapixels, 64], { image: ['73', 0] });
             wf['76'] = { class_type: 'VAEEncode', inputs: { pixels: ['82', 0], vae: ['62', 0] } };
             // ── Cosmos 레퍼런스 조건화: 원본 latent을 조건에 주입 (연결 이름은 원본과 정확히 동일) ──
             wf['71'] = _animaNode('CosmosReferenceConditioning', [S.refWeight, S.refMode], { positive: ['67', 0], negative: ['88', 0], reference_latent: ['76', 0] });
@@ -6558,8 +6578,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         async function _animaGenerate() {
             if (_animaBusy) return;
             if (!_animaHasImage()) { showToast('먼저 이미지를 넣어주세요.', 'warning', 2500); return; }
-            const prompt = (_anima.prompt || '').trim();
-            if (!prompt) { showToast('프롬프트를 입력하세요.', 'warning', 2500); return; }
+            const base0 = (_anima.prompt || '').trim();
+            if (!base0) { showToast('프롬프트를 입력하세요.', 'warning', 2500); return; }
+            // 켜진 프롬프트 옵션(후타나리 등)을 기본 프롬프트 뒤에 붙임
+            const extras = (_anima.snippets || []).filter(s => s.on && s.text && s.text.trim()).map(s => s.text.trim()).join(', ');
+            const prompt = extras ? (base0.replace(/,\s*$/, '') + ', ' + extras) : base0;
             // ★ 사전 차단하지 않고 그냥 시도한다 (다른 테마와 동일) — 브라우저가 로컬 http를 허용할 수도 있으니.
             _animaSetBusy(true);
             const base = _comfyBase();
@@ -6630,6 +6653,38 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             box.querySelectorAll('[data-a=clip]').forEach(b => b.onclick = (e) => { e.stopPropagation(); _animaClipboard(); });
             box.querySelectorAll('[data-a=file]').forEach(b => b.onclick = (e) => { e.stopPropagation(); _animaEl('#anima-file').click(); });
         }
+        let _animaSnipEditOpen = false;
+        function _animaRenderSnippets() {
+            const box = _animaEl('#anima-snips'); if (!box) return;
+            let h = '';
+            (_anima.snippets || []).forEach(s => { h += `<button class="anima-chip${s.on ? ' on' : ''}" data-id="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${s.on ? '✓ ' : ''}${_animaEsc(s.name)}</button>`; });
+            h += `<button class="anima-chip edit" id="anima-snip-editbtn">✏️ 옵션 편집</button>`;
+            box.innerHTML = h;
+            box.querySelectorAll('.anima-chip[data-id]').forEach(c => c.onclick = () => { const s = _anima.snippets.find(x => x.id === c.dataset.id); if (s) { s.on = !s.on; _animaSave(); _animaRenderSnippets(); } });
+            const eb = box.querySelector('#anima-snip-editbtn'); if (eb) eb.onclick = () => { _animaSnipEditOpen = !_animaSnipEditOpen; _animaRenderSnipEdit(); };
+            _animaRenderSnipEdit();
+        }
+        function _animaRenderSnipEdit() {
+            const box = _animaEl('#anima-snip-edit'); if (!box) return;
+            if (!_animaSnipEditOpen) { box.style.display = 'none'; box.innerHTML = ''; return; }
+            box.style.display = 'flex';
+            let h = '<div class="anima-se-head">프롬프트 옵션 편집 — 켜면 기본 프롬프트 뒤에 붙습니다</div>';
+            (_anima.snippets || []).forEach(s => {
+                h += `<div class="anima-se-item" data-id="${s.id}">
+                    <div class="anima-se-row"><input class="anima-se-name" data-k="name" value="${_animaEsc(s.name)}" placeholder="옵션 이름"><button class="anima-se-del" title="삭제">🗑</button></div>
+                    <textarea class="anima-se-text" data-k="text" placeholder="프롬프트 (예: futanari, penis, ...)">${_animaEsc(s.text)}</textarea></div>`;
+            });
+            h += `<button class="anima-btn ghost anima-se-add">＋ 새 옵션 추가</button>`;
+            box.innerHTML = h;
+            box.querySelectorAll('.anima-se-item').forEach(it => {
+                const id = it.dataset.id; const s = _anima.snippets.find(x => x.id === id); if (!s) return;
+                it.querySelector('.anima-se-name').onchange = (e) => { s.name = e.target.value; _animaSave(); _animaRenderSnippets(); };
+                it.querySelector('.anima-se-text').onchange = (e) => { s.text = e.target.value; _animaSave(); };
+                it.querySelector('.anima-se-del').onclick = () => { _anima.snippets = _anima.snippets.filter(x => x.id !== id); _animaSave(); _animaRenderSnippets(); };
+            });
+            box.querySelector('.anima-se-add').onclick = () => { _anima.snippets.push({ id: 'sn_' + Math.random().toString(36).slice(2, 8), name: '새 옵션', text: '', on: false }); _animaSave(); _animaRenderSnippets(); };
+        }
+        function _animaEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
         function _animaRenderRun() {
             const btn = _animaEl('#anima-run-btn'); if (!btn) return;
             btn.disabled = _animaBusy;
@@ -6690,6 +6745,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             <div class="anima-card">
               <div class="anima-step"><span class="n">2</span> 프롬프트</div>
               <textarea id="anima-prompt" class="anima-ta" placeholder="원하는 결과를 적으세요 (편집 프롬프트)"></textarea>
+              <div class="anima-snips" id="anima-snips"></div>
+              <div class="anima-snip-edit" id="anima-snip-edit" style="display:none"></div>
               <div class="anima-runrow">
                 <button id="anima-run-btn" class="anima-run">✨ 실행 (생성)</button>
                 <div class="anima-seed"><label>시드</label><input type="text" id="anima-seed" placeholder="-1(랜덤)"><button id="anima-seed-rand" title="랜덤">🎲</button></div>
@@ -6755,7 +6812,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!document.getElementById('anima-style')) { const st = document.createElement('style'); st.id = 'anima-style'; st.textContent = ANIMA_CSS; document.head.appendChild(st); }
             _animaDom = document.createElement('div'); _animaDom.id = 'anima-root'; _animaDom.innerHTML = ANIMA_HTML;
             document.body.appendChild(_animaDom);
-            _animaRenderInput(); _animaRenderRun(); _animaRenderResult(); _animaRenderAdv();
+            _animaRenderInput(); _animaRenderRun(); _animaRenderResult(); _animaRenderAdv(); _animaRenderSnippets();
             const pt = _animaEl('#anima-prompt'); pt.value = _anima.prompt; pt.oninput = () => { _anima.prompt = pt.value; _animaSave(); };
             const sd = _animaEl('#anima-seed'); sd.value = (_anima.seed == null ? -1 : _anima.seed); sd.onchange = () => { const v = sd.value.trim(); _anima.seed = (v === '' || v === '-1') ? -1 : (parseInt(v) || -1); _animaSave(); };
             _animaEl('#anima-seed-rand').onclick = () => { _anima.seed = Math.floor(Math.random() * 1e9); sd.value = _anima.seed; _animaSave(); };
@@ -6810,6 +6867,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-btn { flex:1; padding:12px; border-radius:11px; border:none; background:var(--accent-blue,#3b82f6); color:#fff; font-family:inherit; font-weight:800; font-size:13.5px; cursor:pointer; }
           .anima-btn.ghost { background:var(--bg-base); color:var(--text-main); border:1px solid var(--border-dim); }
           .anima-ta { width:100%; min-height:84px; resize:vertical; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:11px; padding:11px 13px; color:var(--text-main); font-family:var(--font-code); font-size:13px; line-height:1.5; outline:none; }
+          .anima-snips { display:flex; flex-wrap:wrap; gap:8px; }
+          .anima-chip { border:1px solid var(--border-dim); background:var(--bg-base); color:var(--text-dim); border-radius:20px; padding:7px 13px; font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer; transition:.14s; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+          .anima-chip.on { background:color-mix(in srgb,var(--accent-blue,#3b82f6) 16%,transparent); border-color:var(--accent-blue,#3b82f6); color:var(--accent-blue,#3b82f6); }
+          .anima-chip.edit { border-style:dashed; }
+          .anima-snip-edit { flex-direction:column; gap:10px; padding:12px; border:1px solid var(--border-dim); border-radius:12px; background:var(--bg-base); }
+          .anima-se-head { font-size:12px; font-weight:800; color:var(--text-dim); }
+          .anima-se-item { display:flex; flex-direction:column; gap:6px; padding-bottom:10px; border-bottom:1px solid var(--border-dim); }
+          .anima-se-row { display:flex; gap:6px; }
+          .anima-se-name { flex:1; min-width:0; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-size:12.5px; font-weight:700; }
+          .anima-se-del { background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:8px; padding:8px 11px; cursor:pointer; }
+          .anima-se-text { width:100%; min-height:64px; resize:vertical; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:11.5px; line-height:1.5; }
+          .anima-se-add { align-self:flex-start; }
           .anima-runrow { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
           .anima-run { flex:1; min-width:180px; padding:15px; border-radius:13px; border:none; background:linear-gradient(135deg,#6366f1,#3b82f6); color:#fff; font-family:inherit; font-weight:800; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; }
           .anima-run:disabled { opacity:.7; cursor:default; }
