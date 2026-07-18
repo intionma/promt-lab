@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.50.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.50.2 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1206,7 +1206,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.50.1 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.50.2 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1972,7 +1972,15 @@
         const CHANGELOG = [
             // ── 2026-07-18 ──────────────────────────────────────────────────
             {
-                version: 'v9.50.1', date: '2026-07-18', time: '최신',
+                version: 'v9.50.2', date: '2026-07-18', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] 테마 안에 <b>ComfyUI 연결(주소·연결 확인)</b>을 바로 넣었습니다 — 이제 다른 화면(체크포인트를 묻는 설정)으로 갈 필요 없이 여기서 서버 주소만 넣고 연결하면 됩니다. 이 테마는 <b>체크포인트가 필요 없다</b>는 안내도 함께 표시됩니다(모델은 고급 설정의 UNET·CLIP·VAE로 지정).",
+                    "[Anima 편집] 서버가 없거나 느릴 때 실행이 멈춰 있던 문제를 고쳤습니다 — 워크플로우 준비 단계에 시간 제한을 두어 더는 무한 대기하지 않습니다.",
+                ]
+            },
+            {
+                version: 'v9.50.1', date: '2026-07-18', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] 결과가 원본 이미지와 무관하게 나오던 문제에 대응했습니다 — 내장 워크플로우의 노드 배선·입력 이름을 원본과 정확히 일치하도록 다시 정리했고, 원본 기본 프롬프트의 빠진 쉼표도 복원했습니다. 그래도 결과가 다르면, 고급 설정에서 ComfyUI의 <b>Save (API Format)</b> JSON을 붙여넣어 <b>네 실제 작동본을 그대로 사용</b>할 수 있습니다(이미지·프롬프트·시드만 자동 주입) — 100% 동일 보장. '전송되는 워크플로우 JSON 복사' 버튼으로 지금 무엇이 전송되는지도 확인할 수 있어요.",
@@ -6395,7 +6403,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (_animaMock()) { _animaObjCache[cls] = { names: (_ANIMA_FALLBACK_NAMES[cls] || []).slice(), defaults: {} }; return _animaObjCache[cls]; }
             let names = null, defaults = {};
             try {
-                const res = await fetch(_comfyBase() + '/object_info/' + encodeURIComponent(cls));
+                const res = await fetch(_comfyBase() + '/object_info/' + encodeURIComponent(cls), { signal: AbortSignal.timeout(8000) });
                 if (res.ok) {
                     const data = await res.json();
                     const req = (data[cls] && data[cls].input && data[cls].input.required) || {};
@@ -6580,6 +6588,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         const ANIMA_HTML = `
           <div class="anima-wrap">
             <div class="anima-head"><b>🎨 Anima 편집</b><span>업로드 → 실행 → 끝. 원본을 참고해 프롬프트대로 다시 그려요.</span></div>
+            <div class="anima-card anima-srv-card">
+              <div class="anima-srv">
+                <label>ComfyUI 주소</label>
+                <input type="text" id="anima-url" placeholder="http://127.0.0.1:8188">
+                <button id="anima-ping" class="anima-btn ghost">연결 확인</button>
+                <span id="anima-conn" class="anima-conn"></span>
+              </div>
+              <div class="anima-srv-note">💡 이 테마는 <b>체크포인트가 필요 없어요</b>. 모델(UNET·CLIP·VAE·LoRA)은 아래 <b>고급 설정</b>에서 지정합니다.</div>
+            </div>
             <div class="anima-card">
               <div class="anima-step"><span class="n">1</span> 이미지 넣기</div>
               <div class="anima-input" id="anima-input"></div>
@@ -6659,6 +6676,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _animaEl('#anima-seed-rand').onclick = () => { _anima.seed = Math.floor(Math.random() * 1e9); sd.value = _anima.seed; _animaSave(); };
             _animaEl('#anima-run-btn').onclick = _animaGenerate;
             _animaEl('#anima-file').onchange = (e) => { _animaAddFile(e.target.files); e.target.value = ''; };
+            // ComfyUI 연결 (서버 주소는 공용 #comfy-url과 동기화 — 인프라라 공유)
+            const urlIn = _animaEl('#anima-url');
+            try { urlIn.value = (document.getElementById('comfy-url') && document.getElementById('comfy-url').value) || ''; } catch (e) {}
+            urlIn.onchange = () => { try { const g = document.getElementById('comfy-url'); if (g) g.value = urlIn.value.trim(); _comfySaveSettings(); } catch (e) {} };
+            _animaEl('#anima-ping').onclick = async () => {
+                const st = _animaEl('#anima-conn'); if (st) { st.textContent = '확인 중…'; st.className = 'anima-conn'; }
+                try { const g = document.getElementById('comfy-url'); if (g) g.value = urlIn.value.trim(); } catch (e) {}
+                let ok = false; try { ok = await _comfyPing(2, 6000); } catch (e) {}
+                if (st) { st.textContent = ok ? '✅ 연결됨' : '❌ 연결 안 됨'; st.className = 'anima-conn ' + (ok ? 'ok' : 'bad'); }
+                if (!ok) showToast('ComfyUI에 연결 안 됨 — 주소를 확인하세요. (앱이 https면 http 로컬 주소는 차단될 수 있어요)', 'error', 6000);
+            };
             const advT = _animaEl('#anima-adv-toggle'); advT.onclick = () => { const b = _animaEl('#anima-adv'); const on = b.style.display === 'none'; b.style.display = on ? 'flex' : 'none'; advT.textContent = (on ? '▲' : '▼') + ' 고급 설정 (모델·스텝·강도)'; };
             // 드래그&드롭 + 붙여넣기
             const inbox = _animaEl('#anima-input');
@@ -6728,6 +6756,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-cand img { width:100%; height:100%; object-fit:cover; display:block; }
           .anima-sp { display:inline-block; width:15px; height:15px; border:2px solid #fff; border-right-color:transparent; border-radius:50%; animation:cmpSpin .7s linear infinite; }
           .anima-sp.big { width:34px; height:34px; border-width:3px; border-color:var(--accent-blue,#3b82f6); border-right-color:transparent; }
+          .anima-srv-card { gap:8px; }
+          .anima-srv { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+          .anima-srv label { font-size:12px; font-weight:700; color:var(--text-dim); }
+          .anima-srv input { flex:1; min-width:140px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:9px; padding:9px 11px; color:var(--text-main); font-size:12.5px; }
+          .anima-srv .anima-btn { flex:0 0 auto; padding:9px 14px; }
+          .anima-conn { font-size:12px; font-weight:700; color:var(--text-dim); }
+          .anima-conn.ok { color:#22c55e; } .anima-conn.bad { color:#ef4444; }
+          .anima-srv-note { font-size:11.5px; color:var(--text-dim); line-height:1.6; }
           .anima-wfhelp { font-size:11.5px; color:var(--text-dim); line-height:1.6; }
           .anima-gal-head { display:flex; align-items:center; justify-content:space-between; margin-top:16px; font-size:12px; font-weight:800; color:var(--text-dim); }
           .anima-gal-head b { color:var(--text-main); }
