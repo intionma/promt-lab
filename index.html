@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.50.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.50.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1206,7 +1206,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.50.0 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.50.1 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1972,7 +1972,16 @@
         const CHANGELOG = [
             // ── 2026-07-18 ──────────────────────────────────────────────────
             {
-                version: 'v9.50.0', date: '2026-07-18', time: '최신',
+                version: 'v9.50.1', date: '2026-07-18', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] 결과가 원본 이미지와 무관하게 나오던 문제에 대응했습니다 — 내장 워크플로우의 노드 배선·입력 이름을 원본과 정확히 일치하도록 다시 정리했고, 원본 기본 프롬프트의 빠진 쉼표도 복원했습니다. 그래도 결과가 다르면, 고급 설정에서 ComfyUI의 <b>Save (API Format)</b> JSON을 붙여넣어 <b>네 실제 작동본을 그대로 사용</b>할 수 있습니다(이미지·프롬프트·시드만 자동 주입) — 100% 동일 보장. '전송되는 워크플로우 JSON 복사' 버튼으로 지금 무엇이 전송되는지도 확인할 수 있어요.",
+                    "[Anima 편집] 이 테마 전용 이미지 목록(갤러리)을 추가했습니다 — 여기서 뽑은 이미지만 모여 보이고(다른 테마와 완전 분리·전용 저장), 새로고침해도 유지됩니다. 갤러리에서 골라 원본과 비교하거나, 개별 삭제·전체 비우기가 됩니다.",
+                    "[Anima 편집] 이미지 넣기를 더 쉽게 했습니다 — 넣는 영역을 누르면 바로 갤러리/파일 선택이 열리고(모바일 대응), 넣으면 확인 알림이 뜹니다.",
+                ]
+            },
+            {
+                version: 'v9.50.0', date: '2026-07-18', time: '',
                 tag: 'feat',
                 items: [
                     "[새 테마] 'Anima 편집' 테마를 추가했습니다 — 레이아웃 선택에서 고를 수 있어요. 원본 이미지를 참고해 프롬프트대로 다시 그려주는 초심플 편집 테마로, 흐름은 딱 세 단계입니다: ① 이미지 넣기(붙여넣기·클립보드·파일·드래그) → ② 프롬프트 → ③ 실행. 결과는 원본과 나란히 비교하고, 🔍로 크게 볼 수 있으며(확대·스와이프), 지난 결과도 골라볼 수 있습니다.",
@@ -6309,13 +6318,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         //  · 설정(모델·스텝·워크플로우)은 anima_settings_v1로 완전 격리 (서버 주소만 공유)
         // ═══════════════════════════════════════════════════════════════════
         let _anima = {
-            prompt: 'masterpiece, best quality, score_7, (nude, uncensored:2), ',
+            prompt: 'masterpiece, best quality, score_7, (nude, uncensored, :2), ',
             steps: 8, cfg: 1, denoise: 1, sampler: 'euler_ancestral', scheduler: 'simple', seed: -1,
             megapixels: 2, upscaleMethod: 'lanczos', refWeight: 1, refMode: 'kv_gating',
             unetName: 'anima-base-v1.0.safetensors', clipName: 'qwen_3_06b_base.safetensors', clipType: 'stable_diffusion',
             vaeName: 'qwen_image_vae.safetensors',
             lora1Name: 'AnimaEditV1.safetensors', lora1: 1,
             lora2Name: 'Cosmos-Predict2.5-2B-base-distilled-LoRA.safetensors', lora2: 1,
+            customWf: '',               // 사용자가 붙여넣은 API 워크플로우(있으면 그대로 사용)
             imgThumb: null,             // 영속(축소본)
             // 세션 전용(비영속): img{dataURL,name}, uploadedName, results[]
             img: null, uploadedName: null, results: []
@@ -6325,7 +6335,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try {
                 const p = {};
                 ['prompt', 'steps', 'cfg', 'denoise', 'sampler', 'scheduler', 'seed', 'megapixels', 'upscaleMethod', 'refWeight', 'refMode',
-                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'imgThumb'].forEach(k => p[k] = _anima[k]);
+                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'customWf', 'imgThumb'].forEach(k => p[k] = _anima[k]);
+                // 이 테마에서 뽑은 결과 이미지 목록도 저장(서버 URL만, Anima 전용 · 다른 테마와 완전 분리). 최근 80장.
+                p.results = (_anima.results || []).slice(0, 80).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed }));
                 localStorage.setItem(ANIMA_KEY, JSON.stringify(p));
             } catch (e) {}
         }
@@ -6333,13 +6345,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try {
                 const s = JSON.parse(localStorage.getItem(ANIMA_KEY) || 'null');
                 if (s && typeof s === 'object') {
-                    Object.keys(s).forEach(k => { if (k in _anima && s[k] != null) _anima[k] = s[k]; });
+                    Object.keys(s).forEach(k => { if (k === 'results') return; if (k in _anima && s[k] != null) _anima[k] = s[k]; });
+                    if (Array.isArray(s.results)) _anima.results = s.results.filter(r => r && r.url).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed }));
                     if (_anima.imgThumb) { _anima.img = { dataURL: _anima.imgThumb, name: 'image' }; _anima.uploadedName = null; }
                 }
             } catch (e) {}
         }
         _animaRestore();
-        const ANIMA_DEFAULTS = JSON.parse(JSON.stringify((() => { const d = { prompt: 'masterpiece, best quality, score_7, (nude, uncensored:2), ', steps: 8, cfg: 1, denoise: 1, sampler: 'euler_ancestral', scheduler: 'simple', megapixels: 2, upscaleMethod: 'lanczos', refWeight: 1, refMode: 'kv_gating', unetName: 'anima-base-v1.0.safetensors', clipName: 'qwen_3_06b_base.safetensors', clipType: 'stable_diffusion', vaeName: 'qwen_image_vae.safetensors', lora1Name: 'AnimaEditV1.safetensors', lora1: 1, lora2Name: 'Cosmos-Predict2.5-2B-base-distilled-LoRA.safetensors', lora2: 1 }; return d; })()));
+        const ANIMA_DEFAULTS = JSON.parse(JSON.stringify((() => { const d = { prompt: 'masterpiece, best quality, score_7, (nude, uncensored, :2), ', steps: 8, cfg: 1, denoise: 1, sampler: 'euler_ancestral', scheduler: 'simple', megapixels: 2, upscaleMethod: 'lanczos', refWeight: 1, refMode: 'kv_gating', unetName: 'anima-base-v1.0.safetensors', clipName: 'qwen_3_06b_base.safetensors', clipType: 'stable_diffusion', vaeName: 'qwen_image_vae.safetensors', lora1Name: 'AnimaEditV1.safetensors', lora1: 1, lora2Name: 'Cosmos-Predict2.5-2B-base-distilled-LoRA.safetensors', lora2: 1 }; return d; })()));
 
         function _animaHasImage() { return !!(_anima.img && _anima.img.dataURL); }
         function _animaThumb(dataURL, maxSide) {
@@ -6375,53 +6388,79 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             CosmosReferenceConditioning: ['reference_weight', 'gating'], KSampler: ['seed', 'steps', 'cfg', 'sampler_name', 'scheduler', 'denoise'],
             VAEDecode: [], SaveImage: ['filename_prefix']
         };
-        const _animaObjCache = {};
+        const _animaObjCache = {};   // cls -> { names:[widget이름 순서], defaults:{name:기본값} }
         function _animaMock() { return (typeof _comfyMockMode !== 'undefined' && _comfyMockMode) || (window.DevMode && DevMode.feature && DevMode.feature('mockGen')); }
         async function _animaLoadNodeInfo(cls) {
             if (_animaObjCache[cls]) return _animaObjCache[cls];
-            if (_animaMock()) { _animaObjCache[cls] = (_ANIMA_FALLBACK_NAMES[cls] || []).slice(); return _animaObjCache[cls]; }
+            if (_animaMock()) { _animaObjCache[cls] = { names: (_ANIMA_FALLBACK_NAMES[cls] || []).slice(), defaults: {} }; return _animaObjCache[cls]; }
+            let names = null, defaults = {};
             try {
                 const res = await fetch(_comfyBase() + '/object_info/' + encodeURIComponent(cls));
-                if (!res.ok) throw new Error('no info');
-                const data = await res.json();
-                const req = (data[cls] && data[cls].input && data[cls].input.required) || {};
-                const names = [];
-                for (const k in req) {
-                    const spec = req[k]; const t = spec && spec[0];
-                    const isWidget = Array.isArray(t) || t === 'INT' || t === 'FLOAT' || t === 'STRING' || t === 'BOOLEAN';
-                    if (isWidget) names.push(k);
+                if (res.ok) {
+                    const data = await res.json();
+                    const req = (data[cls] && data[cls].input && data[cls].input.required) || {};
+                    names = [];
+                    for (const k in req) {
+                        const spec = req[k]; const t = spec && spec[0];
+                        const isWidget = Array.isArray(t) || t === 'INT' || t === 'FLOAT' || t === 'STRING' || t === 'BOOLEAN';
+                        if (!isWidget) continue;              // 연결형(MODEL/IMAGE 등)은 스킵
+                        names.push(k);
+                        const meta = spec[1];
+                        if (meta && typeof meta === 'object' && 'default' in meta) defaults[k] = meta.default;     // 스칼라 기본값
+                        else if (Array.isArray(t) && t.length) defaults[k] = t[0];                                  // enum 첫 항목
+                    }
                 }
-                _animaObjCache[cls] = names.length ? names : (_ANIMA_FALLBACK_NAMES[cls] || []);
-            } catch (e) { _animaObjCache[cls] = (_ANIMA_FALLBACK_NAMES[cls] || []).slice(); }
+            } catch (e) {}
+            if (!names || !names.length) names = (_ANIMA_FALLBACK_NAMES[cls] || []).slice();
+            _animaObjCache[cls] = { names, defaults };
             return _animaObjCache[cls];
         }
         function _animaNode(cls, widgetVals, links) {
-            const names = _animaObjCache[cls] || _ANIMA_FALLBACK_NAMES[cls] || [];
-            const inputs = {};
-            names.forEach((n, i) => { if (i < widgetVals.length) inputs[n] = widgetVals[i]; });
+            const info = _animaObjCache[cls] || { names: (_ANIMA_FALLBACK_NAMES[cls] || []), defaults: {} };
+            // 설치본의 모든 필수 위젯을 기본값으로 먼저 채운 뒤(누락 방지), 내가 아는 값으로 순서대로 덮어씀
+            const inputs = Object.assign({}, info.defaults);
+            (info.names || []).forEach((n, i) => { if (i < widgetVals.length) inputs[n] = widgetVals[i]; });
             Object.assign(inputs, links || {});
             return { class_type: cls, inputs };
         }
+        function _animaSeedVal() { return (_anima.seed == null || _anima.seed < 0) ? Math.floor(Math.random() * 1e15) : _anima.seed; }
+        // 붙여넣은 API 워크플로우에 이미지·프롬프트·시드만 주입 (원본 작동본을 그대로 사용 → 100% 동일 보장)
+        function _animaInjectInto(wf, pos, imageName, seed) {
+            for (const id in wf) {
+                const n = wf[id]; if (!n || !n.inputs) continue;
+                if (n.class_type === 'LoadImage' && 'image' in n.inputs) n.inputs.image = imageName;
+                if (n.class_type === 'CLIPTextEncode' && typeof n.inputs.text === 'string') n.inputs.text = pos;
+                if (n.class_type === 'KSampler' && 'seed' in n.inputs) n.inputs.seed = seed;
+                if ((n.class_type === 'RandomNoise' || n.class_type === 'KSamplerAdvanced') && 'noise_seed' in n.inputs) n.inputs.noise_seed = seed;
+            }
+            return wf;
+        }
         async function _animaBuildWorkflow(pos, imageName) {
             const S = _anima;
-            const classes = ['CLIPLoader', 'VAELoader', 'UNETLoader', 'LoraLoaderModelOnly', 'ApplyCosmosReferenceModelPatch', 'CLIPTextEncode', 'ConditioningZeroOut', 'LoadImage', 'ImageScaleToTotalPixels', 'VAEEncode', 'CosmosReferenceConditioning', 'KSampler', 'VAEDecode'];
-            try { await Promise.all(classes.map(_animaLoadNodeInfo)); } catch (e) {}
-            const seed = (S.seed == null || S.seed < 0) ? Math.floor(Math.random() * 1e15) : S.seed;
+            const seed = _animaSeedVal();
+            // 위젯 이름이 특이한 커스텀/일부 노드는 설치본 기준으로 보정(누락 방지)
+            try { await Promise.all(['ImageScaleToTotalPixels', 'CosmosReferenceConditioning'].map(_animaLoadNodeInfo)); } catch (e) {}
             const wf = {};
-            wf['61'] = _animaNode('CLIPLoader', [S.clipName, S.clipType, 'default'], {});
-            wf['62'] = _animaNode('VAELoader', [S.vaeName], {});
-            wf['68'] = _animaNode('UNETLoader', [S.unetName, 'default'], {});
-            wf['84'] = _animaNode('LoraLoaderModelOnly', [S.lora1Name, S.lora1], { model: ['68', 0] });
-            wf['87'] = _animaNode('LoraLoaderModelOnly', [S.lora2Name, S.lora2], { model: ['84', 0] });
-            wf['69'] = _animaNode('ApplyCosmosReferenceModelPatch', [], { model: ['87', 0] });
-            wf['67'] = _animaNode('CLIPTextEncode', [pos], { clip: ['61', 0] });
-            wf['88'] = _animaNode('ConditioningZeroOut', [], { conditioning: ['67', 0] });
-            wf['73'] = _animaNode('LoadImage', [imageName], {});
+            // ── 로더 ──
+            wf['61'] = { class_type: 'CLIPLoader', inputs: { clip_name: S.clipName, type: S.clipType, device: 'default' } };
+            wf['62'] = { class_type: 'VAELoader', inputs: { vae_name: S.vaeName } };
+            wf['68'] = { class_type: 'UNETLoader', inputs: { unet_name: S.unetName, weight_dtype: 'default' } };
+            // ── 모델 패치 체인: UNET → LoRA(편집) → LoRA(고속) → Cosmos 참조 패치 ──
+            wf['84'] = { class_type: 'LoraLoaderModelOnly', inputs: { model: ['68', 0], lora_name: S.lora1Name, strength_model: S.lora1 } };
+            wf['87'] = { class_type: 'LoraLoaderModelOnly', inputs: { model: ['84', 0], lora_name: S.lora2Name, strength_model: S.lora2 } };
+            wf['69'] = { class_type: 'ApplyCosmosReferenceModelPatch', inputs: { model: ['87', 0] } };
+            // ── 프롬프트 ──
+            wf['67'] = { class_type: 'CLIPTextEncode', inputs: { clip: ['61', 0], text: pos } };
+            wf['88'] = { class_type: 'ConditioningZeroOut', inputs: { conditioning: ['67', 0] } };
+            // ── 입력 이미지 → 축소 → 인코딩(참조 latent) ──
+            wf['73'] = { class_type: 'LoadImage', inputs: { image: imageName } };
             wf['82'] = _animaNode('ImageScaleToTotalPixels', [S.upscaleMethod, S.megapixels], { image: ['73', 0] });
-            wf['76'] = _animaNode('VAEEncode', [], { pixels: ['82', 0], vae: ['62', 0] });
+            wf['76'] = { class_type: 'VAEEncode', inputs: { pixels: ['82', 0], vae: ['62', 0] } };
+            // ── Cosmos 레퍼런스 조건화: 원본 latent을 조건에 주입 (연결 이름은 원본과 정확히 동일) ──
             wf['71'] = _animaNode('CosmosReferenceConditioning', [S.refWeight, S.refMode], { positive: ['67', 0], negative: ['88', 0], reference_latent: ['76', 0] });
-            wf['66'] = _animaNode('KSampler', [seed, S.steps, S.cfg, S.sampler, S.scheduler, S.denoise], { model: ['69', 0], positive: ['71', 0], negative: ['71', 1], latent_image: ['76', 0] });
-            wf['63'] = _animaNode('VAEDecode', [], { samples: ['66', 0], vae: ['62', 0] });
+            // ── 샘플링 (원본과 동일: 입력 latent에서 denoise=1, 8스텝) ──
+            wf['66'] = { class_type: 'KSampler', inputs: { seed: seed, steps: S.steps, cfg: S.cfg, sampler_name: S.sampler, scheduler: S.scheduler, denoise: S.denoise, model: ['69', 0], positive: ['71', 0], negative: ['71', 1], latent_image: ['76', 0] } };
+            wf['63'] = { class_type: 'VAEDecode', inputs: { samples: ['66', 0], vae: ['62', 0] } };
             wf['9'] = { class_type: 'SaveImage', inputs: { filename_prefix: 'PromptLab_anima', images: ['63', 0] } };
             return wf;
         }
@@ -6429,12 +6468,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // ── 결과 훅 (comfyGenerate 완료 시 finalize가 호출) ──
         window._animaOnResult = function (url, seed) {
             _anima.results.unshift({ url, seed: (seed == null ? null : seed) });
-            if (_anima.results.length > 24) _anima.results.length = 24;
+            if (_anima.results.length > 80) _anima.results.length = 80;
+            _animaResSel = 0; // 새 결과를 현재 비교 대상으로
             _animaBusy = false;
+            try { _animaSave(); } catch (e) {}
             try { _animaRenderResult(); } catch (e) {}
         };
 
-        let _animaDom = null, _animaBusy = false;
+        let _animaDom = null, _animaBusy = false, _animaResSel = 0;
         function _animaSetBusy(b) { _animaBusy = b; try { _animaRenderRun(); } catch (e) {} }
 
         async function _animaSetImage(dataURL, name) {
@@ -6444,6 +6485,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { _anima.imgThumb = await _animaThumb(dataURL, 768); } catch (e) { _anima.imgThumb = dataURL; }
             _animaSave();
             try { _animaRenderInput(); _animaRenderResult(); } catch (e) {}
+            try { showToast('이미지를 넣었어요. 이제 실행을 누르세요.', 'success', 2000); } catch (e) {}
         }
         function _animaFileToDataURL(file) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); }); }
         async function _animaAddFile(fileList) {
@@ -6488,9 +6530,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 box.querySelector('.anima-thumb-x').onclick = (e) => { e.stopPropagation(); _anima.img = null; _anima.uploadedName = null; _anima.imgThumb = null; _animaSave(); _animaRenderInput(); _animaRenderResult(); };
             } else {
                 box.classList.remove('has');
-                box.innerHTML = `<div class="anima-drop-in"><div class="big">🖼</div><div class="t1">여기에 이미지 넣기</div>
-                    <div class="t2">PC는 Ctrl+V·드래그, 모바일은 아래 버튼</div>
-                    <div class="anima-input-btns"><button class="anima-btn" data-a="clip">📋 클립보드</button><button class="anima-btn ghost" data-a="file">🖼 갤러리·파일</button></div></div>`;
+                box.innerHTML = `<div class="anima-drop-in" data-a="file"><div class="big">🖼</div><div class="t1">여기를 눌러 이미지 선택</div>
+                    <div class="t2">모바일은 갤러리/카메라 · PC는 Ctrl+V·드래그도 가능</div>
+                    <div class="anima-input-btns"><button class="anima-btn" data-a="file">🖼 갤러리·파일</button><button class="anima-btn ghost" data-a="clip">📋 클립보드</button></div></div>`;
             }
             box.querySelectorAll('[data-a=clip]').forEach(b => b.onclick = (e) => { e.stopPropagation(); _animaClipboard(); });
             box.querySelectorAll('[data-a=file]').forEach(b => b.onclick = (e) => { e.stopPropagation(); _animaEl('#anima-file').click(); });
@@ -6502,23 +6544,37 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         function _animaRenderResult() {
             const box = _animaEl('#anima-result'); if (!box) return;
-            const cur = _anima.results[0];
-            if (!_animaHasImage() && !cur) { box.innerHTML = `<div class="anima-empty">이미지를 넣고 <b>실행</b>을 누르면 여기에 결과가 나오고, 원본과 비교할 수 있어요.</div>`; return; }
+            if (_animaResSel >= _anima.results.length) _animaResSel = 0;
+            const cur = _anima.results[_animaResSel];
+            if (!_animaHasImage() && !_anima.results.length) { box.innerHTML = `<div class="anima-empty">이미지를 넣고 <b>실행</b>을 누르면 여기에 결과가 나오고, 원본과 비교할 수 있어요.</div>`; return; }
             const src = _animaHasImage() ? _anima.img.dataURL : null;
             const gen = cur ? cur.url : null;
             let html = '<div class="anima-cmp">';
             if (src) html += `<figure><div class="anima-lbl">원본</div><div class="anima-frame" data-lb="0"><img src="${src}"><button class="anima-zoom" title="크게 보기">🔍</button></div></figure>`;
-            html += `<figure><div class="anima-lbl">결과</div><div class="anima-frame ${gen ? '' : 'nores'}" data-lb="1">${gen ? `<img src="${gen}"><button class="anima-zoom" title="크게 보기">🔍</button>` : (_animaBusy ? '<span class="anima-sp big"></span>' : '<span class="anima-nores-t">아직 결과 없음</span>')}</div></figure>`;
+            html += `<figure><div class="anima-lbl">결과${_anima.results.length ? ` · ${_animaResSel + 1}/${_anima.results.length}` : ''}</div><div class="anima-frame ${gen ? '' : 'nores'}" data-lb="1">${gen ? `<img src="${gen}"><button class="anima-zoom" title="크게 보기">🔍</button>` : (_animaBusy ? '<span class="anima-sp big"></span>' : '<span class="anima-nores-t">아직 결과 없음</span>')}</div></figure>`;
             html += '</div>';
-            if (_anima.results.length > 1) {
-                html += '<div class="anima-strip"><span class="lab">지난 결과</span>';
-                _anima.results.forEach((r, i) => { html += `<div class="anima-cand${i === 0 ? ' sel' : ''}" data-i="${i}"><img src="${r.url}"></div>`; });
+            // 이 테마 전용 이미지 갤러리 (Anima에서 뽑은 것만 · 새로고침 유지)
+            if (_anima.results.length) {
+                html += `<div class="anima-gal-head"><span>🖼 이 테마 생성 이미지 <b>${_anima.results.length}</b></span><button class="anima-gal-clear" id="anima-gal-clear">전체 비우기</button></div>`;
+                html += '<div class="anima-gal">';
+                _anima.results.forEach((r, i) => { html += `<div class="anima-gitem${i === _animaResSel ? ' sel' : ''}" data-i="${i}"><img src="${r.url}" loading="lazy"><button class="anima-gx" data-i="${i}" title="삭제">✕</button></div>`; });
                 html += '</div>';
             }
             box.innerHTML = html;
-            const openLB = (startIdx) => { try { if (window.openLightbox) { const urls = [src, gen].filter(Boolean); const idx = Math.max(0, Math.min(urls.length - 1, src ? startIdx : startIdx - 1)); window.openLightbox(urls[idx] || urls[0], urls, idx); } } catch (e) {} };
+            const openLB = (which) => { try { if (window.openLightbox) { const urls = [src, gen].filter(Boolean); const idx = (which === 0 && src) ? 0 : (src ? 1 : 0); window.openLightbox(urls[idx] || urls[0], urls, idx); } } catch (e) {} };
             box.querySelectorAll('.anima-frame').forEach(fr => { const lb = parseInt(fr.dataset.lb); if ((lb === 0 && src) || (lb === 1 && gen)) { fr.style.cursor = 'zoom-in'; fr.onclick = () => openLB(lb); } });
-            box.querySelectorAll('.anima-cand').forEach(cd => cd.onclick = () => { const i = parseInt(cd.dataset.i); const picked = _anima.results.splice(i, 1)[0]; _anima.results.unshift(picked); _animaRenderResult(); });
+            box.querySelectorAll('.anima-gitem').forEach(gi => gi.onclick = (e) => {
+                if (e.target.classList.contains('anima-gx')) return;
+                _animaResSel = parseInt(gi.dataset.i); _animaRenderResult();
+            });
+            box.querySelectorAll('.anima-gx').forEach(x => x.onclick = (e) => {
+                e.stopPropagation(); const i = parseInt(x.dataset.i);
+                _anima.results.splice(i, 1);
+                if (_animaResSel >= _anima.results.length) _animaResSel = Math.max(0, _anima.results.length - 1);
+                _animaSave(); _animaRenderResult();
+            });
+            const clr = box.querySelector('#anima-gal-clear');
+            if (clr) clr.onclick = () => { if (!_anima.results.length) return; _anima.results = []; _animaResSel = 0; _animaSave(); _animaRenderResult(); showToast('이 테마의 생성 이미지 목록을 비웠어요', 'info', 1800); };
         }
 
         const ANIMA_HTML = `
@@ -6566,7 +6622,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 row('VAE', txt('vaeName')) +
                 row('LoRA1(편집)', txt('lora1Name') + num('lora1', 0.05, 0, 2)) +
                 row('LoRA2(고속)', txt('lora2Name') + num('lora2', 0.05, 0, 2)) +
-                `<div class="anima-adv-actions"><button id="anima-reset" class="anima-btn ghost">↺ 기본값으로 복원</button></div>`;
+                `<div class="anima-adv-sec">원본과 100% 동일하게 (선택)</div>
+                 <div class="anima-wfhelp">ComfyUI에서 <b>⚙ → Enable Dev mode → Save (API Format)</b>으로 받은 JSON을 아래에 붙여넣으면, 내장 워크플로우 대신 <b>그걸 그대로</b> 사용합니다 (이미지·프롬프트·시드만 자동 주입). 비워두면 내장 워크플로우를 씁니다.</div>
+                 <textarea id="anima-customwf" class="anima-ta" style="min-height:70px; font-size:11px;" placeholder='{ "61": { "class_type": "CLIPLoader", ... }, ... }  ← Save (API Format) JSON'></textarea>
+                 <div class="anima-adv-actions"><button id="anima-copywf" class="anima-btn ghost">📋 전송되는 워크플로우 JSON 복사</button><button id="anima-reset" class="anima-btn ghost">↺ 기본값으로 복원</button></div>`;
             box.querySelectorAll('input[data-k]').forEach(inp => {
                 inp.onchange = () => {
                     const k = inp.dataset.k;
@@ -6577,6 +6636,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             });
             const rb = box.querySelector('#anima-reset');
             if (rb) rb.onclick = () => { Object.keys(ANIMA_DEFAULTS).forEach(k => _anima[k] = ANIMA_DEFAULTS[k]); _animaSave(); _animaRenderAdv(); const pt = _animaEl('#anima-prompt'); if (pt) pt.value = _anima.prompt; const sd = _animaEl('#anima-seed'); if (sd) sd.value = _anima.seed; showToast('기본값으로 복원했어요', 'info', 1600); };
+            const cw = box.querySelector('#anima-customwf');
+            if (cw) { cw.value = _anima.customWf || ''; cw.onchange = () => { _anima.customWf = cw.value; _animaSave(); showToast(cw.value.trim() ? '붙여넣은 워크플로우를 사용합니다' : '내장 워크플로우를 사용합니다', 'info', 2000); }; }
+            const cpb = box.querySelector('#anima-copywf');
+            if (cpb) cpb.onclick = async () => {
+                try {
+                    const wf = await _animaBuildWorkflow((_anima.prompt || '').trim(), (_anima.img && _anima.img.name || 'input.png'));
+                    const s = JSON.stringify(wf, null, 2);
+                    if (navigator.clipboard) await navigator.clipboard.writeText(s);
+                    showToast('전송되는 워크플로우 JSON을 복사했어요. ComfyUI에 붙여 확인해보세요.', 'success', 3000);
+                } catch (e) { showToast('복사 실패: ' + (e && e.message || e), 'error', 4000); }
+            };
         }
 
         function mountAnima() {
@@ -6658,7 +6728,19 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-cand img { width:100%; height:100%; object-fit:cover; display:block; }
           .anima-sp { display:inline-block; width:15px; height:15px; border:2px solid #fff; border-right-color:transparent; border-radius:50%; animation:cmpSpin .7s linear infinite; }
           .anima-sp.big { width:34px; height:34px; border-width:3px; border-color:var(--accent-blue,#3b82f6); border-right-color:transparent; }
-          @media (max-width:600px){ .anima-arow { grid-template-columns:96px 1fr; } .anima-run { font-size:15px; } }`;
+          .anima-wfhelp { font-size:11.5px; color:var(--text-dim); line-height:1.6; }
+          .anima-gal-head { display:flex; align-items:center; justify-content:space-between; margin-top:16px; font-size:12px; font-weight:800; color:var(--text-dim); }
+          .anima-gal-head b { color:var(--text-main); }
+          .anima-gal-clear { background:transparent; border:1px solid var(--border-dim); border-radius:8px; padding:5px 10px; color:var(--text-dim); font-size:11px; font-weight:700; cursor:pointer; }
+          .anima-gal-clear:hover { color:#ef4444; border-color:rgba(239,68,68,.5); }
+          .anima-gal { display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px; margin-top:10px; }
+          .anima-gitem { position:relative; aspect-ratio:3/4; border-radius:9px; overflow:hidden; border:2px solid var(--border-dim); cursor:pointer; background:#0b0e13; }
+          .anima-gitem.sel { border-color:var(--accent-blue,#3b82f6); }
+          .anima-gitem img { width:100%; height:100%; object-fit:cover; display:block; }
+          .anima-gx { position:absolute; top:3px; right:3px; width:20px; height:20px; border-radius:6px; border:none; background:rgba(0,0,0,.6); color:#fff; font-size:11px; line-height:1; cursor:pointer; opacity:0; transition:.12s; }
+          .anima-gitem:hover .anima-gx { opacity:1; }
+          @media (hover:none){ .anima-gx { opacity:.85; } }
+          @media (max-width:600px){ .anima-arow { grid-template-columns:96px 1fr; } .anima-run { font-size:15px; } .anima-gal { grid-template-columns:repeat(auto-fill,minmax(72px,1fr)); } }`;
 
         // Pony Realism 코스프레 변환 권장 세팅 원클릭
         // 권장 기본값으로 "초기화" — 생성 파라미터 + 고급 파이프라인을 안전한 기본 상태로 되돌림
@@ -6843,6 +6925,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 try { name = await _animaEnsureUploaded(); }
                 catch (e) { showToast('이미지 업로드 실패: ' + (e && e.message || e), 'error', 6000); return null; }
                 if (_plCurrent !== 'anima') return null; // 조립 도중 테마 이탈 방지
+                // 사용자가 ComfyUI에서 Save(API Format)으로 뽑은 JSON을 붙여넣었으면 그걸 그대로 사용(이미지·프롬프트·시드만 주입)
+                if (_anima.customWf && _anima.customWf.trim()) {
+                    try {
+                        const custom = JSON.parse(_anima.customWf);
+                        if (custom && custom.nodes && custom.links) { showToast('붙여넣은 JSON이 "에디터 형식"이에요. ComfyUI에서 반드시 Save (API Format)으로 받아 붙여넣어야 합니다.', 'error', 7000); return null; }
+                        return _animaInjectInto(custom, pos, name, _animaSeedVal());
+                    } catch (e) { showToast('붙여넣은 워크플로우 JSON 파싱 실패 — 내장 워크플로우로 진행합니다.', 'warning', 4500); }
+                }
                 return await _animaBuildWorkflow(pos, name);
             }
             // ★ 이미지 테마(변환/인페인트)는 항상 최우선 — 커스텀 워크플로우 모드여도 반드시 원본 이미지를 쓰는
