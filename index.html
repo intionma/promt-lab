@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.53.2 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.53.3 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1206,7 +1206,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.53.2 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.53.3 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1972,7 +1972,16 @@
         const CHANGELOG = [
             // ── 2026-07-18 ──────────────────────────────────────────────────
             {
-                version: 'v9.53.2', date: '2026-07-18', time: '최신',
+                version: 'v9.53.3', date: '2026-07-18', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] 모바일 흐름 대폭 개선 — 화면 하단에 고정 바가 생겨 '전신/하의·후타나리 선택 + 실행'을 스크롤 없이 바로 할 수 있습니다(이미지 넣고 → 아래 바에서 고르고 → 실행 끝).",
+                    "[Anima 편집] 실행하면 결과 칸으로 자동 스크롤되어 진행(스피너)이 바로 보이고, 완료되면 알림(토스트+진동)이 옵니다 — 완료된 줄 모르고 기다리던 문제 해결.",
+                    "[Anima 편집] ComfyUI 연결 카드가 주소 저장돼 있으면 한 줄로 접혀 시작합니다(탭하면 펼침) — 진입 시 주소칸이 비어 보이던 문제도 수정.",
+                ]
+            },
+            {
+                version: 'v9.53.2', date: '2026-07-18', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 후타나리 옵션이 '거근/소추' 2종으로 나뉘었습니다 — 서로 배타 토글이라 하나를 켜면 다른 쪽은 자동으로 꺼집니다. 기존 옵션을 직접 수정해 쓰던 경우엔 그대로 두고 새 2종을 추가합니다.",
@@ -6608,10 +6617,27 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { _animaSave(); } catch (e) {}
             try { _animaRenderRun(); } catch (e) {}
             try { _animaRenderResult(); } catch (e) {}
+            // 완료 알림 — 스크롤 위치와 무관하게 완료를 알 수 있게 (모바일 진동 포함)
+            try { showToast('✅ 생성 완료 — 결과에서 확인하세요', 'success', 2500); } catch (e) {}
+            try { if (navigator.vibrate) navigator.vibrate(80); } catch (e) {}
+            _animaScrollToResult();
         };
 
         let _animaDom = null, _animaBusy = false, _animaResSel = 0;
-        function _animaSetBusy(b) { _animaBusy = b; try { _animaRenderRun(); } catch (e) {} }
+        // 결과 카드로 부드럽게 스크롤 (좁은 화면: 실행하면 스피너/결과가 안 보이는 문제 해결)
+        function _animaScrollToResult() {
+            try {
+                if (window.innerWidth > 760) return;
+                const el = _animaEl('#anima-result');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (e) {}
+        }
+        function _animaSetBusy(b) {
+            _animaBusy = b;
+            try { _animaRenderRun(); } catch (e) {}
+            try { _animaRenderResult(); } catch (e) {}   // 결과 칸에 스피너 표시/해제
+            if (b) _animaScrollToResult();   // 실행 즉시 진행(스피너)이 보이게
+        }
 
         async function _animaSetImage(dataURL, name) {
             if (!dataURL) return;
@@ -6732,8 +6758,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             box.querySelectorAll('[data-a=file]').forEach(b => b.onclick = (e) => { e.stopPropagation(); _animaEl('#anima-file').click(); });
         }
         let _animaSnipEditOpen = false;
-        function _animaRenderSnippets() {
-            const box = _animaEl('#anima-snips'); if (!box) return;
+        // 칩 동작 (본문·하단 바 공용)
+        function _animaApplyBaseSnip(id) {
+            const s = _anima.snippets.find(x => x.id === id); if (!s) return;
+            _anima.prompt = s.text;
+            const pt = _animaEl('#anima-prompt'); if (pt) pt.value = s.text;
+            _animaSave(); _animaRenderSnippets();
+        }
+        function _animaToggleSnipById(id) {
+            const s = _anima.snippets.find(x => x.id === id); if (!s) return;
+            s.on = !s.on;
+            // 같은 group(거근/소추 등)은 상호배타: 하나 켜면 나머지 자동 꺼짐
+            if (s.on && s.group) _anima.snippets.forEach(x => { if (x !== s && x.group === s.group) x.on = false; });
+            _animaSave(); _animaRenderSnippets();
+        }
+        function _animaChipsHtml() {
             const baseS = (_anima.snippets || []).filter(s => s.kind === 'base');
             const appS = (_anima.snippets || []).filter(s => s.kind !== 'base');
             const curP = (_anima.prompt || '').trim();
@@ -6746,20 +6785,25 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 h += `<span class="anima-snip-lab">옵션</span>`;
                 appS.forEach(s => { h += `<button class="anima-chip${s.on ? ' on' : ''}" data-id="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${s.on ? '✓ ' : ''}${_animaEsc(s.name)}</button>`; });
             }
-            h += `<button class="anima-chip edit" id="anima-snip-editbtn">✏️ 편집</button>`;
-            box.innerHTML = h;
-            // 노출 프리셋: 누르면 기본 프롬프트를 그걸로 교체 (textarea 반영)
-            box.querySelectorAll('.anima-chip[data-base]').forEach(c => c.onclick = () => { const s = _anima.snippets.find(x => x.id === c.dataset.base); if (s) { _anima.prompt = s.text; const pt = _animaEl('#anima-prompt'); if (pt) pt.value = s.text; _animaSave(); _animaRenderSnippets(); } });
-            // 추가 옵션: 토글 — 같은 group(거근/소추 등)은 상호배타: 하나 켜면 나머지 자동 꺼짐
-            box.querySelectorAll('.anima-chip[data-id]').forEach(c => c.onclick = () => {
-                const s = _anima.snippets.find(x => x.id === c.dataset.id);
-                if (s) {
-                    s.on = !s.on;
-                    if (s.on && s.group) _anima.snippets.forEach(x => { if (x !== s && x.group === s.group) x.on = false; });
-                    _animaSave(); _animaRenderSnippets();
-                }
-            });
+            return h;
+        }
+        function _animaBindChips(box) {
+            box.querySelectorAll('.anima-chip[data-base]').forEach(c => c.onclick = () => _animaApplyBaseSnip(c.dataset.base));
+            box.querySelectorAll('.anima-chip[data-id]').forEach(c => c.onclick = () => _animaToggleSnipById(c.dataset.id));
+        }
+        function _animaRenderSnippets() {
+            const box = _animaEl('#anima-snips'); if (!box) return;
+            box.innerHTML = _animaChipsHtml() + `<button class="anima-chip edit" id="anima-snip-editbtn">✏️ 편집</button>`;
+            _animaBindChips(box);
             const eb = box.querySelector('#anima-snip-editbtn'); if (eb) eb.onclick = () => { _animaSnipEditOpen = !_animaSnipEditOpen; _animaRenderSnipEdit(); };
+            // 모바일 하단 고정 바 — 같은 칩 + 실행 버튼 (스크롤 없이 핵심 흐름 완료)
+            const mact = _animaEl('#anima-mact');
+            if (mact) {
+                mact.innerHTML = `<div class="anima-mact-chips">${_animaChipsHtml()}</div><button id="anima-mact-run" class="anima-run anima-mact-run"></button>`;
+                _animaBindChips(mact);
+                const mr = mact.querySelector('#anima-mact-run'); if (mr) mr.onclick = _animaGenerate;
+            }
+            _animaRenderRun();
             _animaRenderSnipEdit();
         }
         function _animaRenderSnipEdit() {
@@ -6785,9 +6829,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         function _animaEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
         function _animaRenderRun() {
-            const btn = _animaEl('#anima-run-btn'); if (!btn) return;
-            btn.disabled = _animaBusy;
-            btn.innerHTML = _animaBusy ? '<span class="anima-sp"></span> 생성 중…' : '✨ 실행 (생성)';
+            const label = _animaBusy ? '<span class="anima-sp"></span> 생성 중…' : '✨ 실행 (생성)';
+            const btn = _animaEl('#anima-run-btn');
+            if (btn) { btn.disabled = _animaBusy; btn.innerHTML = label; }
+            const mb = _animaEl('#anima-mact-run');   // 모바일 하단 바 실행 버튼도 동기화
+            if (mb) { mb.disabled = _animaBusy; mb.innerHTML = label; }
         }
         function _animaRenderResult() {
             const box = _animaEl('#anima-result'); if (!box) return;
@@ -6828,13 +6874,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           <div class="anima-wrap">
             <div class="anima-head"><b>🎨 Anima 편집</b><span>업로드 → 실행 → 끝. 원본을 참고해 프롬프트대로 다시 그려요.</span></div>
             <div class="anima-card anima-srv-card">
-              <div class="anima-srv">
-                <label>ComfyUI 주소</label>
-                <input type="text" id="anima-url" placeholder="http://127.0.0.1:8188">
-                <button id="anima-ping" class="anima-btn ghost">연결 확인</button>
-                <span id="anima-conn" class="anima-conn"></span>
+              <div class="anima-srv-head" id="anima-srv-head">🔌 ComfyUI 연결 <span id="anima-srv-mini" class="anima-conn"></span><span class="anima-srv-arrow" id="anima-srv-arrow">▼</span></div>
+              <div id="anima-srv-body">
+                <div class="anima-srv">
+                  <label>ComfyUI 주소</label>
+                  <input type="text" id="anima-url" placeholder="http://127.0.0.1:8188">
+                  <button id="anima-ping" class="anima-btn ghost">연결 확인</button>
+                  <span id="anima-conn" class="anima-conn"></span>
+                </div>
+                <div class="anima-srv-note">💡 이 테마는 <b>체크포인트가 필요 없어요</b>. 모델(UNET·CLIP·VAE·LoRA)은 아래 <b>고급 설정</b>에서 지정합니다.</div>
               </div>
-              <div class="anima-srv-note">💡 이 테마는 <b>체크포인트가 필요 없어요</b>. 모델(UNET·CLIP·VAE·LoRA)은 아래 <b>고급 설정</b>에서 지정합니다.</div>
             </div>
             <div class="anima-card">
               <div class="anima-step"><span class="n">1</span> 이미지 넣기</div>
@@ -6859,7 +6908,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
               <div class="anima-step"><span class="n">3</span> 결과 · 비교</div>
               <div class="anima-result" id="anima-result"></div>
             </div>
-          </div>`;
+          </div>
+          <!-- 모바일 하단 고정 바: 노출·옵션 선택 + 실행 (스크롤 없이 핵심 흐름 완료) -->
+          <div class="anima-mact" id="anima-mact"></div>`;
 
         function _animaRenderAdv() {
             const box = _animaEl('#anima-adv'); if (!box) return;
@@ -6920,12 +6971,23 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // ComfyUI 연결 (서버 주소는 공용 #comfy-url과 동기화 — 인프라라 공유)
             const urlIn = _animaEl('#anima-url');
             try { urlIn.value = (document.getElementById('comfy-url') && document.getElementById('comfy-url').value) || ''; } catch (e) {}
+            // 폼이 아직 복원 전이면 저장소에서 직접 — 진입 시 주소칸이 비어 보이던 문제도 함께 해결
+            if (!urlIn.value) { try { urlIn.value = JSON.parse(localStorage.getItem('comfy_settings_v1') || '{}').url || ''; } catch (e) {} }
+            // 서버 카드 접기 — 주소가 이미 저장돼 있으면 접힌 상태로 시작(단순 흐름에서 공간 절약), 탭하면 펼침
+            const srvCard = _animaEl('.anima-srv-card');
+            const srvHead = _animaEl('#anima-srv-head');
+            if (srvCard && srvHead) {
+                if ((urlIn.value || '').trim()) srvCard.classList.add('closed');
+                srvHead.onclick = () => srvCard.classList.toggle('closed');
+            }
             urlIn.onchange = () => { try { const g = document.getElementById('comfy-url'); if (g) g.value = urlIn.value.trim(); _comfySaveSettings(); } catch (e) {} };
             _animaEl('#anima-ping').onclick = async () => {
                 const st = _animaEl('#anima-conn'); if (st) { st.textContent = '확인 중…'; st.className = 'anima-conn'; }
                 try { const g = document.getElementById('comfy-url'); if (g) g.value = urlIn.value.trim(); } catch (e) {}
                 let ok = false; try { ok = await _comfyPing(2, 6000); } catch (e) {}
                 if (st) { st.textContent = ok ? '✅ 연결됨' : '❌ 연결 안 됨'; st.className = 'anima-conn ' + (ok ? 'ok' : 'bad'); }
+                const mini = _animaEl('#anima-srv-mini');   // 접힌 헤더에도 상태 표시
+                if (mini) { mini.textContent = ok ? '✅ 연결됨' : '❌ 연결 안 됨'; mini.className = 'anima-conn ' + (ok ? 'ok' : 'bad'); }
                 if (!ok) showToast('ComfyUI에 연결 안 됨 — 주소를 확인하세요. (앱이 https면 http 로컬 주소는 차단될 수 있어요)', 'error', 6000);
             };
             const advT = _animaEl('#anima-adv-toggle'); advT.onclick = () => { const b = _animaEl('#anima-adv'); const on = b.style.display === 'none'; b.style.display = on ? 'flex' : 'none'; advT.textContent = (on ? '▲' : '▼') + ' 고급 설정 (모델·스텝·강도)'; };
@@ -7033,7 +7095,24 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-gx { position:absolute; top:3px; right:3px; width:20px; height:20px; border-radius:6px; border:none; background:rgba(0,0,0,.6); color:#fff; font-size:11px; line-height:1; cursor:pointer; opacity:0; transition:.12s; }
           .anima-gitem:hover .anima-gx { opacity:1; }
           @media (hover:none){ .anima-gx { opacity:.85; } }
-          @media (max-width:600px){ .anima-arow { grid-template-columns:96px 1fr; } .anima-run { font-size:15px; } .anima-gal { grid-template-columns:repeat(auto-fill,minmax(72px,1fr)); } }`;
+          @media (max-width:600px){ .anima-arow { grid-template-columns:96px 1fr; } .anima-run { font-size:15px; } .anima-gal { grid-template-columns:repeat(auto-fill,minmax(72px,1fr)); } }
+          /* 서버 카드 접기 — 주소가 이미 있으면 한 줄로 접혀 공간 절약 */
+          .anima-srv-head { display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:800; color:var(--text-main); cursor:pointer; user-select:none; }
+          .anima-srv-arrow { margin-left:auto; font-size:10px; color:var(--text-dim); transition:transform .15s; }
+          .anima-srv-card.closed .anima-srv-arrow { transform:rotate(-90deg); }
+          .anima-srv-card.closed #anima-srv-body { display:none; }
+          /* 모바일 하단 고정 바 — 노출·옵션 + 실행. 스크롤 없이 핵심 흐름 완료 */
+          .anima-mact { display:none; }
+          @media (max-width:760px){
+            .anima-mact { display:flex; flex-direction:column; gap:8px; position:fixed; left:0; right:0; bottom:0; z-index:60;
+              padding:10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); background:var(--bg-panel); border-top:1px solid var(--border-dim); box-shadow:0 -6px 18px rgba(0,0,0,.25); }
+            .anima-mact-chips { display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:2px; }
+            .anima-mact-chips::-webkit-scrollbar { display:none; }
+            .anima-mact .anima-chip { flex:0 0 auto; white-space:nowrap; }
+            .anima-mact .anima-snip-lab { flex:0 0 auto; white-space:nowrap; align-self:center; }
+            .anima-mact-run { width:100%; }
+            #anima-root .anima-wrap { padding-bottom:132px; } /* 바에 내용이 가리지 않게 */
+          }`;
 
         // Pony Realism 코스프레 변환 권장 세팅 원클릭
         // 권장 기본값으로 "초기화" — 생성 파라미터 + 고급 파이프라인을 안전한 기본 상태로 되돌림
