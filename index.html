@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.49.2 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.49.3 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1153,6 +1153,15 @@
         @media (hover: none) and (pointer: coarse) {
             *, *::before, *::after { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
         }
+        /* 모바일(폰): 알림(토스트)이 너무 크게 뜨는 것 → 글자·여백·폭 축소 */
+        @media (max-width: 640px) {
+            .toast {
+                font-size: 12px !important; font-weight: 600; padding: 9px 13px !important;
+                min-width: 0 !important; max-width: 80vw !important; border-radius: 11px !important;
+                gap: 7px !important; line-height: 1.4;
+            }
+            .toast i, .toast svg { font-size: 13px !important; }
+        }
     </style>
 </head>
 <body data-theme="dark">
@@ -1197,7 +1206,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.49.2 &nbsp;·&nbsp; 2026-07-17 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.49.3 &nbsp;·&nbsp; 2026-07-17 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1963,7 +1972,15 @@
         const CHANGELOG = [
             // ── 2026-07-17 ──────────────────────────────────────────────────
             {
-                version: 'v9.49.2', date: '2026-07-17', time: '최신',
+                version: 'v9.49.3', date: '2026-07-17', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[비교 패널] 이미지를 크게 본 뒤 닫으면(X·클릭·뒤로가기) 비교 창까지 함께 닫히던 문제를 고쳤습니다 — 이제 크게 보기만 닫히고 비교 창은 그대로 남습니다.",
+                    "[모바일] 알림(토스트)이 너무 크게 뜨던 것을 줄였습니다 — 글자·여백·폭을 작게 해 화면을 덜 가립니다. (PC는 기존 크기 유지)",
+                ]
+            },
+            {
+                version: 'v9.49.2', date: '2026-07-17', time: '',
                 tag: 'feat',
                 items: [
                     "[비교 패널] 이미지를 크게 볼 수 있게 했습니다 — 원본·결과 이미지 오른쪽 아래의 🔍 버튼(또는 좌우 나란히 모드에서 이미지 탭)을 누르면 전체화면으로 크게 보이고, 손가락으로 확대·축소하거나 원본↔결과를 넘겨볼 수 있습니다.",
@@ -3628,6 +3645,10 @@
         }
         window.registerModalBack = registerModalBack;
         window.addEventListener('popstate', () => {
+            // 라이트박스가 위에 떠 있으면(또는 방금 스스로 닫으며 back을 소비했으면) 이 popstate는
+            // 라이트박스 몫 → 아래 모달(예: 비교 오버레이) 스택을 건드리지 않는다. (라이트박스 닫을 때 하위 창까지 닫히던 버그 수정)
+            if (window._lbSuppressModalBack) { window._lbSuppressModalBack = false; return; }
+            if (window._lbActive) return;
             if (_modalBackConsuming) { _modalBackConsuming = false; return; } // 외부 닫힘이 만든 back → 무시
             if (!_modalBackStack.length) return;
             _modalBackPopping = true;
@@ -7398,6 +7419,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _loadSlots();
                 _center();
                 _updateUI();
+                window._lbActive = true; // registerModalBack이 이 위의 back을 라이트박스 몫으로 인식하게
                 // 뒤로가기로 닫을 수 있도록 히스토리 스택에 추가 (file:// 등에서 throw 방지)
                 try { history.pushState({ lightbox: true }, ''); } catch (e) {}
             };
@@ -7421,8 +7443,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 box.style.display = 'none';
                 SLOTS.forEach(img => { img.src = ''; img.dataset.full = ''; });
                 _lbUrls = []; _lbIdx = 0;
-                // pushState로 쌓은 히스토리 항목 제거 (패널 이동 없이)
-                try { if (history.state && history.state.lightbox) history.go(-1); } catch (e) {}
+                window._lbActive = false;
+                // pushState로 쌓은 히스토리 항목 제거 (패널 이동 없이).
+                // 이때 발생하는 popstate는 라이트박스 몫이므로 하위 모달(비교 오버레이 등)이 닫히지 않게 표시.
+                try { if (history.state && history.state.lightbox) { window._lbSuppressModalBack = true; history.go(-1); } } catch (e) {}
             };
 
             // 뒤로가기 → 라이트박스만 닫기
@@ -7431,6 +7455,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     box.style.display = 'none';
                     SLOTS.forEach(img => { img.src = ''; img.dataset.full = ''; });
                     _lbUrls = []; _lbIdx = 0;
+                    window._lbActive = false;
                 }
             });
 
