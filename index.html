@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.53.3 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.53.4 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1206,7 +1206,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.53.3 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.53.4 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1972,7 +1972,14 @@
         const CHANGELOG = [
             // ── 2026-07-18 ──────────────────────────────────────────────────
             {
-                version: 'v9.53.3', date: '2026-07-18', time: '최신',
+                version: 'v9.53.4', date: '2026-07-18', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] 모바일 하단 바의 실행 버튼 왼쪽에 클립보드(📋) 버튼을 추가했습니다 — 복사해 둔 이미지를 바로 붙여넣고 즉시 실행하기 좋게.",
+                ]
+            },
+            {
+                version: 'v9.53.3', date: '2026-07-18', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 모바일 흐름 대폭 개선 — 화면 하단에 고정 바가 생겨 '전신/하의·후타나리 선택 + 실행'을 스크롤 없이 바로 할 수 있습니다(이미지 넣고 → 아래 바에서 고르고 → 실행 끝).",
@@ -6799,8 +6806,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 모바일 하단 고정 바 — 같은 칩 + 실행 버튼 (스크롤 없이 핵심 흐름 완료)
             const mact = _animaEl('#anima-mact');
             if (mact) {
-                mact.innerHTML = `<div class="anima-mact-chips">${_animaChipsHtml()}</div><button id="anima-mact-run" class="anima-run anima-mact-run"></button>`;
+                mact.innerHTML = `<div class="anima-mact-chips">${_animaChipsHtml()}</div>
+                    <div class="anima-mact-row">
+                        <button id="anima-mact-clip" class="anima-btn ghost anima-mact-clip" title="클립보드 이미지 붙여넣기">📋</button>
+                        <button id="anima-mact-run" class="anima-run anima-mact-run"></button>
+                    </div>`;
                 _animaBindChips(mact);
+                const mc = mact.querySelector('#anima-mact-clip'); if (mc) mc.onclick = _animaClipboard; // 붙여넣고 바로 실행하기 좋게
                 const mr = mact.querySelector('#anima-mact-run'); if (mr) mr.onclick = _animaGenerate;
             }
             _animaRenderRun();
@@ -7110,7 +7122,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             .anima-mact-chips::-webkit-scrollbar { display:none; }
             .anima-mact .anima-chip { flex:0 0 auto; white-space:nowrap; }
             .anima-mact .anima-snip-lab { flex:0 0 auto; white-space:nowrap; align-self:center; }
-            .anima-mact-run { width:100%; }
+            .anima-mact-row { display:flex; gap:8px; align-items:stretch; }
+            .anima-mact-clip { flex:0 0 auto; width:52px; font-size:17px; padding:0; display:flex; align-items:center; justify-content:center; }
+            .anima-mact-run { flex:1; }
             #anima-root .anima-wrap { padding-bottom:132px; } /* 바에 내용이 가리지 않게 */
           }`;
 
