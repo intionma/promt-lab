@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.51.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.51.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1206,7 +1206,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.51.0 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.51.1 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1972,7 +1972,15 @@
         const CHANGELOG = [
             // ── 2026-07-18 ──────────────────────────────────────────────────
             {
-                version: 'v9.51.0', date: '2026-07-18', time: '최신',
+                version: 'v9.51.1', date: '2026-07-18', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] 실행할 때 '127.0.0.1 차단' 오류가 잘못 뜨던 문제를 고쳤습니다 — 다른 테마처럼 사전 차단 없이 그대로 전송을 시도합니다(브라우저가 로컬 주소를 허용하면 정상 동작). 실패할 때만 실제 사용 중인 주소로 안내가 뜹니다.",
+                    "[모바일] 알림(토스트)이 5~8초씩 오래 떠 있던 것을 최대 2.2초로 줄였습니다(탭하면 즉시 닫힘). PC는 그대로입니다.",
+                ]
+            },
+            {
+                version: 'v9.51.0', date: '2026-07-18', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 워크플로우를 더 빠르고 정확한 새 버전(V8FT)으로 교체했습니다 — 모델을 Anima-Comradeship로 바꾸고, 참조 방식을 temporal_mask로, 스텝을 8→3으로 줄여 더 빨라졌습니다. 기존에 기본값으로 쓰던 분은 자동으로 새 설정으로 옮겨지고, 직접 바꿔 쓰던 값은 그대로 유지됩니다. (고급 설정에서 언제든 조정 가능)",
@@ -3633,6 +3641,8 @@
         }
 
         function showToast(msg, type = 'info', duration = 2500) {
+            // 모바일(폰)에선 알림이 오래 떠 있으면 화면을 가려 답답 → 최대 2.2초로 제한 (탭하면 즉시 닫힘)
+            try { if (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) duration = Math.min(duration, 2200); } catch (e) {}
             const container = document.getElementById('toast-container');
             const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
             const toast = document.createElement('div');
@@ -6550,9 +6560,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!_animaHasImage()) { showToast('먼저 이미지를 넣어주세요.', 'warning', 2500); return; }
             const prompt = (_anima.prompt || '').trim();
             if (!prompt) { showToast('프롬프트를 입력하세요.', 'warning', 2500); return; }
-            if (typeof _comfyMixedContentBlocked === 'function' && _comfyMixedContentBlocked()) {
-                showToast('이 앱이 https라서 http(127.0.0.1) ComfyUI로 전송이 브라우저에 막혀요. 앱을 로컬(http)에서 열거나 ComfyUI를 https로 열어주세요.', 'error', 8000); return;
-            }
+            // ★ 사전 차단하지 않고 그냥 시도한다 (다른 테마와 동일) — 브라우저가 로컬 http를 허용할 수도 있으니.
             _animaSetBusy(true);
             const base = _comfyBase();
             try {
@@ -6571,7 +6579,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _animaPoll(data.prompt_id, base, 0);
             } catch (e) {
                 _animaSetBusy(false);
-                showToast('생성 실패: ' + (e && e.message || e) + ' (주소·모델 파일명·노드 설치 확인)', 'error', 8000);
+                const net = /failed to fetch|networkerror|load failed|typeerror/i.test((e && e.message) || String(e || ''));
+                const mixed = (typeof _comfyMixedContentBlocked === 'function' && _comfyMixedContentBlocked());
+                let msg;
+                if (net && mixed) msg = '전송 실패 — 이 앱은 https인데 ' + base + ' 은 http라 브라우저가 막았을 수 있어요. (앱을 로컬 http로 열거나 ComfyUI를 https로)';
+                else if (net) msg = '전송 실패 — ' + base + ' 에 연결이 안 돼요. 주소·연결을 확인하세요.';
+                else msg = '생성 실패: ' + (e && e.message || e) + ' (모델 파일명·노드 설치 확인)';
+                showToast(msg, 'error', 5000);
             }
         }
         async function _animaPoll(pid, base, tries) {
