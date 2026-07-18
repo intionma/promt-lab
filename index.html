@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.53.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.53.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1206,7 +1206,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.53.0 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.53.1 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1972,7 +1972,14 @@
         const CHANGELOG = [
             // ── 2026-07-18 ──────────────────────────────────────────────────
             {
-                version: 'v9.53.0', date: '2026-07-18', time: '최신',
+                version: 'v9.53.1', date: '2026-07-18', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] 실행하면 'HTTP 400 · 노드 82(ImageScaleToTotalPixels)' 오류로 생성이 안 되던 문제를 고쳤습니다 — 최신 ComfyUI가 선택형 옵션(보간 방식 등)을 새 형식(COMBO)으로 알려주면서 값이 엉뚱한 칸에 들어가던 것. 이제 새/구 형식 모두 정확히 인식하고, 어긋나면 검증된 기본 배치로 자동 복구합니다.",
+                ]
+            },
+            {
+                version: 'v9.53.0', date: '2026-07-18', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 노출 프리셋을 추가했습니다 — 프롬프트 아래 '전신 노출 / 하의만 벗기기'를 누르면 기본 프롬프트가 그에 맞게 바뀝니다(하의만: bottomless, no panties). 후타나리 같은 '추가' 옵션은 그 위에 얹혀 함께 적용됩니다. 편집에서 프리셋/추가 종류를 고르고 원하는 만큼 만들 수 있습니다.",
@@ -6493,13 +6500,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     names = [];
                     for (const k in req) {
                         const spec = req[k]; const t = spec && spec[0];
-                        const isWidget = Array.isArray(t) || t === 'INT' || t === 'FLOAT' || t === 'STRING' || t === 'BOOLEAN';
+                        // ★ 신형 ComfyUI는 enum 위젯을 배열 대신 'COMBO' 타입 문자열로 반환 (V3 스키마)
+                        //   — 이걸 연결형으로 오인해 upscale_method가 빠지면서 node 82 HTTP 400이 났음
+                        const isWidget = Array.isArray(t) || t === 'COMBO' || t === 'INT' || t === 'FLOAT' || t === 'STRING' || t === 'BOOLEAN';
                         if (!isWidget) continue;              // 연결형(MODEL/IMAGE 등)은 스킵
                         names.push(k);
                         const meta = spec[1];
                         // 모든 필수 위젯에 반드시 값이 들어가게(누락 방지): 설치본 기본값 > enum 첫 항목 > 타입별 안전값
                         if (meta && typeof meta === 'object' && 'default' in meta) defaults[k] = meta.default;
                         else if (Array.isArray(t) && t.length) defaults[k] = t[0];
+                        else if (t === 'COMBO') { const o = meta && (Array.isArray(meta.options) ? meta.options : (Array.isArray(meta.choices) ? meta.choices : null)); defaults[k] = (o && o.length) ? o[0] : ''; }
                         else if (t === 'INT' || t === 'FLOAT') defaults[k] = 0;
                         else if (t === 'STRING') defaults[k] = '';
                         else if (t === 'BOOLEAN') defaults[k] = false;
@@ -6507,6 +6517,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }
             } catch (e) {}
             if (!names || !names.length) names = (_ANIMA_FALLBACK_NAMES[cls] || []).slice();
+            // 안전망: 알려진 클래스인데 설치본 응답에서 예상 위젯이 하나라도 안 잡히면(스키마 변화 등)
+            // 순서 매핑이 어긋난 것이므로 검증된 폴백 이름을 사용 (값이 엉뚱한 칸에 들어가는 것 방지)
+            {
+                const fb = _ANIMA_FALLBACK_NAMES[cls];
+                if (fb && fb.length && fb.some(n => !names.includes(n))) names = fb.slice();
+            }
             _animaObjCache[cls] = { names, defaults };
             return _animaObjCache[cls];
         }
