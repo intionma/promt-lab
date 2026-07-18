@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.50.3 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.51.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1206,7 +1206,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.50.3 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.51.0 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1972,7 +1972,15 @@
         const CHANGELOG = [
             // ── 2026-07-18 ──────────────────────────────────────────────────
             {
-                version: 'v9.50.3', date: '2026-07-18', time: '최신',
+                version: 'v9.51.0', date: '2026-07-18', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] 워크플로우를 더 빠르고 정확한 새 버전(V8FT)으로 교체했습니다 — 모델을 Anima-Comradeship로 바꾸고, 참조 방식을 temporal_mask로, 스텝을 8→3으로 줄여 더 빨라졌습니다. 기존에 기본값으로 쓰던 분은 자동으로 새 설정으로 옮겨지고, 직접 바꿔 쓰던 값은 그대로 유지됩니다. (고급 설정에서 언제든 조정 가능)",
+                    "[Anima 편집] LoRA를 1~2개 유연하게 쓸 수 있게 했습니다 — 이름을 비우면 그 LoRA는 건너뜁니다(새 워크플로우는 편집 LoRA 1개만 사용).",
+                ]
+            },
+            {
+                version: 'v9.50.3', date: '2026-07-18', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] 생성을 완전히 독립된 자체 경로로 바꿨습니다 — 이제 실행이 <b>공용 ComfyUI 설정이나 프롬프트를 전혀 건드리지 않습니다</b>. Anima를 써도 클래식·스튜디오·이미지 변환의 체크포인트·스텝·프롬프트가 바뀌지 않습니다(설정 오염 해결). 실행할 때 체크포인트를 묻던 문제도 함께 사라졌습니다 — Anima는 체크포인트를 쓰지 않으니 이미지만 넣고 실행하면 됩니다.",
@@ -6334,13 +6342,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         //  · 설정(모델·스텝·워크플로우)은 anima_settings_v1로 완전 격리 (서버 주소만 공유)
         // ═══════════════════════════════════════════════════════════════════
         let _anima = {
-            prompt: 'masterpiece, best quality, score_7, (nude, uncensored, :2), ',
-            steps: 8, cfg: 1, denoise: 1, sampler: 'euler_ancestral', scheduler: 'simple', seed: -1,
-            megapixels: 2, upscaleMethod: 'lanczos', refWeight: 1, refMode: 'kv_gating',
-            unetName: 'anima-base-v1.0.safetensors', clipName: 'qwen_3_06b_base.safetensors', clipType: 'stable_diffusion',
+            prompt: 'masterpiece, best quality, score_7, (nude, completely nude, naked, uncensored, :2), ',
+            steps: 3, cfg: 1, denoise: 1, sampler: 'euler_ancestral', scheduler: 'simple', seed: -1,
+            megapixels: 1, upscaleMethod: 'lanczos', refWeight: 1, refMode: 'temporal_mask',
+            unetName: 'Anima-Comradeship-v1T19H.safetensors', clipName: 'qwen_3_06b_base.safetensors', clipType: 'stable_diffusion',
             vaeName: 'qwen_image_vae.safetensors',
             lora1Name: 'AnimaEditV1.safetensors', lora1: 1,
-            lora2Name: 'Cosmos-Predict2.5-2B-base-distilled-LoRA.safetensors', lora2: 1,
+            lora2Name: '', lora2: 1,
+            _wf: null,                  // 워크플로우 버전 스탬프(마이그레이션용)
             customWf: '',               // 사용자가 붙여넣은 API 워크플로우(있으면 그대로 사용)
             imgThumb: null,             // 영속(축소본)
             // 세션 전용(비영속): img{dataURL,name}, uploadedName, results[]
@@ -6351,7 +6360,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try {
                 const p = {};
                 ['prompt', 'steps', 'cfg', 'denoise', 'sampler', 'scheduler', 'seed', 'megapixels', 'upscaleMethod', 'refWeight', 'refMode',
-                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'customWf', 'imgThumb'].forEach(k => p[k] = _anima[k]);
+                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', '_wf', 'customWf', 'imgThumb'].forEach(k => p[k] = _anima[k]);
                 // 이 테마에서 뽑은 결과 이미지 목록도 저장(서버 URL만, Anima 전용 · 다른 테마와 완전 분리). 최근 80장.
                 p.results = (_anima.results || []).slice(0, 80).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed }));
                 localStorage.setItem(ANIMA_KEY, JSON.stringify(p));
@@ -6368,7 +6377,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } catch (e) {}
         }
         _animaRestore();
-        const ANIMA_DEFAULTS = JSON.parse(JSON.stringify((() => { const d = { prompt: 'masterpiece, best quality, score_7, (nude, uncensored, :2), ', steps: 8, cfg: 1, denoise: 1, sampler: 'euler_ancestral', scheduler: 'simple', megapixels: 2, upscaleMethod: 'lanczos', refWeight: 1, refMode: 'kv_gating', unetName: 'anima-base-v1.0.safetensors', clipName: 'qwen_3_06b_base.safetensors', clipType: 'stable_diffusion', vaeName: 'qwen_image_vae.safetensors', lora1Name: 'AnimaEditV1.safetensors', lora1: 1, lora2Name: 'Cosmos-Predict2.5-2B-base-distilled-LoRA.safetensors', lora2: 1 }; return d; })()));
+        const ANIMA_DEFAULTS = JSON.parse(JSON.stringify((() => { const d = { prompt: 'masterpiece, best quality, score_7, (nude, completely nude, naked, uncensored, :2), ', steps: 3, cfg: 1, denoise: 1, sampler: 'euler_ancestral', scheduler: 'simple', megapixels: 1, upscaleMethod: 'lanczos', refWeight: 1, refMode: 'temporal_mask', unetName: 'Anima-Comradeship-v1T19H.safetensors', clipName: 'qwen_3_06b_base.safetensors', clipType: 'stable_diffusion', vaeName: 'qwen_image_vae.safetensors', lora1Name: 'AnimaEditV1.safetensors', lora1: 1, lora2Name: '', lora2: 1 }; return d; })()));
+        // 기존 사용자(V8F 기본값 저장본)를 V8FT로 자동 이전 — 사용자가 직접 바꾼 값은 존중.
+        (function _animaMigrateV8FT() {
+            try {
+                if (_anima._wf === 'v8ft') return;
+                const OLD = { unetName: 'anima-base-v1.0.safetensors', steps: 8, megapixels: 2, refMode: 'kv_gating', lora2Name: 'Cosmos-Predict2.5-2B-base-distilled-LoRA.safetensors', prompt: 'masterpiece, best quality, score_7, (nude, uncensored, :2), ' };
+                if (_anima.unetName === OLD.unetName) _anima.unetName = 'Anima-Comradeship-v1T19H.safetensors';
+                if (_anima.steps === OLD.steps) _anima.steps = 3;
+                if (_anima.megapixels === OLD.megapixels) _anima.megapixels = 1;
+                if (_anima.refMode === OLD.refMode) _anima.refMode = 'temporal_mask';
+                if (_anima.lora2Name === OLD.lora2Name) _anima.lora2Name = '';
+                if (_anima.prompt === OLD.prompt) _anima.prompt = ANIMA_DEFAULTS.prompt;
+                _anima._wf = 'v8ft';
+                _animaSave();
+            } catch (e) {}
+        })();
 
         function _animaHasImage() { return !!(_anima.img && _anima.img.dataURL); }
         function _animaThumb(dataURL, maxSide) {
@@ -6461,10 +6485,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             wf['61'] = { class_type: 'CLIPLoader', inputs: { clip_name: S.clipName, type: S.clipType, device: 'default' } };
             wf['62'] = { class_type: 'VAELoader', inputs: { vae_name: S.vaeName } };
             wf['68'] = { class_type: 'UNETLoader', inputs: { unet_name: S.unetName, weight_dtype: 'default' } };
-            // ── 모델 패치 체인: UNET → LoRA(편집) → LoRA(고속) → Cosmos 참조 패치 ──
-            wf['84'] = { class_type: 'LoraLoaderModelOnly', inputs: { model: ['68', 0], lora_name: S.lora1Name, strength_model: S.lora1 } };
-            wf['87'] = { class_type: 'LoraLoaderModelOnly', inputs: { model: ['84', 0], lora_name: S.lora2Name, strength_model: S.lora2 } };
-            wf['69'] = { class_type: 'ApplyCosmosReferenceModelPatch', inputs: { model: ['87', 0] } };
+            // ── 모델 패치 체인: UNET → (LoRA1) → (LoRA2) → Cosmos 참조 패치 ── (LoRA는 이름 비면 건너뜀)
+            let _mref = ['68', 0];
+            if (S.lora1Name && S.lora1Name.trim()) { wf['84'] = { class_type: 'LoraLoaderModelOnly', inputs: { model: _mref, lora_name: S.lora1Name.trim(), strength_model: S.lora1 } }; _mref = ['84', 0]; }
+            if (S.lora2Name && S.lora2Name.trim()) { wf['87'] = { class_type: 'LoraLoaderModelOnly', inputs: { model: _mref, lora_name: S.lora2Name.trim(), strength_model: S.lora2 } }; _mref = ['87', 0]; }
+            wf['69'] = { class_type: 'ApplyCosmosReferenceModelPatch', inputs: { model: _mref } };
             // ── 프롬프트 ──
             wf['67'] = { class_type: 'CLIPTextEncode', inputs: { clip: ['61', 0], text: pos } };
             wf['88'] = { class_type: 'ConditioningZeroOut', inputs: { conditioning: ['67', 0] } };
