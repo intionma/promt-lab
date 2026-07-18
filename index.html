@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.50.2 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.50.3 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1206,7 +1206,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.50.2 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.50.3 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1972,7 +1972,15 @@
         const CHANGELOG = [
             // ── 2026-07-18 ──────────────────────────────────────────────────
             {
-                version: 'v9.50.2', date: '2026-07-18', time: '최신',
+                version: 'v9.50.3', date: '2026-07-18', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] 생성을 완전히 독립된 자체 경로로 바꿨습니다 — 이제 실행이 <b>공용 ComfyUI 설정이나 프롬프트를 전혀 건드리지 않습니다</b>. Anima를 써도 클래식·스튜디오·이미지 변환의 체크포인트·스텝·프롬프트가 바뀌지 않습니다(설정 오염 해결). 실행할 때 체크포인트를 묻던 문제도 함께 사라졌습니다 — Anima는 체크포인트를 쓰지 않으니 이미지만 넣고 실행하면 됩니다.",
+                    "[Anima 편집] 결과 이미지를 자체적으로 회수해 결과·비교·갤러리에 바로 표시합니다(다른 테마 갤러리와 완전 분리 유지).",
+                ]
+            },
+            {
+                version: 'v9.50.2', date: '2026-07-18', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] 테마 안에 <b>ComfyUI 연결(주소·연결 확인)</b>을 바로 넣었습니다 — 이제 다른 화면(체크포인트를 묻는 설정)으로 갈 필요 없이 여기서 서버 주소만 넣고 연결하면 됩니다. 이 테마는 <b>체크포인트가 필요 없다</b>는 안내도 함께 표시됩니다(모델은 고급 설정의 UNET·CLIP·VAE로 지정).",
@@ -6480,6 +6488,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _animaResSel = 0; // 새 결과를 현재 비교 대상으로
             _animaBusy = false;
             try { _animaSave(); } catch (e) {}
+            try { _animaRenderRun(); } catch (e) {}
             try { _animaRenderResult(); } catch (e) {}
         };
 
@@ -6509,22 +6518,59 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } catch (e) { showToast('클립보드를 읽지 못했어요. 붙여넣기(Ctrl+V)를 써보세요.', 'warning', 3000); }
         }
 
+        // ★ 완전 독립 생성 — 공용 comfyGenerate/설정/#final-positive를 일절 건드리지 않는다.
+        //    (클래식·스튜디오·이미지변환 설정 오염 방지 + 체크포인트 요구 없음)
         async function _animaGenerate() {
             if (_animaBusy) return;
             if (!_animaHasImage()) { showToast('먼저 이미지를 넣어주세요.', 'warning', 2500); return; }
             const prompt = (_anima.prompt || '').trim();
             if (!prompt) { showToast('프롬프트를 입력하세요.', 'warning', 2500); return; }
-            const fp = document.getElementById('final-positive'); if (fp) fp.value = prompt;
-            try { if (typeof comfySetTarget === 'function') comfySetTarget('pos'); } catch (e) {}
-            window._animaActiveGen = true;
-            _animaSetBusy(true);
-            try { await comfyGenerate(null); }
-            catch (e) { showToast('생성 실패: ' + (e && e.message || e), 'error', 5000); }
-            finally {
-                window._animaActiveGen = false;
-                // 큐에 안 올라갔으면(검증 실패 등) busy 해제 — 올라갔으면 결과 훅이 해제
-                if (!(_comfyQueueCount > 0 || _comfyRunningPid)) _animaSetBusy(false);
+            if (typeof _comfyMixedContentBlocked === 'function' && _comfyMixedContentBlocked()) {
+                showToast('이 앱이 https라서 http(127.0.0.1) ComfyUI로 전송이 브라우저에 막혀요. 앱을 로컬(http)에서 열거나 ComfyUI를 https로 열어주세요.', 'error', 8000); return;
             }
+            _animaSetBusy(true);
+            const base = _comfyBase();
+            try {
+                const name = await _animaEnsureUploaded();
+                let wf;
+                if (_anima.customWf && _anima.customWf.trim()) {
+                    try { const c = JSON.parse(_anima.customWf); if (c && c.nodes && c.links) { showToast('붙여넣은 JSON이 에디터 형식이에요. ComfyUI에서 Save (API Format)으로 받아 붙여넣으세요.', 'error', 7000); _animaSetBusy(false); return; } wf = _animaInjectInto(c, prompt, name, _animaSeedVal()); }
+                    catch (e) { wf = await _animaBuildWorkflow(prompt, name); }
+                } else { wf = await _animaBuildWorkflow(prompt, name); }
+                const cid = (typeof _comfyClientId !== 'undefined' && _comfyClientId) ? _comfyClientId : (typeof _comfyUUID === 'function' ? _comfyUUID() : String(Math.random()));
+                const res = await fetch(base + '/prompt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: wf, client_id: cid }) });
+                if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error('HTTP ' + res.status + ' ' + t.slice(0, 220)); }
+                const data = await res.json();
+                if (!data || !data.prompt_id) throw new Error('prompt_id 없음');
+                showToast('생성 요청됨 — 잠시만요…', 'info', 2000);
+                _animaPoll(data.prompt_id, base, 0);
+            } catch (e) {
+                _animaSetBusy(false);
+                showToast('생성 실패: ' + (e && e.message || e) + ' (주소·모델 파일명·노드 설치 확인)', 'error', 8000);
+            }
+        }
+        async function _animaPoll(pid, base, tries) {
+            if (tries > 400) { _animaSetBusy(false); showToast('결과 대기 시간 초과 — ComfyUI 콘솔에서 진행 상태를 확인하세요.', 'warning', 5000); return; }
+            try {
+                const res = await fetch(base + '/history/' + pid, { signal: AbortSignal.timeout(15000) });
+                if (res.ok) {
+                    const h = await res.json();
+                    if (h[pid] && h[pid].outputs && Object.keys(h[pid].outputs).length) {
+                        let got = false;
+                        const outs = h[pid].outputs;
+                        for (const nid in outs) (outs[nid].images || []).forEach(im => {
+                            if ((im.type || 'output') === 'output') {
+                                const url = base + '/view?filename=' + encodeURIComponent(im.filename) + '&subfolder=' + encodeURIComponent(im.subfolder || '') + '&type=' + encodeURIComponent(im.type || 'output');
+                                window._animaOnResult(url, null); got = true;
+                            }
+                        });
+                        if (got) return; // _animaOnResult가 busy 해제
+                        // outputs는 있는데 이미지가 없으면(오류 등) 종료
+                        _animaSetBusy(false); showToast('결과 이미지가 없어요 — 워크플로우/모델을 확인하세요.', 'warning', 5000); return;
+                    }
+                }
+            } catch (e) {}
+            setTimeout(() => _animaPoll(pid, base, tries + 1), 1500);
         }
 
         // ── UI ──
