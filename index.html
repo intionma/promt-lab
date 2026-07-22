@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.2 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1240,7 +1240,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.1 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.2 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2006,7 +2006,14 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.1', date: '2026-07-22', time: '최신',
+                version: 'v9.56.2', date: '2026-07-22', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] 하단 바 왼쪽의 이미지 넣기 버튼이 <b>파일 선택도</b> 되게 했습니다 — 위쪽에서 마지막에 '클립보드'를 썼으면 하단 버튼도 📋 클립보드로, '파일·갤러리'를 썼으면 🖼 파일 선택으로 자동으로 바뀝니다.",
+                ]
+            },
+            {
+                version: 'v9.56.1', date: '2026-07-22', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] 하단 바의 칩을 <b>2줄</b>로 배치했습니다 — 좌우로 밀어야 하는 거리가 절반으로 줄고, 드래그할 수 있는 영역이 넓어져 후타나리 같은 뒤쪽 옵션에 훨씬 쉽게 닿습니다.",
@@ -6633,6 +6640,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _wf: null,                  // 워크플로우 버전 스탬프(마이그레이션용)
             customWf: '',               // 사용자가 붙여넣은 API 워크플로우(있으면 그대로 사용)
             snippets: [],               // 프롬프트 옵션 토글 [{id,name,text,on}] — 켜면 기본 프롬프트 뒤에 붙음
+            lastInputMode: 'clip',      // 마지막에 쓴 이미지 넣기 방식('clip'|'file') — 하단 바 좌측 버튼이 이걸 따라감
             imgThumb: null,             // 영속(축소본)
             // 세션 전용(비영속): img{dataURL,name}, uploadedName, results[]
             img: null, uploadedName: null, results: []
@@ -6665,7 +6673,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try {
                 const p = {};
                 ['prompt', 'steps', 'cfg', 'denoise', 'sampler', 'scheduler', 'seed', 'megapixels', 'upscaleMethod', 'refWeight', 'refMode',
-                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', '_wf', 'customWf', 'imgThumb'].forEach(k => p[k] = _anima[k]);
+                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', '_wf', 'customWf', 'imgThumb'].forEach(k => p[k] = _anima[k]);
                 // 이 테마에서 뽑은 결과 이미지 목록도 저장(서버 URL만, Anima 전용 · 다른 테마와 완전 분리). 최근 80장.
                 p.results = (_anima.results || []).slice(0, 80).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed }));
                 p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null }));
@@ -7034,8 +7042,23 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     <div class="t2">모바일은 갤러리/카메라 · PC는 Ctrl+V·드래그도 가능</div>
                     <div class="anima-input-btns"><button class="anima-btn" data-a="file">🖼 갤러리·파일</button><button class="anima-btn ghost" data-a="clip">📋 클립보드</button></div></div>`;
             }
-            box.querySelectorAll('[data-a=clip]').forEach(b => b.onclick = (e) => { e.stopPropagation(); _animaClipboard(); });
-            box.querySelectorAll('[data-a=file]').forEach(b => b.onclick = (e) => { e.stopPropagation(); _animaEl('#anima-file').click(); });
+            box.querySelectorAll('[data-a=clip]').forEach(b => b.onclick = (e) => { e.stopPropagation(); _animaSetInputMode('clip'); _animaClipboard(); });
+            box.querySelectorAll('[data-a=file]').forEach(b => b.onclick = (e) => { e.stopPropagation(); _animaSetInputMode('file'); _animaEl('#anima-file').click(); });
+        }
+        // 하단 바 좌측 버튼이 따라갈 '마지막 입력 방식' 기억(클립보드/파일). 바뀌면 하단 버튼 즉시 갱신.
+        function _animaSetInputMode(mode) {
+            if (mode !== 'clip' && mode !== 'file') return;
+            if (_anima.lastInputMode === mode) return;
+            _anima.lastInputMode = mode; _animaSave();
+            _animaSyncMactInput();
+        }
+        // 하단 바 좌측 버튼 아이콘/툴팁/동작을 lastInputMode에 맞춘다.
+        function _animaSyncMactInput() {
+            const mc = _animaEl('#anima-mact-clip'); if (!mc) return;
+            const file = _anima.lastInputMode === 'file';
+            mc.textContent = file ? '🖼' : '📋';
+            mc.title = file ? '파일·갤러리에서 이미지 선택' : '클립보드 이미지 붙여넣기';
+            mc.onclick = file ? () => { const fi = _animaEl('#anima-file'); if (fi) fi.click(); } : _animaClipboard;
         }
         let _animaSnipEditOpen = false;
         // 칩 동작 (본문·하단 바 공용)
@@ -7086,7 +7109,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     </div>`;
                 _animaBindChips(mact);
                 _animaBindDragScroll(mact.querySelector('.anima-mact-chips')); // 마우스 드래그로도 좌우 스크롤(터치는 네이티브 pan-x)
-                const mc = mact.querySelector('#anima-mact-clip'); if (mc) mc.onclick = _animaClipboard; // 붙여넣고 바로 실행하기 좋게
+                _animaSyncMactInput(); // 좌측 버튼을 마지막 입력 방식(클립보드/파일)에 맞춤 — 넣고 바로 실행하기 좋게
                 const mr = mact.querySelector('#anima-mact-run'); if (mr) mr.onclick = _animaGenerate;
             }
             _animaRenderRun();
