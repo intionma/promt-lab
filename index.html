@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.55.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.55.2 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1231,7 +1231,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.55.1 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.55.2 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1997,7 +1997,14 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.55.1', date: '2026-07-22', time: '최신',
+                version: 'v9.55.2', date: '2026-07-22', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[성능] 캡슐(칩) 태그를 지우거나 프롬프트를 편집할 때 걸리던 심한 렉을 없앴습니다 — 특히 사전(태그)이 많을수록 심했는데, 내부적으로 태그마다 화면 전체를 훑던 방식을 한 번만 훑도록 바꿔 큰 사전에서도 즉각 반응합니다.",
+                ]
+            },
+            {
+                version: 'v9.55.1', date: '2026-07-22', time: '',
                 tag: 'fix',
                 items: [
                     "[중요·복구] 이미지 변환·인페인팅·Anima 편집을 쓰다가 클래식/스튜디오로 돌아왔을 때, ComfyUI 전송창의 '내 워크플로우(커스텀 설정)'가 통째로 날아가 기본(간단 생성)으로 초기화되던 버그를 고쳤습니다. 특히 Anima 편집 상태로 새로고침한 뒤 생성하면 메인 설정이 지워지던 것이 원인이었습니다. (이제 다른 테마가 메인 워크플로우를 건드리지 않습니다.)",
@@ -15593,22 +15600,28 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         function _refreshAllTagBtnStates() {
-            Object.keys(activeTagsMap).forEach(tagText => {
+            // ★ 성능: 태그마다 querySelector(전체 DOM 스캔) 대신 버튼을 한 번만 훑어 갱신 (O(태그수×DOM)→O(DOM)).
+            //   레이어별 텍스트/활성여부는 캐시해 재계산 방지.
+            const _taCache = {};        // layer -> textarea.value
+            const _activeCache = {};     // tagText -> isActive
+            document.querySelectorAll('.tag-btn').forEach(btn => {
+                const tagText = btn.dataset.tag;
                 const tagData = activeTagsMap[tagText];
+                if (!tagData) return;
                 const layerIndex = tagData.layer;
-                const textarea = document.getElementById(`layer-${layerIndex}`);
-                if (!textarea) return;
-                const isActive = isTagActive(tagText, textarea.value);
-                document.querySelectorAll(`.tag-btn[data-tag="${tagText.replace(/"/g, '\\"')}"]`).forEach(btn => {
-                    btn.classList.toggle('active', isActive);
-                    if (isActive) {
-                        btn.style.borderColor = tagData.color;
-                        btn.style.boxShadow = `0 0 10px ${tagData.color}80`;
-                        btn.style.color = tagData.color;
-                    } else {
-                        btn.style.borderColor = ''; btn.style.boxShadow = ''; btn.style.color = '';
-                    }
-                });
+                let tv = _taCache[layerIndex];
+                if (tv === undefined) { const ta = document.getElementById(`layer-${layerIndex}`); tv = _taCache[layerIndex] = ta ? ta.value : null; }
+                if (tv === null) return;
+                let isActive = _activeCache[tagText];
+                if (isActive === undefined) isActive = _activeCache[tagText] = isTagActive(tagText, tv);
+                btn.classList.toggle('active', isActive);
+                if (isActive) {
+                    btn.style.borderColor = tagData.color;
+                    btn.style.boxShadow = `0 0 10px ${tagData.color}80`;
+                    btn.style.color = tagData.color;
+                } else {
+                    btn.style.borderColor = ''; btn.style.boxShadow = ''; btn.style.color = '';
+                }
             });
             updateFolderBadges();
             updateComboCardStates();
@@ -17069,20 +17082,23 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             saveTabsAndStates();
 
             const taVal = textarea.value;
-            Object.keys(activeTagsMap).forEach(tagText => {
-                if(activeTagsMap[tagText].layer === layerIndex) {
-                    const isActive = isTagActive(tagText, taVal);
-                    const tagData = activeTagsMap[tagText];
-                    document.querySelectorAll(`.tag-btn[data-tag="${tagText.replace(/"/g, '\\"')}"]`).forEach(btn => {
-                        btn.classList.toggle('active', isActive);
-                        if(isActive) {
-                            btn.style.borderColor = tagData.color;
-                            btn.style.boxShadow = `0 0 10px ${tagData.color}80`;
-                            btn.style.color = tagData.color;
-                        } else {
-                            btn.style.borderColor = ''; btn.style.boxShadow = ''; btn.style.color = '';
-                        }
-                    });
+            // ★ 성능: 예전엔 activeTagsMap의 태그마다 document.querySelectorAll(전체 DOM 스캔)을 돌려
+            //   O(태그수 × DOM)이라 큰 사전에서 캡슐 태그 삭제/입력이 극심하게 렉 걸렸음.
+            //   → 태그 버튼을 '한 번만' 훑어(O(DOM)) 각 버튼의 활성 상태를 갱신. 동작은 동일.
+            const _isActiveCache = {};
+            document.querySelectorAll('.tag-btn').forEach(btn => {
+                const tagText = btn.dataset.tag;
+                const tagData = activeTagsMap[tagText];
+                if (!tagData || tagData.layer !== layerIndex) return;
+                let isActive = _isActiveCache[tagText];
+                if (isActive === undefined) isActive = _isActiveCache[tagText] = isTagActive(tagText, taVal);
+                btn.classList.toggle('active', isActive);
+                if (isActive) {
+                    btn.style.borderColor = tagData.color;
+                    btn.style.boxShadow = `0 0 10px ${tagData.color}80`;
+                    btn.style.color = tagData.color;
+                } else {
+                    btn.style.borderColor = ''; btn.style.boxShadow = ''; btn.style.color = '';
                 }
             });
             checkConflicts(layerIndex);
@@ -17282,9 +17298,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function updateFolderBadges() {
             let folderCounts = {}; let layerCounts = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0};
             document.querySelectorAll('.folder-badge').forEach(b => { b.innerText = '0'; b.classList.remove('active'); });
+            // ★ 성능: 태그마다 querySelector(전체 DOM 스캔) 대신, 활성 버튼을 한 번만 모아 Set으로 조회 (O(태그수×DOM)→O(태그수+DOM))
+            const _activeTags = new Set();
+            document.querySelectorAll('.tag-btn.active').forEach(b => { if (b.dataset.tag) _activeTags.add(b.dataset.tag); });
             Object.keys(activeTagsMap).forEach(tagText => {
-                const isBtnActive = document.querySelector(`.tag-btn[data-tag="${tagText.replace(/"/g, '\\"')}"]`)?.classList.contains('active');
-                if(isBtnActive) {
+                if (_activeTags.has(tagText)) {
                     const fId = activeTagsMap[tagText].folderId; folderCounts[fId] = (folderCounts[fId] || 0) + 1;
                     layerCounts[activeTagsMap[tagText].layer]++;
                 }
