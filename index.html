@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.53.4 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.54.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1075,6 +1075,16 @@
         #i2i-source .i2i-mode { flex:1; border:1px solid var(--border-dim); background:var(--bg-surface); color:var(--text-dim); border-radius:9px; padding:9px 8px; font-size:13px; font-weight:800; cursor:pointer; font-family:var(--font-ui); transition:background .12s, color .12s, border-color .12s; }
         #i2i-source .i2i-mode.on { background:var(--accent-blue); color:#fff; border-color:transparent; }
         #i2i-source .i2i-mask { border-radius:10px; }
+        /* 간편/전문 모드 토글 (변환 테마 전용) */
+        #i2i-source .i2i-modesel { display:flex; gap:6px; background:var(--bg-base); border:1px solid var(--border-dim); border-radius:11px; padding:4px; }
+        #i2i-source .i2i-modesel button { flex:1; border:none; background:transparent; color:var(--text-dim); border-radius:8px; padding:8px 6px; font-size:12.5px; font-weight:800; cursor:pointer; font-family:var(--font-ui); display:flex; align-items:center; justify-content:center; gap:6px; transition:background .12s, color .12s; }
+        #i2i-source .i2i-modesel button.on { background:var(--accent-blue); color:#fff; box-shadow:0 2px 8px color-mix(in srgb,var(--accent-blue) 40%, transparent); }
+        /* 간편 모드: 7단 에디터 패널 숨기고, 이미지 패널을 넓게. 전문 전용 섹션(고급 파이프라인·WD14·분석 등)도 숨김 */
+        body[data-layout="img2img"].pl-i2i-simple #panel-mid { display:none !important; }
+        body[data-layout="img2img"].pl-i2i-simple #i2i-source { flex:1.5 1 0 !important; }
+        body[data-layout="img2img"].pl-i2i-simple #i2i-source .i2i-pro-only { display:none !important; }
+        body[data-layout="img2img"]:not(.pl-i2i-simple) #i2i-source .i2i-simple-only { display:none !important; }
+        @media (max-width:1024px){ body[data-layout="img2img"].pl-i2i-simple #panel-mid { display:none !important; } }
 
         /* 도움말 "?" 버튼 + 팝오버 (설정 옆 클릭형 설명) */
         .help-dot { flex:0 0 auto; width:17px; height:17px; border-radius:50%; border:1px solid var(--text-dim); background:transparent; color:var(--text-dim); font-size:11px; font-weight:800; line-height:1; cursor:pointer; padding:0; display:inline-flex; align-items:center; justify-content:center; font-family:var(--font-ui); vertical-align:middle; }
@@ -1206,7 +1216,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.53.4 &nbsp;·&nbsp; 2026-07-18 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.54.0 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1970,9 +1980,20 @@
         // 토스트 알림
         // ── 업데이트 내역 ────────────────────────────────────────────────────
         const CHANGELOG = [
+            // ── 2026-07-22 ──────────────────────────────────────────────────
+            {
+                version: 'v9.54.0', date: '2026-07-22', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] 생성 이미지 목록(갤러리)에서 이미지를 누르면 이제 큰 화면으로 크게 볼 수 있고(좌우로 넘기기 가능), 동시에 원본과 비교할 대상으로도 선택됩니다.",
+                    "[Anima 편집] 노출 프리셋에 '상의만 벗기기'(가슴 노출)와 '상의+하의 벗기기'를 추가했습니다 — 기존 '전신 노출 / 하의만 벗기기'와 함께 상황에 맞게 고르세요.",
+                    "[Anima 편집] 후타나리에 '노멀(평범한 크기)' 옵션을 추가했습니다 — 기존 거근/소추와 함께 세 종류 중에서 고를 수 있어요.",
+                    "[이미지 변환] '간편 / 전문' 모드 전환을 추가했습니다 — 기본은 간편 모드로, 복잡한 7단 태그 에디터 대신 이미지 넣고 프롬프트 한 줄 적고 실행하면 끝. 포즈 고정·얼굴 보정·업스케일 같은 세부 기능이 필요하면 '전문' 모드를 누르면 지금까지의 모든 기능이 그대로 나옵니다.",
+                ]
+            },
             // ── 2026-07-18 ──────────────────────────────────────────────────
             {
-                version: 'v9.53.4', date: '2026-07-18', time: '최신',
+                version: 'v9.53.4', date: '2026-07-18', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 모바일 하단 바의 실행 버튼 왼쪽에 클립보드(📋) 버튼을 추가했습니다 — 복사해 둔 이미지를 바로 붙여넣고 즉시 실행하기 좋게.",
@@ -5347,6 +5368,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             upscale: false,                       // 업스케일(느림 — 기본 꺼짐)
             upscaleModel: '4x-UltraSharp.pth',    // 업스케일러
             upscaleBy: 2,                         // 업스케일 배율
+            simpleMode: true,                     // (변환) 간편 모드 — 7단 에디터 대신 간단 프롬프트 + 핵심만. 끄면 전문(현재 풀 UI)
             // ── 부분 편집(마스크 인페인팅) ──
             editMode: 'transform',                // 'transform'(실사 변환) | 'inpaint'(부분 편집)
             inpaintDenoise: 0.9,                  // 인페인트 강도(칠한 영역을 얼마나 새로 그릴지)
@@ -5366,7 +5388,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     loras: _img2img.loras, controlnet: _img2img.controlnet, cnModel: _img2img.cnModel, cnStrength: _img2img.cnStrength,
                     ipadapter: _img2img.ipadapter, ipaWeight: _img2img.ipaWeight,
                     faceDetailer: _img2img.faceDetailer, faceRealism: _img2img.faceRealism, dropExpression: _img2img.dropExpression, dropCensor: _img2img.dropCensor, colorize: _img2img.colorize, fdModel: _img2img.fdModel, upscale: _img2img.upscale, upscaleModel: _img2img.upscaleModel, upscaleBy: _img2img.upscaleBy,
-                    editMode: _img2img.editMode, inpaintDenoise: _img2img.inpaintDenoise, maskGrow: _img2img.maskGrow, fooocus: _img2img.fooocus, fooocusHead: _img2img.fooocusHead, fooocusPatch: _img2img.fooocusPatch
+                    editMode: _img2img.editMode, inpaintDenoise: _img2img.inpaintDenoise, maskGrow: _img2img.maskGrow, fooocus: _img2img.fooocus, fooocusHead: _img2img.fooocusHead, fooocusPatch: _img2img.fooocusPatch,
+                    simpleMode: _img2img.simpleMode
                 }));
             } catch (e) {}
         }
@@ -5403,6 +5426,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (typeof s.fooocus === 'boolean') _img2img.fooocus = s.fooocus;
                 if (typeof s.fooocusHead === 'string' && s.fooocusHead) _img2img.fooocusHead = s.fooocusHead;
                 if (typeof s.fooocusPatch === 'string' && s.fooocusPatch) _img2img.fooocusPatch = s.fooocusPatch;
+                if (typeof s.simpleMode === 'boolean') _img2img.simpleMode = s.simpleMode;
             } catch (e) {}
         }
 
@@ -6425,8 +6449,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         //  group        = 같은 그룹의 추가 옵션끼리는 상호배타 (거근/소추처럼 하나 켜면 다른 쪽 자동 꺼짐)
         const ANIMA_DEFAULT_SNIPPETS = [
             { id: 'base_full', name: '전신 노출', kind: 'base', text: 'masterpiece, best quality, score_7, (nude, completely nude, naked, uncensored, :2), ' },
+            { id: 'base_top', name: '상의만 벗기기', kind: 'base', text: 'masterpiece, best quality, score_7, (topless, breasts out, nipples, uncensored, :2), ' },
             { id: 'base_bottom', name: '하의만 벗기기', kind: 'base', text: 'masterpiece, best quality, score_7, (bottomless, no panties, pussy, uncensored, :2), ' },
+            { id: 'base_topbottom', name: '상의+하의 벗기기', kind: 'base', text: 'masterpiece, best quality, score_7, (topless, breasts out, nipples, bottomless, no panties, pussy, uncensored, :2), ' },
             { id: 'futa_large', name: '후타나리(거근)', kind: 'append', on: false, group: 'futa', text: 'futanari, penis, erection, (huge penis, large penis, veiny penis, glans, large testicles:1.3), ejaculation, excessive cum, projectile cum, cum string' },
+            { id: 'futa_normal', name: '후타나리(노멀)', kind: 'append', on: false, group: 'futa', text: 'futanari, penis, erection, glans, testicles, ejaculation, cum' },
             { id: 'futa_small', name: '후타나리(소추)', kind: 'append', on: false, group: 'futa', text: 'futanari, penis, erection, (small penis, small testicles:1.3), glans, ejaculation, cum' }
         ];
         const ANIMA_KEY = 'anima_settings_v1';
@@ -6870,7 +6897,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             box.querySelectorAll('.anima-frame').forEach(fr => { const lb = parseInt(fr.dataset.lb); if ((lb === 0 && src) || (lb === 1 && gen)) { fr.style.cursor = 'zoom-in'; fr.onclick = () => openLB(lb); } });
             box.querySelectorAll('.anima-gitem').forEach(gi => gi.onclick = (e) => {
                 if (e.target.classList.contains('anima-gx')) return;
-                _animaResSel = parseInt(gi.dataset.i); _animaRenderResult();
+                const i = parseInt(gi.dataset.i);
+                _animaResSel = i; _animaRenderResult();   // 비교 대상으로 선택
+                // 큰 화면으로도 열기 — 이 테마 갤러리 전체를 좌우로 넘겨볼 수 있게
+                try { if (window.openLightbox) { const urls = _anima.results.map(r => r.url); window.openLightbox(urls[i], urls, i); } } catch (err) {}
             });
             box.querySelectorAll('.anima-gx').forEach(x => x.onclick = (e) => {
                 e.stopPropagation(); const i = parseInt(x.dataset.i);
@@ -20922,6 +20952,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 // 자동 태깅(켜져 있으면) → 끝나면, '자동 생성'이 켜져 있으면 바로 ComfyUI 전송
                 let analyzed = false;
                 if (_img2img.autoTag) { try { analyzed = await _i2iAnalyzeAndFill(); } catch (e) {} }
+                if (_img2img.simpleMode) { try { _refreshSimpleT(); } catch (e) {} }  // 간편 프롬프트 박스에 분석 결과 반영
                 if (_img2img.autoGenerate) {
                     try { updateMasterOutput(); } catch (e) {}
                     // 프롬프트 반영/렌더 후 전송. comfyQuickSend('pos')로 보내야 결과창 인라인 미리보기 영역에 뜸
@@ -21012,7 +21043,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const analyzeBtn = el('button', { class: 'action-btn', style: 'flex:1; background:#f59e0b; color:#fff; border:none; font-weight:800; padding:9px; min-width:160px;', html: '<i class="fa-solid fa-magnifying-glass-chart"></i> 이미지 분석 (자동 태그)', onclick: () => runAnalyze() });
             async function runAnalyze() {
                 const old = analyzeBtn.innerHTML; analyzeBtn.disabled = true; analyzeBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 분석 중…';
-                try { await _i2iAnalyzeAndFill(); } finally { analyzeBtn.disabled = false; analyzeBtn.innerHTML = old; }
+                try { await _i2iAnalyzeAndFill(); } finally { analyzeBtn.disabled = false; analyzeBtn.innerHTML = old; try { if (_img2img.simpleMode) _refreshSimpleT(); } catch (e) {} }
             }
             const autoChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.autoTag = e.target.checked; _img2imgSave(); } }); autoChk.checked = _img2img.autoTag;
             const autoGenChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.autoGenerate = e.target.checked; _img2imgSave(); } }); autoGenChk.checked = _img2img.autoGenerate;
@@ -21274,9 +21305,27 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 : '🎨 <b>실사 변환</b>: 2D 이미지를 실사로 <b>전체 변환</b>합니다. <b>왼쪽 에디터</b>에서 프롬프트를 손보고 <b>오른쪽 ComfyUI 전송</b>을 누르세요.' });
             const resetBtn = el('button', { class: 'action-btn', style: 'width:100%; background:var(--accent-green); color:#fff; border:none; font-weight:800; padding:9px;', title: (IS_INPAINT ? '인페인팅' : '이미지 변환') + ' 전용 추천값(Steps·CFG·샘플러·강도·파이프라인)으로 되돌립니다. 이 테마 설정에만 적용되고 클래식/스튜디오 및 다른 이미지 테마는 안 건드립니다.', html: '<i class="fa-solid fa-rotate-left"></i> ' + (IS_INPAINT ? '인페인팅' : '실사 변환') + ' 추천 설정으로', onclick: () => { _i2iApplyRecommendedSettings(); _syncPipelineUI(); } });
 
+            // ── 간편/전문 모드 (변환 전용) — 간편은 7단 에디터를 숨기고 간단 프롬프트+핵심만, 전문은 현재 풀 UI ──
+            const modeSimpleBtn = el('button', { html: '<i class="fa-solid fa-wand-magic-sparkles"></i> 간편', onclick: () => setSimpleMode(true) });
+            const modeProBtn = el('button', { html: '<i class="fa-solid fa-sliders"></i> 전문', onclick: () => setSimpleMode(false) });
+            const modeSelRow = el('div', { class: 'i2i-modesel' }, modeSimpleBtn, modeProBtn);
+            // 간편 프롬프트 박스 — layer-1과 양방향 미러(비파괴적: 분석이 채운 다른 레이어는 그대로 뒤에서 전송됨)
+            const simpleTPrompt = el('textarea', { class: 'i2i-simple-prompt', placeholder: '이 이미지를 어떻게 바꿀지 적으세요 (비워도 됩니다).  예) 1girl, cute face, casual dress' });
+            function _simpleTToEditor() { const ta = document.getElementById('layer-1'); if (ta) { ta.value = simpleTPrompt.value; try { syncFromManualInput(1); } catch (e) {} } }
+            simpleTPrompt.addEventListener('input', _simpleTToEditor);
+            function _refreshSimpleT() { const ta = document.getElementById('layer-1'); if (ta) simpleTPrompt.value = ta.value; }
+            const simpleRunBtn = el('button', { class: 'action-btn', style: 'width:100%; background:var(--accent-blue); color:#fff; border:none; font-weight:800; padding:11px; font-size:14px; border-radius:10px;', html: '<i class="fa-solid fa-bolt"></i> 실행 (생성)', onclick: () => { try { updateMasterOutput(); } catch (e) {} try { if (typeof comfyQuickSend === 'function') comfyQuickSend('pos'); } catch (e) {} } });
+            const simpleTWrap = el('div', { class: 'i2i-simple-only', style: 'display:flex; flex-direction:column; gap:10px; background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:12px; padding:13px;' },
+                el('div', { style: 'display:flex; align-items:center; gap:6px;' }, el('span', { style: 'font-size:13px; font-weight:800; color:var(--text-main);' }, '✍ 프롬프트 (선택)'), mkHelp('간편 프롬프트', '이미지를 어떻게 바꿀지 짧게 적는 칸입니다(비워도 됩니다).<br><br>· 이미지를 넣으면 <b>자동 분석</b>으로 프롬프트가 채워지고, <b>실사·품질 태그</b>(photo, score_9 등)는 전송할 때 자동으로 더해집니다.<br>· 여기서 적은 내용은 그대로 반영되고, 분석이 채운 세부 태그도 <b>함께 전송</b>됩니다.<br>· 레이어별 세밀 편집·고급 파이프라인은 <b>전문</b> 모드에서.')),
+                simpleTPrompt,
+                simpleRunBtn,
+                el('div', { style: 'font-size:11px; color:var(--text-dim); line-height:1.5;', html: '이미지를 넣으면 자동으로 분석해 프롬프트를 채우고, 실사·품질 태그는 전송 시 자동 추가돼요. 포즈 고정·얼굴 보정 등 세부 조정은 <b>전문</b> 모드에서.' }));
+            // 전문 전용 섹션은 간편 모드에서 CSS로 숨김
+            try { analyzeRow.classList.add('i2i-pro-only'); pipeWrap.classList.add('i2i-pro-only'); advWrap.classList.add('i2i-pro-only'); } catch (e) {}
+
             const contentKids = IS_INPAINT
                 ? [introDiv, thumbWrap, drop, urlRow, fileInput, inpaintTools, simpleWrap, resetBtn, pipeWrap]
-                : [introDiv, thumbWrap, drop, urlRow, fileInput, analyzeRow, batchBadge, transformDnBlock, inpaintTools, resetBtn, pipeWrap, advWrap];
+                : [introDiv, modeSelRow, thumbWrap, drop, urlRow, fileInput, simpleTWrap, analyzeRow, batchBadge, transformDnBlock, inpaintTools, resetBtn, pipeWrap, advWrap];
 
             const panel = el('section', { class: 'panel', id: 'i2i-source' },
                 el('div', { class: 'panel-header', style: 'display:flex; align-items:center; gap:8px;' },
@@ -21335,22 +21384,40 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // ── 모바일: 클래식/스튜디오처럼 앱 고유 가로 스와이프 (에디터 · 이미지 · 결과 3탭) ──
             const IMG2IMG_MB = 1024;
             let _i2iMobileOn = false;
-            // 인페인팅은 에디터 탭 없이 2탭(이미지+프롬프트 · 결과). 변환은 3탭(에디터 · 이미지 · 결과).
-            const IMG2IMG_PANELS = IS_INPAINT
-                ? [
+            // 인페인팅은 에디터 탭 없이 2탭(이미지+프롬프트 · 결과). 변환 전문은 3탭(에디터·이미지·결과), 간편은 2탭(이미지·결과).
+            function _i2iPanels() {
+                if (IS_INPAINT) return [
                     { id: 'i2i-source',  label: '이미지·편집', icon: 'fa-paintbrush' },
                     { id: 'panel-right', label: '결과',       icon: 'fa-terminal' },
-                ]
-                : [
+                ];
+                if (_img2img.simpleMode) return [
+                    { id: 'i2i-source',  label: '이미지', icon: 'fa-image' },
+                    { id: 'panel-right', label: '결과',   icon: 'fa-terminal' },
+                ];
+                return [
                     { id: 'panel-mid',   label: '에디터', icon: 'fa-layer-group' },
                     { id: 'i2i-source',  label: '이미지', icon: 'fa-image' },
                     { id: 'panel-right', label: '결과',   icon: 'fa-terminal' },
                 ];
+            }
             function _i2iSetupMobile() {
                 if (_i2iMobileOn) return;
                 if (!window.__setMobilePanels || !window.__getMobileTrack || !window.__getMobileTrack()) return;
-                window.__setMobilePanels(IMG2IMG_PANELS); // 3패널을 트랙에 순서대로 + 하단 탭바 생성
+                window.__setMobilePanels(_i2iPanels()); // 트랙에 순서대로 + 하단 탭바 생성
                 _i2iMobileOn = true;
+            }
+            // 간편/전문 전환 — 에디터 패널 표시, 전문 전용 섹션, 모바일 탭 세트까지 함께 반영
+            function _applySimpleMode() {
+                const on = !!_img2img.simpleMode && !IS_INPAINT;
+                document.body.classList.toggle('pl-i2i-simple', on && _plCurrent === 'img2img');
+                try { modeSimpleBtn.classList.toggle('on', on); modeProBtn.classList.toggle('on', !on); } catch (e) {}
+                if (on) { try { _refreshSimpleT(); } catch (e) {} }
+                if (_i2iMobileOn) { try { window.__setMobilePanels(_i2iPanels()); } catch (e) {} } // 탭 세트 재구성(에디터 포함/제외)
+            }
+            function setSimpleMode(on) {
+                if (IS_INPAINT) return;
+                _img2img.simpleMode = !!on; _img2imgSave();
+                _applySimpleMode();
             }
             function _i2iTeardownMobile() {
                 if (!_i2iMobileOn) return;
@@ -21370,6 +21437,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { if (!_img2img.dataURL) _img2imgRestoreSrc(); } catch (e) {}
             syncThumb();
             setMode(_img2img.editMode); // 저장된 편집 모드(실사 변환/부분 편집) 반영
+            _applySimpleMode();         // 간편/전문 모드 반영(에디터 패널 표시·전문 전용 섹션·모바일 탭 세트)
             try { ckptSel._fill(); } catch (e) {} // 체크포인트 기본값을 마운트 즉시 확정(Pony Realism 우선) — 고급 파이프라인 안 열어도
             try { fillModels(false); } catch (e) {} // 설치된 WD14 모델 목록 채우기(비동기)
             // 이미 켜져 있는 고급 노드는 스키마(기본값)를 미리 받아 캐시 (전송 시 버전 어긋남 방지)
@@ -21411,6 +21479,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (_comboFab) _comboFab.remove();
                 if (_comboClose) _comboClose.remove();
                 try { _i2iTeardownMobile(); } catch (e) {} // 기본 모바일 패널 세트 복원(패널 제거 전에)
+                document.body.classList.remove('pl-i2i-simple'); // 간편 모드 body 클래스 정리(다른 테마로 나갈 때)
                 document.removeEventListener('paste', onPaste);
                 try { window.__i2iGetMaskDataURL = null; } catch (e) {} // 마스크 게터 정리(다른 테마로 나갈 때)
                 panel.remove();
