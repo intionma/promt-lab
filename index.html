@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.55.4 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.55.5 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1092,6 +1092,14 @@
         body[data-layout="img2img"].pl-i2i-simple #i2i-source .i2i-pro-only { display:none !important; }
         body[data-layout="img2img"]:not(.pl-i2i-simple) #i2i-source .i2i-simple-only { display:none !important; }
         @media (max-width:1024px){ body[data-layout="img2img"].pl-i2i-simple #panel-mid { display:none !important; } }
+        /* 간편 모드: 좌하단 '조합' 드로어 버튼 + '붙여넣기→비교' FAB 숨김 (간편은 이미지·프롬프트·노출·실행만) */
+        body[data-layout="img2img"].pl-i2i-simple .pl-i2i-combo-fab,
+        body[data-layout="img2img"].pl-i2i-simple #cmp-fab { display:none !important; }
+        /* 노출/후타 프리셋 칩 (간편) */
+        #i2i-source .i2i-expo-chips { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+        #i2i-source .i2i-expo-lab { font-size:11px; font-weight:800; color:var(--text-dim); margin:0 2px; }
+        #i2i-source .i2i-expo-chip { border:1px solid var(--border-dim); background:var(--bg-base); color:var(--text-dim); border-radius:20px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; font-family:var(--font-ui); white-space:nowrap; }
+        #i2i-source .i2i-expo-chip.on { background:color-mix(in srgb,#a855f7 16%,transparent); border-color:#a855f7; color:#a855f7; }
 
         /* 도움말 "?" 버튼 + 팝오버 (설정 옆 클릭형 설명) */
         .help-dot { flex:0 0 auto; width:17px; height:17px; border-radius:50%; border:1px solid var(--text-dim); background:transparent; color:var(--text-dim); font-size:11px; font-weight:800; line-height:1; cursor:pointer; padding:0; display:inline-flex; align-items:center; justify-content:center; font-family:var(--font-ui); vertical-align:middle; }
@@ -1232,7 +1240,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.55.4 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.55.5 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1998,7 +2006,17 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.55.4', date: '2026-07-22', time: '최신',
+                version: 'v9.55.5', date: '2026-07-22', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[이미지 변환] '간편 모드'를 확 단순하게 바꿨습니다 — 이미지 넣기 → 자동 분석 → (원하면 노출/후타 프리셋 선택) → 실행, 이게 전부예요. 체크포인트·포즈·얼굴·업스케일 같은 세부 설정은 '전문 모드'에서 한 번만 해두면 되고, 간편 화면에선 설정·조합·비교 버튼을 다 숨겼습니다.",
+                    "[이미지 변환] 간편 모드에 노출 프리셋(상의만/하의만/상+하/전신)과 후타나리(거근·노멀·소추) 칩을 추가했습니다 — 분석된 원본 위에 얹혀 적용되고, 충돌하는 옷 태그는 자동으로 정리하며 변환 강도도 알아서 보정해 실제로 반영되게 했습니다.",
+                    "[이미지 변환] 재생성할 때는 태그를 다시 분석하지 않고 기존 분석 결과를 재활용합니다(이미지를 바꿀 때만 다시 분석). '다시 분석' 버튼은 따로 있어요.",
+                    "[이미지 변환] '이미지 속 글자 안 불러오기'를 추가했습니다(기본 켜짐) — 글자·워터마크·말풍선·서명 등은 생성하면 어차피 뭉개지므로 분석에서 빼고 결과에도 안 나오게 합니다.",
+                ]
+            },
+            {
+                version: 'v9.55.4', date: '2026-07-22', time: '',
                 tag: 'fix',
                 items: [
                     "[이미지 변환] 태그 분석은 됐는데 그다음 생성이 아예 안 되고 '분석 중'에서 멈춰 있던(무한로딩) 문제를 고쳤습니다 — 분석 결과를 더 폭넓게 인식하도록 해 결과를 확실히 받아오고, 이후 생성으로 넘어갑니다.",
@@ -5464,6 +5482,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             faceRealism: true,                    // (변환) 실사 얼굴 비율로 교정 — 큰 눈 등 애니 비율 억제
             dropExpression: false,                // (변환) 원본 표정 안 가져오기 — 표정 태그 제거 + 얼굴 새로 그림
             dropCensor: true,                     // (변환) 검열·모자이크 태그 안 불러오기 — 분석 태그·최종 프롬프트에서 제거
+            dropText: true,                       // (변환) 이미지 속 글자 안 불러오기 — 글자·워터마크류 제거 + 부정 주입(어차피 뭉개짐)
+            exposure: '',                         // (변환·간편) 노출 프리셋 id ('' | topless | bottomless | both | nude)
+            futa: '',                             // (변환·간편) 후타 프리셋 id ('' | large | normal | small)
             colorize: false,                      // (변환) 흑백 이미지를 컬러로 — 컬러 유도 태그(+흑백 억제 부정) 주입
             fdModel: 'bbox/face_yolov8m.pt',      // 얼굴 감지 모델(bbox)
             upscale: false,                       // 업스케일(느림 — 기본 꺼짐)
@@ -5488,7 +5509,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     wd14Model: _img2img.wd14Model, wd14Threshold: _img2img.wd14Threshold, addRealism: _img2img.addRealism, maxSide: _img2img.maxSide,
                     loras: _img2img.loras, controlnet: _img2img.controlnet, cnModel: _img2img.cnModel, cnStrength: _img2img.cnStrength,
                     ipadapter: _img2img.ipadapter, ipaWeight: _img2img.ipaWeight,
-                    faceDetailer: _img2img.faceDetailer, faceRealism: _img2img.faceRealism, dropExpression: _img2img.dropExpression, dropCensor: _img2img.dropCensor, colorize: _img2img.colorize, fdModel: _img2img.fdModel, upscale: _img2img.upscale, upscaleModel: _img2img.upscaleModel, upscaleBy: _img2img.upscaleBy,
+                    faceDetailer: _img2img.faceDetailer, faceRealism: _img2img.faceRealism, dropExpression: _img2img.dropExpression, dropCensor: _img2img.dropCensor, dropText: _img2img.dropText, colorize: _img2img.colorize, exposure: _img2img.exposure, futa: _img2img.futa, fdModel: _img2img.fdModel, upscale: _img2img.upscale, upscaleModel: _img2img.upscaleModel, upscaleBy: _img2img.upscaleBy,
                     editMode: _img2img.editMode, inpaintDenoise: _img2img.inpaintDenoise, maskGrow: _img2img.maskGrow, fooocus: _img2img.fooocus, fooocusHead: _img2img.fooocusHead, fooocusPatch: _img2img.fooocusPatch,
                     simpleMode: _img2img.simpleMode
                 }));
@@ -5516,6 +5537,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (typeof s.faceRealism === 'boolean') _img2img.faceRealism = s.faceRealism;
                 if (typeof s.dropExpression === 'boolean') _img2img.dropExpression = s.dropExpression;
                 if (typeof s.dropCensor === 'boolean') _img2img.dropCensor = s.dropCensor;
+                if (typeof s.dropText === 'boolean') _img2img.dropText = s.dropText;
+                if (typeof s.exposure === 'string') _img2img.exposure = s.exposure;
+                if (typeof s.futa === 'string') _img2img.futa = s.futa;
                 if (typeof s.colorize === 'boolean') _img2img.colorize = s.colorize;
                 if (typeof s.fdModel === 'string' && s.fdModel) _img2img.fdModel = s.fdModel;
                 if (typeof s.upscale === 'boolean') _img2img.upscale = s.upscale;
@@ -5596,11 +5620,46 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         const _I2I_CENSOR_TAGS = ['censored', 'censoring', 'censor', 'mosaic censoring', 'mosaic censorship', 'mosaic', 'pixelization', 'pixelated', 'bar censor', 'bar censoring', 'black bars', 'convenient censoring', 'light censor', 'blur censor', 'soft censor', 'heart censor', 'novelty censor', 'hair censor', 'steam censor', 'steam censoring', 'tail censor', 'hand censor', 'wall censor', 'character censor', 'censor bar', 'censor bars', 'black censor bar', 'white censor bar', 'pointless censoring', 'pubic hair censor', 'nipple censor', 'censored nipples', 'text censor', 'yaoi censor', 'identity censor'];
         // (변환) '원본 표정 안 가져오기' ON → 최종 긍정에서 이 표정/감정 태그들을 제거(원본 표정 재현 방지). 에디터 원본은 그대로 둠.
         const _I2I_EXPRESSION_TAGS = ['blush', 'blush stickers', 'nose blush', 'smile', 'light smile', 'evil smile', 'seductive smile', 'grin', 'evil grin', 'smirk', 'open mouth', 'closed mouth', 'parted lips', 'frown', 'pout', 'wink', 'one eye closed', 'closed eyes', 'half-closed eyes', 'heart-shaped pupils', 'tongue', 'tongue out', 'ahegao', 'drooling', 'saliva', 'clenched teeth', 'teeth', 'crying', 'tears', 'streaming tears', 'angry', 'annoyed', 'surprised', 'shocked', 'embarrassed', 'nervous', 'scared', 'happy', 'sad', 'naughty face', 'aroused', 'orgasm', 'ecstasy', 'trembling', 'flying sweatdrops', 'sweatdrop', 'expressionless', 'serious', 'licking lips', 'tongue out', ':d', ':o', ':3', ':p', 'open mouth', 'screaming', 'moaning', 'gritted teeth'];
+        // (변환) '이미지 속 글자 안 불러오기' ON → 분석 태그·최종 긍정에서 글자/워터마크류 제거 + 부정에 주입.
+        //   생성 시 글자는 어차피 뭉개져 나오므로 기본 제거. (말풍선·서명·워터마크·각국 텍스트·효과음 등)
+        const _I2I_TEXT_TAGS = ['text', 'english text', 'japanese text', 'korean text', 'chinese text', 'engrish text', 'russian text', 'thai text', 'spanish text', 'garbled text', 'text focus', 'letter (message)', 'speech bubble', 'thought bubble', 'empty speech bubble', 'half-length speech bubble', 'watermark', 'artist name', 'signature', 'dated', 'character name', 'copyright name', 'company name', 'logo', 'web address', 'url', 'twitter username', 'twitter logo', 'username', 'commentary', 'commentary request', 'sound effects', 'onomatopoeia', 'translation request', 'translated', 'page number', 'subtitled', 'caption', 'ranguage text', 'fake text', 'typo'];
         function _img2imgSetDenoise(v) {
             let n = parseFloat(v); if (isNaN(n)) n = 0.6;
             _img2img.denoise = Math.max(0.05, Math.min(1, n));
             _img2imgSave();
         }
+        // (변환) 간편 모드 노출/후타 프리셋 — 분석된 태그(원본 유지)에 '얹어서' 최종 프롬프트에 주입.
+        //   strip: 노출과 충돌하는 옷 태그를 최종 긍정에서 제거해야 실제로 벗겨짐. (top/bottom/full 카테고리)
+        const _I2I_TOP_CLOTHES = ['shirt', 't-shirt', 'blouse', 'sweater', 'jacket', 'bra', 'bikini top', 'tank top', 'crop top', 'hoodie', 'cardigan', 'vest', 'camisole', 'corset', 'tube top', 'sports bra', 'bandeau', 'turtleneck', 'sweatshirt', 'halterneck', 'sailor collar', 'button gap', 'collared shirt', 'dress shirt', 'undershirt', 'bikini'];
+        const _I2I_BOTTOM_CLOTHES = ['skirt', 'miniskirt', 'pleated skirt', 'pants', 'shorts', 'panties', 'bikini bottom', 'thong', 'jeans', 'trousers', 'leggings', 'bloomers', 'briefs', 'boxers', 'denim shorts', 'short shorts', 'underwear', 'g-string'];
+        const _I2I_FULL_CLOTHES = ['dress', 'one-piece swimsuit', 'swimsuit', 'leotard', 'bodysuit', 'robe', 'kimono', 'gown', 'jumpsuit', 'overalls', 'school uniform', 'serafuku', 'maid', 'apron', 'cape', 'clothes', 'covered nipples', 'clothing aside'];
+        const _I2I_EXPOSURE_PRESETS = [
+            { id: 'topless', name: '상의만 (가슴)', add: 'topless, breasts out, nipples, uncensored', strip: ['top', 'full'] },
+            { id: 'bottomless', name: '하의만', add: 'bottomless, no panties, pussy, uncensored', strip: ['bottom', 'full'] },
+            { id: 'both', name: '상의+하의', add: 'topless, breasts out, nipples, bottomless, no panties, pussy, uncensored', strip: ['top', 'bottom', 'full'] },
+            { id: 'nude', name: '전신 노출', add: 'nude, completely nude, naked, uncensored', strip: ['top', 'bottom', 'full'] },
+        ];
+        const _I2I_FUTA_PRESETS = [
+            { id: 'large', name: '후타(거근)', add: 'futanari, penis, erection, huge penis, large penis, veiny penis, large testicles, glans' },
+            { id: 'normal', name: '후타(노멀)', add: 'futanari, penis, erection, glans, testicles' },
+            { id: 'small', name: '후타(소추)', add: 'futanari, penis, erection, small penis, small testicles, glans' },
+        ];
+        function _i2iExposureStripSet() {
+            const p = _I2I_EXPOSURE_PRESETS.find(x => x.id === _img2img.exposure); if (!p) return null;
+            const set = new Set();
+            if (p.strip.includes('top')) _I2I_TOP_CLOTHES.forEach(t => set.add(t));
+            if (p.strip.includes('bottom')) _I2I_BOTTOM_CLOTHES.forEach(t => set.add(t));
+            if (p.strip.includes('full')) _I2I_FULL_CLOTHES.forEach(t => set.add(t));
+            return set;
+        }
+        // 노출/후타 프리셋이 최종 긍정에 얹을 추가 태그 문자열 (없으면 '')
+        function _i2iExposureAddTags() {
+            const parts = [];
+            const ex = _I2I_EXPOSURE_PRESETS.find(x => x.id === _img2img.exposure); if (ex && ex.add) parts.push(ex.add);
+            const fu = _I2I_FUTA_PRESETS.find(x => x.id === _img2img.futa); if (fu && fu.add) parts.push(fu.add);
+            return parts.join(', ');
+        }
+        function _i2iExposureActive() { return !!(_img2img.exposure || _img2img.futa); }
         // 원본 이미지는 사용자가 교체/제거하기 전까지 유지(새로고침·재렌더 포함). dataURL은 localStorage에 best-effort 저장.
         const I2I_SRC_KEY = 'comfy_img2img_src_v1';
         function _img2imgPersistSrc() {
@@ -5670,7 +5729,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const seed = (isNaN(seedInput) || seedInput < 0) ? Math.floor(Math.random() * 1e15) : seedInput;
             if (_comfyTarget === 'pos') neg = '';
             if (_comfyTarget === 'neg') pos = '';
-            const dn = Math.max(0.05, Math.min(1, denoise || 0.6));
+            let dn = Math.max(0.05, Math.min(1, denoise || 0.6));
+            if (_i2iExposureActive()) dn = Math.max(dn, 0.6);   // (간편) 노출 프리셋이 켜지면 옷이 실제로 벗겨지게 변환강도 하한 보정
             const steps = parseInt(document.getElementById('comfy-steps').value) || 28;
             const cfg = parseFloat(document.getElementById('comfy-cfg').value) || 7;
             const sampler = document.getElementById('comfy-sampler').value;
@@ -6041,12 +6101,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
             let tags = (tagStr || '').split(',').map(s => s.trim()).filter(Boolean);
             if (!tags.length) { showToast('감지된 태그가 없습니다.', 'info'); return false; }
-            // 검열·모자이크 태그 안 불러오기 옵션 → 분석 결과에서 미리 제거 (에디터에 아예 안 들어감)
+            // 검열·모자이크 / 글자 태그 안 불러오기 옵션 → 분석 결과에서 미리 제거 (에디터에 아예 안 들어감)
             let _censorDropped = 0;
-            if (_img2img.dropCensor) {
-                const cset = new Set(_I2I_CENSOR_TAGS.map(t => t.toLowerCase()));
+            const _dropSet = new Set();
+            if (_img2img.dropCensor) _I2I_CENSOR_TAGS.forEach(t => _dropSet.add(t.toLowerCase()));
+            if (_img2img.dropText) _I2I_TEXT_TAGS.forEach(t => _dropSet.add(t.toLowerCase()));
+            if (_dropSet.size) {
                 const before = tags.length;
-                tags = tags.filter(t => !cset.has(t.toLowerCase().replace(/^\(+|\)+$/g, '').replace(/:\s*[\d.]+\s*$/, '').trim()));
+                tags = tags.filter(t => !_dropSet.has(t.toLowerCase().replace(/^\(+|\)+$/g, '').replace(/:\s*[\d.]+\s*$/, '').trim()));
                 _censorDropped = before - tags.length;
             }
             if (!tags.length) { showToast('감지된 태그가 없습니다.', 'info'); return false; }
@@ -7339,7 +7401,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     denoise: 0.50,
                     controlnet: true, cnModel: 'OpenPoseXL2.safetensors', cnStrength: 0.65,
                     faceDetailer: true, fdModel: 'bbox/face_yolov8m.pt',
-                    faceRealism: true, dropExpression: false, dropCensor: true,
+                    faceRealism: true, dropExpression: false, dropCensor: true, dropText: true,
                     ipadapter: false, ipaWeight: 0.75, upscale: false, upscaleModel: '4x-UltraSharp.pth', upscaleBy: 2,
                     autoTag: true, addRealism: true, maxSide: 1152,
                     wd14Model: 'wd-v1-4-moat-tagger-v2', wd14Threshold: 0.35, loras: []
@@ -17925,16 +17987,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         else finalOutput = colAdds.join(', ') + (finalOutput ? ', ' + finalOutput : '');
                     }
                 }
-                // (변환) 최종 긍정에서 특정 태그 제거: '원본 표정 안 가져오기' + '검열·모자이크 안 불러오기'
-                if (typeof _img2img !== 'undefined' && _img2img.enabled && _img2img.editMode !== 'inpaint' && (_img2img.dropExpression || _img2img.dropCensor)) {
+                // (변환) 최종 긍정에서 특정 태그 제거: '원본 표정 안 가져오기' + '검열·모자이크' + '글자' 안 불러오기
+                if (typeof _img2img !== 'undefined' && _img2img.enabled && _img2img.editMode !== 'inpaint' && (_img2img.dropExpression || _img2img.dropCensor || _img2img.dropText || _i2iExposureActive())) {
                     const dropSet = new Set();
                     if (_img2img.dropExpression) _I2I_EXPRESSION_TAGS.forEach(t => dropSet.add(t.toLowerCase()));
                     if (_img2img.dropCensor) _I2I_CENSOR_TAGS.forEach(t => dropSet.add(t.toLowerCase()));
+                    if (_img2img.dropText) _I2I_TEXT_TAGS.forEach(t => dropSet.add(t.toLowerCase()));
+                    // (간편) 노출 프리셋 → 충돌하는 옷 태그를 최종 긍정에서 제거해야 실제로 벗겨짐
+                    const _expStrip = _i2iExposureStripSet(); if (_expStrip) _expStrip.forEach(t => dropSet.add(t.toLowerCase()));
                     finalOutput = finalOutput.split('\n').map(line => {
                         const tl = line.trim();
                         if (!tl || tl === 'BREAK' || tl.startsWith('[')) return line; // 구분자·라벨 보존
                         return line.split(',').map(s => s.trim()).filter(t => t && !dropSet.has(t.toLowerCase().replace(/^\(+|\)+$/g, '').replace(/:\s*[\d.]+\s*$/, '').trim())).join(', ');
                     }).join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\s*,\s*/, '').replace(/\s*,\s*$/, '').trim();
+                    // (간편) 노출/후타 추가 태그를 최종 긍정 뒤에 얹기 (분석된 원본 태그는 유지)
+                    const _expAdd = _i2iExposureAddTags();
+                    if (_expAdd) finalOutput = (finalOutput ? finalOutput.replace(/\s*,\s*$/, '') + ', ' : '') + _expAdd;
                 }
             } catch (e) {}
             document.getElementById('final-positive').value = finalOutput || "";
@@ -18096,6 +18164,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const negLcC = new Set(finalNegOutput.toLowerCase().split(',').map(s => s.trim()).filter(Boolean));
                     const addC = ['censored', 'censoring', 'mosaic censoring', 'bar censor', 'mosaic', 'pixelated'].filter(t => !negLcC.has(t));
                     if (addC.length) finalNegOutput = (finalNegOutput ? finalNegOutput + ', ' : '') + addC.join(', ');
+                }
+                // (변환) '이미지 속 글자 안 불러오기' ON → 결과에 글자·워터마크가 안 그려지도록 부정에 추가
+                if (typeof _img2img !== 'undefined' && _img2img.enabled && _img2img.editMode !== 'inpaint' && _img2img.dropText) {
+                    const negLcT = new Set(finalNegOutput.toLowerCase().split(',').map(s => s.trim()).filter(Boolean));
+                    const addT = ['text', 'watermark', 'signature', 'artist name', 'username', 'logo', 'speech bubble', 'english text', 'sound effects'].filter(t => !negLcT.has(t));
+                    if (addT.length) finalNegOutput = (finalNegOutput ? finalNegOutput + ', ' : '') + addT.join(', ');
                 }
                 // (변환) '흑백→컬러' ON → 흑백/세피아/무채색을 부정에 추가해 색이 확실히 들어가게
                 if (typeof _img2img !== 'undefined' && _img2img.enabled && _img2img.editMode !== 'inpaint' && _img2img.colorize) {
@@ -21247,6 +21321,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const faceRealismChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.faceRealism = e.target.checked; _img2imgSave(); try { updateMasterOutput(); } catch (e) {} } }); faceRealismChk.checked = _img2img.faceRealism;
             const dropExprChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.dropExpression = e.target.checked; _img2imgSave(); try { updateMasterOutput(); } catch (e) {} } }); dropExprChk.checked = _img2img.dropExpression;
             const dropCensorChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.dropCensor = e.target.checked; _img2imgSave(); try { updateMasterOutput(); } catch (e) {} } }); dropCensorChk.checked = _img2img.dropCensor;
+            const dropTextChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.dropText = e.target.checked; _img2imgSave(); try { updateMasterOutput(); } catch (e) {} } }); dropTextChk.checked = _img2img.dropText;
             const colorizeChk = el('input', { type: 'checkbox', onchange: (e) => { _img2img.colorize = e.target.checked; _img2imgSave(); try { updateMasterOutput(); } catch (e) {} } }); colorizeChk.checked = _img2img.colorize;
             const modelSelect = el('select', { class: 'comfy-num', style: 'flex:1; min-width:0; font-size:11px; font-family:var(--font-code);', onchange: (e) => { _img2img.wd14Model = e.target.value; _img2imgSave(); } });
             const modelRefresh = el('button', { class: 'action-btn', title: '설치된 모델 목록 새로고침', style: 'flex:0 0 auto; font-size:11px; padding:6px 9px;', html: '<i class="fa-solid fa-rotate"></i>', onclick: () => fillModels(true) });
@@ -21272,6 +21347,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const advBody = el('div', { style: 'display:none; flex-direction:column; gap:11px; padding-top:11px;' },
                 rowHelp(el('label', { style: 'display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-main); cursor:pointer;' }, realismChk, '실사 변환 태그 자동 추가 (photo, realistic …)'), 'addRealism'),
                 rowHelp(el('label', { style: 'display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-main); cursor:pointer;' }, dropCensorChk, '검열·모자이크 태그 안 불러오기'), 'dropCensor'),
+                el('label', { style: 'display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-main); cursor:pointer;', title: '이미지 속 글자·워터마크·말풍선·서명 등은 생성 시 뭉개져 나오므로, 분석에서 빼고 결과에도 안 나오게 부정 프롬프트에 넣습니다.' }, dropTextChk, '이미지 속 글자 안 불러오기 (뭉개짐 방지)'),
                 rowHelp(el('label', { style: 'display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-main); cursor:pointer;' }, colorizeChk, '흑백 이미지를 컬러로 변환'), 'colorize'),
                 el('div', {}, el('div', { style: 'display:flex; align-items:center; gap:6px; margin-bottom:4px;' }, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, 'WD14 태거 모델 (설치된 것 중 선택)'), chkHelp('wd14Model')), el('div', { style: 'display:flex; gap:6px; align-items:center;' }, modelSelect, modelRefresh)),
                 el('div', { style: 'display:flex; align-items:center; gap:8px; flex-wrap:wrap;' }, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, '태그 임계값'), chkHelp('threshold'), thrInput, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, '· 최대 크기(긴 변)'), chkHelp('maxSide'), sizeInput, el('span', { style: 'font-size:11px; color:var(--text-dim);' }, 'px')));
@@ -21426,6 +21502,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 try { faceRealismChk.checked = _img2img.faceRealism; } catch (e) {}
                 try { dropExprChk.checked = _img2img.dropExpression; } catch (e) {}
                 try { dropCensorChk.checked = _img2img.dropCensor; } catch (e) {}
+                try { dropTextChk.checked = _img2img.dropText; } catch (e) {}
                 try { colorizeChk.checked = _img2img.colorize; } catch (e) {}
                 upChk.checked = _img2img.upscale; upBody.style.display = _img2img.upscale ? 'flex' : 'none'; upByeSel.value = String(_img2img.upscaleBy);
                 autoChk.checked = _img2img.autoTag; realismChk.checked = _img2img.addRealism;
@@ -21502,14 +21579,34 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             function _simpleTToEditor() { const ta = document.getElementById('layer-1'); if (ta) { ta.value = simpleTPrompt.value; try { syncFromManualInput(1); } catch (e) {} } }
             simpleTPrompt.addEventListener('input', _simpleTToEditor);
             function _refreshSimpleT() { const ta = document.getElementById('layer-1'); if (ta) simpleTPrompt.value = ta.value; }
-            const simpleRunBtn = el('button', { class: 'action-btn', style: 'width:100%; background:var(--accent-blue); color:#fff; border:none; font-weight:800; padding:11px; font-size:14px; border-radius:10px;', html: '<i class="fa-solid fa-bolt"></i> 실행 (생성)', onclick: () => { try { updateMasterOutput(); } catch (e) {} try { if (typeof comfyQuickSend === 'function') comfyQuickSend('pos'); } catch (e) {} } });
-            const simpleTWrap = el('div', { class: 'i2i-simple-only', style: 'display:flex; flex-direction:column; gap:10px; background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:12px; padding:13px;' },
-                el('div', { style: 'display:flex; align-items:center; gap:6px;' }, el('span', { style: 'font-size:13px; font-weight:800; color:var(--text-main);' }, '✍ 프롬프트 (선택)'), mkHelp('간편 프롬프트', '이미지를 어떻게 바꿀지 짧게 적는 칸입니다(비워도 됩니다).<br><br>· 이미지를 넣으면 <b>자동 분석</b>으로 프롬프트가 채워지고, <b>실사·품질 태그</b>(photo, score_9 등)는 전송할 때 자동으로 더해집니다.<br>· 여기서 적은 내용은 그대로 반영되고, 분석이 채운 세부 태그도 <b>함께 전송</b>됩니다.<br>· 레이어별 세밀 편집·고급 파이프라인은 <b>전문</b> 모드에서.')),
+            const simpleRunBtn = el('button', { class: 'action-btn', style: 'flex:1; background:var(--accent-blue); color:#fff; border:none; font-weight:800; padding:11px; font-size:14px; border-radius:10px;', html: '<i class="fa-solid fa-bolt"></i> 실행 (생성)', onclick: () => { try { updateMasterOutput(); } catch (e) {} try { if (typeof comfyQuickSend === 'function') comfyQuickSend('pos'); } catch (e) {} } });
+            const simpleAnalyzeBtn = el('button', { class: 'action-btn', style: 'flex:0 0 auto; font-size:12px; padding:0 12px; background:var(--bg-base); border:1px solid var(--border-dim);', title: '이미지를 다시 분석해 태그를 새로 채웁니다', html: '<i class="fa-solid fa-magnifying-glass-chart"></i> 다시 분석', onclick: () => runAnalyze() });
+            // 노출/후타 프리셋 칩 (간편) — 분석된 원본 태그 위에 얹어 생성. 그룹 내 배타(다시 누르면 해제).
+            const exposureRow = el('div', { class: 'i2i-expo-chips' });
+            function _renderExposureChips() {
+                exposureRow.innerHTML = '';
+                const lab = (t) => exposureRow.appendChild(el('span', { class: 'i2i-expo-lab' }, t));
+                const mkChip = (id, name, curKey) => {
+                    const on = _img2img[curKey] === id;
+                    const btn = el('button', { class: 'i2i-expo-chip' + (on ? ' on' : '') }, (on ? '✓ ' : '') + name);
+                    btn.onclick = () => { _img2img[curKey] = (_img2img[curKey] === id) ? '' : id; _img2imgSave(); _renderExposureChips(); try { updateMasterOutput(); } catch (e) {} };
+                    exposureRow.appendChild(btn);
+                };
+                lab('노출');
+                _I2I_EXPOSURE_PRESETS.forEach(p => mkChip(p.id, p.name, 'exposure'));
+                lab('후타');
+                _I2I_FUTA_PRESETS.forEach(p => mkChip(p.id, p.name, 'futa'));
+            }
+            _renderExposureChips();
+            const simpleTWrap = el('div', { class: 'i2i-simple-only', style: 'display:flex; flex-direction:column; gap:11px; background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:12px; padding:13px;' },
+                el('div', { style: 'display:flex; align-items:center; gap:6px;' }, el('span', { style: 'font-size:13px; font-weight:800; color:var(--text-main);' }, '✍ 프롬프트 (자동 분석됨)'), mkHelp('간편 프롬프트', '이미지를 넣으면 <b>자동 분석</b>으로 이 칸이 채워집니다. 직접 손봐도 되고, 비워도 됩니다.<br>· <b>실사·품질 태그</b>(photo, score_9 등)는 전송 시 자동 추가.<br>· 아래 <b>노출/후타 프리셋</b>은 분석된 원본 위에 얹혀 적용됩니다(옷 태그는 자동으로 정리).<br>· 세밀 설정(체크포인트·포즈·얼굴·업스케일 등)은 <b>전문</b> 모드에서 한 번만 해두면 됩니다.')),
                 simpleTPrompt,
-                simpleRunBtn,
-                el('div', { style: 'font-size:11px; color:var(--text-dim); line-height:1.5;', html: '이미지를 넣으면 자동으로 분석해 프롬프트를 채우고, 실사·품질 태그는 전송 시 자동 추가돼요. 포즈 고정·얼굴 보정 등 세부 조정은 <b>전문</b> 모드에서.' }));
-            // 전문 전용 섹션은 간편 모드에서 CSS로 숨김. (단 '이미지 분석'은 핵심이라 간편 모드에서도 유지 → analyzeRow는 제외)
-            try { pipeWrap.classList.add('i2i-pro-only'); advWrap.classList.add('i2i-pro-only'); } catch (e) {}
+                el('div', { style: 'font-size:11.5px; font-weight:700; color:var(--text-dim);' }, '🔞 노출 프리셋 (선택 — 분석 위에 얹기)'),
+                exposureRow,
+                el('div', { style: 'display:flex; gap:8px; align-items:stretch;' }, simpleRunBtn, simpleAnalyzeBtn),
+                el('div', { style: 'font-size:11px; color:var(--text-dim); line-height:1.5;', html: '이미지를 넣으면 자동 분석되고, <b>재생성 시엔 다시 분석하지 않고</b> 그 태그를 재활용합니다(이미지를 바꾸면 다시 분석). 포즈 고정·얼굴 보정 등은 <b>전문</b> 모드에서.' }));
+            // 전문 전용 섹션(설정)은 간편 모드에서 CSS로 숨김 — 간편엔 이미지·프롬프트·노출·실행만.
+            try { [analyzeRow, transformDnBlock, resetBtn, pipeWrap, advWrap].forEach(elm => elm && elm.classList.add('i2i-pro-only')); } catch (e) {}
 
             const contentKids = IS_INPAINT
                 ? [introDiv, thumbWrap, drop, urlRow, fileInput, inpaintTools, simpleWrap, resetBtn, pipeWrap]
