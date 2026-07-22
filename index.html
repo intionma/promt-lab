@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.55.3 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.55.4 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1081,6 +1081,7 @@
         #i2i-source .i2i-mode { flex:1; border:1px solid var(--border-dim); background:var(--bg-surface); color:var(--text-dim); border-radius:9px; padding:9px 8px; font-size:13px; font-weight:800; cursor:pointer; font-family:var(--font-ui); transition:background .12s, color .12s, border-color .12s; }
         #i2i-source .i2i-mode.on { background:var(--accent-blue); color:#fff; border-color:transparent; }
         #i2i-source .i2i-mask { border-radius:10px; }
+        #i2i-source .i2i-analyze-spin { width:34px; height:34px; border:4px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:cmpSpin .8s linear infinite; }
         /* 간편/전문 모드 토글 (변환 테마 전용) */
         #i2i-source .i2i-modesel { display:flex; gap:6px; background:var(--bg-base); border:1px solid var(--border-dim); border-radius:11px; padding:4px; }
         #i2i-source .i2i-modesel button { flex:1; border:none; background:transparent; color:var(--text-dim); border-radius:8px; padding:8px 6px; font-size:12.5px; font-weight:800; cursor:pointer; font-family:var(--font-ui); display:flex; align-items:center; justify-content:center; gap:6px; transition:background .12s, color .12s; }
@@ -1231,7 +1232,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.55.3 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.55.4 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1997,7 +1998,16 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.55.3', date: '2026-07-22', time: '최신',
+                version: 'v9.55.4', date: '2026-07-22', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[이미지 변환] 태그 분석은 됐는데 그다음 생성이 아예 안 되고 '분석 중'에서 멈춰 있던(무한로딩) 문제를 고쳤습니다 — 분석 결과를 더 폭넓게 인식하도록 해 결과를 확실히 받아오고, 이후 생성으로 넘어갑니다.",
+                    "[이미지 변환] 태그 분석 중에는 이미지 위에 '🔍 태그 분석 중…' 진행 표시(스피너)를 띄웁니다 — 아무 표시가 없어 멈춘 줄 알던 문제 해결.",
+                    "[Anima 편집] 결과 이미지의 돋보기(🔍) 버튼을 없앴습니다 — 이미지를 그냥 누르면 크게 보이니까 중복이었어요.",
+                ]
+            },
+            {
+                version: 'v9.55.3', date: '2026-07-22', time: '',
                 tag: 'fix',
                 items: [
                     "[중요] ComfyUI가 '연결 확인'은 되는데 정작 생성·분석·전송을 누르면 아무 반응이 없거나 실패하던 문제를 고쳤습니다 — 전송 요청 방식이 일부 환경에서 브라우저의 사전확인(CORS preflight)에 막히던 것이 원인으로, 이미지 변환·인페인팅·클래식·스튜디오·이미지 분석·대기열 정리까지 모든 전송을 사전확인이 필요 없는 방식으로 바꿨습니다. (Anima는 이미 적용돼 있었음)",
@@ -5895,13 +5905,24 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // 실행 결과(태그 문자열)를 ComfyUI /history 출력에서 회수
         function _wd14ExtractTags(outputs) {
             if (!outputs) return null;
+            // 문자열/문자열배열만 태그로 인정(이미지/latent 등 객체·객체배열은 자동 제외).
+            const pick = (v) => {
+                if (v == null) return null;
+                if (typeof v === 'string') return v.trim() || null;
+                if (Array.isArray(v)) { const flat = v.flat(Infinity).filter(x => typeof x === 'string' && x.trim()); return flat.length ? flat.join(', ') : null; }
+                return null;
+            };
             for (const nid in outputs) {
-                const o = outputs[nid]; if (!o) continue;
-                const pick = (v) => (v == null ? null : (Array.isArray(v) ? v.join(', ') : String(v)));
-                if (o.tags != null) return pick(o.tags);      // WD14 Tagger(pysssss)
-                if (o.text != null) return pick(o.text);       // 문자열 출력 계열
-                if (o.string != null) return pick(o.string);
-                if (o.STRING != null) return pick(o.STRING);
+                const o = outputs[nid]; if (!o || typeof o !== 'object') continue;
+                // 1) 알려진 키 우선 (WD14 Tagger(pysssss) 및 문자열 출력 계열)
+                for (const k of ['tags', 'text', 'string', 'STRING', 'caption', 'captions', 'wd14_tags', 'prompt']) {
+                    const r = pick(o[k]); if (r) return r;
+                }
+                // 2) 키 이름이 달라도(포크·버전 차이) 값이 문자열/문자열배열인 출력을 태그로 간주
+                for (const k in o) {
+                    if (k === 'images' || k === 'gifs' || k === 'latents') continue; // 미디어 출력 제외
+                    const r = pick(o[k]); if (r && /[a-z]/i.test(r)) return r;
+                }
             }
             return null;
         }
@@ -6004,6 +6025,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!_comfyConnectedOnce && !mock) { showToast('✅ 이미지는 들어갔어요. 자동 태그 분석은 ComfyUI 연결이 필요합니다 (오른쪽 결과창에서 연결 후 “이미지 분석” 버튼).', 'info', 5000); return false; }
             // 자동 분석은 몇 초 걸리는데 화면 변화가 없어 "되는 건지" 몰라서 다시 누르는 일이 잦음 → 진행 표시
             showToast('🔍 이미지를 분석하는 중이에요… 잠시만 기다려 주세요 (몇 초 걸릴 수 있어요)', 'info', 6000);
+            try { window.__i2iSetAnalyzing && window.__i2iSetAnalyzing(true); } catch (e) {}   // 이미지 위 진행 오버레이 ON
+            try {
             let name;
             try { name = await _img2imgEnsureUploaded(); } catch (e) {
                 if (_isFetchNetworkError(e)) showToast(_comfyMixedBlocked() ? _COMFY_MIXED_TOAST : '✅ 이미지는 들어갔지만 ComfyUI에 연결하지 못했어요(자동 태그 분석 건너뜀). ComfyUI가 켜져 있는지·주소가 맞는지 확인하세요.', 'error', 7000);
@@ -6033,6 +6056,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { importPromptToEditor(finalTags, 'replace'); } catch (e) {}
             showToast(`${tags.length}개 태그 감지 → 에디터에 채웠습니다${_censorDropped ? ` (검열·모자이크 태그 ${_censorDropped}개 제외)` : ''} (실사·품질 태그는 전송 시 자동 추가)`, 'success', 3000);
             return true;
+            } finally { try { window.__i2iSetAnalyzing && window.__i2iSetAnalyzing(false); } catch (e) {} }   // 진행 오버레이 OFF (성공·실패·예외 모두)
         }
         window.__i2iAnalyzeAndFill = _i2iAnalyzeAndFill;
 
@@ -7013,8 +7037,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const src = _animaHasImage() ? _anima.img.dataURL : null;
             const gen = cur ? cur.url : null;
             let html = '<div class="anima-cmp">';
-            if (src) html += `<figure><div class="anima-lbl">원본</div><div class="anima-frame" data-lb="0"><img src="${src}"><button class="anima-zoom" title="크게 보기">🔍</button></div></figure>`;
-            html += `<figure><div class="anima-lbl">결과${_anima.results.length ? ` · ${_animaResSel + 1}/${_anima.results.length}` : ''}</div><div class="anima-frame ${gen ? '' : 'nores'}" data-lb="1">${gen ? `<img src="${gen}"><button class="anima-zoom" title="크게 보기">🔍</button>` : (_animaBusy ? '<span class="anima-sp big"></span>' : '<span class="anima-nores-t">아직 결과 없음</span>')}</div></figure>`;
+            if (src) html += `<figure><div class="anima-lbl">원본</div><div class="anima-frame" data-lb="0"><img src="${src}"></div></figure>`;
+            html += `<figure><div class="anima-lbl">결과${_anima.results.length ? ` · ${_animaResSel + 1}/${_anima.results.length}` : ''}</div><div class="anima-frame ${gen ? '' : 'nores'}" data-lb="1">${gen ? `<img src="${gen}">` : (_animaBusy ? '<span class="anima-sp big"></span>' : '<span class="anima-nores-t">아직 결과 없음</span>')}</div></figure>`;
             html += '</div>';
             // 이 테마 전용 이미지 갤러리 (Anima에서 뽑은 것만 · 새로고침 유지)
             if (_anima.results.length) {
@@ -20984,7 +21008,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const thumbImg = el('img', { class: 'i2i-thumb', style: 'width:100%; border-radius:10px; display:block; max-height:360px; object-fit:contain; background:var(--bg-base); border:1px solid var(--border-dim);' });
             const removeBtn = el('button', { title: '원본 제거', html: '<i class="fa-solid fa-xmark"></i>', style: 'position:absolute; top:8px; right:8px; width:30px; height:30px; border-radius:8px; border:none; background:rgba(0,0,0,0.6); color:#fff; cursor:pointer; font-size:14px; z-index:3;', onclick: () => clearImg() });
             const maskCv = el('canvas', { class: 'i2i-mask', style: 'position:absolute; left:0; top:0; width:100%; height:100%; display:none; cursor:crosshair; touch-action:none; z-index:2;' });
-            const thumbWrap = el('div', { style: 'display:none; position:relative;' }, thumbImg, maskCv, removeBtn);
+            // 태그 분석 진행 오버레이 — 분석 내내 이미지 위에 스피너+문구 (멈춘 것처럼 안 보이게)
+            const analyzeOverlay = el('div', { id: 'i2i-analyze-overlay', style: 'position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; gap:10px; background:rgba(0,0,0,0.55); color:#fff; z-index:6; border-radius:10px; font-size:13px; font-weight:800; text-shadow:0 1px 3px rgba(0,0,0,0.6);', html: '<span class="i2i-analyze-spin"></span><span>🔍 태그 분석 중…</span>' });
+            window.__i2iSetAnalyzing = (on) => { try { const o = document.getElementById('i2i-analyze-overlay'); if (o) o.style.display = on ? 'flex' : 'none'; } catch (e) {} };
+            const thumbWrap = el('div', { style: 'display:none; position:relative;' }, thumbImg, maskCv, analyzeOverlay, removeBtn);
 
             // ── 마스크 브러시 (부분 편집 모드) ──
             const maskCtx = maskCv.getContext('2d');
@@ -21643,6 +21670,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 document.body.classList.remove('pl-i2i-simple'); // 간편 모드 body 클래스 정리(다른 테마로 나갈 때)
                 document.removeEventListener('paste', onPaste);
                 try { window.__i2iGetMaskDataURL = null; } catch (e) {} // 마스크 게터 정리(다른 테마로 나갈 때)
+                try { window.__i2iSetAnalyzing = null; } catch (e) {} // 분석 오버레이 토글 정리
                 panel.remove();
                 // text2img 세션으로 복원 (클래식/스튜디오는 원래 태그 그대로)
                 try { if (window.__i2iExitSession) window.__i2iExitSession(); } catch (e) {}
