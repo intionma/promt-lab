@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1240,7 +1240,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.0 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.1 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2006,7 +2006,14 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.0', date: '2026-07-22', time: '최신',
+                version: 'v9.56.1', date: '2026-07-22', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] 하단 바의 칩을 <b>2줄</b>로 배치했습니다 — 좌우로 밀어야 하는 거리가 절반으로 줄고, 드래그할 수 있는 영역이 넓어져 후타나리 같은 뒤쪽 옵션에 훨씬 쉽게 닿습니다.",
+                ]
+            },
+            {
+                version: 'v9.56.0', date: '2026-07-22', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 표정 프리셋을 추가했습니다 — 아헤가오·혀 내밀기·홍조·미소·유혹·윙크·우는·절정·무표정 중에서 골라 얹을 수 있어요(하나 켜면 나머지는 꺼짐).",
@@ -7418,12 +7425,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-mact { display:flex; flex-direction:column; align-items:center; gap:8px; position:fixed; left:0; right:0; bottom:0; z-index:60;
             padding:9px 12px calc(9px + env(safe-area-inset-bottom, 0px)); background:var(--bg-panel); border-top:1px solid var(--border-dim); box-shadow:0 -6px 18px rgba(0,0,0,.25); }
           /* 칩이 많아지면 세로로 늘어나지 않게 한 줄 가로 스크롤 + 드래그. 오른쪽 페이드로 '더 있음' 힌트 */
-          .anima-mact-chips { display:flex; flex-wrap:nowrap; gap:6px; align-items:center; width:100%; max-width:1000px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:none; touch-action:pan-x; cursor:grab; scroll-padding:12px;
+          /* 칩을 2줄로(가로 스크롤) — 드래그 영역이 넓어 잡기 쉽고, 가로 스크롤 거리도 절반 */
+          .anima-mact-chips { display:grid; grid-auto-flow:column; grid-template-rows:repeat(2, auto); grid-auto-columns:max-content; gap:6px; align-content:center; justify-content:start; width:100%; max-width:1000px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:none; touch-action:pan-x; cursor:grab; padding:2px 0;
             -webkit-mask-image:linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 22px), transparent 100%); mask-image:linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 22px), transparent 100%); }
           .anima-mact-chips::-webkit-scrollbar { display:none; }
           .anima-mact-chips.dragging { cursor:grabbing; scroll-behavior:auto; }
-          .anima-mact .anima-chip { flex:0 0 auto; white-space:nowrap; }
-          .anima-mact .anima-snip-lab { flex:0 0 auto; white-space:nowrap; align-self:center; }
+          .anima-mact .anima-chip { white-space:nowrap; }
+          .anima-mact .anima-snip-lab { display:none; }   /* 2줄 그리드에선 노출/옵션 라벨 숨김(칩 이름만으로 구분) */
           .anima-mact-row { display:flex; gap:8px; align-items:stretch; width:100%; max-width:1000px; }
           .anima-mact-clip { flex:0 0 auto; width:52px; font-size:17px; padding:0; display:flex; align-items:center; justify-content:center; }
           .anima-mact-run { flex:1; }
