@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.54.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.54.2 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1225,7 +1225,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.54.1 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.54.2 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1991,7 +1991,14 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.54.1', date: '2026-07-22', time: '최신',
+                version: 'v9.54.2', date: '2026-07-22', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] 모바일에서 ComfyUI에 연결은 되는데 실행하면 생성이 안 되던 문제를 고쳤습니다 — ① 전송 요청 방식을 바꿔 일부 환경에서 연결 확인은 되는데 생성 요청만 막히던(CORS 사전요청) 경우를 피하고, ② 구형 모바일 브라우저에서 결과를 못 받아오던 부분을 보완했으며, ③ 주소칸에 입력만 하고 '연결 확인'을 안 눌러도 최신 주소로 전송되게 했습니다. (PC·모바일 구분 없이 동작)",
+                ]
+            },
+            {
+                version: 'v9.54.1', date: '2026-07-22', time: '',
                 tag: 'fix',
                 items: [
                     "[성능] 모바일에서 무거움·렉을 줄였습니다 — 화면 밖의 태그 폴더·조합 카드·갤러리는 그리지 않도록 해(content-visibility) 스크롤과 최초 표시가 가벼워지고, 태그 버튼 수백 개의 불필요한 전환 효과를 좁혀 반응이 빨라졌습니다. 물결·파도 같은 끝없이 도는 장식 애니메이션도 모바일에선 멈춰 배터리·발열·버벅임을 줄였습니다.",
@@ -6567,12 +6574,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         };
         const _animaObjCache = {};   // cls -> { names:[widget이름 순서], defaults:{name:기본값} }
         function _animaMock() { return (typeof _comfyMockMode !== 'undefined' && _comfyMockMode) || (window.DevMode && DevMode.feature && DevMode.feature('mockGen')); }
+        // 일부 구형 모바일 브라우저는 AbortSignal.timeout이 없어 fetch 호출 자체가 throw → 폴링이 조용히 죽어
+        // "생성했는데 결과가 안 뜨는" 것처럼 보였음. 있으면 그걸, 없으면 AbortController로 폴백(절대 throw 안 함).
+        function _animaTimeoutSignal(ms) {
+            try { if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') return AbortSignal.timeout(ms); } catch (e) {}
+            try { const c = new AbortController(); setTimeout(() => { try { c.abort(); } catch (e) {} }, ms); return c.signal; } catch (e) { return undefined; }
+        }
         async function _animaLoadNodeInfo(cls) {
             if (_animaObjCache[cls]) return _animaObjCache[cls];
             if (_animaMock()) { _animaObjCache[cls] = { names: (_ANIMA_FALLBACK_NAMES[cls] || []).slice(), defaults: {} }; return _animaObjCache[cls]; }
             let names = null, defaults = {};
             try {
-                const res = await fetch(_comfyBase() + '/object_info/' + encodeURIComponent(cls), { signal: AbortSignal.timeout(8000) });
+                const res = await fetch(_comfyBase() + '/object_info/' + encodeURIComponent(cls), { signal: _animaTimeoutSignal(8000) });
                 if (res.ok) {
                     const data = await res.json();
                     const req = (data[cls] && data[cls].input && data[cls].input.required) || {};
@@ -6723,6 +6736,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const extras = (_anima.snippets || []).filter(s => s.kind !== 'base' && s.on && s.text && s.text.trim()).map(s => s.text.trim()).join(', ');
             const prompt = extras ? (base0.replace(/,\s*$/, '') + ', ' + extras) : base0;
             // ★ 사전 차단하지 않고 그냥 시도한다 (다른 테마와 동일) — 브라우저가 로컬 http를 허용할 수도 있으니.
+            // 모바일에서 주소칸에 입력만 하고 '연결 확인'을 안 눌러도(블러 전) 최신 주소로 전송되게 확정 동기화.
+            try { const ai = _animaEl('#anima-url'); const g = document.getElementById('comfy-url'); if (ai && g && ai.value.trim()) { g.value = ai.value.trim(); if (typeof _comfySaveSettings === 'function') _comfySaveSettings(); } } catch (e) {}
             _animaSetBusy(true);
             const base = _comfyBase();
             try {
@@ -6733,7 +6748,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     catch (e) { wf = await _animaBuildWorkflow(prompt, name); }
                 } else { wf = await _animaBuildWorkflow(prompt, name); }
                 const cid = (typeof _comfyClientId !== 'undefined' && _comfyClientId) ? _comfyClientId : (typeof _comfyUUID === 'function' ? _comfyUUID() : String(Math.random()));
-                const res = await fetch(base + '/prompt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: wf, client_id: cid }) });
+                // Content-Type: application/json 은 크로스오리진에서 CORS 사전요청(OPTIONS preflight)을 유발 →
+                // ComfyUI가 preflight를 제대로 안 받으면 GET(연결확인)은 되는데 이 POST만 막혀 "생성 안 됨"이 됨.
+                // text/plain 은 preflight 없는 '단순 요청'이고, ComfyUI(aiohttp)는 본문을 content-type 무관하게 JSON 파싱하므로 안전.
+                const res = await fetch(base + '/prompt', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ prompt: wf, client_id: cid }) });
                 if (!res.ok) {
                     const t = await res.text().catch(() => '');
                     let detail = '';
@@ -6768,7 +6786,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         async function _animaPoll(pid, base, tries) {
             if (tries > 400) { _animaSetBusy(false); showToast('결과 대기 시간 초과 — ComfyUI 콘솔에서 진행 상태를 확인하세요.', 'warning', 5000); return; }
             try {
-                const res = await fetch(base + '/history/' + pid, { signal: AbortSignal.timeout(15000) });
+                const res = await fetch(base + '/history/' + pid, { signal: _animaTimeoutSignal(15000) });
                 if (res.ok) {
                     const h = await res.json();
                     if (h[pid] && h[pid].outputs && Object.keys(h[pid].outputs).length) {
