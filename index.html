@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.54.3 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.54.4 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1050,6 +1050,12 @@
         .pl-cmdk-item.sel, .pl-cmdk-item:hover { background:color-mix(in srgb,var(--accent-blue) 22%,transparent); }
         .pl-cmdk-item .pl-cmdk-grp { margin-left:auto; font-size:10px; color:var(--text-dim); }
 
+        /* Anima(전체화면 테마) FOUC 방지 — 이 테마의 상세 CSS는 마운트 시 주입되지만, 저장된 레이아웃을
+           로드 초기에 반영했을 때 기본(클래식) 화면이 잠깐 번쩍이지 않도록 #app-container를 처음부터 숨겨둔다.
+           (마운트되면 #anima-root가 그려지고, 다른 테마로 나가면 app-container가 다시 보인다.) */
+        body[data-layout="anima"] #app-container,
+        body[data-layout="anima"] #mobile-tabbar { display: none !important; }
+
         /* 이미지 변환(img2img)·인페인팅 테마 — 3열: [에디터] · [원본+도구] · [결과] (원본↔결과 나란히) */
         body[data-layout="img2img"] #panel-left,
         body[data-layout="img2img"] #resize-handle-1,
@@ -1225,7 +1231,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.54.3 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.54.4 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1991,7 +1997,14 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.54.3', date: '2026-07-22', time: '최신',
+                version: 'v9.54.4', date: '2026-07-22', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[전역] 새로고침할 때 저장된 테마(예: Anima 편집)로 돌아오기 전에 기본(클래식) 화면이 잠깐 번쩍이던 현상을 없앴습니다 — 이제 로드 초기부터 저장된 테마 화면으로 뜹니다.",
+                ]
+            },
+            {
+                version: 'v9.54.3', date: '2026-07-22', time: '',
                 tag: 'fix',
                 items: [
                     "[성능] 로딩 렉을 크게 줄였습니다 — 특히 큰 커스텀 백업본을 쓸 때. 켤 때마다 태그 사전 전체를 <b>두 번</b> 만들던 낭비를 없애 한 번만 만들도록 했고(태그가 많을수록 효과 큼), 모바일에선 마우스 전용 호버 툴팁을 버튼마다 만들던 것을 생략했습니다(전체 내용은 길게 눌러 확인). 팩을 설치해 쓰는 경우는 기존과 동일하게 동작합니다.",
@@ -9388,6 +9401,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         (function initTheme() {
             const savedTheme = localStorage.getItem('pro_prompt_theme') || 'dark';
             document.body.setAttribute('data-theme', savedTheme);
+            // 저장된 레이아웃(테마)을 최대 한 일찍 body에 걸어둠 → 새로고침 시 기본(클래식) 화면이 잠깐 번쩍이는 FOUC 방지.
+            // 실제 마운트는 이후 restore()에서 하지만, data-layout만 먼저 반영하면 잘못된 테마 화면이 페인트되지 않음
+            // (특히 Anima처럼 #app-container를 숨기는 전체화면 테마는 클래식 UI가 안 보이고 배경만 잠깐 뜬 뒤 바로 그려짐).
+            try { const savedLayout = localStorage.getItem('pl_layout'); if (savedLayout) document.body.setAttribute('data-layout', savedLayout); } catch (e) {}
             window.addEventListener('DOMContentLoaded', () => {
                 const btn = document.getElementById('btn-theme-toggle');
                 if(btn) btn.innerHTML = savedTheme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
