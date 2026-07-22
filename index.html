@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.54.4 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.55.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1231,7 +1231,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.54.4 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.55.0 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1997,7 +1997,16 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.54.4', date: '2026-07-22', time: '최신',
+                version: 'v9.55.0', date: '2026-07-22', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] 하단 액션 바의 노출·옵션 칩이 줄바꿈되어 이제 후타나리(거근/노멀/소추)를 포함한 모든 옵션이 잘리지 않고 다 보이고 눌립니다(좌우로 밀 필요 없음). 그리고 이 하단 바를 PC에서도 쓸 수 있게 했습니다.",
+                    "[Anima 편집] 실행(전송)이 더 빠르게 느껴지도록 개선했습니다 — 결과를 초반에 더 자주 확인해 빨리 띄우고, 화면에 들어올 때 필요한 정보를 미리 받아둬 첫 전송 지연을 줄였습니다.",
+                    "[성능] 모바일 로딩을 더 가볍게 — 태그가 많을수록(큰 커스텀 사전) 버튼마다 붙던 '마우스 끌어 옮기기' 기능을 모바일에선 생략했습니다(터치에선 원래 동작 안 함). 사전이 클수록 로딩이 눈에 띄게 빨라집니다.",
+                ]
+            },
+            {
+                version: 'v9.54.4', date: '2026-07-22', time: '',
                 tag: 'fix',
                 items: [
                     "[전역] 새로고침할 때 저장된 테마(예: Anima 편집)로 돌아오기 전에 기본(클래식) 화면이 잠깐 번쩍이던 현상을 없앴습니다 — 이제 로드 초기부터 저장된 테마 화면으로 뜹니다.",
@@ -6824,7 +6833,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     }
                 }
             } catch (e) {}
-            setTimeout(() => _animaPoll(pid, base, tries + 1), 1500);
+            // 결과를 더 빨리 잡기 위해 초반엔 자주 폴링(0.5s), 이후 점점 간격을 넓힘.
+            // (Anima 워크플로우는 3~8스텝으로 금방 끝나는 경우가 많아 1.5s 고정은 체감상 느렸음)
+            const delay = tries < 8 ? 500 : (tries < 24 ? 1000 : 1500);
+            setTimeout(() => _animaPoll(pid, base, tries + 1), delay);
         }
 
         // ── UI ──
@@ -6898,6 +6910,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
             _animaRenderRun();
             _animaRenderSnipEdit();
+            _animaSyncMactHeight();  // 칩이 줄바꿈되면 바 높이가 달라지므로 콘텐츠 하단 여백 재계산
+        }
+        // 하단 바(줄바꿈으로 높이 가변)의 실제 높이를 CSS 변수로 넣어 콘텐츠가 안 가리게 함
+        function _animaSyncMactHeight() {
+            try {
+                const m = _animaEl('#anima-mact');
+                if (m && _animaDom) requestAnimationFrame(() => { try { _animaDom.style.setProperty('--anima-mact-h', (m.offsetHeight || 0) + 'px'); } catch (e) {} });
+            } catch (e) {}
         }
         function _animaRenderSnipEdit() {
             const box = _animaEl('#anima-snip-edit'); if (!box) return;
@@ -7094,7 +7114,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             inbox.addEventListener('drop', e => { e.preventDefault(); inbox.classList.remove('drag'); if (e.dataTransfer && e.dataTransfer.files) _animaAddFile(e.dataTransfer.files); });
             const onPaste = (e) => { if (_plCurrent !== 'anima') return; const items = e.clipboardData && e.clipboardData.items; if (!items) return; for (const it of items) { if (it.type && it.type.startsWith('image/')) { const f = it.getAsFile(); if (f) { _animaFileToDataURL(f).then(du => _animaSetImage(du, 'pasted')); e.preventDefault(); break; } } } };
             document.addEventListener('paste', onPaste);
-            return () => { document.removeEventListener('paste', onPaste); if (_animaDom) { _animaDom.remove(); _animaDom = null; } };
+            const onResize = () => _animaSyncMactHeight();   // 폭이 바뀌면 칩 줄바꿈 수가 달라져 바 높이 재계산
+            window.addEventListener('resize', onResize);
+            _animaSyncMactHeight();
+            // 노드 스키마(위젯 이름)를 미리 받아 캐시 → 첫 '실행' 전송이 object_info 왕복을 안 기다리게(제출 지연↓).
+            try { if (!_animaMock()) ['ImageScaleToTotalPixels', 'CosmosReferenceConditioning'].forEach(c => { try { _animaLoadNodeInfo(c).catch(() => {}); } catch (e) {} }); } catch (e) {}
+            return () => { document.removeEventListener('paste', onPaste); window.removeEventListener('resize', onResize); if (_animaDom) { _animaDom.remove(); _animaDom = null; } };
         }
         window.mountAnima = mountAnima;
 
@@ -7197,20 +7222,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-srv-arrow { margin-left:auto; font-size:10px; color:var(--text-dim); transition:transform .15s; }
           .anima-srv-card.closed .anima-srv-arrow { transform:rotate(-90deg); }
           .anima-srv-card.closed #anima-srv-body { display:none; }
-          /* 모바일 하단 고정 바 — 노출·옵션 + 실행. 스크롤 없이 핵심 흐름 완료 */
-          .anima-mact { display:none; }
-          @media (max-width:760px){
-            .anima-mact { display:flex; flex-direction:column; gap:8px; position:fixed; left:0; right:0; bottom:0; z-index:60;
-              padding:10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); background:var(--bg-panel); border-top:1px solid var(--border-dim); box-shadow:0 -6px 18px rgba(0,0,0,.25); }
-            .anima-mact-chips { display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:2px; }
-            .anima-mact-chips::-webkit-scrollbar { display:none; }
-            .anima-mact .anima-chip { flex:0 0 auto; white-space:nowrap; }
-            .anima-mact .anima-snip-lab { flex:0 0 auto; white-space:nowrap; align-self:center; }
-            .anima-mact-row { display:flex; gap:8px; align-items:stretch; }
-            .anima-mact-clip { flex:0 0 auto; width:52px; font-size:17px; padding:0; display:flex; align-items:center; justify-content:center; }
-            .anima-mact-run { flex:1; }
-            #anima-root .anima-wrap { padding-bottom:132px; } /* 바에 내용이 가리지 않게 */
-          }`;
+          /* 하단 고정 액션 바 — 노출·옵션 칩 + 실행 (PC·모바일 공통).
+             칩은 줄바꿈(wrap)되어 후타나리 등 모든 옵션이 잘리지 않고 항상 보이고 눌린다(좌우 스크롤 불필요). */
+          .anima-mact { display:flex; flex-direction:column; align-items:center; gap:8px; position:fixed; left:0; right:0; bottom:0; z-index:60;
+            padding:9px 12px calc(9px + env(safe-area-inset-bottom, 0px)); background:var(--bg-panel); border-top:1px solid var(--border-dim); box-shadow:0 -6px 18px rgba(0,0,0,.25); }
+          .anima-mact-chips { display:flex; flex-wrap:wrap; gap:6px; align-items:center; width:100%; max-width:1000px; }
+          .anima-mact .anima-chip { flex:0 0 auto; white-space:nowrap; }
+          .anima-mact .anima-snip-lab { flex:0 0 auto; white-space:nowrap; align-self:center; }
+          .anima-mact-row { display:flex; gap:8px; align-items:stretch; width:100%; max-width:1000px; }
+          .anima-mact-clip { flex:0 0 auto; width:52px; font-size:17px; padding:0; display:flex; align-items:center; justify-content:center; }
+          .anima-mact-run { flex:1; }
+          /* 바 높이만큼 콘텐츠 하단 여백 확보(가림 방지) — 실제 높이는 JS가 --anima-mact-h로 넣어줌 */
+          #anima-root .anima-wrap { padding-bottom: calc(var(--anima-mact-h, 128px) + 16px); }`;
 
         // Pony Realism 코스프레 변환 권장 세팅 원클릭
         // 권장 기본값으로 "초기화" — 생성 파라미터 + 고급 파이프라인을 안전한 기본 상태로 되돌림
@@ -11809,7 +11832,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                                 handleTagToggle(btn, data.t, data.n, i); // 즉시 토글
                                 btn._clickTimer = setTimeout(() => { btn._clickTimer = null; }, 250);
                             };
-                            setupTagDrag(btn, i, subLayerRaw);
+                            // HTML5 드래그는 터치기기에서 동작 안 함(모바일 태그 재정렬 불가) → 버튼마다 draggable+리스너 6개가 순수 낭비.
+                            // 모바일에선 생략해 큰 사전 로딩 비용을 크게 줄임(재정렬은 데스크톱 전용).
+                            if (!_ioCoarsePointer()) setupTagDrag(btn, i, subLayerRaw);
                             activeTagsMap[data.t] = { neg: data.n, layer: i, kor: data.k || data.t, c: data.c || "", folderId: folderId, color: subColor };
                             return btn;
                         };
