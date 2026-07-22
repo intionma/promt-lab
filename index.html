@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.54.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.54.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -402,7 +402,7 @@
 
         .tag-btn {
             background: var(--bg-surface); border: 1px solid var(--border-dim); color: var(--text-main);
-            padding: 6px 28px 6px 10px; border-radius: 8px; font-family: var(--font-ui); cursor: grab; transition: all 0.2s;
+            padding: 6px 28px 6px 10px; border-radius: 8px; font-family: var(--font-ui); cursor: grab; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, color 0.2s;
             display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px;
             text-align: left; width: auto; position: relative; overflow: hidden;
             max-width: 100%;
@@ -1158,6 +1158,15 @@
             .toast { background: var(--bg-surface) !important; }
             /* 무거운 그림자도 모바일에선 가볍게 (합성 비용↓) */
             .toast, .modal-content, .combo-create-modal, #ctx-menu, .combo-ctx-menu, #tag-inline-popup { box-shadow: 0 8px 24px rgba(0,0,0,0.35) !important; }
+            /* ── 화면 밖 콘텐츠는 렌더(레이아웃·페인트) 건너뛰기 ──
+               태그 폴더·조합 카드가 수백~수천 개라 스크롤/최초 표시 때 페인트 비용이 큼.
+               content-visibility:auto 로 뷰포트 밖은 그리지 않게 해 스크롤을 가볍게. (DOM/상태는 그대로라 기능 영향 없음) */
+            .sub-folder { content-visibility: auto; contain-intrinsic-size: auto 240px; }
+            .layer-group { content-visibility: auto; contain-intrinsic-size: auto 60px; }
+            .pl-grid > * { content-visibility: auto; contain-intrinsic-size: auto 128px; }
+            .anima-gitem, .cmp-card { content-visibility: auto; contain-intrinsic-size: auto 180px; }
+            /* 끝없이 도는 장식 애니메이션은 매 프레임 합성 → 모바일에선 정지(기능 무관, 물결/파도 장식) */
+            [style*="comfy-water-spin"], [style*="comfy-wave-row"] { animation: none !important; }
         }
         /* 손가락 입력(터치) 기기: 잔여 blur 안전망 */
         @media (hover: none) and (pointer: coarse) {
@@ -1216,7 +1225,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.54.0 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.54.1 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1982,7 +1991,14 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.54.0', date: '2026-07-22', time: '최신',
+                version: 'v9.54.1', date: '2026-07-22', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[성능] 모바일에서 무거움·렉을 줄였습니다 — 화면 밖의 태그 폴더·조합 카드·갤러리는 그리지 않도록 해(content-visibility) 스크롤과 최초 표시가 가벼워지고, 태그 버튼 수백 개의 불필요한 전환 효과를 좁혀 반응이 빨라졌습니다. 물결·파도 같은 끝없이 도는 장식 애니메이션도 모바일에선 멈춰 배터리·발열·버벅임을 줄였습니다.",
+                ]
+            },
+            {
+                version: 'v9.54.0', date: '2026-07-22', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 생성 이미지 목록(갤러리)에서 이미지를 누르면 이제 큰 화면으로 크게 볼 수 있고(좌우로 넘기기 가능), 동시에 원본과 비교할 대상으로도 선택됩니다.",
