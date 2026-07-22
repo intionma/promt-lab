@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.55.5 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1240,7 +1240,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.55.5 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.0 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2006,7 +2006,16 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.55.5', date: '2026-07-22', time: '최신',
+                version: 'v9.56.0', date: '2026-07-22', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] 표정 프리셋을 추가했습니다 — 아헤가오·혀 내밀기·홍조·미소·유혹·윙크·우는·절정·무표정 중에서 골라 얹을 수 있어요(하나 켜면 나머지는 꺼짐).",
+                    "[Anima 편집] '워터마크·글자 억제 (실험)' 옵션을 고급 설정에 추가했습니다 — 소스 이미지의 워터마크·로고·글자를 줄입니다. 다만 Anima 특성상 켜면 결과 품질·속도가 달라질 수 있어 실험 옵션이며(기본 꺼짐), 효과가 애매하면 소스에서 워터마크를 잘라내고 올리는 게 가장 확실합니다.",
+                    "[Anima 편집] 하단 바의 옵션이 많아져도 세로로 늘어나지 않게, 칩 줄을 <b>좌우로 밀거나(터치) 드래그(마우스)</b>해서 넘겨볼 수 있게 했습니다. 오른쪽 끝 흐림으로 더 있다는 걸 표시해요.",
+                ]
+            },
+            {
+                version: 'v9.55.5', date: '2026-07-22', time: '',
                 tag: 'feat',
                 items: [
                     "[이미지 변환] '간편 모드'를 확 단순하게 바꿨습니다 — 이미지 넣기 → 자동 분석 → (원하면 노출/후타 프리셋 선택) → 실행, 이게 전부예요. 체크포인트·포즈·얼굴·업스케일 같은 세부 설정은 '전문 모드'에서 한 번만 해두면 되고, 간편 화면에선 설정·조합·비교 버튼을 다 숨겼습니다.",
@@ -6613,6 +6622,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             vaeName: 'qwen_image_vae.safetensors',
             lora1Name: 'AnimaEditV1.safetensors', lora1: 1,
             lora2Name: '', lora2: 1,
+            suppressWm: false,          // (실험) 워터마크·글자 억제 — 켜면 cfg 상향 + 진짜 부정 프롬프트 연결(cfg=1이라 원래 부정 무효)
             _wf: null,                  // 워크플로우 버전 스탬프(마이그레이션용)
             customWf: '',               // 사용자가 붙여넣은 API 워크플로우(있으면 그대로 사용)
             snippets: [],               // 프롬프트 옵션 토글 [{id,name,text,on}] — 켜면 기본 프롬프트 뒤에 붙음
@@ -6631,14 +6641,24 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { id: 'base_topbottom', name: '상의+하의 벗기기', kind: 'base', text: 'masterpiece, best quality, score_7, (topless, breasts out, nipples, bottomless, no panties, pussy, uncensored, :2), ' },
             { id: 'futa_large', name: '후타나리(거근)', kind: 'append', on: false, group: 'futa', text: 'futanari, penis, erection, (huge penis, large penis, veiny penis, glans, large testicles:1.3), ejaculation, excessive cum, projectile cum, cum string' },
             { id: 'futa_normal', name: '후타나리(노멀)', kind: 'append', on: false, group: 'futa', text: 'futanari, penis, erection, glans, testicles, ejaculation, cum' },
-            { id: 'futa_small', name: '후타나리(소추)', kind: 'append', on: false, group: 'futa', text: 'futanari, penis, erection, (small penis, small testicles:1.3), glans, ejaculation, cum' }
+            { id: 'futa_small', name: '후타나리(소추)', kind: 'append', on: false, group: 'futa', text: 'futanari, penis, erection, (small penis, small testicles:1.3), glans, ejaculation, cum' },
+            // 표정 프리셋 (group 'expr' — 하나 켜면 나머지 자동 꺼짐)
+            { id: 'expr_ahegao', name: '아헤가오', kind: 'append', on: false, group: 'expr', text: '(ahegao:1.2), rolling eyes, tongue out, drooling, saliva, blush, fucked silly' },
+            { id: 'expr_tongue', name: '혀 내밀기', kind: 'append', on: false, group: 'expr', text: 'tongue out, tongue, saliva' },
+            { id: 'expr_blush', name: '홍조', kind: 'append', on: false, group: 'expr', text: 'blush, embarrassed' },
+            { id: 'expr_smile', name: '미소', kind: 'append', on: false, group: 'expr', text: 'smile, happy' },
+            { id: 'expr_seductive', name: '유혹', kind: 'append', on: false, group: 'expr', text: 'seductive smile, bedroom eyes, half-closed eyes, looking at viewer' },
+            { id: 'expr_wink', name: '윙크', kind: 'append', on: false, group: 'expr', text: 'wink, one eye closed, smile' },
+            { id: 'expr_cry', name: '우는', kind: 'append', on: false, group: 'expr', text: 'crying, tears, crying with eyes open' },
+            { id: 'expr_orgasm', name: '절정', kind: 'append', on: false, group: 'expr', text: '(orgasm:1.1), ecstasy, trembling, rolling eyes' },
+            { id: 'expr_neutral', name: '무표정', kind: 'append', on: false, group: 'expr', text: 'expressionless, neutral face, closed mouth' }
         ];
         const ANIMA_KEY = 'anima_settings_v1';
         function _animaSave() {
             try {
                 const p = {};
                 ['prompt', 'steps', 'cfg', 'denoise', 'sampler', 'scheduler', 'seed', 'megapixels', 'upscaleMethod', 'refWeight', 'refMode',
-                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', '_wf', 'customWf', 'imgThumb'].forEach(k => p[k] = _anima[k]);
+                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', '_wf', 'customWf', 'imgThumb'].forEach(k => p[k] = _anima[k]);
                 // 이 테마에서 뽑은 결과 이미지 목록도 저장(서버 URL만, Anima 전용 · 다른 테마와 완전 분리). 최근 80장.
                 p.results = (_anima.results || []).slice(0, 80).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed }));
                 p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null }));
@@ -6667,6 +6687,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     if (oldFuta && (oldFuta.text || '').trim() === OLD_FUTA_TEXT) _anima.snippets = _anima.snippets.filter(x => x.id !== 'futanari');
                     const addFuta = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === 'futa' && !_anima.snippets.some(x => x.id === d.id));
                     if (addFuta.length) _anima.snippets = _anima.snippets.concat(JSON.parse(JSON.stringify(addFuta)));
+                    // 마이그레이션: 표정 프리셋(group 'expr') 신규 추가
+                    const addExpr = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === 'expr' && !_anima.snippets.some(x => x.id === d.id));
+                    if (addExpr.length) _anima.snippets = _anima.snippets.concat(JSON.parse(JSON.stringify(addExpr)));
                     // 마이그레이션: '하의만 벗기기' 기본 텍스트 보강(pussy) — 사용자가 안 고친 경우에만
                     const OLD_BOTTOM_TEXT = 'masterpiece, best quality, score_7, (bottomless, no panties, uncensored, :2), ';
                     const bt = _anima.snippets.find(x => x.id === 'base_bottom');
@@ -6814,6 +6837,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // ── 프롬프트 ──
             wf['67'] = { class_type: 'CLIPTextEncode', inputs: { clip: ['61', 0], text: pos } };
             wf['88'] = { class_type: 'ConditioningZeroOut', inputs: { conditioning: ['67', 0] } };
+            // (실험) 워터마크·글자 억제 — cfg=1에선 부정이 무효라, 켜면 진짜 부정 텍스트를 인코딩해 아래 71/66 negative로 연결하고 cfg를 살짝 올린다.
+            let _negRef = ['88', 0], _cfg = S.cfg;
+            if (S.suppressWm) {
+                wf['90'] = { class_type: 'CLIPTextEncode', inputs: { clip: ['61', 0], text: 'watermark, text, english text, logo, signature, artist name, username, patreon logo, web address, jpeg artifacts, speech bubble, sound effects, subtitles, blurry' } };
+                _negRef = ['90', 0];
+                _cfg = Math.max(parseFloat(S.cfg) || 1, 2.5);   // 부정이 실제로 먹히도록 cfg 상향(distilled라 과하지 않게)
+            }
             // ── 입력 이미지 → 축소 → 인코딩(참조 latent) ──
             wf['73'] = { class_type: 'LoadImage', inputs: { image: imageName } };
             // ★ 이 노드는 설치본에 따라 위젯이 3개(upscale_method, megapixels, +64) — 원본대로 3번째 값(64)까지 보냄
@@ -6821,9 +6851,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             wf['82'] = _animaNode('ImageScaleToTotalPixels', [S.upscaleMethod, S.megapixels, 64], { image: ['73', 0] });
             wf['76'] = { class_type: 'VAEEncode', inputs: { pixels: ['82', 0], vae: ['62', 0] } };
             // ── Cosmos 레퍼런스 조건화: 원본 latent을 조건에 주입 (연결 이름은 원본과 정확히 동일) ──
-            wf['71'] = _animaNode('CosmosReferenceConditioning', [S.refWeight, S.refMode], { positive: ['67', 0], negative: ['88', 0], reference_latent: ['76', 0] });
-            // ── 샘플링 (원본과 동일: 입력 latent에서 denoise=1, 8스텝) ──
-            wf['66'] = { class_type: 'KSampler', inputs: { seed: seed, steps: S.steps, cfg: S.cfg, sampler_name: S.sampler, scheduler: S.scheduler, denoise: S.denoise, model: ['69', 0], positive: ['71', 0], negative: ['71', 1], latent_image: ['76', 0] } };
+            wf['71'] = _animaNode('CosmosReferenceConditioning', [S.refWeight, S.refMode], { positive: ['67', 0], negative: _negRef, reference_latent: ['76', 0] });
+            // ── 샘플링 (원본과 동일: 입력 latent에서 denoise=1) ──
+            wf['66'] = { class_type: 'KSampler', inputs: { seed: seed, steps: S.steps, cfg: _cfg, sampler_name: S.sampler, scheduler: S.scheduler, denoise: S.denoise, model: ['69', 0], positive: ['71', 0], negative: ['71', 1], latent_image: ['76', 0] } };
             wf['63'] = { class_type: 'VAEDecode', inputs: { samples: ['66', 0], vae: ['62', 0] } };
             wf['9'] = { class_type: 'SaveImage', inputs: { filename_prefix: 'PromptLab_anima', images: ['63', 0] } };
             return wf;
@@ -7048,6 +7078,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         <button id="anima-mact-run" class="anima-run anima-mact-run"></button>
                     </div>`;
                 _animaBindChips(mact);
+                _animaBindDragScroll(mact.querySelector('.anima-mact-chips')); // 마우스 드래그로도 좌우 스크롤(터치는 네이티브 pan-x)
                 const mc = mact.querySelector('#anima-mact-clip'); if (mc) mc.onclick = _animaClipboard; // 붙여넣고 바로 실행하기 좋게
                 const mr = mact.querySelector('#anima-mact-run'); if (mr) mr.onclick = _animaGenerate;
             }
@@ -7055,7 +7086,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _animaRenderSnipEdit();
             _animaSyncMactHeight();  // 칩이 줄바꿈되면 바 높이가 달라지므로 콘텐츠 하단 여백 재계산
         }
-        // 하단 바(줄바꿈으로 높이 가변)의 실제 높이를 CSS 변수로 넣어 콘텐츠가 안 가리게 함
+        // 하단 바 칩 줄을 마우스로 좌우 드래그해 스크롤 (터치는 네이티브 pan-x가 처리). 드래그 후엔 칩 클릭 방지.
+        function _animaBindDragScroll(el) {
+            if (!el || el._dragBound) return; el._dragBound = true;
+            let down = false, startX = 0, startScroll = 0, moved = false;
+            el.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') return; down = true; moved = false; startX = e.clientX; startScroll = el.scrollLeft; });
+            el.addEventListener('pointermove', (e) => { if (!down) return; const dx = e.clientX - startX; if (Math.abs(dx) > 4) { moved = true; el.classList.add('dragging'); } el.scrollLeft = startScroll - dx; });
+            const up = () => { if (!down) return; down = false; el.classList.remove('dragging'); };
+            el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('pointerleave', up);
+            el.addEventListener('click', (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
+        }
+        // 하단 바 높이를 CSS 변수로 넣어 콘텐츠가 안 가리게 함 (가로 스크롤이라 보통 고정 높이)
         function _animaSyncMactHeight() {
             try {
                 const m = _animaEl('#anima-mact');
@@ -7184,6 +7225,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 row('메가픽셀', num('megapixels', 0.5, 0.5, 4), '입력 이미지 크기(기본 2)') +
                 row('샘플러', `<input type="text" data-k="sampler" value="${_anima.sampler}">`, '') +
                 row('스케줄러', `<input type="text" data-k="scheduler" value="${_anima.scheduler}">`, '') +
+                `<label class="anima-wmrow"><input type="checkbox" id="anima-suppresswm" ${_anima.suppressWm ? 'checked' : ''}><span>🧪 워터마크·글자 억제 <b>(실험)</b></span></label>
+                 <div class="anima-wmhelp">소스 이미지의 워터마크·로고·글자를 줄입니다. Anima는 cfg=1이라 부정 프롬프트가 원래 안 먹어서, 켜면 <b>cfg를 올리고</b> 진짜 부정 프롬프트를 넣습니다. 그래서 <b>결과 품질·속도가 달라질 수 있어요</b>(3스텝 distilled). 효과가 애매하면 소스에서 워터마크를 잘라내고 올리는 게 가장 확실합니다.</div>` +
                 `<div class="anima-adv-sec">모델 파일 (설치된 이름과 정확히 일치해야 함)</div>` +
                 row('UNET', txt('unetName')) +
                 row('CLIP', txt('clipName')) +
@@ -7202,6 +7245,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     _animaSave();
                 };
             });
+            const wm = box.querySelector('#anima-suppresswm');
+            if (wm) wm.onchange = () => { _anima.suppressWm = wm.checked; _animaSave(); showToast(wm.checked ? '워터마크·글자 억제 켬 (실험 — 품질이 달라질 수 있어요)' : '워터마크·글자 억제 끔', 'info', 2200); };
             const rb = box.querySelector('#anima-reset');
             if (rb) rb.onclick = () => { Object.keys(ANIMA_DEFAULTS).forEach(k => _anima[k] = ANIMA_DEFAULTS[k]); _animaSave(); _animaRenderAdv(); const pt = _animaEl('#anima-prompt'); if (pt) pt.value = _anima.prompt; const sd = _animaEl('#anima-seed'); if (sd) sd.value = _anima.seed; showToast('기본값으로 복원했어요', 'info', 1600); };
             const cw = box.querySelector('#anima-customwf');
@@ -7323,6 +7368,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-arow input[type=text] { width:100%; }
           .anima-arow .hint { grid-column:2; font-size:11px; color:var(--text-faint,var(--text-dim)); margin-top:-2px; }
           .anima-adv-sec { font-size:11px; font-weight:800; color:var(--text-dim); text-transform:uppercase; letter-spacing:.03em; margin-top:6px; padding-top:8px; border-top:1px solid var(--border-dim); }
+          .anima-wmrow { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:var(--text-main); cursor:pointer; margin-top:6px; }
+          .anima-wmrow input { width:17px; height:17px; }
+          .anima-wmhelp { font-size:11px; color:var(--text-dim); line-height:1.55; background:var(--bg-base); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; }
           .anima-adv-actions { margin-top:6px; }
           .anima-empty { text-align:center; color:var(--text-dim); font-size:13px; line-height:1.7; padding:28px 16px; border:1px dashed var(--border-dim); border-radius:12px; }
           .anima-cmp { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
@@ -7369,7 +7417,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
              칩은 줄바꿈(wrap)되어 후타나리 등 모든 옵션이 잘리지 않고 항상 보이고 눌린다(좌우 스크롤 불필요). */
           .anima-mact { display:flex; flex-direction:column; align-items:center; gap:8px; position:fixed; left:0; right:0; bottom:0; z-index:60;
             padding:9px 12px calc(9px + env(safe-area-inset-bottom, 0px)); background:var(--bg-panel); border-top:1px solid var(--border-dim); box-shadow:0 -6px 18px rgba(0,0,0,.25); }
-          .anima-mact-chips { display:flex; flex-wrap:wrap; gap:6px; align-items:center; width:100%; max-width:1000px; }
+          /* 칩이 많아지면 세로로 늘어나지 않게 한 줄 가로 스크롤 + 드래그. 오른쪽 페이드로 '더 있음' 힌트 */
+          .anima-mact-chips { display:flex; flex-wrap:nowrap; gap:6px; align-items:center; width:100%; max-width:1000px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:none; touch-action:pan-x; cursor:grab; scroll-padding:12px;
+            -webkit-mask-image:linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 22px), transparent 100%); mask-image:linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 22px), transparent 100%); }
+          .anima-mact-chips::-webkit-scrollbar { display:none; }
+          .anima-mact-chips.dragging { cursor:grabbing; scroll-behavior:auto; }
           .anima-mact .anima-chip { flex:0 0 auto; white-space:nowrap; }
           .anima-mact .anima-snip-lab { flex:0 0 auto; white-space:nowrap; align-self:center; }
           .anima-mact-row { display:flex; gap:8px; align-items:stretch; width:100%; max-width:1000px; }
