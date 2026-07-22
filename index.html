@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.55.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.55.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1231,7 +1231,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.55.0 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.55.1 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1997,7 +1997,15 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.55.0', date: '2026-07-22', time: '최신',
+                version: 'v9.55.1', date: '2026-07-22', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[중요·복구] 이미지 변환·인페인팅·Anima 편집을 쓰다가 클래식/스튜디오로 돌아왔을 때, ComfyUI 전송창의 '내 워크플로우(커스텀 설정)'가 통째로 날아가 기본(간단 생성)으로 초기화되던 버그를 고쳤습니다. 특히 Anima 편집 상태로 새로고침한 뒤 생성하면 메인 설정이 지워지던 것이 원인이었습니다. (이제 다른 테마가 메인 워크플로우를 건드리지 않습니다.)",
+                    "[Anima 편집] 생성 후 결과를 못 받아올 때 '생성 중…'이 무한히 떠 있던 문제를 고쳤습니다 — 연결이 끊기거나 막히면 잠시 뒤 명확한 안내(연결 확인·출력 폴더 확인)를 띄우고 멈춥니다. 또 연결 전에 불필요한 요청이 나가 오류처럼 보이던 것도 정리했습니다.",
+                ]
+            },
+            {
+                version: 'v9.55.0', date: '2026-07-22', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 하단 액션 바의 노출·옵션 칩이 줄바꿈되어 이제 후타나리(거근/노멀/소추)를 포함한 모든 옵션이 잘리지 않고 다 보이고 눌립니다(좌우로 밀 필요 없음). 그리고 이 하단 바를 PC에서도 쓸 수 있게 했습니다.",
@@ -4844,6 +4852,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                                      // 키 전환 타이밍과 겹쳐 엉뚱한 키에 중간 상태를 쓰던 위험 차단(어차피 방금 로드한 값이라 저장 불필요)
         function _comfySaveSettings() {
             if (_comfyRestoring) return;
+            // ★ 폼이 아직 '메인 설정'을 실제로 담지 않았는데(부팅 직후·Anima 같은 독립 테마에서 폼엔 HTML 기본값만 있음)
+            //   메인 키에 저장하면 사용자의 커스텀 워크플로우가 basic·빈값으로 통째로 덮여 날아감 → 차단.
+            //   (이미지 테마 편집 중이면 imgSettingsOn=true라 이미지 키에 저장되므로 안전.)
+            if (!_comfyImgSettingsOn && !_comfyMainLoaded) return;
             try {
                 localStorage.setItem(_comfyActiveSettingsKey(), JSON.stringify({
                     url: document.getElementById('comfy-url').value,
@@ -4868,6 +4880,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }));
             } catch (e) {}
         }
+
+        // 저장된 ComfyUI 설정에서 'url'만 안전하게 갱신(폼을 읽지 않음) — Anima 등 독립 테마가
+        // 주소만 공유·저장하면서 커스텀 워크플로우 등 다른 설정을 건드리지 않게.
+        function _comfyPatchUrl(url) {
+            try {
+                const key = _comfyActiveSettingsKey();
+                const s = JSON.parse(localStorage.getItem(key) || '{}');
+                s.url = url;
+                localStorage.setItem(key, JSON.stringify(s));
+            } catch (e) {}
+        }
+        window.__comfyPatchUrl = _comfyPatchUrl;
 
         function comfySetTarget(t) {
             _comfyTarget = t;
@@ -6612,10 +6636,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         async function _animaLoadNodeInfo(cls) {
             if (_animaObjCache[cls]) return _animaObjCache[cls];
             if (_animaMock()) { _animaObjCache[cls] = { names: (_ANIMA_FALLBACK_NAMES[cls] || []).slice(), defaults: {} }; return _animaObjCache[cls]; }
-            let names = null, defaults = {};
+            let names = null, defaults = {}, fetchedOk = false;
             try {
                 const res = await fetch(_comfyBase() + '/object_info/' + encodeURIComponent(cls), { signal: _animaTimeoutSignal(8000) });
                 if (res.ok) {
+                    fetchedOk = true;
                     const data = await res.json();
                     const req = (data[cls] && data[cls].input && data[cls].input.required) || {};
                     names = [];
@@ -6644,8 +6669,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const fb = _ANIMA_FALLBACK_NAMES[cls];
                 if (fb && fb.length && fb.some(n => !names.includes(n))) names = fb.slice();
             }
-            _animaObjCache[cls] = { names, defaults };
-            return _animaObjCache[cls];
+            const result = { names, defaults };
+            // ★ 서버에서 실제로 스키마를 받았을 때만 캐시한다. (연결 전/실패 시 폴백을 영구 캐시하면
+            //    나중에 진짜 연결됐을 때도 폴백 스키마를 써서 노드 오류가 나던 문제 방지 → 실패 시 다음에 재시도)
+            if (fetchedOk) _animaObjCache[cls] = result;
+            return result;
         }
         function _animaNode(cls, widgetVals, links) {
             const info = _animaObjCache[cls] || { names: (_ANIMA_FALLBACK_NAMES[cls] || []), defaults: {} };
@@ -6766,7 +6794,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const prompt = extras ? (base0.replace(/,\s*$/, '') + ', ' + extras) : base0;
             // ★ 사전 차단하지 않고 그냥 시도한다 (다른 테마와 동일) — 브라우저가 로컬 http를 허용할 수도 있으니.
             // 모바일에서 주소칸에 입력만 하고 '연결 확인'을 안 눌러도(블러 전) 최신 주소로 전송되게 확정 동기화.
-            try { const ai = _animaEl('#anima-url'); const g = document.getElementById('comfy-url'); if (ai && g && ai.value.trim()) { g.value = ai.value.trim(); if (typeof _comfySaveSettings === 'function') _comfySaveSettings(); } } catch (e) {}
+            try { const ai = _animaEl('#anima-url'); const g = document.getElementById('comfy-url'); if (ai && g && ai.value.trim()) { g.value = ai.value.trim(); if (typeof _comfyPatchUrl === 'function') _comfyPatchUrl(ai.value.trim()); } } catch (e) {}
             _animaSetBusy(true);
             const base = _comfyBase();
             try {
@@ -6812,8 +6840,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 showToast(msg, 'error', 5000);
             }
         }
-        async function _animaPoll(pid, base, tries) {
+        async function _animaPoll(pid, base, tries, fails) {
+            fails = fails || 0;   // 연속 '연결 실패(fetch throw/에러응답)' 횟수 — '아직 생성 중(200·결과없음)'과 구분
             if (tries > 400) { _animaSetBusy(false); showToast('결과 대기 시간 초과 — ComfyUI 콘솔에서 진행 상태를 확인하세요.', 'warning', 5000); return; }
+            let netErr = false;
             try {
                 const res = await fetch(base + '/history/' + pid, { signal: _animaTimeoutSignal(15000) });
                 if (res.ok) {
@@ -6831,12 +6861,24 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         // outputs는 있는데 이미지가 없으면(오류 등) 종료
                         _animaSetBusy(false); showToast('결과 이미지가 없어요 — 워크플로우/모델을 확인하세요.', 'warning', 5000); return;
                     }
-                }
-            } catch (e) {}
+                    // 200이지만 아직 pid 결과 없음 → 계속 생성 중(실패 아님). fails 리셋.
+                } else { netErr = true; } // 4xx/5xx = 조회 실패로 카운트
+            } catch (e) { netErr = true; }   // fetch throw(연결 끊김/차단/타임아웃) = 조회 실패
+            fails = netErr ? fails + 1 : 0;
+            // ★ 연속으로 결과를 못 받아오면(연결이 끊겼거나 막힘) 무한 '생성 중' 대신 명확한 오류로 종료.
+            //   ComfyUI에선 생성이 끝났을 수 있으므로 그 점을 안내(사용자 로그: "생성됐는데 폰으로 안 옴" 대응).
+            if (fails >= 15) {
+                _animaSetBusy(false);
+                const mixed = (typeof _comfyMixedContentBlocked === 'function' && _comfyMixedContentBlocked());
+                showToast(mixed
+                    ? ('결과를 못 받아왔어요 — 이 앱은 https인데 ' + base + ' 은 http라 브라우저가 결과 조회를 막았을 수 있어요. (앱을 로컬 http로 열거나 ComfyUI를 https로)')
+                    : ('결과를 못 받아왔어요 — ' + base + ' 연결이 끊겼거나 주소가 바뀐 것 같아요. ComfyUI에선 생성이 끝났을 수 있으니, [연결 확인] 후 다시 실행하거나 ComfyUI 출력 폴더에서 확인하세요.'),
+                    'error', 9000);
+                return;
+            }
             // 결과를 더 빨리 잡기 위해 초반엔 자주 폴링(0.5s), 이후 점점 간격을 넓힘.
-            // (Anima 워크플로우는 3~8스텝으로 금방 끝나는 경우가 많아 1.5s 고정은 체감상 느렸음)
             const delay = tries < 8 ? 500 : (tries < 24 ? 1000 : 1500);
-            setTimeout(() => _animaPoll(pid, base, tries + 1), delay);
+            setTimeout(() => _animaPoll(pid, base, tries + 1, fails), delay);
         }
 
         // ── UI ──
@@ -7096,7 +7138,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if ((urlIn.value || '').trim()) srvCard.classList.add('closed');
                 srvHead.onclick = () => srvCard.classList.toggle('closed');
             }
-            urlIn.onchange = () => { try { const g = document.getElementById('comfy-url'); if (g) g.value = urlIn.value.trim(); _comfySaveSettings(); } catch (e) {} };
+            urlIn.onchange = () => { try { const g = document.getElementById('comfy-url'); if (g) g.value = urlIn.value.trim(); if (typeof _comfyPatchUrl === 'function') _comfyPatchUrl(urlIn.value.trim()); } catch (e) {} };
             _animaEl('#anima-ping').onclick = async () => {
                 const st = _animaEl('#anima-conn'); if (st) { st.textContent = '확인 중…'; st.className = 'anima-conn'; }
                 try { const g = document.getElementById('comfy-url'); if (g) g.value = urlIn.value.trim(); } catch (e) {}
@@ -7117,8 +7159,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const onResize = () => _animaSyncMactHeight();   // 폭이 바뀌면 칩 줄바꿈 수가 달라져 바 높이 재계산
             window.addEventListener('resize', onResize);
             _animaSyncMactHeight();
-            // 노드 스키마(위젯 이름)를 미리 받아 캐시 → 첫 '실행' 전송이 object_info 왕복을 안 기다리게(제출 지연↓).
-            try { if (!_animaMock()) ['ImageScaleToTotalPixels', 'CosmosReferenceConditioning'].forEach(c => { try { _animaLoadNodeInfo(c).catch(() => {}); } catch (e) {} }); } catch (e) {}
+            // (마운트 시 노드 스키마 프리페치는 제거 — 연결 전에 실패 요청이 나가 오류처럼 보이고 캐시를 오염시킬 수 있어,
+            //  스키마는 실제 '실행' 시점에만 받아온다. 실패한 스키마는 캐시하지 않으므로 다음 실행에서 재시도됨.)
             return () => { document.removeEventListener('paste', onPaste); window.removeEventListener('resize', onResize); if (_animaDom) { _animaDom.remove(); _animaDom = null; } };
         }
         window.mountAnima = mountAnima;
