@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.8 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.9 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1240,7 +1240,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.8 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.9 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2008,7 +2008,14 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.8', date: '2026-07-22', time: '최신',
+                version: 'v9.56.9', date: '2026-07-22', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] <b>대기열</b>이 생겼습니다 — 생성 중에도 <b>실행</b> 버튼이 잠기지 않아요. 다른 이미지를 넣거나 표정·옵션을 바꿔가며 계속 <b>실행</b>을 누르면, 그 순간의 이미지·프롬프트·옵션이 그대로 대기열에 쌓여 <b>하나씩 자동으로</b> 처리됩니다. 실행 버튼 아래에 썸네일로 진행 상황(생성 중·대기·실패)이 보이고, 아직 시작 안 한 항목은 ✕로 빼거나 '대기·실패 비우기'로 정리할 수 있어요.",
+                ]
+            },
+            {
+                version: 'v9.56.8', date: '2026-07-22', time: '',
                 tag: 'feat',
                 items: [
                     "[크게 보기] <b>맞춤 ↔ 채우기</b> 전환 버튼을 왼쪽 위에 추가했습니다 — 폰에서 가로가 긴 이미지의 위아래 여백(레터박스)이 클 때 <b>채우기</b>를 누르면 화면을 꽉 채워 보여줍니다(상단 기준으로 맞춤). 다시 누르면 원본 전체가 보이는 <b>맞춤</b>으로 돌아가며, 선택은 저장됩니다.",
@@ -6885,9 +6892,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
             return wf;
         }
-        async function _animaBuildWorkflow(pos, imageName) {
+        async function _animaBuildWorkflow(pos, imageName, seedArg) {
             const S = _anima;
-            const seed = _animaSeedVal();
+            const seed = (seedArg != null) ? seedArg : _animaSeedVal();
             // 위젯 이름이 특이한 커스텀/일부 노드는 설치본 기준으로 보정(누락 방지)
             try { await Promise.all(['ImageScaleToTotalPixels', 'CosmosReferenceConditioning'].map(_animaLoadNodeInfo)); } catch (e) {}
             const wf = {};
@@ -7001,32 +7008,70 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } catch (e) { showToast('클립보드를 읽지 못했어요. 붙여넣기(Ctrl+V)를 써보세요.', 'warning', 3000); }
         }
 
-        // ★ 완전 독립 생성 — 공용 comfyGenerate/설정/#final-positive를 일절 건드리지 않는다.
+        // ★ 완전 독립 생성 + 대기열 — 공용 comfyGenerate/설정/#final-positive를 일절 건드리지 않는다.
         //    (클래식·스튜디오·이미지변환 설정 오염 방지 + 체크포인트 요구 없음)
-        async function _animaGenerate() {
-            if (_animaBusy) return;
+        //  · 실행을 눌러도 버튼이 잠기지 않고, 현재 이미지·프롬프트·옵션을 스냅샷해 '대기열'에 쌓는다.
+        //  · 생성 중에도 이미지/표정/옵션을 바꿔 계속 추가 가능. GPU는 직렬이라 하나씩(순서대로) 처리한다.
+        let _animaJobs = [];       // 세션 전용 대기열 [{id,status,thumb,label,prompt,seed,snap:{dataURL,uploadedName},pid,base,err}]
+        let _animaJobSeq = 0;
+        const _animaRunning = () => _animaJobs.some(j => j.status === 'running' || j.status === 'uploading');
+        function _animaSyncBusy() {
+            _animaBusy = _animaRunning();
+            try { _animaRenderRun(); } catch (e) {}
+            try { _animaRenderResult(); } catch (e) {}
+            try { _animaRenderQueue(); } catch (e) {}
+        }
+        // 실행 버튼 = 현재 상태를 대기열에 추가 (idle이면 바로 시작)
+        function _animaGenerate() {
             if (!_animaHasImage()) { showToast('먼저 이미지를 넣어주세요.', 'warning', 2500); return; }
             const base0 = (_anima.prompt || '').trim();
             if (!base0) { showToast('프롬프트를 입력하세요.', 'warning', 2500); return; }
-            // 켜진 프롬프트 옵션(후타나리 등)을 기본 프롬프트 뒤에 붙임
+            // 켜진 프롬프트 옵션(후타나리·표정 등)을 기본 프롬프트 뒤에 붙여 스냅샷
             const extras = (_anima.snippets || []).filter(s => s.kind !== 'base' && s.on && s.text && s.text.trim()).map(s => s.text.trim()).join(', ');
             const prompt = extras ? (base0.replace(/,\s*$/, '') + ', ' + extras) : base0;
-            // ★ 사전 차단하지 않고 그냥 시도한다 (다른 테마와 동일) — 브라우저가 로컬 http를 허용할 수도 있으니.
-            // 모바일에서 주소칸에 입력만 하고 '연결 확인'을 안 눌러도(블러 전) 최신 주소로 전송되게 확정 동기화.
+            const job = {
+                id: ++_animaJobSeq, status: 'queued',
+                thumb: _anima.imgThumb || (_anima.img && _anima.img.dataURL) || '',
+                label: prompt, prompt, seed: _animaSeedVal(),   // -1이면 지금 랜덤 확정 → 대기열 항목마다 다른 시드
+                snap: { dataURL: _anima.img.dataURL, uploadedName: _anima.uploadedName }
+            };
+            _animaJobs.push(job);
+            const pend = _animaJobs.filter(j => j.status !== 'error').length;
+            showToast(_animaRunning() ? `대기열에 추가됨 · 총 ${pend}개 (하나씩 처리)` : '생성 시작 — 계속 추가할 수 있어요', 'info', 1800);
+            _animaSyncBusy();
+            _animaPump();
+        }
+        // 다음 대기 작업을 시작 (GPU 직렬이라 한 번에 하나만 in-flight)
+        function _animaPump() {
+            if (_animaRunning()) return;
+            const next = _animaJobs.find(j => j.status === 'queued');
+            if (next) _animaRunJob(next);
+        }
+        async function _animaRunJob(job) {
+            // 모바일에서 주소칸에 입력만 하고 '연결 확인'을 안 눌러도 최신 주소로 전송되게 확정 동기화.
             try { const ai = _animaEl('#anima-url'); const g = document.getElementById('comfy-url'); if (ai && g && ai.value.trim()) { g.value = ai.value.trim(); if (typeof _comfyPatchUrl === 'function') _comfyPatchUrl(ai.value.trim()); } } catch (e) {}
-            _animaSetBusy(true);
-            const base = _comfyBase();
+            const base = _comfyBase(); job.base = base;
             try {
-                const name = await _animaEnsureUploaded();
+                job.status = 'uploading'; _animaSyncBusy();
+                // 이 작업의 이미지 업로드(이미 업로드된 원본이면 재사용 → 같은 이미지 여러 옵션은 1회만 업로드)
+                let name = job.snap.uploadedName;
+                if (!name) {
+                    const blob = _dataURLtoBlob(job.snap.dataURL);
+                    const ext = (job.snap.dataURL.match(/^data:image\/(\w+)/) || [, 'png'])[1];
+                    const uniq = 'promptlab_anima_' + Date.now() + '_' + Math.floor(Math.random() * 1e9) + '.' + (ext === 'jpeg' ? 'jpg' : ext);
+                    name = await _comfyUploadImage(blob, uniq); job.snap.uploadedName = name;
+                }
                 let wf;
                 if (_anima.customWf && _anima.customWf.trim()) {
-                    try { const c = JSON.parse(_anima.customWf); if (c && c.nodes && c.links) { showToast('붙여넣은 JSON이 에디터 형식이에요. ComfyUI에서 Save (API Format)으로 받아 붙여넣으세요.', 'error', 7000); _animaSetBusy(false); return; } wf = _animaInjectInto(c, prompt, name, _animaSeedVal()); }
-                    catch (e) { wf = await _animaBuildWorkflow(prompt, name); }
-                } else { wf = await _animaBuildWorkflow(prompt, name); }
+                    try {
+                        const c = JSON.parse(_anima.customWf);
+                        if (c && c.nodes && c.links) { showToast('붙여넣은 JSON이 에디터 형식이에요. ComfyUI에서 Save (API Format)으로 받아 붙여넣으세요.', 'error', 7000); job.status = 'error'; job.err = 'JSON 형식(에디터)'; _animaSyncBusy(); _animaPump(); return; }
+                        wf = _animaInjectInto(c, job.prompt, name, job.seed);
+                    } catch (e) { wf = await _animaBuildWorkflow(job.prompt, name, job.seed); }
+                } else { wf = await _animaBuildWorkflow(job.prompt, name, job.seed); }
                 const cid = (typeof _comfyClientId !== 'undefined' && _comfyClientId) ? _comfyClientId : (typeof _comfyUUID === 'function' ? _comfyUUID() : String(Math.random()));
-                // Content-Type: application/json 은 크로스오리진에서 CORS 사전요청(OPTIONS preflight)을 유발 →
-                // ComfyUI가 preflight를 제대로 안 받으면 GET(연결확인)은 되는데 이 POST만 막혀 "생성 안 됨"이 됨.
-                // text/plain 은 preflight 없는 '단순 요청'이고, ComfyUI(aiohttp)는 본문을 content-type 무관하게 JSON 파싱하므로 안전.
+                job.status = 'running'; _animaSyncBusy();
+                // text/plain = preflight 없는 단순 요청(크로스오리진에서 POST가 막히던 문제 회피). ComfyUI는 content-type 무관하게 JSON 파싱.
                 const res = await fetch(base + '/prompt', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ prompt: wf, client_id: cid }) });
                 if (!res.ok) {
                     const t = await res.text().catch(() => '');
@@ -7046,18 +7091,90 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }
                 const data = await res.json();
                 if (!data || !data.prompt_id) throw new Error('prompt_id 없음');
-                showToast('생성 요청됨 — 잠시만요…', 'info', 2000);
-                _animaPoll(data.prompt_id, base, 0);
+                job.pid = data.prompt_id;
+                _animaPollJob(job, base, 0, 0);
             } catch (e) {
-                _animaSetBusy(false);
+                job.status = 'error';
                 const net = /failed to fetch|networkerror|load failed|typeerror/i.test((e && e.message) || String(e || ''));
                 const mixed = (typeof _comfyMixedContentBlocked === 'function' && _comfyMixedContentBlocked());
-                let msg;
-                if (net && mixed) msg = '전송 실패 — 이 앱은 https인데 ' + base + ' 은 http라 브라우저가 막았을 수 있어요. (앱을 로컬 http로 열거나 ComfyUI를 https로)';
-                else if (net) msg = '전송 실패 — ' + base + ' 에 연결이 안 돼요. 주소·연결을 확인하세요.';
-                else msg = '생성 실패: ' + (e && e.message || e) + ' (모델 파일명·노드 설치 확인)';
-                showToast(msg, 'error', 5000);
+                if (net && mixed) job.err = 'https/http 차단';
+                else if (net) job.err = '연결 실패';
+                else job.err = (e && e.message || String(e)).slice(0, 120);
+                showToast(net ? ('전송 실패 — ' + base + ' 연결/주소를 확인하세요.') : ('생성 실패: ' + job.err + ' (모델 파일명·노드 확인)'), 'error', 5000);
+                _animaSyncBusy(); _animaPump();
             }
+        }
+        async function _animaPollJob(job, base, tries, fails) {
+            if (job.status !== 'running') return; // 사용자가 뺐거나 오류난 경우 중단
+            fails = fails || 0;
+            if (tries > 400) { job.status = 'error'; job.err = '대기 시간 초과'; showToast('결과 대기 시간 초과 — ComfyUI 콘솔에서 진행 상태를 확인하세요.', 'warning', 5000); _animaSyncBusy(); _animaPump(); return; }
+            let netErr = false;
+            try {
+                const res = await fetch(base + '/history/' + job.pid, { signal: _animaTimeoutSignal(15000) });
+                if (res.ok) {
+                    const h = await res.json();
+                    if (h[job.pid] && h[job.pid].outputs && Object.keys(h[job.pid].outputs).length) {
+                        let got = false;
+                        const outs = h[job.pid].outputs;
+                        for (const nid in outs) (outs[nid].images || []).forEach(im => {
+                            if ((im.type || 'output') === 'output') {
+                                const url = base + '/view?filename=' + encodeURIComponent(im.filename) + '&subfolder=' + encodeURIComponent(im.subfolder || '') + '&type=' + encodeURIComponent(im.type || 'output');
+                                _anima.results.unshift({ url, seed: (job.seed == null ? null : job.seed) });
+                                if (_anima.results.length > 80) _anima.results.length = 80;
+                                got = true;
+                            }
+                        });
+                        if (got) {
+                            _animaResSel = 0; job.status = 'done';
+                            _animaJobs = _animaJobs.filter(z => z !== job); // 완료 항목은 대기열에서 제거(결과·갤러리로 이동)
+                            try { _animaSave(); } catch (e) {}
+                            _animaSyncBusy();
+                            try { showToast('✅ 생성 완료' + (_animaJobs.filter(j => j.status !== 'error').length ? ` · 남은 ${_animaJobs.filter(j => j.status !== 'error').length}개 계속…` : ''), 'success', 2200); } catch (e) {}
+                            try { if (navigator.vibrate) navigator.vibrate(80); } catch (e) {}
+                            _animaScrollToResult();
+                            _animaPump();
+                            return;
+                        }
+                        job.status = 'error'; job.err = '결과 이미지 없음'; showToast('결과 이미지가 없어요 — 워크플로우/모델을 확인하세요.', 'warning', 5000); _animaSyncBusy(); _animaPump(); return;
+                    }
+                } else { netErr = true; }
+            } catch (e) { netErr = true; }
+            fails = netErr ? fails + 1 : 0;
+            if (fails >= 15) {
+                job.status = 'error'; job.err = '결과 조회 실패';
+                const mixed = (typeof _comfyMixedContentBlocked === 'function' && _comfyMixedContentBlocked());
+                showToast(mixed
+                    ? ('결과를 못 받아왔어요 — 이 앱은 https인데 ' + base + ' 은 http라 결과 조회가 막혔을 수 있어요.')
+                    : ('결과를 못 받아왔어요 — ' + base + ' 연결이 끊겼거나 주소가 바뀐 듯해요. ComfyUI에선 끝났을 수 있으니 출력 폴더를 확인하세요.'),
+                    'error', 8000);
+                _animaSyncBusy(); _animaPump(); return;
+            }
+            const delay = tries < 8 ? 500 : (tries < 24 ? 1000 : 1500);
+            setTimeout(() => _animaPollJob(job, base, tries + 1, fails), delay);
+        }
+        // 대기열 UI — 썸네일 + 상태(진행/대기/실패) + 개별 빼기 / 대기 비우기
+        function _animaRenderQueue() {
+            const box = _animaEl('#anima-queue'); if (!box) return;
+            const jobs = _animaJobs;
+            if (!jobs.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+            box.style.display = 'block';
+            const running = jobs.filter(j => j.status === 'running' || j.status === 'uploading').length;
+            const queued = jobs.filter(j => j.status === 'queued').length;
+            const err = jobs.filter(j => j.status === 'error').length;
+            let h = `<div class="anima-q-head"><span>⏳ 대기열 <b>${jobs.length}</b>${running ? ` · 생성 중 ${running}` : ''}${queued ? ` · 대기 ${queued}` : ''}${err ? ` · 실패 ${err}` : ''}</span><button class="anima-q-clear" id="anima-q-clear">대기·실패 비우기</button></div><div class="anima-q-row">`;
+            jobs.forEach((j, i) => {
+                const badge = (j.status === 'running' || j.status === 'uploading') ? '<span class="anima-sp"></span>' : j.status === 'error' ? '⚠' : '⋯';
+                h += `<div class="anima-q-item ${j.status}" data-i="${i}" title="${_animaEsc((j.err ? '실패: ' + j.err + ' — ' : '') + (j.label || '').slice(0, 140))}"><img src="${j.thumb || ''}" loading="lazy"><span class="anima-q-badge">${badge}</span><button class="anima-q-x" data-i="${i}" title="빼기">✕</button></div>`;
+            });
+            h += '</div>';
+            box.innerHTML = h;
+            box.querySelectorAll('.anima-q-x').forEach(x => x.onclick = (e) => {
+                e.stopPropagation(); const j = jobs[parseInt(x.dataset.i)]; if (!j) return;
+                if (j.status === 'running' || j.status === 'uploading') { showToast('생성 중인 항목은 뺄 수 없어요(ComfyUI에서 진행 중).', 'info', 2500); return; }
+                _animaJobs = _animaJobs.filter(z => z !== j); _animaSyncBusy();
+            });
+            const clr = box.querySelector('#anima-q-clear');
+            if (clr) clr.onclick = () => { _animaJobs = _animaJobs.filter(j => j.status === 'running' || j.status === 'uploading'); _animaSyncBusy(); showToast('대기 중·실패 항목을 비웠어요', 'info', 1600); };
         }
         async function _animaPoll(pid, base, tries, fails) {
             fails = fails || 0;   // 연속 '연결 실패(fetch throw/에러응답)' 횟수 — '아직 생성 중(200·결과없음)'과 구분
@@ -7269,11 +7386,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         function _animaEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
         function _animaRenderRun() {
-            const label = _animaBusy ? '<span class="anima-sp"></span> 생성 중…' : '✨ 실행 (생성)';
+            const pend = _animaJobs.filter(j => j.status !== 'error').length; // 진행+대기 개수
+            const active = _animaRunning();
+            // 버튼은 항상 눌림 — 생성 중에도 현재 설정을 대기열에 계속 추가할 수 있게.
+            const label = pend
+                ? `${active ? '<span class="anima-sp"></span>' : ''}➕ 대기열 추가 <span class="anima-qn">${pend}</span>`
+                : '✨ 실행 (생성)';
             const btn = _animaEl('#anima-run-btn');
-            if (btn) { btn.disabled = _animaBusy; btn.innerHTML = label; }
-            const mb = _animaEl('#anima-mact-run');   // 모바일 하단 바 실행 버튼도 동기화
-            if (mb) { mb.disabled = _animaBusy; mb.innerHTML = label; }
+            if (btn) { btn.disabled = false; btn.innerHTML = label; }
+            const mb = _animaEl('#anima-mact-run');   // 모바일 하단 바 실행 버튼도 동기화(짧게)
+            if (mb) { mb.disabled = false; mb.innerHTML = pend ? `${active ? '<span class="anima-sp"></span>' : ''}➕ <span class="anima-qn">${pend}</span>` : '✨ 실행'; }
         }
         function _animaRenderResult() {
             const box = _animaEl('#anima-result'); if (!box) return;
@@ -7355,6 +7477,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 <button id="anima-run-btn" class="anima-run">✨ 실행 (생성)</button>
                 <div class="anima-seed"><label>시드</label><input type="text" id="anima-seed" placeholder="-1(랜덤)"><button id="anima-seed-rand" title="랜덤">🎲</button></div>
               </div>
+              <div class="anima-queue" id="anima-queue"></div>
             </div>
             <div class="anima-card">
               <div class="anima-adv-toggle" id="anima-adv-toggle">▼ 고급 설정 (모델·스텝·강도)</div>
@@ -7422,7 +7545,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!document.getElementById('anima-style')) { const st = document.createElement('style'); st.id = 'anima-style'; st.textContent = ANIMA_CSS; document.head.appendChild(st); }
             _animaDom = document.createElement('div'); _animaDom.id = 'anima-root'; _animaDom.innerHTML = ANIMA_HTML;
             document.body.appendChild(_animaDom);
-            _animaRenderInput(); _animaRenderRun(); _animaRenderResult(); _animaRenderAdv(); _animaRenderSnippets();
+            _animaRenderInput(); _animaRenderRun(); _animaRenderResult(); _animaRenderAdv(); _animaRenderSnippets(); _animaRenderQueue();
             const pt = _animaEl('#anima-prompt'); pt.value = _anima.prompt; pt.oninput = () => { _anima.prompt = pt.value; _animaSave(); };
             const sd = _animaEl('#anima-seed'); sd.value = (_anima.seed == null ? -1 : _anima.seed); sd.onchange = () => { const v = sd.value.trim(); _anima.seed = (v === '' || v === '-1') ? -1 : (parseInt(v) || -1); _animaSave(); };
             _animaEl('#anima-seed-rand').onclick = () => { _anima.seed = Math.floor(Math.random() * 1e9); sd.value = _anima.seed; _animaSave(); };
@@ -7531,6 +7654,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-runrow { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
           .anima-run { flex:1; min-width:180px; padding:15px; border-radius:13px; border:none; background:linear-gradient(135deg,#6366f1,#3b82f6); color:#fff; font-family:inherit; font-weight:800; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; }
           .anima-run:disabled { opacity:.7; cursor:default; }
+          .anima-qn { display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px; border-radius:11px; background:rgba(255,255,255,.28); color:#fff; font-size:12px; font-weight:800; }
+          /* 대기열 패널 */
+          .anima-queue { margin-top:12px; display:none; }
+          .anima-q-head { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; font-weight:800; color:var(--text-dim); margin-bottom:7px; }
+          .anima-q-head b { color:var(--text-main); }
+          .anima-q-clear { background:transparent; border:1px solid var(--border-dim); border-radius:8px; padding:4px 10px; color:var(--text-dim); font-size:11px; font-weight:700; cursor:pointer; }
+          .anima-q-clear:hover { color:#ef4444; border-color:rgba(239,68,68,.5); }
+          .anima-q-row { display:flex; gap:8px; overflow-x:auto; overflow-y:hidden; padding:2px 0 5px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+          .anima-q-row::-webkit-scrollbar { display:none; }
+          .anima-q-item { position:relative; flex:0 0 auto; width:58px; height:78px; border-radius:9px; overflow:hidden; border:2px solid var(--border-dim); background:#0b0e13; }
+          .anima-q-item.running { border-color:var(--accent-blue,#3b82f6); box-shadow:0 0 0 2px color-mix(in srgb,var(--accent-blue,#3b82f6) 40%,transparent); }
+          .anima-q-item.queued { border-color:color-mix(in srgb,#f59e0b 55%,var(--border-dim)); }
+          .anima-q-item.error { border-color:#ef4444; opacity:.75; }
+          .anima-q-item img { width:100%; height:100%; object-fit:cover; display:block; }
+          .anima-q-badge { position:absolute; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; height:20px; background:rgba(0,0,0,.55); color:#fff; font-size:12px; }
+          .anima-q-x { position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:5px; border:none; background:rgba(0,0,0,.62); color:#fff; font-size:10px; line-height:1; cursor:pointer; }
           .anima-seed { display:flex; align-items:center; gap:6px; }
           .anima-seed label { font-size:12px; color:var(--text-dim); font-weight:700; }
           .anima-seed input { width:120px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:9px; padding:9px 10px; color:var(--text-main); font-size:12.5px; }
