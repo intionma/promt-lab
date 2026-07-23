@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.7 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.8 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1240,7 +1240,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.7 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.8 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1827,6 +1827,8 @@
         <button onclick="closeLightbox()" title="닫기 (Esc)" style="position:absolute; top:16px; right:18px; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:20px; cursor:pointer; z-index:10;"><i class="fa-solid fa-xmark"></i></button>
         <!-- 카운터 -->
         <span id="img-lightbox-counter" style="position:absolute; top:22px; left:50%; transform:translateX(-50%); color:#fff; font-size:13px; font-family:var(--font-ui); background:rgba(0,0,0,0.4); padding:4px 12px; border-radius:14px; z-index:10; display:none; pointer-events:none;"></span>
+        <!-- 맞춤(전체 보기) ↔ 채우기(화면 꽉 차게) 토글 -->
+        <button id="lb-btn-fit" onclick="lightboxToggleFit()" title="화면 채우기 / 전체 보기 전환" style="position:absolute; top:16px; left:16px; z-index:10; height:36px; padding:0 13px; border-radius:18px; border:none; background:rgba(255,255,255,0.14); backdrop-filter:blur(6px); color:#fff; font-size:12.5px; font-weight:700; font-family:var(--font-ui); cursor:pointer; display:flex; align-items:center; gap:6px;"></button>
         <!-- 좌우 화살표 버튼 (이미지 양옆) -->
         <button id="lb-btn-prev" onclick="lightboxNav(-1)" style="display:none; position:absolute; left:16px; top:50%; transform:translateY(-50%); z-index:10; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.15); backdrop-filter:blur(6px); color:#fff; font-size:22px; cursor:pointer; transition:background 0.15s;">&#8592;</button>
         <button id="lb-btn-next" onclick="lightboxNav(1)"  style="display:none; position:absolute; right:16px; top:50%; transform:translateY(-50%); z-index:10; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.15); backdrop-filter:blur(6px); color:#fff; font-size:22px; cursor:pointer; transition:background 0.15s;">&#8594;</button>
@@ -2006,7 +2008,14 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.7', date: '2026-07-22', time: '최신',
+                version: 'v9.56.8', date: '2026-07-22', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[크게 보기] <b>맞춤 ↔ 채우기</b> 전환 버튼을 왼쪽 위에 추가했습니다 — 폰에서 가로가 긴 이미지의 위아래 여백(레터박스)이 클 때 <b>채우기</b>를 누르면 화면을 꽉 채워 보여줍니다(상단 기준으로 맞춤). 다시 누르면 원본 전체가 보이는 <b>맞춤</b>으로 돌아가며, 선택은 저장됩니다.",
+                ]
+            },
+            {
+                version: 'v9.56.7', date: '2026-07-22', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] 갤러리 썸네일이 <b>잘려 보이던 문제</b>를 고쳤습니다 — 프레임 고정(3:4 잘라내기)을 없애고, 각 이미지를 <b>원본 비율 그대로</b> 벽돌쌓기(메이슨리) 방식으로 배치합니다. 크기 슬라이더는 그대로 동작합니다.",
@@ -8431,11 +8440,36 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 slot.style.cssText = 'flex:0 0 100vw; width:100vw; height:100%; display:flex; align-items:center; justify-content:center;';
                 const img = document.createElement('img');
                 img.draggable = false;
-                img.style.cssText = 'max-width:90vw; max-height:90vh; border-radius:8px; object-fit:contain; user-select:none; pointer-events:none;';
+                img.style.cssText = 'max-width:92vw; max-height:90vh; border-radius:8px; object-fit:contain; user-select:none; pointer-events:none;';
                 slot.appendChild(img);
                 track.appendChild(slot);
                 return img;
             });
+
+            // 맞춤(contain·전체 보기) ↔ 채우기(cover·화면 꽉 차게, 상단 기준). 폰에서 가로 긴 이미지 레터박스 줄이기용.
+            let _lbFill = false;
+            try { _lbFill = localStorage.getItem('lb_fill_mode') === '1'; } catch (e) {}
+            function _applyFitMode() {
+                SLOTS.forEach(img => {
+                    if (_lbFill) { // 화면 가득 — 넘치는 부분은 잘리되 상단은 유지(object-position:top)
+                        img.style.maxWidth = 'none'; img.style.maxHeight = 'none';
+                        img.style.width = '100vw'; img.style.height = '100vh';
+                        img.style.objectFit = 'cover'; img.style.objectPosition = 'top center'; img.style.borderRadius = '0';
+                    } else {       // 전체 보기 — 원본 전체가 보이게(레터박스 생길 수 있음)
+                        img.style.width = ''; img.style.height = '';
+                        img.style.maxWidth = '92vw'; img.style.maxHeight = '90vh';
+                        img.style.objectFit = 'contain'; img.style.objectPosition = ''; img.style.borderRadius = '8px';
+                    }
+                });
+                const fitBtn = document.getElementById('lb-btn-fit');
+                if (fitBtn) fitBtn.innerHTML = _lbFill ? '<i class="fa-solid fa-compress"></i> 맞춤' : '<i class="fa-solid fa-expand"></i> 채우기';
+            }
+            window.lightboxToggleFit = function () {
+                _lbFill = !_lbFill;
+                _resetZoom(false);
+                _applyFitMode();
+                try { localStorage.setItem('lb_fill_mode', _lbFill ? '1' : '0'); } catch (e) {}
+            };
 
             const VW = () => window.innerWidth;
             const VH = () => window.innerHeight;
@@ -8801,6 +8835,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _resetZoom(false);
                 box.style.display = 'block';
                 _loadSlots();
+                _applyFitMode();   // 저장된 맞춤/채우기 모드 적용
                 _center();
                 _updateUI();
                 window._lbActive = true; // registerModalBack이 이 위의 back을 라이트박스 몫으로 인식하게
