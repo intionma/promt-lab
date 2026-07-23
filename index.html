@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.9 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.10 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1240,7 +1240,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.9 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.10 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2008,7 +2008,14 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.9', date: '2026-07-22', time: '최신',
+                version: 'v9.56.10', date: '2026-07-22', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] 대기열이 <b>절대 섞이지 않게</b> 했습니다 — 실행을 누른 순간의 이미지·프롬프트·표정/노출/후타 옵션은 물론 <b>고급 설정(모델·스텝·CFG·강도·워터마크·커스텀 워크플로우)까지</b> 그 작업에 통째로 고정됩니다. 대기 중에 설정을 바꿔도 이미 넣어둔 작업에는 영향을 주지 않아요.",
+                ]
+            },
+            {
+                version: 'v9.56.9', date: '2026-07-22', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] <b>대기열</b>이 생겼습니다 — 생성 중에도 <b>실행</b> 버튼이 잠기지 않아요. 다른 이미지를 넣거나 표정·옵션을 바꿔가며 계속 <b>실행</b>을 누르면, 그 순간의 이미지·프롬프트·옵션이 그대로 대기열에 쌓여 <b>하나씩 자동으로</b> 처리됩니다. 실행 버튼 아래에 썸네일로 진행 상황(생성 중·대기·실패)이 보이고, 아직 시작 안 한 항목은 ✕로 빼거나 '대기·실패 비우기'로 정리할 수 있어요.",
@@ -6892,8 +6899,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
             return wf;
         }
-        async function _animaBuildWorkflow(pos, imageName, seedArg) {
-            const S = _anima;
+        async function _animaBuildWorkflow(pos, imageName, seedArg, settingsOverride) {
+            const S = settingsOverride || _anima;   // 대기열 작업은 스냅샷된 설정을 사용(실행 시점 값에 오염되지 않게)
             const seed = (seedArg != null) ? seedArg : _animaSeedVal();
             // 위젯 이름이 특이한 커스텀/일부 노드는 설치본 기준으로 보정(누락 방지)
             try { await Promise.all(['ImageScaleToTotalPixels', 'CosmosReferenceConditioning'].map(_animaLoadNodeInfo)); } catch (e) {}
@@ -7021,6 +7028,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { _animaRenderResult(); } catch (e) {}
             try { _animaRenderQueue(); } catch (e) {}
         }
+        // 생성에 영향 주는 모든 설정을 이 순간 값으로 복사 — 대기열 항목이 실행될 때까지 설정을 바꿔도 섞이지 않게.
+        const _ANIMA_SNAP_KEYS = ['clipName', 'clipType', 'vaeName', 'unetName', 'lora1Name', 'lora1', 'lora2Name', 'lora2',
+            'suppressWm', 'cfg', 'upscaleMethod', 'megapixels', 'refWeight', 'refMode', 'steps', 'sampler', 'scheduler', 'denoise', 'customWf'];
+        function _animaSnapshotSettings() { const s = {}; _ANIMA_SNAP_KEYS.forEach(k => s[k] = _anima[k]); return s; }
         // 실행 버튼 = 현재 상태를 대기열에 추가 (idle이면 바로 시작)
         function _animaGenerate() {
             if (!_animaHasImage()) { showToast('먼저 이미지를 넣어주세요.', 'warning', 2500); return; }
@@ -7033,7 +7044,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 id: ++_animaJobSeq, status: 'queued',
                 thumb: _anima.imgThumb || (_anima.img && _anima.img.dataURL) || '',
                 label: prompt, prompt, seed: _animaSeedVal(),   // -1이면 지금 랜덤 확정 → 대기열 항목마다 다른 시드
-                snap: { dataURL: _anima.img.dataURL, uploadedName: _anima.uploadedName }
+                snap: { dataURL: _anima.img.dataURL, uploadedName: _anima.uploadedName },
+                settings: _animaSnapshotSettings()   // 고급 설정(모델·스텝·CFG·강도·워터마크·커스텀 등)도 이 순간 값으로 고정 → 대기 중 바꿔도 안 섞임
             };
             _animaJobs.push(job);
             const pend = _animaJobs.filter(j => j.status !== 'error').length;
@@ -7061,14 +7073,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const uniq = 'promptlab_anima_' + Date.now() + '_' + Math.floor(Math.random() * 1e9) + '.' + (ext === 'jpeg' ? 'jpg' : ext);
                     name = await _comfyUploadImage(blob, uniq); job.snap.uploadedName = name;
                 }
+                const st = job.settings || _anima;   // 이 작업이 캡처한 설정 스냅샷 사용(대기 중 바뀐 값에 오염 방지)
                 let wf;
-                if (_anima.customWf && _anima.customWf.trim()) {
+                if (st.customWf && st.customWf.trim()) {
                     try {
-                        const c = JSON.parse(_anima.customWf);
+                        const c = JSON.parse(st.customWf);
                         if (c && c.nodes && c.links) { showToast('붙여넣은 JSON이 에디터 형식이에요. ComfyUI에서 Save (API Format)으로 받아 붙여넣으세요.', 'error', 7000); job.status = 'error'; job.err = 'JSON 형식(에디터)'; _animaSyncBusy(); _animaPump(); return; }
                         wf = _animaInjectInto(c, job.prompt, name, job.seed);
-                    } catch (e) { wf = await _animaBuildWorkflow(job.prompt, name, job.seed); }
-                } else { wf = await _animaBuildWorkflow(job.prompt, name, job.seed); }
+                    } catch (e) { wf = await _animaBuildWorkflow(job.prompt, name, job.seed, st); }
+                } else { wf = await _animaBuildWorkflow(job.prompt, name, job.seed, st); }
                 const cid = (typeof _comfyClientId !== 'undefined' && _comfyClientId) ? _comfyClientId : (typeof _comfyUUID === 'function' ? _comfyUUID() : String(Math.random()));
                 job.status = 'running'; _animaSyncBusy();
                 // text/plain = preflight 없는 단순 요청(크로스오리진에서 POST가 막히던 문제 회피). ComfyUI는 content-type 무관하게 JSON 파싱.
