@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.13 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.14 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1240,7 +1240,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.13 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.14 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2008,7 +2008,14 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.13', date: '2026-07-22', time: '최신',
+                version: 'v9.56.14', date: '2026-07-22', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] 노출 프리셋을 <b>끌 수 있게</b> 했습니다 — 켜져 있는 노출 칩을 <b>다시 누르면 해제</b>되어, 노출 없이 <b>표정·옵션만</b> 바꿔 생성할 수 있어요(이전엔 항상 하나가 켜져 있어야 했음). 다시 누르면 원래대로 적용됩니다.",
+                ]
+            },
+            {
+                version: 'v9.56.13', date: '2026-07-22', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] <b>투명 배경(투명 PNG)</b>을 넣어도 배경이 뭉개지지 않게 했습니다 — 투명 이미지를 감지하면 <b>선택한 단색(흰색·회색·검정)으로 배경을 깔끔하게 채워</b> 넣습니다. 이미지 아래 색 버튼으로 바로 바꿀 수 있고, <b>투명이 없는 일반 이미지는 자동으로 그대로</b> 둡니다(손대지 않음).",
@@ -7371,10 +7378,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         let _animaSnipEditOpen = false;
         // 칩 동작 (본문·하단 바 공용)
+        // 노출 없이 표정·옵션만 바꿀 수 있게, 노출 프리셋을 '해제'했을 때 쓰는 기본 프롬프트(품질 태그만, 노출 지시 없음)
+        const _ANIMA_NEUTRAL_BASE = 'masterpiece, best quality, score_7, ';
         function _animaApplyBaseSnip(id) {
             const s = _anima.snippets.find(x => x.id === id); if (!s) return;
-            _anima.prompt = s.text;
-            const pt = _animaEl('#anima-prompt'); if (pt) pt.value = s.text;
+            const active = (_anima.prompt || '').trim() === (s.text || '').trim();
+            // 이미 켜진 노출 칩을 다시 누르면 해제 → 노출 없는 기본 프롬프트로(표정·옵션만 적용 가능)
+            _anima.prompt = active ? _ANIMA_NEUTRAL_BASE : s.text;
+            const pt = _animaEl('#anima-prompt'); if (pt) pt.value = _anima.prompt;
             _animaSave(); _animaSyncChipStates();   // 전체 재그리기 X → 하단 바 스크롤 위치 유지
         }
         function _animaToggleSnipById(id) {
@@ -7407,7 +7418,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             let h = '';
             if (baseS.length) {
                 h += `<span class="anima-snip-lab">노출</span>`;
-                baseS.forEach(s => { const active = curP === (s.text || '').trim(); h += `<button class="anima-chip base${active ? ' on' : ''}" data-base="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${_animaEsc(s.name)}</button>`; });
+                baseS.forEach(s => { const active = curP === (s.text || '').trim(); h += `<button class="anima-chip base${active ? ' on' : ''}" data-base="${s.id}" title="누르면 적용 · 켜져 있을 때 다시 누르면 해제(노출 없이 표정·옵션만) — ${(s.text || '').replace(/"/g, '&quot;')}">${_animaEsc(s.name)}</button>`; });
             }
             if (appS.length) {
                 h += `<span class="anima-snip-lab">옵션</span>`;
