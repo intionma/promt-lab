@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.11 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.12 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1240,7 +1240,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.11 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.12 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2008,7 +2008,14 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.11', date: '2026-07-22', time: '최신',
+                version: 'v9.56.12', date: '2026-07-22', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] '이전 원본' 목록을 <b>최근 8장 → 24장</b>으로 늘리고, <b>모바일에서 좌우로 밀어(드래그) 넘겨볼 수 있게</b> 했습니다. 실수로 지우기 쉬웠던 <b>개별 ✕ 삭제 버튼은 없앴어요</b>(오래된 항목은 자동으로 밀려나고, 전체 비우기는 확인을 한 번 물어봅니다).",
+                ]
+            },
+            {
+                version: 'v9.56.11', date: '2026-07-22', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] 하단 바에서 칩을 누를 때마다 <b>좌우 스크롤 위치가 처음으로 되돌아가던 문제</b>를 고쳤습니다 — 이제 옵션을 켜고 꺼도 밀어둔 위치 그대로 유지돼서, 뒤쪽 옵션을 연속으로 누르기 편해졌어요.",
@@ -6738,6 +6745,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { id: 'expr_neutral', name: '무표정', kind: 'append', on: false, group: 'expr', text: 'expressionless, neutral face, closed mouth' }
         ];
         const ANIMA_KEY = 'anima_settings_v1';
+        const _ANIMA_SRCHIST_MAX = 24;   // 이전 원본(축소본) 보관 개수 — 저장 용량 초과 시 자동으로 줄임(_animaSave)
         function _animaSave() {
             try {
                 const p = {};
@@ -6746,9 +6754,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 // 이 테마에서 뽑은 결과 이미지 목록도 저장(서버 URL만, Anima 전용 · 다른 테마와 완전 분리). 최근 80장.
                 p.results = (_anima.results || []).slice(0, 80).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed }));
                 p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null }));
-                // 이전에 넣은 원본 이미지(축소본)들 — 다시 불러오기용. 최근 8장만(용량 절약).
-                p.srcHistory = (_anima.srcHistory || []).slice(0, 8).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0 }));
-                localStorage.setItem(ANIMA_KEY, JSON.stringify(p));
+                // 이전에 넣은 원본 이미지(축소본)들 — 다시 불러오기용.
+                const hist = (_anima.srcHistory || []).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0 }));
+                // 용량(localStorage quota) 초과 시 이전 원본을 오래된 것부터 줄여가며 재시도 → 저장 자체가 실패해 설정이 통째로 날아가는 것 방지
+                for (let n = hist.length; ; n--) {
+                    p.srcHistory = hist.slice(0, Math.max(0, n));
+                    try { localStorage.setItem(ANIMA_KEY, JSON.stringify(p)); if (n < hist.length) _anima.srcHistory = p.srcHistory.slice(); break; }
+                    catch (err) { if (n <= 0) throw err; /* 계속 줄여서 재시도 */ }
+                }
             } catch (e) {}
         }
         function _animaRestore() {
@@ -6758,7 +6771,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     Object.keys(s).forEach(k => { if (k === 'results' || k === 'snippets' || k === 'srcHistory') return; if (k in _anima && s[k] != null) _anima[k] = s[k]; });
                     if (Array.isArray(s.results)) _anima.results = s.results.filter(r => r && r.url).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed }));
                     if (Array.isArray(s.snippets)) _anima.snippets = s.snippets.filter(x => x && x.id).map(x => ({ id: x.id, name: x.name || '옵션', text: x.text || '', on: !!x.on, kind: x.kind || 'append', group: x.group || null }));
-                    if (Array.isArray(s.srcHistory)) _anima.srcHistory = s.srcHistory.filter(h => h && h.thumb).slice(0, 8).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0 }));
+                    if (Array.isArray(s.srcHistory)) _anima.srcHistory = s.srcHistory.filter(h => h && h.thumb).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0 }));
                     if (_anima.imgThumb) { _anima.img = { dataURL: _anima.imgThumb, name: 'image' }; _anima.uploadedName = null; }
                 }
                 // 저장된 옵션이 없으면 기본 제공
@@ -6994,7 +7007,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (!Array.isArray(_anima.srcHistory)) _anima.srcHistory = [];
                 _anima.srcHistory = _anima.srcHistory.filter(h => h && h.thumb && h.thumb !== thumb);
                 _anima.srcHistory.unshift({ thumb, name: name || 'image', ts: Date.now() });
-                if (_anima.srcHistory.length > 8) _anima.srcHistory.length = 8;
+                if (_anima.srcHistory.length > _ANIMA_SRCHIST_MAX) _anima.srcHistory.length = _ANIMA_SRCHIST_MAX;
             } catch (e) {}
         }
         // 히스토리에서 원본 다시 불러오기 (축소본을 현재 원본으로) — 재업로드 없이 복구
@@ -7263,21 +7276,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const list = (_anima.srcHistory || []).filter(h => h && h.thumb && h.thumb !== cur);
             if (!list.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
             box.style.display = 'block';
-            let h = `<div class="anima-srchist-head"><span>🕑 이전 원본 <b>${list.length}</b> · 눌러서 다시 불러오기</span><button class="anima-srchist-clr" id="anima-srchist-clr" title="목록 비우기">비우기</button></div><div class="anima-srchist-row">`;
-            list.forEach((it, i) => { h += `<div class="anima-srchist-item" data-t="${i}" title="${_animaEsc(it.name || 'image')}"><img src="${it.thumb}" loading="lazy"><button class="anima-srchist-x" data-t="${i}" title="삭제">✕</button></div>`; });
+            // 개별 ✕ 삭제는 제거(실수로 지우는 것 방지). 전체 비우기만 남김. 오래되면 자동으로 밀려남(최근 24장).
+            let h = `<div class="anima-srchist-head"><span>🕑 이전 원본 <b>${list.length}</b> · 눌러서 다시 불러오기</span><button class="anima-srchist-clr" id="anima-srchist-clr" title="목록 전체 비우기">전체 비우기</button></div><div class="anima-srchist-row">`;
+            list.forEach((it, i) => { h += `<div class="anima-srchist-item" data-t="${i}" title="${_animaEsc(it.name || 'image')}"><img src="${it.thumb}" loading="lazy"></div>`; });
             h += '</div>';
             box.innerHTML = h;
-            box.querySelectorAll('.anima-srchist-item').forEach(el => el.onclick = (e) => {
-                if (e.target.classList.contains('anima-srchist-x')) return;
+            const row = box.querySelector('.anima-srchist-row');
+            _animaBindDragScroll(row);   // 모바일·PC 공용 좌우 드래그 스크롤(하단 바와 동일 방식)
+            box.querySelectorAll('.anima-srchist-item').forEach(el => el.onclick = () => {
                 const it = list[parseInt(el.dataset.t)]; if (it) _animaLoadFromHistory(it.thumb, it.name);
             });
-            box.querySelectorAll('.anima-srchist-x').forEach(x => x.onclick = (e) => {
-                e.stopPropagation(); const it = list[parseInt(x.dataset.t)]; if (!it) return;
-                _anima.srcHistory = (_anima.srcHistory || []).filter(h2 => h2.thumb !== it.thumb);
-                _animaSave(); _animaRenderSrcHistory();
-            });
             const clr = box.querySelector('#anima-srchist-clr');
-            if (clr) clr.onclick = () => { _anima.srcHistory = []; _animaSave(); _animaRenderSrcHistory(); showToast('이전 원본 목록을 비웠어요', 'info', 1500); };
+            if (clr) clr.onclick = () => {
+                if (!confirm('이전 원본 목록을 전체 비울까요? (되돌릴 수 없어요)')) return;   // 실수 방지 확인
+                _anima.srcHistory = []; _animaSave(); _animaRenderSrcHistory(); showToast('이전 원본 목록을 비웠어요', 'info', 1500);
+            };
         }
         // 하단 바 좌측 버튼이 따라갈 '마지막 입력 방식' 기억(클립보드/파일). 바뀌면 하단 버튼 즉시 갱신.
         function _animaSetInputMode(mode) {
@@ -7654,14 +7667,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-srchist-head b { color:var(--text-main); }
           .anima-srchist-clr { background:transparent; border:1px solid var(--border-dim); border-radius:8px; padding:3px 9px; color:var(--text-dim); font-size:11px; font-weight:700; cursor:pointer; }
           .anima-srchist-clr:hover { color:#ef4444; border-color:rgba(239,68,68,.5); }
-          .anima-srchist-row { display:flex; gap:8px; overflow-x:auto; overflow-y:hidden; padding:2px 0 4px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+          .anima-srchist-row { display:flex; gap:8px; overflow-x:auto; overflow-y:hidden; padding:2px 0 5px; scrollbar-width:none; -webkit-overflow-scrolling:touch; touch-action:pan-y; cursor:grab; }
+          .anima-srchist-row.dragging { cursor:grabbing; scroll-behavior:auto; }
           .anima-srchist-row::-webkit-scrollbar { display:none; }
           .anima-srchist-item { position:relative; flex:0 0 auto; width:60px; height:80px; border-radius:9px; overflow:hidden; border:2px solid var(--border-dim); cursor:pointer; background:#0b0e13; }
           .anima-srchist-item:hover { border-color:var(--accent-blue,#3b82f6); }
           .anima-srchist-item img { width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; }
-          .anima-srchist-x { position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:5px; border:none; background:rgba(0,0,0,.62); color:#fff; font-size:10px; line-height:1; cursor:pointer; opacity:0; transition:.12s; }
-          .anima-srchist-item:hover .anima-srchist-x { opacity:1; }
-          @media (hover:none){ .anima-srchist-x { opacity:.85; } }
           .anima-btn { flex:1; padding:12px; border-radius:11px; border:none; background:var(--accent-blue,#3b82f6); color:#fff; font-family:inherit; font-weight:800; font-size:13.5px; cursor:pointer; }
           .anima-btn.ghost { background:var(--bg-base); color:var(--text-main); border:1px solid var(--border-dim); }
           .anima-ta { width:100%; min-height:84px; resize:vertical; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:11px; padding:11px 13px; color:var(--text-main); font-family:var(--font-code); font-size:13px; line-height:1.5; outline:none; }
