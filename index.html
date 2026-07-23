@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.5 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.6 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1240,7 +1240,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.5 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.6 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2006,7 +2006,15 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.5', date: '2026-07-22', time: '최신',
+                version: 'v9.56.6', date: '2026-07-22', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[크게 보기] 모바일 가장자리 탭 넘기기를 <b>더 알아보기 쉽고 빠르게</b> 다듬었습니다 — 헷갈리던 좌우 화살표(←→)를 숨기고, 좌·우 가장자리에 <b>▲다음 / ▼이전</b> 반투명 안내를 넣었습니다(감상 방해 최소화·확대 중엔 사라짐). 넘길 때의 <b>미세한 딜레이도 제거</b>해 즉시 넘어갑니다.",
+                    "[Anima 편집] 하단 바 칩을 <b>색으로 구분</b>했습니다 — 노출(교체)은 <b>분홍</b>, 후타나리는 <b>보라</b>, 표정은 <b>주황</b>으로 표시돼 라벨이 없는 하단 바에서도 종류가 한눈에 구분됩니다.",
+                ]
+            },
+            {
+                version: 'v9.56.5', date: '2026-07-22', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] <b>이전에 넣은 원본 이미지</b>를 다시 불러올 수 있게 했습니다 — 이미지 넣는 칸 아래에 최근 원본 8장이 작게 남아, 탭 한 번이면 <b>재업로드·클립보드 없이</b> 그대로 다시 불러옵니다(새로고침해도 유지, ✕로 개별 삭제).",
@@ -7159,7 +7167,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
             if (appS.length) {
                 h += `<span class="anima-snip-lab">옵션</span>`;
-                appS.forEach(s => { h += `<button class="anima-chip${s.on ? ' on' : ''}" data-id="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${s.on ? '✓ ' : ''}${_animaEsc(s.name)}</button>`; });
+                appS.forEach(s => { h += `<button class="anima-chip${s.group ? ' g-' + s.group : ''}${s.on ? ' on' : ''}" data-id="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${s.on ? '✓ ' : ''}${_animaEsc(s.name)}</button>`; });
             }
             return h;
         }
@@ -7486,7 +7494,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-snip-lab { font-size:11px; font-weight:800; color:var(--text-dim); margin-right:-2px; }
           .anima-chip { border:1px solid var(--border-dim); background:var(--bg-base); color:var(--text-dim); border-radius:20px; padding:7px 13px; font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer; transition:.14s; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
           .anima-chip.on { background:color-mix(in srgb,var(--accent-blue,#3b82f6) 16%,transparent); border-color:var(--accent-blue,#3b82f6); color:var(--accent-blue,#3b82f6); }
-          .anima-chip.base.on { background:color-mix(in srgb,#a855f7 16%,transparent); border-color:#a855f7; color:#a855f7; }
+          /* 종류별 색상 구분 — 하단 바처럼 라벨이 없어도 노출/후타/표정을 한눈에. 꺼진 상태는 은은하게, 켜지면 진하게 */
+          .anima-chip.base   { border-color:color-mix(in srgb,#f43f5e 55%,var(--border-dim)); color:color-mix(in srgb,#f43f5e 72%,var(--text-dim)); }   /* 노출(교체) */
+          .anima-chip.base.on { background:color-mix(in srgb,#f43f5e 18%,transparent); border-color:#f43f5e; color:#f43f5e; }
+          .anima-chip.g-futa { border-color:color-mix(in srgb,#a855f7 55%,var(--border-dim)); color:color-mix(in srgb,#a855f7 72%,var(--text-dim)); }   /* 후타나리 */
+          .anima-chip.g-futa.on { background:color-mix(in srgb,#a855f7 18%,transparent); border-color:#a855f7; color:#a855f7; }
+          .anima-chip.g-expr { border-color:color-mix(in srgb,#f59e0b 60%,var(--border-dim)); color:color-mix(in srgb,#f59e0b 78%,var(--text-dim)); }  /* 표정 */
+          .anima-chip.g-expr.on { background:color-mix(in srgb,#f59e0b 20%,transparent); border-color:#f59e0b; color:#d97706; }
           .anima-chip.edit { border-style:dashed; }
           .anima-se-kind { background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 6px; color:var(--text-main); font-size:12px; }
           .anima-se-adds { display:flex; gap:8px; flex-wrap:wrap; }
@@ -8432,6 +8446,47 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _zoomBadge.style.cssText = 'position:absolute; top:16px; left:18px; z-index:11; background:rgba(0,0,0,0.55); color:#fff; font-size:12px; font-weight:700; padding:4px 10px; border-radius:20px; opacity:0; transition:opacity .2s; pointer-events:none;';
             box.appendChild(_zoomBadge);
 
+            // 모바일 가장자리 탭 안내 — 좌·우 위쪽=다음, 아래쪽=이전. 감상 방해 최소화(반투명·pointer-events 없음).
+            const _lbCoarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+            let _edgeHints = null;
+            function _ensureEdgeHints() {
+                if (_edgeHints || !_lbCoarse) return;
+                _edgeHints = document.createElement('div');
+                _edgeHints.style.cssText = 'position:absolute; inset:0; z-index:9; pointer-events:none; display:none;';
+                const mk = (pos, icon, label, dir) => {
+                    const d = document.createElement('div');
+                    d.className = 'lb-edge-hint'; d.dataset.dir = dir;
+                    d.style.cssText = 'position:absolute; ' + pos + ' display:flex; flex-direction:column; align-items:center; gap:1px; padding:5px 7px; border-radius:12px; background:rgba(0,0,0,.30); color:rgba(255,255,255,.6); font-family:var(--font-ui); font-size:10px; font-weight:800; line-height:1; opacity:.5; transition:opacity .18s, transform .18s;';
+                    d.innerHTML = '<span style="font-size:12px;">' + icon + '</span><span>' + label + '</span>';
+                    _edgeHints.appendChild(d);
+                };
+                mk('left:9px; top:20%;', '▲', '다음', 'next');
+                mk('right:9px; top:20%;', '▲', '다음', 'next');
+                mk('left:9px; bottom:20%;', '▼', '이전', 'prev');
+                mk('right:9px; bottom:20%;', '▼', '이전', 'prev');
+                box.appendChild(_edgeHints);
+            }
+            function _syncEdgeHints() {
+                if (!_lbCoarse) return;
+                _ensureEdgeHints();
+                if (!_edgeHints) return;
+                const n = _lbUrls.length, show = n > 1 && !_isZoomed();
+                _edgeHints.style.display = show ? 'block' : 'none';
+                if (!show) return;
+                _edgeHints.querySelectorAll('.lb-edge-hint').forEach(h => {
+                    const off = (h.dataset.dir === 'next' && _lbIdx >= n - 1) || (h.dataset.dir === 'prev' && _lbIdx <= 0);
+                    h.style.opacity = off ? '.12' : '.5';   // 끝(첫/마지막)이면 흐리게 — 더 넘길 게 없음을 은근히 표시
+                });
+            }
+            function _flashEdgeHint(dir) {
+                if (!_edgeHints) return;
+                _edgeHints.querySelectorAll('.lb-edge-hint').forEach(h => {
+                    if (h.dataset.dir !== dir) return;
+                    h.style.opacity = '1'; h.style.transform = 'scale(1.14)';
+                    setTimeout(() => { h.style.transform = ''; _syncEdgeHints(); }, 220);
+                });
+            }
+
             function _imgBase() {
                 const im = SLOTS[1];
                 return { w: im.clientWidth || im.naturalWidth || VW(), h: im.clientHeight || im.naturalHeight || VH() };
@@ -8449,6 +8504,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 im.style.transform = `translate(${_zx}px, ${_zy}px) scale(${_zoom})`;
                 _zoomBadge.style.opacity = _isZoomed() ? '1' : '0';
                 _zoomBadge.textContent = _zoom.toFixed(1) + 'x';
+                _syncEdgeHints();   // 확대 중엔 가장자리 힌트 숨김
             }
             function _resetZoom(animate) { _zoom = 1; _zx = 0; _zy = 0; _applyZoom(!!animate); }
             // 한 점(cx,cy) 고정하며 배율 곱하기 — 휠·핀치·더블탭 공용
@@ -8472,25 +8528,28 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const _cancelClose = () => { if (_closeTimer) { clearTimeout(_closeTimer); _closeTimer = null; } _tapAction = null; };
             const _scheduleTap = (fn) => { _cancelClose(); _tapAction = fn; _closeTimer = setTimeout(() => { _closeTimer = null; const a = _tapAction; _tapAction = null; if (a) a(); }, 300); };
             const _scheduleClose = () => _scheduleTap(function () { closeLightbox(); });
-            // 탭/클릭 1회 처리 — 더블이면 줌 토글 / 가운데(가로 30~70%)면 닫기 / 좌·우 사이드는 위=다음·아래=이전(모바일)
+            // 탭/클릭 1회 처리 — 좌·우 사이드(모바일)는 지연 없이 즉시 넘김 / 가운데는 더블탭=줌·단일탭=닫기
             function _handleTapEnd(x, y, target) {
                 const onCtl = target && target.closest && target.closest('button, #img-lightbox-counter, a');
+                if (onCtl) return;
+                const centerX = x > VW() * 0.3 && x < VW() * 0.7;   // 가운데 세로 띠 = 확대(더블탭)/닫기 전용 — 넘기기 없음
+                // ── 좌·우 사이드(바깥 30%) : 위=다음·아래=이전. 딜레이 없이 즉시(더블탭 줌은 가운데 전용). ──
+                if (!centerX && _lbCoarse && !_isZoomed() && _lbUrls.length > 1) {
+                    _cancelClose(); _lastTapT = 0;
+                    const dir = (y < VH() * 0.5) ? 1 : -1;
+                    _flashEdgeHint(dir === 1 ? 'next' : 'prev');
+                    lightboxNav(dir);
+                    return;
+                }
+                // ── 가운데(또는 데스크톱) : 더블탭=줌 / 단일탭=닫기(300ms 지연으로 더블탭과 구분) ──
                 const now = Date.now();
-                if (now - _lastTapT < 300 && Math.abs(x - _lastTapX) < 40 && Math.abs(y - _lastTapY) < 40 && !onCtl) {
+                if (now - _lastTapT < 300 && Math.abs(x - _lastTapX) < 40 && Math.abs(y - _lastTapY) < 40) {
                     _cancelClose(); _lastTapT = 0;
                     _toggleZoomAt(x, y);
                     return;
                 }
                 _lastTapT = now; _lastTapX = x; _lastTapY = y;
-                if (_isZoomed() || onCtl) return;
-                const centerX = x > VW() * 0.3 && x < VW() * 0.7;   // 가운데 세로 띠 = 확대(더블탭)/닫기 전용 — 넘기기 없음
-                if (centerX) { _scheduleClose(); return; }
-                // 좌·우 사이드(바깥 30%)만 넘기기: 위쪽=다음(오른쪽) · 아래쪽=이전(왼쪽). 모바일(터치)·여러 장일 때만.
-                const coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-                if (coarse && _lbUrls.length > 1) {
-                    const dir = (y < VH() * 0.5) ? 1 : -1;
-                    _scheduleTap(function () { lightboxNav(dir); });
-                }
+                if (!_isZoomed() && centerX) _scheduleClose();
             }
 
             // 트랙을 cur(슬롯1)에 즉시 맞춤
@@ -8533,8 +8592,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const n = _lbUrls.length, multi = n > 1;
                 counter.style.display = multi ? 'block' : 'none';
                 counter.textContent   = `${_lbIdx + 1} / ${n}`;
-                if (btnPrev) btnPrev.style.display = (multi && _lbIdx > 0)     ? 'block' : 'none';
-                if (btnNext) btnNext.style.display = (multi && _lbIdx < n - 1) ? 'block' : 'none';
+                // 데스크톱만 좌우 화살표 버튼 — 모바일은 옛 ←→가 새 위/아래 방식과 헷갈려서 숨기고 가장자리 힌트로 안내
+                if (btnPrev) btnPrev.style.display = (!_lbCoarse && multi && _lbIdx > 0)     ? 'block' : 'none';
+                if (btnNext) btnNext.style.display = (!_lbCoarse && multi && _lbIdx < n - 1) ? 'block' : 'none';
+                _syncEdgeHints();
             }
 
             // 라이트박스가 열린 동안 원본 컨테이너에서 이미지 목록을 실시간 재조회
