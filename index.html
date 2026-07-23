@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.3 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.4 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1240,7 +1240,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.3 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.4 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2006,7 +2006,14 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.3', date: '2026-07-22', time: '최신',
+                version: 'v9.56.4', date: '2026-07-22', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[크게 보기] 모바일에서 큰 이미지를 볼 때, 화면 <b>좌·우 가장자리</b>를 탭해 사진을 넘길 수 있게 했습니다 — <b>가장자리 위쪽</b>을 누르면 다음(오른쪽) 사진, <b>가장자리 아래쪽</b>을 누르면 이전(왼쪽) 사진. 가운데는 확대·닫기 전용이라 그대로 비워뒀습니다.",
+                ]
+            },
+            {
+                version: 'v9.56.3', date: '2026-07-22', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 갤러리 썸네일 <b>크기 조절 슬라이더</b>를 추가했습니다 — 목록 오른쪽 위 슬라이더로 썸네일을 크게/작게 바꿀 수 있고(모바일·PC 공통), 설정은 저장됩니다.",
@@ -8389,11 +8396,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (_isZoomed()) _resetZoom(true);
                 else _zoomBy(ZDBL, cx, cy, true);
             }
-            // 더블탭/더블클릭과 충돌 방지: 단순 탭 닫기는 300ms 지연 후 실행
-            let _closeTimer = null;
-            const _cancelClose = () => { if (_closeTimer) { clearTimeout(_closeTimer); _closeTimer = null; } };
-            const _scheduleClose = () => { _cancelClose(); _closeTimer = setTimeout(() => { _closeTimer = null; closeLightbox(); }, 300); };
-            // 탭/클릭 1회 처리 — 더블이면 줌 토글, 아니면 (중앙·비줌) 닫기 예약
+            // 더블탭/더블클릭과 충돌 방지: 단순 탭 동작(닫기·넘기기)은 300ms 지연 후 실행(그 사이 두 번째 탭이 오면 줌으로 전환)
+            let _closeTimer = null, _tapAction = null;
+            const _cancelClose = () => { if (_closeTimer) { clearTimeout(_closeTimer); _closeTimer = null; } _tapAction = null; };
+            const _scheduleTap = (fn) => { _cancelClose(); _tapAction = fn; _closeTimer = setTimeout(() => { _closeTimer = null; const a = _tapAction; _tapAction = null; if (a) a(); }, 300); };
+            const _scheduleClose = () => _scheduleTap(function () { closeLightbox(); });
+            // 탭/클릭 1회 처리 — 더블이면 줌 토글 / 가운데(가로 30~70%)면 닫기 / 좌·우 사이드는 위=다음·아래=이전(모바일)
             function _handleTapEnd(x, y, target) {
                 const onCtl = target && target.closest && target.closest('button, #img-lightbox-counter, a');
                 const now = Date.now();
@@ -8403,7 +8411,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     return;
                 }
                 _lastTapT = now; _lastTapX = x; _lastTapY = y;
-                if (!_isZoomed() && !onCtl && x > VW() * 0.3 && x < VW() * 0.7) _scheduleClose();
+                if (_isZoomed() || onCtl) return;
+                const centerX = x > VW() * 0.3 && x < VW() * 0.7;   // 가운데 세로 띠 = 확대(더블탭)/닫기 전용 — 넘기기 없음
+                if (centerX) { _scheduleClose(); return; }
+                // 좌·우 사이드(바깥 30%)만 넘기기: 위쪽=다음(오른쪽) · 아래쪽=이전(왼쪽). 모바일(터치)·여러 장일 때만.
+                const coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+                if (coarse && _lbUrls.length > 1) {
+                    const dir = (y < VH() * 0.5) ? 1 : -1;
+                    _scheduleTap(function () { lightboxNav(dir); });
+                }
             }
 
             // 트랙을 cur(슬롯1)에 즉시 맞춤
