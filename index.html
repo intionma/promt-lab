@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.6 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.7 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1240,7 +1240,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.6 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.7 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2006,7 +2006,14 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.6', date: '2026-07-22', time: '최신',
+                version: 'v9.56.7', date: '2026-07-22', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] 갤러리 썸네일이 <b>잘려 보이던 문제</b>를 고쳤습니다 — 프레임 고정(3:4 잘라내기)을 없애고, 각 이미지를 <b>원본 비율 그대로</b> 벽돌쌓기(메이슨리) 방식으로 배치합니다. 크기 슬라이더는 그대로 동작합니다.",
+                ]
+            },
+            {
+                version: 'v9.56.6', date: '2026-07-22', time: '',
                 tag: 'feat',
                 items: [
                     "[크게 보기] 모바일 가장자리 탭 넘기기를 <b>더 알아보기 쉽고 빠르게</b> 다듬었습니다 — 헷갈리던 좌우 화살표(←→)를 숨기고, 좌·우 가장자리에 <b>▲다음 / ▼이전</b> 반투명 안내를 넣었습니다(감상 방해 최소화·확대 중엔 사라짐). 넘길 때의 <b>미세한 딜레이도 제거</b>해 즉시 넘어갑니다.",
@@ -7278,7 +7285,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         <span class="anima-gal-sz" title="썸네일 크기"><span class="anima-gal-szi sm">▪</span><input type="range" id="anima-gal-size" min="60" max="220" step="4" value="${gs}"><span class="anima-gal-szi lg">▪</span></span>
                         <button class="anima-gal-clear" id="anima-gal-clear">전체 비우기</button>
                     </div></div>`;
-                html += `<div class="anima-gal" style="grid-template-columns:repeat(auto-fill,minmax(${gs}px,1fr))">`;
+                html += `<div class="anima-gal" style="column-width:${gs}px">`;
                 _anima.results.forEach((r, i) => { html += `<div class="anima-gitem${i === _animaResSel ? ' sel' : ''}" data-i="${i}"><img src="${r.url}" loading="lazy"><button class="anima-gx" data-i="${i}" title="삭제">✕</button></div>`; });
                 html += '</div>';
             }
@@ -7300,11 +7307,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             });
             const clr = box.querySelector('#anima-gal-clear');
             if (clr) clr.onclick = () => { if (!_anima.results.length) return; _anima.results = []; _animaResSel = 0; _animaSave(); _animaRenderResult(); showToast('이 테마의 생성 이미지 목록을 비웠어요', 'info', 1800); };
-            // 썸네일 크기 슬라이더 — 끌면 즉시 그리드 칸 크기 반영(재렌더 없이 부드럽게), 놓으면 저장
+            // 썸네일 크기 슬라이더 — 끌면 즉시 컬럼 폭 반영(재렌더 없이 부드럽게), 놓으면 저장
             const szEl = box.querySelector('#anima-gal-size');
             if (szEl) {
                 const gal = box.querySelector('.anima-gal');
-                szEl.oninput = () => { const v = Math.min(220, Math.max(60, parseInt(szEl.value) || 96)); if (gal) gal.style.gridTemplateColumns = `repeat(auto-fill,minmax(${v}px,1fr))`; };
+                szEl.oninput = () => { const v = Math.min(220, Math.max(60, parseInt(szEl.value) || 96)); if (gal) gal.style.columnWidth = v + 'px'; };
                 szEl.onchange = () => { _anima.galSize = Math.min(220, Math.max(60, parseInt(szEl.value) || 96)); _animaSave(); };
             }
         }
@@ -7565,14 +7572,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           @media (max-width:600px){ #anima-gal-size { width:76px; } }
           .anima-gal-clear { background:transparent; border:1px solid var(--border-dim); border-radius:8px; padding:5px 10px; color:var(--text-dim); font-size:11px; font-weight:700; cursor:pointer; }
           .anima-gal-clear:hover { color:#ef4444; border-color:rgba(239,68,68,.5); }
-          .anima-gal { display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px; margin-top:10px; }
-          .anima-gitem { position:relative; aspect-ratio:3/4; border-radius:9px; overflow:hidden; border:2px solid var(--border-dim); cursor:pointer; background:#0b0e13; }
+          /* 메이슨리(다단 컬럼) — 각 이미지를 원본 비율 그대로(잘림 없이). 컬럼 폭은 슬라이더가 column-width로 제어 */
+          .anima-gal { column-width:84px; column-gap:8px; margin-top:10px; }
+          .anima-gitem { position:relative; break-inside:avoid; margin-bottom:8px; border-radius:9px; overflow:hidden; border:2px solid var(--border-dim); cursor:pointer; background:#0b0e13; }
           .anima-gitem.sel { border-color:var(--accent-blue,#3b82f6); }
-          .anima-gitem img { width:100%; height:100%; object-fit:cover; display:block; }
+          .anima-gitem img { width:100%; height:auto; display:block; }
           .anima-gx { position:absolute; top:3px; right:3px; width:20px; height:20px; border-radius:6px; border:none; background:rgba(0,0,0,.6); color:#fff; font-size:11px; line-height:1; cursor:pointer; opacity:0; transition:.12s; }
           .anima-gitem:hover .anima-gx { opacity:1; }
           @media (hover:none){ .anima-gx { opacity:.85; } }
-          @media (max-width:600px){ .anima-arow { grid-template-columns:96px 1fr; } .anima-run { font-size:15px; } .anima-gal { grid-template-columns:repeat(auto-fill,minmax(72px,1fr)); } }
+          @media (max-width:600px){ .anima-arow { grid-template-columns:96px 1fr; } .anima-run { font-size:15px; } }
           /* 서버 카드 접기 — 주소가 이미 있으면 한 줄로 접혀 공간 절약 */
           .anima-srv-head { display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:800; color:var(--text-main); cursor:pointer; user-select:none; }
           .anima-srv-arrow { margin-left:auto; font-size:10px; color:var(--text-dim); transition:transform .15s; }
