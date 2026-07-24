@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.24 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.25 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.24 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.25 &nbsp;·&nbsp; 2026-07-24 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2012,9 +2012,17 @@
         // 토스트 알림
         // ── 업데이트 내역 ────────────────────────────────────────────────────
         const CHANGELOG = [
+            // ── 2026-07-24 ──────────────────────────────────────────────────
+            {
+                version: 'v9.56.25', date: '2026-07-24', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] 결과 갤러리 보관 장수를 <b>80장 → 500장</b>으로 크게 늘렸습니다 — 이제 예전 결과가 금방 밀려나 사라지지 않습니다. 화면에 보이는 썸네일만 불러오고(지연 로딩) 안 보이는 항목은 그리기를 건너뛰어(콘텐츠 가시성) 장수가 많아져도 갤러리가 무겁지 않게 유지됩니다.",
+                ]
+            },
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.24', date: '2026-07-22', time: '최신',
+                version: 'v9.56.24', date: '2026-07-22', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] 여러 장 생성 시 <b>두 번째·세 번째부터 전송이 멈추던 문제</b>를 고쳤습니다 — 연결이 끊기거나 전송이 오래 걸릴 때 대기열이 통째로 멈추지 않도록, 전송에 <b>시간 제한</b>을 두고 문제가 생긴 작업만 실패 처리한 뒤 <b>나머지는 계속 이어서</b> 처리하게 했습니다(자동 복구).",
@@ -6845,13 +6853,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         ];
         const ANIMA_KEY = 'anima_settings_v1';
         const _ANIMA_SRCHIST_MAX = 24;   // 이전 원본(축소본) 보관 개수 — 저장 용량 초과 시 자동으로 줄임(_animaSave)
+        const _ANIMA_MAX_RESULTS = 500;  // 결과 갤러리 보관 장수(결과는 서버 URL만 저장 → 용량 부담 적음). 렌더는 이벤트 위임 + 지연로딩으로 가볍게 유지.
         function _animaSave() {
             try {
                 const p = {};
                 ['prompt', 'steps', 'cfg', 'denoise', 'sampler', 'scheduler', 'seed', 'megapixels', 'upscaleMethod', 'refWeight', 'refMode',
                     'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb'].forEach(k => p[k] = _anima[k]);
                 // 이 테마에서 뽑은 결과 이미지 목록도 저장(서버 URL만, Anima 전용 · 다른 테마와 완전 분리). 최근 80장.
-                p.results = (_anima.results || []).slice(0, 80).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed }));
+                p.results = (_anima.results || []).slice(0, _ANIMA_MAX_RESULTS).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed }));
                 p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null }));
                 // 이전에 넣은 원본 이미지(축소본)들 — 다시 불러오기용.
                 const hist = (_anima.srcHistory || []).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0 }));
@@ -7103,7 +7112,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // ── 결과 훅 (comfyGenerate 완료 시 finalize가 호출) ──
         window._animaOnResult = function (url, seed) {
             _anima.results.unshift({ url, seed: (seed == null ? null : seed) });
-            if (_anima.results.length > 80) _anima.results.length = 80;
+            if (_anima.results.length > _ANIMA_MAX_RESULTS) _anima.results.length = _ANIMA_MAX_RESULTS;
             _animaResSel = 0; // 새 결과를 현재 비교 대상으로
             _animaBusy = false;
             try { _animaSave(); } catch (e) {}
@@ -7396,7 +7405,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             if ((im.type || 'output') === 'output') {
                                 const url = base + '/view?filename=' + encodeURIComponent(im.filename) + '&subfolder=' + encodeURIComponent(im.subfolder || '') + '&type=' + encodeURIComponent(im.type || 'output');
                                 _anima.results.unshift({ url, seed: (job.seed == null ? null : job.seed) });
-                                if (_anima.results.length > 80) _anima.results.length = 80;
+                                if (_anima.results.length > _ANIMA_MAX_RESULTS) _anima.results.length = _ANIMA_MAX_RESULTS;
                                 got = true;
                             }
                         });
@@ -7730,19 +7739,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             box.innerHTML = html;
             const openLB = (which) => { try { if (window.openLightbox) { const urls = [src, gen].filter(Boolean); const idx = (which === 0 && src) ? 0 : (src ? 1 : 0); window.openLightbox(urls[idx] || urls[0], urls, idx); } } catch (e) {} };
             box.querySelectorAll('.anima-frame').forEach(fr => { const lb = parseInt(fr.dataset.lb); if ((lb === 0 && src) || (lb === 1 && gen)) { fr.style.cursor = 'zoom-in'; fr.onclick = () => openLB(lb); } });
-            box.querySelectorAll('.anima-gitem').forEach(gi => gi.onclick = (e) => {
-                if (e.target.classList.contains('anima-gx')) return;
+            // 이벤트 위임: 항목마다 핸들러를 붙이지 않고 갤러리 컨테이너 1개에만 → 장수가 많아도 렌더가 가벼움(O(N) 바인딩 제거).
+            const gal = box.querySelector('.anima-gal');
+            if (gal) gal.onclick = (e) => {
+                const gx = e.target.closest('.anima-gx');
+                if (gx) {   // 삭제
+                    e.stopPropagation(); const i = parseInt(gx.dataset.i);
+                    _anima.results.splice(i, 1);
+                    if (_animaResSel >= _anima.results.length) _animaResSel = Math.max(0, _anima.results.length - 1);
+                    _animaSave(); _animaRenderResult(); return;
+                }
+                const gi = e.target.closest('.anima-gitem'); if (!gi) return;
                 const i = parseInt(gi.dataset.i);
                 _animaResSel = i; _animaRenderResult();   // 비교 대상으로 선택
-                // 큰 화면으로도 열기 — 이 테마 갤러리 전체를 좌우로 넘겨볼 수 있게
-                try { if (window.openLightbox) { const urls = _anima.results.map(r => r.url); window.openLightbox(urls[i], urls, i); } } catch (err) {}
-            });
-            box.querySelectorAll('.anima-gx').forEach(x => x.onclick = (e) => {
-                e.stopPropagation(); const i = parseInt(x.dataset.i);
-                _anima.results.splice(i, 1);
-                if (_animaResSel >= _anima.results.length) _animaResSel = Math.max(0, _anima.results.length - 1);
-                _animaSave(); _animaRenderResult();
-            });
+                try { if (window.openLightbox) { const urls = _anima.results.map(r => r.url); window.openLightbox(urls[i], urls, i); } } catch (err) {}   // 크게 보기(전체 좌우 넘김)
+            };
             const clr = box.querySelector('#anima-gal-clear');
             if (clr) clr.onclick = () => { if (!_anima.results.length) return; _anima.results = []; _animaResSel = 0; _animaSave(); _animaRenderResult(); showToast('이 테마의 생성 이미지 목록을 비웠어요', 'info', 1800); };
             // 썸네일 크기 슬라이더 — 끌면 즉시 컬럼 폭 반영(재렌더 없이 부드럽게), 놓으면 저장
