@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.15 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.16 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
@@ -1240,7 +1240,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.15 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.16 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2008,7 +2008,15 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.15', date: '2026-07-22', time: '최신',
+                version: 'v9.56.16', date: '2026-07-22', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[성능] 스크롤을 더 부드럽게 — 페이지·추천 캐러셀 스크롤 처리를 passive로 전환해 스크롤 중 끊김을 줄였습니다.",
+                    "[Anima 편집] 프롬프트 타이핑 반응성 개선 — 글자마다 이미지 썸네일·원본기록까지 저장하던 것을 잠깐 모아 한 번에 저장(입력 지연 감소, 저장 내용은 그대로).",
+                ]
+            },
+            {
+                version: 'v9.56.15', date: '2026-07-22', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 표정 프리셋 순서를 자주 쓰는 <b>유혹 · 절정 · 무표정 · 아헤가오</b>가 <b>앞에 오도록</b> 바꿨습니다(직접 추가한 표정은 뒤에 그대로 유지).",
@@ -6787,6 +6795,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }
             } catch (e) {}
         }
+        // 프롬프트 타이핑처럼 잦은 변경용 — 썸네일·원본기록(수백 KB) 직렬화를 매 키 입력마다 하지 않게 디바운스
+        let _animaSaveT = null;
+        function _animaSaveDebounced() {
+            clearTimeout(_animaSaveT);
+            _animaSaveT = setTimeout(() => { _animaSaveT = null; _animaSave(); }, 400);
+        }
+        function _animaSaveFlush() { if (_animaSaveT) { clearTimeout(_animaSaveT); _animaSaveT = null; _animaSave(); } }
         function _animaRestore() {
             try {
                 const s = JSON.parse(localStorage.getItem(ANIMA_KEY) || 'null');
@@ -7685,7 +7700,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _animaDom = document.createElement('div'); _animaDom.id = 'anima-root'; _animaDom.innerHTML = ANIMA_HTML;
             document.body.appendChild(_animaDom);
             _animaRenderInput(); _animaRenderRun(); _animaRenderResult(); _animaRenderAdv(); _animaRenderSnippets(); _animaRenderQueue();
-            const pt = _animaEl('#anima-prompt'); pt.value = _anima.prompt; pt.oninput = () => { _anima.prompt = pt.value; _animaSave(); };
+            const pt = _animaEl('#anima-prompt'); pt.value = _anima.prompt; pt.oninput = () => { _anima.prompt = pt.value; _animaSaveDebounced(); };
             const sd = _animaEl('#anima-seed'); sd.value = (_anima.seed == null ? -1 : _anima.seed); sd.onchange = () => { const v = sd.value.trim(); _anima.seed = (v === '' || v === '-1') ? -1 : (parseInt(v) || -1); _animaSave(); };
             _animaEl('#anima-seed-rand').onclick = () => { _anima.seed = Math.floor(Math.random() * 1e9); sd.value = _anima.seed; _animaSave(); };
             _animaEl('#anima-run-btn').onclick = _animaGenerate;
@@ -7725,7 +7740,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _animaSyncMactHeight();
             // (마운트 시 노드 스키마 프리페치는 제거 — 연결 전에 실패 요청이 나가 오류처럼 보이고 캐시를 오염시킬 수 있어,
             //  스키마는 실제 '실행' 시점에만 받아온다. 실패한 스키마는 캐시하지 않으므로 다음 실행에서 재시도됨.)
-            return () => { document.removeEventListener('paste', onPaste); window.removeEventListener('resize', onResize); if (_animaDom) { _animaDom.remove(); _animaDom = null; } };
+            return () => { document.removeEventListener('paste', onPaste); window.removeEventListener('resize', onResize); _animaSaveFlush(); if (_animaDom) { _animaDom.remove(); _animaDom = null; } };
         }
         window.mountAnima = mountAnima;
 
@@ -11713,7 +11728,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const base = () => (_cols.children[0] ? _cols.children[0].offsetLeft : 0);
                     requestAnimationFrame(() => { const c = _cols.children[_recCarouselIdx]; if (c) _cols.scrollLeft = c.offsetLeft - base(); });
                     _tabs.forEach((t, k) => t.onclick = () => { _setTab(k); const c = _cols.children[k]; if (c) _cols.scrollTo({ left: c.offsetLeft - base(), behavior: 'smooth' }); });
-                    _cols.addEventListener('scroll', () => { const sl = _cols.scrollLeft, b = base(); let best = 0, bd = 1e9; [..._cols.children].forEach((c, k) => { const d = Math.abs((c.offsetLeft - b) - sl); if (d < bd) { bd = d; best = k; } }); if (best !== _recCarouselIdx) _setTab(best); });
+                    _cols.addEventListener('scroll', () => { const sl = _cols.scrollLeft, b = base(); let best = 0, bd = 1e9; [..._cols.children].forEach((c, k) => { const d = Math.abs((c.offsetLeft - b) - sl); if (d < bd) { bd = d; best = k; } }); if (best !== _recCarouselIdx) _setTab(best); }, { passive: true });
                 }
                 // 축 헤더 클릭 → 접기/펼치기 (값에는 영향 없음, 표시만 토글). 리롤·비우기 버튼 클릭은 예외.
                 body.querySelectorAll('.recm-collapse-toggle').forEach(h => h.onclick = (e) => {
@@ -16223,7 +16238,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const el = document.getElementById('tag-ac');
             if (el && e.target && e.target.nodeType === 1 && (e.target === el || el.contains(e.target))) return;
             _acHide();
-        }, true);
+        }, { capture: true, passive: true }); // passive: preventDefault 안 하므로 스크롤을 리스너 대기 없이 처리(부드러움)
 
         // excludeId를 제외한, 현재 활성(_activeComboIds)인 다른 모든 조합들의 태그 합집합
         // → 조합을 뺄 때 다른 활성 조합이 여전히 필요로 하는(겹치는) 태그는 지우지 않음(교차 오염 방지)
