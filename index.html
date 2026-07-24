@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.21 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.22 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.21 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.22 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2014,7 +2014,15 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.21', date: '2026-07-22', time: '최신',
+                version: 'v9.56.22', date: '2026-07-22', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[크게 보기] 이미지를 크게 본 채로 <b>대기열 생성이 끝나 새 결과가 들어와도 창이 꺼지지 않게</b> 고쳤습니다(뒤로가기 처리 충돌 수정).",
+                    "[크게 보기] <b>스와이프로 넘길 때 슬라이드 애니메이션을 없앴습니다</b> — 화살표·가장자리 탭처럼 즉시 넘어갑니다.",
+                ]
+            },
+            {
+                version: 'v9.56.21', date: '2026-07-22', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] ComfyUI로 <b>이미지 보내는(업로드) 속도가 크게 빨라졌습니다</b> (특히 폰·WiFi) — 큰 원본(수 MB)을 통째로 올리던 걸, <b>생성 크기(메가픽셀)에 맞게 미리 줄여서</b> 보냅니다(예: 5MB 사진 → 100KB 안팎). ComfyUI가 어차피 그 크기로 줄여 쓰기 때문에 결과 화질엔 영향이 없고, 이미 작은 이미지는 원본 그대로 보냅니다.",
@@ -4032,7 +4040,9 @@
                 if (i === -1) return;
                 _modalBackStack.splice(i, 1);
                 _modalBackDetach(entry);
-                if (!_modalBackPopping) { _modalBackConsuming = true; try { history.back(); } catch (e) { _modalBackConsuming = false; } }
+                // 이 history.back()은 '하위 모달의 외부 닫힘'을 히스토리와 정합시키려는 내부 back일 뿐이다.
+                //  라이트박스가 위에 떠 있으면, 라이트박스의 popstate 핸들러가 이걸 사용자 뒤로가기로 오인해 닫아버리므로(충돌) 무시하게 표시.
+                if (!_modalBackPopping) { _modalBackConsuming = true; window._lbSuppressPop = true; try { history.back(); } catch (e) { _modalBackConsuming = false; window._lbSuppressPop = false; } }
             };
             const obs = new MutationObserver(() => { if (!_modalBackVisible(el)) onExternalClose(); });
             try { obs.observe(el, { attributes: true, attributeFilter: ['style', 'class'] }); } catch (e) {}
@@ -9089,24 +9099,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const n = _lbUrls.length;
                 const threshold = VW() * SNAP_RATIO;
 
+                // 스와이프 넘김은 애니메이션 없이 '즉시'(화살표·가장자리 탭과 동일). 슬라이드 애니메이션 제거.
                 if (dx < -threshold && _lbIdx < n - 1) {
-                    // 왼쪽으로 충분히 스와이프 → 다음 이미지로
-                    // 현재 드래그 위치에서 next슬롯(slot2) 위치까지 animate
-                    _slideTo(-VW() * 2, () => {
-                        _lbIdx++;
-                        _loadSlots();
-                        _updateUI();
-                    });
+                    _lbIdx++; _loadSlots(); _center(); _updateUI();       // 다음 이미지로 즉시
                 } else if (dx > threshold && _lbIdx > 0) {
-                    // 오른쪽으로 충분히 스와이프 → 이전 이미지로
-                    _slideTo(0, () => {
-                        _lbIdx--;
-                        _loadSlots();
-                        _updateUI();
-                    });
+                    _lbIdx--; _loadSlots(); _center(); _updateUI();       // 이전 이미지로 즉시
                 } else {
-                    // 임계값 미달 → 원위치
-                    _slideTo(-VW(), null);
+                    _center();                                           // 임계값 미달 → 즉시 원위치(스냅백도 애니메이션 없음)
                 }
             }
 
@@ -9265,6 +9264,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
             // 뒤로가기 → 라이트박스만 닫기
             window.addEventListener('popstate', e => {
+                // 하위 모달의 외부 닫힘이 히스토리 정합용으로 부른 내부 back이면(사용자 뒤로가기 아님) 라이트박스를 닫지 않는다.
+                //  (대기열 생성 완료 등으로 하위 모달이 사라질 때 크게 보기 창이 같이 꺼지던 문제 해결)
+                if (window._lbSuppressPop) { window._lbSuppressPop = false; return; }
                 if (box.style.display !== 'none') {
                     box.style.display = 'none';
                     SLOTS.forEach(img => { img.src = ''; img.dataset.full = ''; });
