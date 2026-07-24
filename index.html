@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.17 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.18 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.17 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.18 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2014,7 +2014,14 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.17', date: '2026-07-22', time: '최신',
+                version: 'v9.56.18', date: '2026-07-22', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] 대기열이 <b>20~30개로 많아져도 처리 속도가 느려지지 않게</b> 최적화했습니다 — 대기열 미리보기 썸네일을 가볍게 하고, 상태가 바뀔 때마다 목록을 통째로 다시 그리지 않고 바뀐 부분만 갱신하도록 바꿨습니다(작업당 불필요한 멈춤 시간을 크게 줄임).",
+                ]
+            },
+            {
+                version: 'v9.56.17', date: '2026-07-22', time: '',
                 tag: 'fix',
                 items: [
                     "[성능] <b>첫 접속·새로고침이 크게 빨라졌습니다</b> (특히 모바일) — 폰트·아이콘 CSS를 렌더 비차단으로 바꿔 화면이 폰트 다운로드를 기다리지 않고 즉시 그려집니다.",
@@ -7152,31 +7159,52 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         let _animaJobs = [];       // 세션 전용 대기열 [{id,status,thumb,label,prompt,seed,snap:{dataURL,uploadedName},pid,base,err}]
         let _animaJobSeq = 0;
         const _animaRunning = () => _animaJobs.some(j => j.status === 'running' || j.status === 'uploading');
-        function _animaSyncBusy() {
+        // structural=false 이면 대기열 개수가 그대로(상태만 변경)이라 전체 재생성 없이 부분 갱신 → 대기열이 커도 빠름
+        function _animaSyncBusy(structural) {
             _animaBusy = _animaRunning();
             try { _animaRenderRun(); } catch (e) {}
             try { _animaRenderResult(); } catch (e) {}
-            try { _animaRenderQueue(); } catch (e) {}
+            try { if (structural === false) _animaPatchQueue(); else _animaRenderQueue(); } catch (e) {}
+        }
+        // 대기열 개수가 같을 때(대기→업로드→생성 등 상태만 변경): 큰 innerHTML 재생성 대신 상태 class·배지·헤더만 갱신
+        function _animaPatchQueue() {
+            const box = _animaEl('#anima-queue'); if (!box) return;
+            const items = box.querySelectorAll('.anima-q-item');
+            if (items.length !== _animaJobs.length) { _animaRenderQueue(); return; }   // 개수 다르면 구조 재생성
+            _animaJobs.forEach((j, i) => {
+                const el = items[i]; if (!el) return;
+                el.className = 'anima-q-item ' + j.status;
+                const badge = el.querySelector('.anima-q-badge');
+                if (badge) badge.innerHTML = (j.status === 'running' || j.status === 'uploading') ? '<span class="anima-sp"></span>' : (j.status === 'error' ? '⚠' : '⋯');
+            });
+            const head = box.querySelector('.anima-q-head span');
+            if (head) {
+                const running = _animaJobs.filter(j => j.status === 'running' || j.status === 'uploading').length;
+                const queued = _animaJobs.filter(j => j.status === 'queued').length;
+                const err = _animaJobs.filter(j => j.status === 'error').length;
+                head.innerHTML = `⏳ 대기열 <b>${_animaJobs.length}</b>${running ? ` · 생성 중 ${running}` : ''}${queued ? ` · 대기 ${queued}` : ''}${err ? ` · 실패 ${err}` : ''}`;
+            }
         }
         // 생성에 영향 주는 모든 설정을 이 순간 값으로 복사 — 대기열 항목이 실행될 때까지 설정을 바꿔도 섞이지 않게.
         const _ANIMA_SNAP_KEYS = ['clipName', 'clipType', 'vaeName', 'unetName', 'lora1Name', 'lora1', 'lora2Name', 'lora2',
             'suppressWm', 'cfg', 'upscaleMethod', 'megapixels', 'refWeight', 'refMode', 'steps', 'sampler', 'scheduler', 'denoise', 'customWf'];
         function _animaSnapshotSettings() { const s = {}; _ANIMA_SNAP_KEYS.forEach(k => s[k] = _anima[k]); return s; }
         // 실행 버튼 = 현재 상태를 대기열에 추가 (idle이면 바로 시작)
-        function _animaGenerate() {
+        async function _animaGenerate() {
             if (!_animaHasImage()) { showToast('먼저 이미지를 넣어주세요.', 'warning', 2500); return; }
             const base0 = (_anima.prompt || '').trim();
             if (!base0) { showToast('프롬프트를 입력하세요.', 'warning', 2500); return; }
             // 켜진 프롬프트 옵션(후타나리·표정 등)을 기본 프롬프트 뒤에 붙여 스냅샷
             const extras = (_anima.snippets || []).filter(s => s.kind !== 'base' && s.on && s.text && s.text.trim()).map(s => s.text.trim()).join(', ');
             const prompt = extras ? (base0.replace(/,\s*$/, '') + ', ' + extras) : base0;
-            const job = {
-                id: ++_animaJobSeq, status: 'queued',
-                thumb: _anima.imgThumb || (_anima.img && _anima.img.dataURL) || '',
-                label: prompt, prompt, seed: _animaSeedVal(),   // -1이면 지금 랜덤 확정 → 대기열 항목마다 다른 시드
-                snap: { dataURL: _anima.img.dataURL, uploadedName: _anima.uploadedName },
-                settings: _animaSnapshotSettings()   // 고급 설정(모델·스텝·CFG·강도·워터마크·커스텀 등)도 이 순간 값으로 고정 → 대기 중 바꿔도 안 섞임
-            };
+            // 클릭 순간의 값들을 먼저 확정(썸네일 생성 await 사이에 설정이 바뀌어도 안 섞이게)
+            const seed = _animaSeedVal();   // -1이면 지금 랜덤 확정 → 대기열 항목마다 다른 시드
+            const snap = { dataURL: _anima.img.dataURL, uploadedName: _anima.uploadedName };
+            const settings = _animaSnapshotSettings();   // 고급 설정도 이 순간 값으로 고정 → 대기 중 바꿔도 안 섞임
+            // 대기열 '표시용' 작은 썸네일(≈128px). 원본 768 dataURL을 목록에 박으면 30개일 때 HTML이 수백 KB라 렌더가 느려짐 → 작게.
+            let qthumb = _anima.imgThumb || snap.dataURL || '';
+            try { qthumb = await _animaThumb(snap.dataURL, 128); } catch (e) {}
+            const job = { id: ++_animaJobSeq, status: 'queued', thumb: qthumb, label: prompt, prompt, seed, snap, settings };
             _animaJobs.push(job);
             const pend = _animaJobs.filter(j => j.status !== 'error').length;
             showToast(_animaRunning() ? `대기열에 추가됨 · 총 ${pend}개 (하나씩 처리)` : '생성 시작 — 계속 추가할 수 있어요', 'info', 1800);
@@ -7194,7 +7222,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { const ai = _animaEl('#anima-url'); const g = document.getElementById('comfy-url'); if (ai && g && ai.value.trim()) { g.value = ai.value.trim(); if (typeof _comfyPatchUrl === 'function') _comfyPatchUrl(ai.value.trim()); } } catch (e) {}
             const base = _comfyBase(); job.base = base;
             try {
-                job.status = 'uploading'; _animaSyncBusy();
+                job.status = 'uploading'; _animaSyncBusy(false);
                 // 이 작업의 이미지 업로드(이미 업로드된 원본이면 재사용 → 같은 이미지 여러 옵션은 1회만 업로드)
                 let name = job.snap.uploadedName;
                 if (!name) {
@@ -7213,7 +7241,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     } catch (e) { wf = await _animaBuildWorkflow(job.prompt, name, job.seed, st); }
                 } else { wf = await _animaBuildWorkflow(job.prompt, name, job.seed, st); }
                 const cid = (typeof _comfyClientId !== 'undefined' && _comfyClientId) ? _comfyClientId : (typeof _comfyUUID === 'function' ? _comfyUUID() : String(Math.random()));
-                job.status = 'running'; _animaSyncBusy();
+                job.status = 'running'; _animaSyncBusy(false);
                 // text/plain = preflight 없는 단순 요청(크로스오리진에서 POST가 막히던 문제 회피). ComfyUI는 content-type 무관하게 JSON 파싱.
                 const res = await fetch(base + '/prompt', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ prompt: wf, client_id: cid }) });
                 if (!res.ok) {
@@ -7270,7 +7298,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         if (got) {
                             _animaResSel = 0; job.status = 'done';
                             _animaJobs = _animaJobs.filter(z => z !== job); // 완료 항목은 대기열에서 제거(결과·갤러리로 이동)
-                            try { _animaSave(); } catch (e) {}
+                            try { _animaSaveDebounced(); } catch (e) {}   // 완료마다 수백 KB 동기 저장(80ms)하지 않게 디바운스(이탈 시 flush됨)
                             _animaSyncBusy();
                             try { showToast('✅ 생성 완료' + (_animaJobs.filter(j => j.status !== 'error').length ? ` · 남은 ${_animaJobs.filter(j => j.status !== 'error').length}개 계속…` : ''), 'success', 2200); } catch (e) {}
                             try { if (navigator.vibrate) navigator.vibrate(80); } catch (e) {}
