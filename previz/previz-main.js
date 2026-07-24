@@ -13,6 +13,18 @@ let _scene = null;
 let _callouts = null;
 let _tagWatchInterval = null;
 let _lastTagSnapshot = '';
+let _visible = false;
+
+function initCallouts(canvasWrap) {
+    if (_callouts || !_scene) return;
+    _callouts = new CalloutManager(canvasWrap, _scene.camera, _scene.THREE);
+    _scene.onFrameTick = () => _callouts?.update();
+
+    // 좌클릭 → Callout 패널 자동 오픈 브릿지
+    window.__previzOpenCallout = (calloutId) => {
+        _callouts?.openById(calloutId);
+    };
+}
 
 // ── sceneState 스켈레톤 ───────────────────────────────────────────
 function makeDefaultSceneState() {
@@ -99,6 +111,8 @@ function stopTagWatch() {
 
 // ── 뷰 전환 ──────────────────────────────────────────────────────
 export async function openPreviz() {
+    _visible = true;
+
     // 기존 패널 숨김
     ['panel-left', 'panel-mid', 'panel-right',
      'resize-handle-1', 'resize-handle-2'].forEach(id => {
@@ -211,23 +225,34 @@ export async function openPreviz() {
     const canvasWrap = document.getElementById('previz-canvas-wrap');
     if (!_scene) {
         _scene = new PrevizScene(canvasWrap);
-        await _scene.init();
+        try {
+            await _scene.init();
+        } catch (error) {
+            try { _scene.dispose(); } catch (_) {}
+            _scene = null;
+            throw error;
+        }
         initPartClickHandler(_scene);
         initHUD(_scene);
         buildPrevizControls(_scene, canvasWrap);
 
         // Callout 오버레이 초기화
         ensurePrevizTagsInDB();
-        _callouts = new CalloutManager(canvasWrap, _scene.camera, _scene.THREE);
-        _scene.onFrameTick = () => _callouts.update();
-
-        // 좌클릭 → Callout 패널 자동 오픈 브릿지
-        window.__previzOpenCallout = (calloutId) => {
-            _callouts?.openById(calloutId);
-        };
+        initCallouts(canvasWrap);
     } else {
         _scene.resize();
         initHUD(_scene);
+        initCallouts(canvasWrap);
+        _scene.resume();
+    }
+
+    // 첫 로드 중 닫기 버튼을 누른 경우, 비동기 초기화가 끝나도 숨은 렌더링을 시작하지 않는다.
+    if (!_visible) {
+        _scene.pause();
+        _scene.onFrameTick = null;
+        _callouts?.dispose();
+        _callouts = null;
+        return;
     }
 
     // 현재 태그로 즉시 반영
@@ -312,7 +337,10 @@ function ctrlButton(label) {
 }
 
 export function closePreviz() {
+    _visible = false;
     stopTagWatch();
+    _scene?.pause();
+    if (_scene) _scene.onFrameTick = null;
     _callouts?.dispose();
     _callouts = null;
 
