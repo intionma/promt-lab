@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.17 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.18 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -235,11 +235,6 @@
         .search-box input:focus { border-color: var(--accent-blue); }
         .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-dim); font-size: 14px;}
 
-        .combo-card { background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 10px; padding: 16px; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; gap: 8px; position: relative; }
-        .combo-card:hover { border-color: var(--accent-blue); transform: translateY(-2px); box-shadow: 0 5px 15px var(--shadow-color); }
-        .combo-card.active { border-color: var(--accent-green); background: rgba(34,197,94,0.06); }
-        .combo-header { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; color: var(--text-main); font-family: var(--font-heading); padding-right: 30px; }
-        .combo-desc { font-size: 13px; color: var(--text-dim); line-height: 1.4; }
         .btn-combo-del { position: absolute; right: 6px; top: 6px; background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 12px; padding: 4px; transition: 0.2s; z-index: 3; }
         .btn-combo-del:hover { color: var(--accent-danger); }
 
@@ -277,10 +272,10 @@
         .combo-folder-item:hover { border-color: var(--accent-blue); }
 
         /* 조합 카드 (그리드형) */
-        .combo-card { background: var(--bg-surface); border: 1px solid var(--border-dim); display: flex; flex-direction: column; gap: 5px; padding: 10px 10px 10px; min-height: 90px; border-radius: 10px; }
-        .combo-card:hover { border-color: var(--accent-blue); box-shadow: 0 4px 12px var(--shadow-color); }
+        .combo-card { position: relative; display: flex; flex-direction: column; gap: 5px; min-height: 90px; padding: 10px; background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 10px; cursor: pointer; transition: 0.2s; }
+        .combo-card:hover { border-color: var(--accent-blue); transform: translateY(-2px); box-shadow: 0 4px 12px var(--shadow-color); }
         .combo-card.active { border-color: var(--accent-green); background: rgba(34,197,94,0.06); }
-        .combo-header { font-size: 12px; font-weight: 700; font-family: var(--font-ui); color: var(--text-main); line-height: 1.3; word-break: break-all; padding-right: 14px; }
+        .combo-header { display: flex; align-items: center; gap: 10px; padding-right: 14px; color: var(--text-main); font-family: var(--font-ui); font-size: 12px; font-weight: 700; line-height: 1.3; word-break: break-all; }
         .combo-desc { font-size: 10px; font-family: var(--font-code); color: var(--text-dim); line-height: 1.4; word-break: break-all; flex: 1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
         .combo-item-name-edit { display: none; position: absolute; inset: 0; z-index: 10; background: var(--bg-surface); border: 2px solid var(--accent-blue); border-radius: 10px; padding: 8px; }
         .combo-item-name-edit input { width: 100%; background: transparent; border: none; color: var(--text-main); font-size: 12px; font-family: var(--font-ui); font-weight: 700; outline: none; }
@@ -1246,7 +1241,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.17 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.18 &nbsp;·&nbsp; 2026-07-24 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2012,9 +2007,17 @@
         // 토스트 알림
         // ── 업데이트 내역 ────────────────────────────────────────────────────
         const CHANGELOG = [
+            // ── 2026-07-24 ──────────────────────────────────────────────────
+            {
+                version: 'v9.56.18', date: '2026-07-24', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[성능] 태그·에디터 화면을 다시 그릴 때 기기 입력 방식을 한 번만 판정해 레이아웃 전환 부담을 줄였습니다.",
+                ]
+            },
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.17', date: '2026-07-22', time: '최신',
+                version: 'v9.56.17', date: '2026-07-22', time: '',
                 tag: 'fix',
                 items: [
                     "[성능] <b>첫 접속·새로고침이 크게 빨라졌습니다</b> (특히 모바일) — 폰트·아이콘 CSS를 렌더 비차단으로 바꿔 화면이 폰트 다운로드를 기다리지 않고 즉시 그려집니다.",
@@ -12515,6 +12518,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _openSubFolders.add(el.dataset.layerId + '::' + el.dataset.folderKey);
             });
 
+            const coarsePointer = _ioCoarsePointer();
             sidebarDetail.innerHTML = ''; editor.innerHTML = ''; activeTagsMap = {};
 
             sidebarDetail.innerHTML = `
@@ -12573,7 +12577,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             btn.innerHTML = `<span class="tag-kr"${titleAttr}>${_esc(displayLabel)}</span><span class="tag-en">${_esc(data.t)}</span>`;
                             // 멀티태그 호버 툴팁 — 마우스 전용. 터치기기(모바일)엔 hover가 없어 무용지물이고,
                             // 버튼마다 div+리스너 2개를 더 만들어 큰 DB에서 로딩을 무겁게 함 → 모바일선 생략(전체 텍스트는 title 속성으로 제공).
-                            if (isMulti && !_ioCoarsePointer()) {
+                            if (isMulti && !coarsePointer) {
                                 const tooltip = document.createElement('div');
                                 tooltip.style.cssText = 'display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a1e27;border:1px solid var(--border-dim);color:#94a3b8;font-size:11px;font-family:var(--font-code);padding:6px 10px;border-radius:6px;white-space:pre;z-index:200;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
                                 tooltip.textContent = data.t.split(',').map(s => s.trim()).join('\n');
@@ -12585,7 +12589,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             const star = document.createElement('i');
                             star.className = `fa-star tag-fav-icon ${favorites.includes(data.t) ? 'fa-solid active' : 'fa-regular'}`;
                             // 터치 기기: 별은 표시만, 탭은 통과시켜 선택 우선 (즐겨찾기는 롱프레스 메뉴)
-                            if (_ioCoarsePointer()) star.style.pointerEvents = 'none';
+                            if (coarsePointer) star.style.pointerEvents = 'none';
                             else star.onclick = (e) => { e.stopPropagation(); toggleFavorite(data.t); };
                             btn.appendChild(star);
                             // 단일 클릭은 즉시 토글(지연 없음). 250ms 내 두 번째 클릭이면 토글을 되돌리고 편집창을 연다.
@@ -12603,7 +12607,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             };
                             // HTML5 드래그는 터치기기에서 동작 안 함(모바일 태그 재정렬 불가) → 버튼마다 draggable+리스너 6개가 순수 낭비.
                             // 모바일에선 생략해 큰 사전 로딩 비용을 크게 줄임(재정렬은 데스크톱 전용).
-                            if (!_ioCoarsePointer()) setupTagDrag(btn, i, subLayerRaw);
+                            if (!coarsePointer) setupTagDrag(btn, i, subLayerRaw);
                             activeTagsMap[data.t] = { neg: data.n, layer: i, kor: data.k || data.t, c: data.c || "", folderId: folderId, color: subColor };
                             return btn;
                         };
@@ -21497,25 +21501,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         };
 
         // ── 스테이지 / 토스트 토대 ────────────────────────────────
-        function ensureStage() {
-            let s = document.getElementById('pl-stage');
-            if (!s) { s = el('div', { id: 'pl-stage' }); document.body.appendChild(s); }
-            return s;
-        }
         function setTopbarVar() {
             const tb = document.getElementById('global-topbar');
             const h = tb ? tb.getBoundingClientRect().height : 54;
             document.documentElement.style.setProperty('--pl-topbar-h', h + 'px');
         }
         window.addEventListener('resize', setTopbarVar);
-
-        // 스테이지 헤더 (기능 레이아웃 공통)
-        function stageHead(title, hint) {
-            return el('div', { class: 'pl-stage-head' },
-                el('span', { html: title }),
-                hint ? el('span', { class: 'pl-stage-hint', html: hint }) : null
-            );
-        }
 
         // ════════════════════════════════════════════════════════
         //  기능 모듈들
