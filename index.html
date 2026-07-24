@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.19 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.20 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.19 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.20 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2014,7 +2014,14 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.19', date: '2026-07-22', time: '최신',
+                version: 'v9.56.20', date: '2026-07-22', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] ComfyUI로 받은 <b>결과 이미지 로딩이 훨씬 빨라졌습니다</b> (특히 모바일·WiFi) — 갤러리·비교창에서 원본(수 MB PNG)을 통째로 받던 걸, ComfyUI의 <b>가벼운 프리뷰(WebP)로 받도록</b> 바꿨습니다. 원본 풀 해상도는 <b>크게 보기(탭)</b>를 열 때만 불러옵니다. (프리뷰를 지원 안 하는 서버면 자동으로 원본으로 되돌아갑니다.)",
+                ]
+            },
+            {
+                version: 'v9.56.19', date: '2026-07-22', time: '',
                 tag: 'fix',
                 items: [
                     "[성능] <b>Anima 편집으로 시작하면 첫 화면이 더 빨리 뜹니다</b> (특히 모바일) — Anima는 클래식 태그 목록이 필요 없어서, 콜드부팅 때 <b>수백 개 태그 버튼 생성을 건너뛰고</b> 나중에 클래식/스튜디오 등으로 넘어갈 때 한 번만 만들도록 바꿨습니다(부팅 시 무거운 작업 165ms·노드 1,500여 개를 뒤로 미룸).",
@@ -7600,6 +7607,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const mb = _animaEl('#anima-mact-run');   // 모바일 하단 바 실행 버튼도 동기화(짧게)
             if (mb) { mb.disabled = false; mb.innerHTML = pend ? `${active ? '<span class="anima-sp"></span>' : ''}➕ <span class="anima-qn">${pend}</span>` : '✨ 실행'; }
         }
+        // ComfyUI /view 결과 이미지를 '재인코딩 프리뷰(WebP)'로 요청해 전송량을 크게 줄인다(원본 PNG는 수 MB → WebP 수십~수백 KB).
+        //  ComfyUI 프론트도 쓰는 &preview=포맷;품질 파라미터. 서버가 무시하면 원본이 오고, 실패하면 onerror로 원본 폴백.
+        //  → 갤러리·비교창은 가벼운 프리뷰로, 크게 보기(라이트박스)만 원본 풀 해상도.
+        function _animaPreviewUrl(url, q) {
+            try { if (!url || !/\/view\?/.test(url) || /[?&]preview=/.test(url)) return url; return url + '&preview=webp;' + (q || 70); } catch (e) { return url; }
+        }
         function _animaRenderResult() {
             const box = _animaEl('#anima-result'); if (!box) return;
             if (_animaResSel >= _anima.results.length) _animaResSel = 0;
@@ -7609,7 +7622,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const gen = cur ? cur.url : null;
             let html = '<div class="anima-cmp">';
             if (src) html += `<figure><div class="anima-lbl">원본</div><div class="anima-frame" data-lb="0"><img src="${src}"></div></figure>`;
-            html += `<figure><div class="anima-lbl">결과${_anima.results.length ? ` · ${_animaResSel + 1}/${_anima.results.length}` : ''}</div><div class="anima-frame ${gen ? '' : 'nores'}" data-lb="1">${gen ? `<img src="${gen}">` : (_animaBusy ? '<span class="anima-sp big"></span>' : '<span class="anima-nores-t">아직 결과 없음</span>')}</div></figure>`;
+            html += `<figure><div class="anima-lbl">결과${_anima.results.length ? ` · ${_animaResSel + 1}/${_anima.results.length}` : ''}</div><div class="anima-frame ${gen ? '' : 'nores'}" data-lb="1">${gen ? `<img src="${_animaPreviewUrl(gen, 82)}" decoding="async" onerror="this.onerror=null;this.src='${gen}'">` : (_animaBusy ? '<span class="anima-sp big"></span>' : '<span class="anima-nores-t">아직 결과 없음</span>')}</div></figure>`;
             html += '</div>';
             // 이 테마 전용 이미지 갤러리 (Anima에서 뽑은 것만 · 새로고침 유지)
             if (_anima.results.length) {
@@ -7620,7 +7633,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         <button class="anima-gal-clear" id="anima-gal-clear">전체 비우기</button>
                     </div></div>`;
                 html += `<div class="anima-gal" style="column-width:${gs}px">`;
-                _anima.results.forEach((r, i) => { html += `<div class="anima-gitem${i === _animaResSel ? ' sel' : ''}" data-i="${i}"><img src="${r.url}" loading="lazy"><button class="anima-gx" data-i="${i}" title="삭제">✕</button></div>`; });
+                _anima.results.forEach((r, i) => { html += `<div class="anima-gitem${i === _animaResSel ? ' sel' : ''}" data-i="${i}"><img src="${_animaPreviewUrl(r.url, 62)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${r.url}'"><button class="anima-gx" data-i="${i}" title="삭제">✕</button></div>`; });
                 html += '</div>';
             }
             box.innerHTML = html;
