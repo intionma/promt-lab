@@ -3,11 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.16 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.17 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <!-- 폰트·아이콘 CSS는 렌더 비차단으로 로드(media=print→onload swap) — 느린/모바일 망에서 첫 페인트가 폰트 다운로드에 막히지 않게. display=swap이라 시스템 폰트로 먼저 그리고 자연 교체 -->
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    </noscript>
 
     <style>
         /* 💡 기능 3: 다크/라이트 테마 CSS 변수 설계 */
@@ -1240,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.16 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.17 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2008,7 +2014,15 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.16', date: '2026-07-22', time: '최신',
+                version: 'v9.56.17', date: '2026-07-22', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[성능] <b>첫 접속·새로고침이 크게 빨라졌습니다</b> (특히 모바일) — 폰트·아이콘 CSS를 렌더 비차단으로 바꿔 화면이 폰트 다운로드를 기다리지 않고 즉시 그려집니다.",
+                    "[성능] 미리보기 스튜디오(3D)를 <b>쓸 때만 불러오도록</b> 변경 — 매 접속마다 받던 대용량 3D 라이브러리(three.js·VRM)를 콜드부팅에서 제외해 로딩·데이터 사용을 줄였습니다.",
+                ]
+            },
+            {
+                version: 'v9.56.16', date: '2026-07-22', time: '',
                 tag: 'fix',
                 items: [
                     "[성능] 스크롤을 더 부드럽게 — 페이지·추천 캐러셀 스크롤 처리를 passive로 전환해 스크롤 중 끊김을 줄였습니다.",
@@ -22548,12 +22562,34 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
     }
     </script>
 
-    <!-- 홀로그램 프리비주얼 모듈 -->
-    <script type="module">
-        import { openPreviz, closePreviz, hookIntoApp } from './previz/previz-main.js';
-        window.__previzOpen = openPreviz;
-        window.__previzClose = closePreviz;
-        hookIntoApp();
+    <!-- 홀로그램 프리비주얼 모듈 — 지연 로드: 매 부팅마다 three.js/VRM(대용량)을 받지 않고,
+         "미리보기 스튜디오"를 처음 열 때만 import. 모바일 콜드부팅 대역폭·CPU 절약.
+         hookIntoApp은 씬이 열렸을 때만 동작하는 래퍼라 지연해도 기능 동일. -->
+    <script>
+        (function () {
+            let _pzLoad = null;
+            function _pzEnsure() {
+                if (!_pzLoad) {
+                    _pzLoad = import('./previz/previz-main.js').then(m => {
+                        try { m.hookIntoApp(); } catch (e) {}
+                        window.__previzClose = m.closePreviz || function () {};
+                        return m;
+                    });
+                }
+                return _pzLoad;
+            }
+            window.__previzOpen = async function () {
+                try {
+                    try { if (window.showToast) showToast('미리보기 스튜디오 불러오는 중…', 'info', 1500); } catch (e) {}
+                    const m = await _pzEnsure();
+                    m.openPreviz();
+                } catch (e) {
+                    console.error('previz load failed', e);
+                    try { if (window.showToast) showToast('미리보기 스튜디오 로드 실패 — 네트워크를 확인하세요.', 'error', 4000); } catch (_) {}
+                }
+            };
+            window.__previzClose = function () {}; // 로드 전 안전 no-op
+        })();
     </script>
 
 </body>
