@@ -884,6 +884,20 @@ export class PrevizScene {
         if (this._orbit.drag || (this._frame % 3) === 0) this.onFrameTick?.();
     }
 
+    pause() {
+        if (this.animId !== null) {
+            cancelAnimationFrame(this.animId);
+            this.animId = null;
+        }
+    }
+
+    resume() {
+        if (this.animId !== null) return;
+        // 숨겨져 있던 시간은 애니메이션 delta에 포함하지 않는다.
+        this.clock.getDelta();
+        this._loop();
+    }
+
     resize() {
         if (!this.renderer || !this.camera) return;
         const w = this.container.clientWidth || window.innerWidth;
@@ -895,7 +909,7 @@ export class PrevizScene {
     }
 
     dispose() {
-        if (this.animId) cancelAnimationFrame(this.animId);
+        this.pause();
         if (this._onResize) { window.removeEventListener('resize', this._onResize); this._onResize = null; }
         this._weather?.dispose();
         Object.values(this._props || {}).forEach(o => { o.parent && o.parent.remove(o); this._disposeObj(o); });

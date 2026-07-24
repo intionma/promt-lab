@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.18 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.19 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -235,6 +235,11 @@
         .search-box input:focus { border-color: var(--accent-blue); }
         .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-dim); font-size: 14px;}
 
+        .combo-card { background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 10px; padding: 16px; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; gap: 8px; position: relative; }
+        .combo-card:hover { border-color: var(--accent-blue); transform: translateY(-2px); box-shadow: 0 5px 15px var(--shadow-color); }
+        .combo-card.active { border-color: var(--accent-green); background: rgba(34,197,94,0.06); }
+        .combo-header { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; color: var(--text-main); font-family: var(--font-heading); padding-right: 30px; }
+        .combo-desc { font-size: 13px; color: var(--text-dim); line-height: 1.4; }
         .btn-combo-del { position: absolute; right: 6px; top: 6px; background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 12px; padding: 4px; transition: 0.2s; z-index: 3; }
         .btn-combo-del:hover { color: var(--accent-danger); }
 
@@ -272,10 +277,10 @@
         .combo-folder-item:hover { border-color: var(--accent-blue); }
 
         /* 조합 카드 (그리드형) */
-        .combo-card { position: relative; display: flex; flex-direction: column; gap: 5px; min-height: 90px; padding: 10px; background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 10px; cursor: pointer; transition: 0.2s; }
-        .combo-card:hover { border-color: var(--accent-blue); transform: translateY(-2px); box-shadow: 0 4px 12px var(--shadow-color); }
+        .combo-card { background: var(--bg-surface); border: 1px solid var(--border-dim); display: flex; flex-direction: column; gap: 5px; padding: 10px 10px 10px; min-height: 90px; border-radius: 10px; }
+        .combo-card:hover { border-color: var(--accent-blue); box-shadow: 0 4px 12px var(--shadow-color); }
         .combo-card.active { border-color: var(--accent-green); background: rgba(34,197,94,0.06); }
-        .combo-header { display: flex; align-items: center; gap: 10px; padding-right: 14px; color: var(--text-main); font-family: var(--font-ui); font-size: 12px; font-weight: 700; line-height: 1.3; word-break: break-all; }
+        .combo-header { font-size: 12px; font-weight: 700; font-family: var(--font-ui); color: var(--text-main); line-height: 1.3; word-break: break-all; padding-right: 14px; }
         .combo-desc { font-size: 10px; font-family: var(--font-code); color: var(--text-dim); line-height: 1.4; word-break: break-all; flex: 1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
         .combo-item-name-edit { display: none; position: absolute; inset: 0; z-index: 10; background: var(--bg-surface); border: 2px solid var(--accent-blue); border-radius: 10px; padding: 8px; }
         .combo-item-name-edit input { width: 100%; background: transparent; border: none; color: var(--text-main); font-size: 12px; font-family: var(--font-ui); font-weight: 700; outline: none; }
@@ -1241,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.18 &nbsp;·&nbsp; 2026-07-24 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.19 &nbsp;·&nbsp; 2026-07-24 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2009,7 +2014,16 @@
         const CHANGELOG = [
             // ── 2026-07-24 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.18', date: '2026-07-24', time: '최신',
+                version: 'v9.56.19', date: '2026-07-24', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[성능] 미리보기 스튜디오를 닫으면 숨은 3D 렌더링도 함께 멈춰 불필요한 CPU·배터리 사용을 줄였습니다.",
+                    "[수정] 미리보기 스튜디오를 닫았다 다시 열어도 화면 안내선이 정상 작동하도록 보완했습니다.",
+                ]
+            },
+            // ── 2026-07-24 ──────────────────────────────────────────────────
+            {
+                version: 'v9.56.18', date: '2026-07-24', time: '',
                 tag: 'fix',
                 items: [
                     "[성능] 태그·에디터 화면을 다시 그릴 때 기기 입력 방식을 한 번만 판정해 레이아웃 전환 부담을 줄였습니다.",
@@ -21501,12 +21515,25 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         };
 
         // ── 스테이지 / 토스트 토대 ────────────────────────────────
+        function ensureStage() {
+            let s = document.getElementById('pl-stage');
+            if (!s) { s = el('div', { id: 'pl-stage' }); document.body.appendChild(s); }
+            return s;
+        }
         function setTopbarVar() {
             const tb = document.getElementById('global-topbar');
             const h = tb ? tb.getBoundingClientRect().height : 54;
             document.documentElement.style.setProperty('--pl-topbar-h', h + 'px');
         }
         window.addEventListener('resize', setTopbarVar);
+
+        // 스테이지 헤더 (기능 레이아웃 공통)
+        function stageHead(title, hint) {
+            return el('div', { class: 'pl-stage-head' },
+                el('span', { html: title }),
+                hint ? el('span', { class: 'pl-stage-hint', html: hint }) : null
+            );
+        }
 
         // ════════════════════════════════════════════════════════
         //  기능 모듈들
@@ -22559,6 +22586,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
     <script>
         (function () {
             let _pzLoad = null;
+            let _pzOpen = Promise.resolve();
             function _pzEnsure() {
                 if (!_pzLoad) {
                     _pzLoad = import('./previz/previz-main.js').then(m => {
@@ -22569,15 +22597,20 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }
                 return _pzLoad;
             }
-            window.__previzOpen = async function () {
-                try {
-                    try { if (window.showToast) showToast('미리보기 스튜디오 불러오는 중…', 'info', 1500); } catch (e) {}
-                    const m = await _pzEnsure();
-                    m.openPreviz();
-                } catch (e) {
-                    console.error('previz load failed', e);
-                    try { if (window.showToast) showToast('미리보기 스튜디오 로드 실패 — 네트워크를 확인하세요.', 'error', 4000); } catch (_) {}
-                }
+            window.__previzOpen = function () {
+                const request = _pzOpen.then(async () => {
+                    try {
+                        try { if (window.showToast) showToast('미리보기 스튜디오 불러오는 중…', 'info', 1500); } catch (e) {}
+                        const m = await _pzEnsure();
+                        await m.openPreviz();
+                    } catch (e) {
+                        console.error('previz load failed', e);
+                        try { window.__previzClose(); } catch (_) {}
+                        try { if (window.showToast) showToast('미리보기 스튜디오 로드 실패 — 네트워크를 확인하세요.', 'error', 4000); } catch (_) {}
+                    }
+                });
+                _pzOpen = request.catch(() => {});
+                return request;
             };
             window.__previzClose = function () {}; // 로드 전 안전 no-op
         })();
