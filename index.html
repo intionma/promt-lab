@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.18 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.19 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.18 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.19 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2014,7 +2014,14 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.18', date: '2026-07-22', time: '최신',
+                version: 'v9.56.19', date: '2026-07-22', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[성능] <b>Anima 편집으로 시작하면 첫 화면이 더 빨리 뜹니다</b> (특히 모바일) — Anima는 클래식 태그 목록이 필요 없어서, 콜드부팅 때 <b>수백 개 태그 버튼 생성을 건너뛰고</b> 나중에 클래식/스튜디오 등으로 넘어갈 때 한 번만 만들도록 바꿨습니다(부팅 시 무거운 작업 165ms·노드 1,500여 개를 뒤로 미룸).",
+                ]
+            },
+            {
+                version: 'v9.56.18', date: '2026-07-22', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] 대기열이 <b>20~30개로 많아져도 처리 속도가 느려지지 않게</b> 최적화했습니다 — 대기열 미리보기 썸네일을 가볍게 하고, 상태가 바뀔 때마다 목록을 통째로 다시 그리지 않고 바뀐 부분만 갱신하도록 바꿨습니다(작업당 불필요한 멈춤 시간을 크게 줄임).",
@@ -12531,6 +12538,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         function initApp() {
+            window._appInited = true;   // 지연 부팅 가드: 카탈로그가 빌드됨을 표시(클래식/스튜디오 진입 시 중복 빌드 방지)
             const sidebarDetail = document.getElementById('sidebar-content-detail');
             const editor = document.getElementById('editor-content');
 
@@ -21150,7 +21158,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             loadWidths();
         })();
 
-        initApp();
+        // 콜드부팅 가속: Anima 편집으로 부팅하면 클래식 태그 카탈로그(수백 개 버튼) 빌드를 미룬다.
+        //  Anima는 완전 독립 UI라 카탈로그가 필요 없다. Anima를 벗어나 다른 레이아웃에 들어갈 때 initApp이 최초 1회 실행됨(applyLayout 가드).
+        //  (이미지 변환/인페인트/스튜디오는 클래식 카탈로그를 쓰므로 그대로 즉시 빌드.)
+        (function () { let bl = 'classic'; try { bl = localStorage.getItem('pl_layout') || 'classic'; } catch (e) {} if (bl !== 'anima') initApp(); })();
         renderImageGallery();   // 저장된 생성 이미지 갤러리 복원
         _restoreGenMemo();      // 메모장 복원 (새로고침 유지)
         comfyUpdateQuickButtons();  // ComfyUI 연동 이력 있으면 전송 버튼 표시
@@ -22507,6 +22518,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         let _plTeardown = null;
         function applyLayout(id) {
             const def = LAYOUTS.find(l => l.id === id) || LAYOUTS[0];
+            // Anima로 지연 부팅해 카탈로그가 아직 없으면, Anima 외 레이아웃(클래식/스튜디오/변환/인페인트) 진입 시 최초 1회 빌드
+            if (def.id !== 'anima' && !window._appInited) { try { initApp(); } catch (e) {} }
             if (_plTeardown) { try { _plTeardown(); } catch (e) {} _plTeardown = null; }
             runCleanups();
             document.body.setAttribute('data-layout', def.id);
