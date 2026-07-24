@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.23 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.24 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.23 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.24 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2014,7 +2014,14 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.23', date: '2026-07-22', time: '최신',
+                version: 'v9.56.24', date: '2026-07-22', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] 여러 장 생성 시 <b>두 번째·세 번째부터 전송이 멈추던 문제</b>를 고쳤습니다 — 연결이 끊기거나 전송이 오래 걸릴 때 대기열이 통째로 멈추지 않도록, 전송에 <b>시간 제한</b>을 두고 문제가 생긴 작업만 실패 처리한 뒤 <b>나머지는 계속 이어서</b> 처리하게 했습니다(자동 복구).",
+                ]
+            },
+            {
+                version: 'v9.56.23', date: '2026-07-22', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] 여러 장을 대기열로 생성할 때 <b>뚝뚝 끊기지 않고 물 흐르듯 이어지도록</b> 바꿨습니다 — 앞 작업이 생성되는 동안 <b>다음 작업을 미리 ComfyUI에 보내</b> 서버 큐를 채워 두어(GPU가 쉬지 않음) 전체 속도가 빨라집니다.",
@@ -5878,12 +5885,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
 
         // ComfyUI에 이미지 업로드 → 참조용 파일명 반환 (subfolder 포함)
-        async function _comfyUploadImage(fileOrBlob, name) {
+        async function _comfyUploadImage(fileOrBlob, name, signal) {
             const fd = new FormData();
             const fname = name || (fileOrBlob && fileOrBlob.name) || ('promptlab_src_' + Date.now() + '.png');
             fd.append('image', fileOrBlob, fname);
             fd.append('overwrite', 'true');
-            const res = await fetch(_comfyBase() + '/upload/image', { method: 'POST', body: fd });
+            // signal(선택): 넘기면 그 타임아웃/중단 신호로 요청을 끊을 수 있음(끊긴 연결로 영영 안 끝나는 것 방지). 기존 호출은 그대로.
+            const res = await fetch(_comfyBase() + '/upload/image', { method: 'POST', body: fd, signal: signal || undefined });
             if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error('이미지 업로드 실패 (HTTP ' + res.status + ') ' + t.slice(0, 160)); }
             const d = await res.json();
             return d.subfolder ? (d.subfolder + '/' + d.name) : d.name;
@@ -7278,11 +7286,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         // ── 파이프라인 전송: 서버 큐를 미리 채워 GPU가 놀지 않게 이어서 처리 ──
         const _ANIMA_MAX_INFLIGHT = 2;   // ComfyUI에 동시에 걸어두는 작업 수(현재 생성 1 + 미리 전송 1). GPU가 쉬지 않게 하는 최소치.
-        let _animaSubmitting = false;    // 업로드+전송은 한 번에 하나만(WiFi 혼잡·동시 업로드 충돌 방지)
+        const _ANIMA_SUBMIT_TIMEOUT = 25000;   // 업로드/전송 요청이 이 시간 안에 안 끝나면 실패 처리(끊긴 연결이 큐를 영구히 막는 것 방지)
         const _animaInflight = () => _animaJobs.filter(j => j.status === 'uploading' || j.status === 'running').length;
+        // '전송 중'은 별도 플래그가 아니라 상태로 판단(자가치유): uploading 상태 작업이 있으면 다음 전송 보류.
+        //  → 어떤 경로로도 플래그가 '끼어서' 큐 전체가 멈추는 일이 없다(끼임 버그 방지).
+        const _animaSubmittingNow = () => _animaJobs.some(j => j.status === 'uploading');
         // 다음 대기 작업을 전송 — 지금 전송 중이 아니고 서버 큐가 덜 찼을 때만.
         function _animaPump() {
-            if (_animaSubmitting) return;
+            if (_animaSubmittingNow()) return;
             if (_animaInflight() >= _ANIMA_MAX_INFLIGHT) return;
             const next = _animaJobs.find(j => j.status === 'queued');
             if (next) _animaRunJob(next);
@@ -7298,7 +7309,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         async function _animaPostPrompt(base, wf, cid) {
             // text/plain = preflight 없는 단순 요청(크로스오리진에서 POST가 막히던 문제 회피). ComfyUI는 content-type 무관하게 JSON 파싱.
-            const res = await fetch(base + '/prompt', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ prompt: wf, client_id: cid }) });
+            //  타임아웃: 연결이 끊겨 응답이 영영 안 오면(끊긴 WiFi 등) 자동 중단 → 재시도/실패로 처리(큐가 멈추지 않게).
+            const res = await fetch(base + '/prompt', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ prompt: wf, client_id: cid }), signal: _animaTimeoutSignal(_ANIMA_SUBMIT_TIMEOUT) });
             if (!res.ok) {   // 응답이 왔으니 네트워크는 정상 — 노드 오류 등은 재시도해도 소용없음
                 const t = await res.text().catch(() => '');
                 let detail = '';
@@ -7320,12 +7332,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return data;
         }
         async function _animaRunJob(job) {
-            _animaSubmitting = true;   // 이 작업의 업로드+전송이 끝날 때까지 다음 전송 보류(전송은 직렬)
+            // 상태를 곧바로 'uploading'으로 (동기적으로) 표시 → _animaSubmittingNow()가 참이 되어 다음 전송이 겹치지 않음(전송 직렬).
+            job.status = 'uploading';
             // 모바일에서 주소칸에 입력만 하고 '연결 확인'을 안 눌러도 최신 주소로 전송되게 확정 동기화.
             try { const ai = _animaEl('#anima-url'); const g = document.getElementById('comfy-url'); if (ai && g && ai.value.trim()) { g.value = ai.value.trim(); if (typeof _comfyPatchUrl === 'function') _comfyPatchUrl(ai.value.trim()); } } catch (e) {}
-            const base = _comfyBase(); job.base = base;
+            let base = '';
             try {
-                job.status = 'uploading'; _animaSyncBusy(false);
+                base = _comfyBase(); job.base = base;
+                _animaSyncBusy(false);
                 const st = job.settings || _anima;   // 이 작업이 캡처한 설정 스냅샷 사용(대기 중 바뀐 값에 오염 방지)
                 // 이 작업의 이미지 업로드(이미 업로드된 원본이면 재사용 → 같은 이미지 여러 옵션은 1회만 업로드)
                 let name = job.snap.uploadedName;
@@ -7337,33 +7351,32 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const ext0 = (job.snap.dataURL.match(/^data:image\/(\w+)/) || [, 'png'])[1];
                     const ext = jpg ? 'jpg' : (ext0 === 'jpeg' ? 'jpg' : ext0);
                     const uniq = 'promptlab_anima_' + Date.now() + '_' + Math.floor(Math.random() * 1e9) + '.' + ext;
-                    name = await _animaRetry(() => _comfyUploadImage(blob, uniq), 2);   // 업로드 네트워크 실패 시 재시도
+                    // 타임아웃 신호 전달 → 업로드가 끊긴 연결로 영영 안 끝나 큐가 멈추는 것 방지. 네트워크 실패는 재시도.
+                    name = await _animaRetry(() => _comfyUploadImage(blob, uniq, _animaTimeoutSignal(_ANIMA_SUBMIT_TIMEOUT)), 2);
                     job.snap.uploadedName = name;
                 }
                 let wf;
                 if (st.customWf && st.customWf.trim()) {
                     try {
                         const c = JSON.parse(st.customWf);
-                        if (c && c.nodes && c.links) { showToast('붙여넣은 JSON이 에디터 형식이에요. ComfyUI에서 Save (API Format)으로 받아 붙여넣으세요.', 'error', 7000); job.status = 'error'; job.err = 'JSON 형식(에디터)'; _animaSubmitting = false; _animaSyncBusy(); _animaPump(); return; }
+                        if (c && c.nodes && c.links) { showToast('붙여넣은 JSON이 에디터 형식이에요. ComfyUI에서 Save (API Format)으로 받아 붙여넣으세요.', 'error', 7000); job.status = 'error'; job.err = 'JSON 형식(에디터)'; _animaSyncBusy(); _animaPump(); return; }
                         wf = _animaInjectInto(c, job.prompt, name, job.seed);
                     } catch (e) { wf = await _animaBuildWorkflow(job.prompt, name, job.seed, st); }
                 } else { wf = await _animaBuildWorkflow(job.prompt, name, job.seed, st); }
                 const cid = (typeof _comfyClientId !== 'undefined' && _comfyClientId) ? _comfyClientId : (typeof _comfyUUID === 'function' ? _comfyUUID() : String(Math.random()));
                 const data = await _animaRetry(() => _animaPostPrompt(base, wf, cid), 2);   // 전송 네트워크 실패 재시도(노드 오류는 즉시 실패)
-                job.pid = data.prompt_id; job.status = 'running';
-                _animaSubmitting = false;
+                job.pid = data.prompt_id; job.status = 'running';   // uploading→running: 이제 _animaSubmittingNow()=거짓 → 다음 작업 전송 가능
                 _animaSyncBusy(false);
                 _animaPump();                 // ★ 다음 작업 미리 전송(파이프라인) — 이 작업 생성 중에 서버 큐 채우기
                 _animaPollJob(job, base, 0, 0);
             } catch (e) {
-                job.status = 'error';
+                job.status = 'error';   // uploading/running 벗어남 → 큐 자동으로 다음 진행(자가치유)
                 const net = /failed to fetch|networkerror|load failed|typeerror|abort/i.test((e && e.message) || String(e || ''));
                 const mixed = (typeof _comfyMixedContentBlocked === 'function' && _comfyMixedContentBlocked());
                 if (net && mixed) job.err = 'https/http 차단';
                 else if (net) job.err = '연결 실패';
                 else job.err = (e && e.message || String(e)).slice(0, 120);
                 showToast(net ? ('전송 실패 — ' + base + ' 연결/주소를 확인하세요.') : ('생성 실패: ' + job.err + ' (모델 파일명·노드 확인)'), 'error', 5000);
-                _animaSubmitting = false;
                 _animaSyncBusy(); _animaPump();
             }
         }
