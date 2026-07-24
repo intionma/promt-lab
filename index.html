@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.56.20 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.56.21 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.20 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.56.21 &nbsp;·&nbsp; 2026-07-22 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2014,7 +2014,14 @@
         const CHANGELOG = [
             // ── 2026-07-22 ──────────────────────────────────────────────────
             {
-                version: 'v9.56.20', date: '2026-07-22', time: '최신',
+                version: 'v9.56.21', date: '2026-07-22', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] ComfyUI로 <b>이미지 보내는(업로드) 속도가 크게 빨라졌습니다</b> (특히 폰·WiFi) — 큰 원본(수 MB)을 통째로 올리던 걸, <b>생성 크기(메가픽셀)에 맞게 미리 줄여서</b> 보냅니다(예: 5MB 사진 → 100KB 안팎). ComfyUI가 어차피 그 크기로 줄여 쓰기 때문에 결과 화질엔 영향이 없고, 이미 작은 이미지는 원본 그대로 보냅니다.",
+                ]
+            },
+            {
+                version: 'v9.56.20', date: '2026-07-22', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] ComfyUI로 받은 <b>결과 이미지 로딩이 훨씬 빨라졌습니다</b> (특히 모바일·WiFi) — 갤러리·비교창에서 원본(수 MB PNG)을 통째로 받던 걸, ComfyUI의 <b>가벼운 프리뷰(WebP)로 받도록</b> 바꿨습니다. 원본 풀 해상도는 <b>크게 보기(탭)</b>를 열 때만 불러옵니다. (프리뷰를 지원 안 하는 서버면 자동으로 원본으로 되돌아갑니다.)",
@@ -6913,6 +6920,32 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 img.src = dataURL;
             });
         }
+        // 업로드 상한 한 변(px) — 목표 megapixels보다 넉넉히 크게(업스케일·품질 손실 방지). 1MP≈1400 / 2MP≈1980 / 4MP≈2560(상한).
+        function _animaUploadCapPx(megapixels) {
+            const mp = Math.max(0.5, Math.min(4, parseFloat(megapixels) || 1));
+            return Math.min(2560, Math.max(1024, Math.round(Math.sqrt(mp * 1e6) * 1.4)));
+        }
+        // 원본이 capPx보다 크면 그 크기로 축소한 JPEG Blob 반환(업로드 용량↓). 이미 작으면 null(원본 그대로 업로드).
+        function _animaDownscaledBlob(dataURL, capPx) {
+            return new Promise((resolve) => {
+                try {
+                    const img = new Image();
+                    img.onload = () => {
+                        try {
+                            const long = Math.max(img.naturalWidth, img.naturalHeight) || 1;
+                            if (long <= capPx) { resolve(null); return; }
+                            const sc = capPx / long;
+                            const w = Math.max(1, Math.round(img.naturalWidth * sc)), h = Math.max(1, Math.round(img.naturalHeight * sc));
+                            const c = document.createElement('canvas'); c.width = w; c.height = h;
+                            c.getContext('2d').drawImage(img, 0, 0, w, h);
+                            c.toBlob((b) => resolve(b || null), 'image/jpeg', 0.92);
+                        } catch (e) { resolve(null); }
+                    };
+                    img.onerror = () => resolve(null);
+                    img.src = dataURL;
+                } catch (e) { resolve(null); }
+            });
+        }
         async function _animaEnsureUploaded() {
             if (_anima.uploadedName) return _anima.uploadedName;
             if (!_animaHasImage()) throw new Error('이미지 없음');
@@ -7237,15 +7270,20 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const base = _comfyBase(); job.base = base;
             try {
                 job.status = 'uploading'; _animaSyncBusy(false);
+                const st = job.settings || _anima;   // 이 작업이 캡처한 설정 스냅샷 사용(대기 중 바뀐 값에 오염 방지)
                 // 이 작업의 이미지 업로드(이미 업로드된 원본이면 재사용 → 같은 이미지 여러 옵션은 1회만 업로드)
                 let name = job.snap.uploadedName;
                 if (!name) {
-                    const blob = _dataURLtoBlob(job.snap.dataURL);
-                    const ext = (job.snap.dataURL.match(/^data:image\/(\w+)/) || [, 'png'])[1];
-                    const uniq = 'promptlab_anima_' + Date.now() + '_' + Math.floor(Math.random() * 1e9) + '.' + (ext === 'jpeg' ? 'jpg' : ext);
+                    // 업로드 전 원본을 megapixels 기준 크기로 축소·압축 → 폰에서 서버로 보내는 용량 대폭↓
+                    //  (ComfyUI가 어차피 megapixels로 스케일하므로 그보다 크게 보낼 필요가 없음. 이미 작으면 원본 그대로.)
+                    let blob = null, jpg = false;
+                    try { const d = await _animaDownscaledBlob(job.snap.dataURL, _animaUploadCapPx(st.megapixels)); if (d) { blob = d; jpg = true; } } catch (e) {}
+                    if (!blob) blob = _dataURLtoBlob(job.snap.dataURL);
+                    const ext0 = (job.snap.dataURL.match(/^data:image\/(\w+)/) || [, 'png'])[1];
+                    const ext = jpg ? 'jpg' : (ext0 === 'jpeg' ? 'jpg' : ext0);
+                    const uniq = 'promptlab_anima_' + Date.now() + '_' + Math.floor(Math.random() * 1e9) + '.' + ext;
                     name = await _comfyUploadImage(blob, uniq); job.snap.uploadedName = name;
                 }
-                const st = job.settings || _anima;   // 이 작업이 캡처한 설정 스냅샷 사용(대기 중 바뀐 값에 오염 방지)
                 let wf;
                 if (st.customWf && st.customWf.trim()) {
                     try {
