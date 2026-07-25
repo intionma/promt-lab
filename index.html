@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.61.2 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.61.3 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.61.2 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.61.3 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2016,7 +2016,15 @@
         const CHANGELOG = [
             // ── 2026-07-25 ──────────────────────────────────────────────────
             {
-                version: 'v9.61.2', date: '2026-07-25', time: '최신',
+                version: 'v9.61.3', date: '2026-07-25', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] <b>페이지 맨 아래 내용이 하단 바에 가려지던 문제</b>를 고쳤습니다 — 바가 아이콘·표정 줄까지 생겨 두꺼워졌는데 아래 여백은 예전 한 줄 기준이라 약 100px이 잘려 있었습니다. 이제 바 높이에 맞춰 여백이 정확히 잡히고, 표정을 펼치거나 화면을 돌려도 다시 계산됩니다.",
+                    "[크게 보기] 옵션 캡션을 <b>이미지 순서 기준</b>으로 찾도록 바꿔, 같은 파일이 목록에 두 번 들어가도 각 자리에 맞는 설명이 뜨게 했습니다.",
+                ]
+            },
+            {
+                version: 'v9.61.2', date: '2026-07-25', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 하단 바에 보이는 <b>최근 표정을 4개 → 6개</b>로 늘렸습니다. 이름 길이에 맞춰 <b>한 줄에 들어가는 만큼만</b> 자동으로 보여주므로 줄바꿈으로 바가 두꺼워지지 않습니다(이름이 긴 표정만 모이면 5개). 화면 폭이 넓으면 더 많이 보입니다.",
@@ -8198,12 +8206,24 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
             el.addEventListener('click', (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
         }
-        // 하단 바 높이를 CSS 변수로 넣어 콘텐츠가 안 가리게 함. 시트가 펼쳐져도 여백이 튀지 않게 '바(줄)'만 측정.
+        // 하단 바 높이를 CSS 변수로 넣어 콘텐츠가 가려지지 않게 한다.
+        //  ★ '바 한 줄'만 재면 아이콘·표정 줄만큼(약 100px) 본문이 가려진다 → 바 전체를 재되,
+        //    잠깐 떴다 사라지는 후타 팝오버 높이는 빼서 여백이 들썩이지 않게 한다.
         function _animaSyncMactHeight() {
             try {
                 const m = _animaEl('#anima-mact'); if (!m || !_animaDom) return;
-                const bar = m.querySelector('.anima-mact-bar') || m;
-                requestAnimationFrame(() => { try { _animaDom.style.setProperty('--anima-mact-h', (bar.offsetHeight || 0) + 'px'); } catch (e) {} });
+                requestAnimationFrame(() => {
+                    try {
+                        let h = m.offsetHeight || 0;
+                        const pop = m.querySelector('.anima-futapop');
+                        if (pop) {
+                            const cs = getComputedStyle(m);
+                            const gap = parseFloat(cs.rowGap || cs.gap || '0') || 0;
+                            h -= (pop.offsetHeight || 0) + gap;
+                        }
+                        _animaDom.style.setProperty('--anima-mact-h', Math.max(0, h) + 'px');
+                    } catch (e) {}
+                });
             } catch (e) {}
         }
         function _animaRenderSnipEdit() {
@@ -8318,7 +8338,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const gi = e.target.closest('.anima-gitem'); if (!gi) return;
                 const i = parseInt(gi.dataset.i);
                 _animaResSel = i; _animaRenderResult();   // 비교 대상으로 선택
-                try { if (window.openLightbox) { const urls = _anima.results.map(r => r.url); window.openLightbox(urls[i], urls, i); } } catch (err) {}   // 크게 보기(전체 좌우 넘김)
+                try { if (window.openLightbox) { const urls = _anima.results.map(r => r.url); window._lbCapPending = _anima.results.map(r => r.opt || ''); window.openLightbox(urls[i], urls, i); } } catch (err) {}   // 크게 보기(전체 좌우 넘김)
             });
             // 보기 전환(전체 / 원본별)
             box.querySelectorAll('.anima-gal-vb').forEach(b => b.onclick = () => {
@@ -9533,7 +9553,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         })();
 
         // ── 풀스크린 이미지 뷰어 ──
-        let _lbUrls = [], _lbIdx = 0, _lbParent = null;
+        let _lbUrls = [], _lbIdx = 0, _lbParent = null, _lbCaps = null;
 
         (function () {
             const SNAP_RATIO = 0.25;
@@ -9755,7 +9775,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (btnNext) btnNext.style.display = (!_lbCoarse && multi && _lbIdx < n - 1) ? 'block' : 'none';
                 // 옵션 캡션 — 등록된 라벨이 있을 때만. 확대 중엔 감상 방해가 되니 감춘다.
                 if (capEl) {
-                    const lab = (window._lbCaptions && window._lbCaptions[_lbUrls[_lbIdx]]) || '';
+                    const lab = (_lbCaps ? _lbCaps[_lbIdx] : (window._lbCaptions && window._lbCaptions[_lbUrls[_lbIdx]])) || '';
                     capEl.dataset.has = lab ? '1' : '0';
                     if (lab) capEl.textContent = lab;
                     capEl.style.display = (lab && !_isZoomed()) ? 'block' : 'none';
@@ -9941,6 +9961,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // ── 공개 API ──────────────────────────────────────────────────
             window.openLightbox = function (url, urls, idx) {
                 _lbUrls = Array.isArray(urls) && urls.length ? urls : [url];
+                // 호출부가 목록과 같은 길이의 캡션 배열을 미리 넘겨두면 그걸 우선 사용(같은 URL이 중복돼도 정확).
+                //  한 번 쓰고 비워서 다른 경로에서 남은 값이 새지 않게 한다.
+                _lbCaps = (Array.isArray(window._lbCapPending) && window._lbCapPending.length === _lbUrls.length) ? window._lbCapPending : null;
+                window._lbCapPending = null;
                 _lbIdx  = typeof idx === 'number' && idx >= 0 && idx < _lbUrls.length
                           ? idx : Math.max(0, _lbUrls.indexOf(url));
                 _lbParent = null; // 직접 호출은 실시간 갱신 대상 아님 (openLightboxFromEl에서 설정)
