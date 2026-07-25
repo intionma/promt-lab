@@ -1,7 +1,10 @@
 # 폰에서 프롬프트 랩 쓰기 — 원격 사용 가이드
 
-> 작성: 2026-07-25 · 상태: 미적용(계획)
+> 작성: 2026-07-25 · **상태: 적용 완료 (2026-07-25)**
 > 목표: **PC를 켜두고 나가면 폰에서 어디서든** Anima 편집을 쓸 수 있게 한다.
+>
+> ✅ **결과: 정상 동작 확인. 기존 방식보다 체감상 훨씬 빠름.**
+> 느린 집 WiFi를 거치지 않게 되면서 속도가 개선됐다(폰=LTE, PC=랜선).
 
 ---
 
@@ -159,13 +162,28 @@ VAE   : qwen_image_vae             ← Qwen-Image VAE
 
 ---
 
-## 7. 남은 일
+## 7. 진행 상황
 
-- [ ] PC에 Tailscale 설치 + `tailscale serve --bg 8188`
-- [ ] ComfyUI 실행 옵션에 `--enable-cors-header` 추가 (시작 배치파일로 만들어두면 편함)
-- [ ] 폰에 Tailscale 설치 + 앱에 `https://...ts.net` 주소 입력
-- [ ] (선택) 종료 도우미 스크립트 작성 + `tailscale serve --https=8443 8189`
+- [x] PC에 Tailscale 설치 + `tailscale serve --bg 8188`
+- [x] ComfyUI 실행 옵션에 `--enable-cors-header` (기존 배치파일에 이미 있었음 — 수정 불필요)
+- [x] 폰에 Tailscale 설치 + 앱에 `https://...ts.net` 주소 입력
+- [x] **동작 확인 — 정상, 기존보다 빠름**
+- [ ] (선택) 종료 도우미 스크립트 작성 + `tailscale serve --bg --https=8443 8189`
 - [ ] (나중) WoL 설정 — PC를 꺼두고 나가고 싶을 때
+
+### 실제 적용 메모
+- ComfyUI 실행 파일은 **손대지 않았다.** 기존 포터블 배치의
+  `--enable-cors-header --listen` 조합이 그대로 동작했다.
+  (값 없는 `--enable-cors-header`는 `*` = 모든 출처 허용)
+- `tailscale serve` 설정은 **재부팅해도 유지**된다. 매번 다시 칠 필요 없음.
+- 앱에 넣는 실제 주소는 저장소에 적지 않는다(기기명·테일넷 이름 노출 방지).
+  주소는 앱 설정에 저장되어 있고, PC에서 `tailscale serve status`로 언제든 확인 가능.
+
+### 앞으로 조일 수 있는 부분(선택)
+- `--listen` 제거 → ComfyUI가 127.0.0.1에만 열림(Tailscale은 로컬 프록시라 정상 동작).
+  단 기존 `192.168.0.3:8188` 접속은 불가해진다.
+- `--enable-cors-header "https://intionma.github.io"` 로 출처 제한.
+  단 앱을 HTML 파일로 저장해 로컬에서 열 때는 차단된다.
 
 ---
 
