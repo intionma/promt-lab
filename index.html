@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.57.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.58.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.57.0 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.58.0 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2014,7 +2014,15 @@
         const CHANGELOG = [
             // ── 2026-07-25 ──────────────────────────────────────────────────
             {
-                version: 'v9.57.0', date: '2026-07-25', time: '최신',
+                version: 'v9.58.0', date: '2026-07-25', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] 후타 세부설정을 추가했습니다 — 거근/노멀/소추 프리셋은 그대로 두고, 후타를 켜면 그 아래 <b>발기(반발기·무발기(축 처짐))</b>와 <b>포피(포경(덮임)·반쯤 까짐)</b> 칩이 나타나 세밀하게 조절할 수 있습니다. 상세 칩은 후타를 켰을 때만 보여 평소 화면은 그대로 깔끔합니다. (무발기·반발기를 고르면 프리셋의 기본 '발기'는 자동으로 빠져 충돌하지 않습니다.)",
+                    "[Anima 편집] 표정을 대폭 늘렸습니다 — 자주 쓰는 4종(유혹·절정·아헤가오·미소)은 항상 보이고, <b>'표정 더보기'</b>를 누르면 무표정·수줍음·능글·화남·놀람·하트눈·삐침 등 더 많은 표정이 펼쳐집니다. 칩이 늘어도 평소 바는 깔끔하게 유지됩니다.",
+                ]
+            },
+            {
+                version: 'v9.57.0', date: '2026-07-25', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 갤러리 삭제 방식을 바꿨습니다 — 이제 썸네일마다 항상 떠 있던 ✕가 사라져 감상이 깔끔해집니다. 지울 때는 갤러리 오른쪽 위 [🗑 정리]를 누르면 그때만 ✕가 나타나고, 원하는 이미지의 ✕를 눌러 지운 뒤 [완료]로 빠져나옵니다. (보려던 이미지를 실수로 지우는 일이 없도록, 이미지 자체를 눌러 삭제하지는 않습니다.)",
@@ -6847,17 +6855,30 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { id: 'futa_large', name: '후타나리(거근)', kind: 'append', on: false, group: 'futa', text: 'futanari, penis, erection, (huge penis, large penis, veiny penis, glans, large testicles:1.3), ejaculation, excessive cum, projectile cum, cum string' },
             { id: 'futa_normal', name: '후타나리(노멀)', kind: 'append', on: false, group: 'futa', text: 'futanari, penis, erection, glans, testicles, ejaculation, cum' },
             { id: 'futa_small', name: '후타나리(소추)', kind: 'append', on: false, group: 'futa', text: 'futanari, penis, erection, (small penis, small testicles:1.3), glans, ejaculation, cum' },
-            // 표정 프리셋 (group 'expr' — 하나 켜면 나머지 자동 꺼짐)
-            // 자주 쓰는 순서로 앞에: 유혹·절정·무표정·아헤가오 → 나머지
-            { id: 'expr_seductive', name: '유혹', kind: 'append', on: false, group: 'expr', text: 'seductive smile, bedroom eyes, half-closed eyes, looking at viewer' },
-            { id: 'expr_orgasm', name: '절정', kind: 'append', on: false, group: 'expr', text: '(orgasm:1.1), ecstasy, trembling, rolling eyes' },
-            { id: 'expr_neutral', name: '무표정', kind: 'append', on: false, group: 'expr', text: 'expressionless, neutral face, closed mouth' },
-            { id: 'expr_ahegao', name: '아헤가오', kind: 'append', on: false, group: 'expr', text: '(ahegao:1.2), rolling eyes, tongue out, drooling, saliva, blush, fucked silly' },
-            { id: 'expr_tongue', name: '혀 내밀기', kind: 'append', on: false, group: 'expr', text: 'tongue out, tongue, saliva' },
-            { id: 'expr_blush', name: '홍조', kind: 'append', on: false, group: 'expr', text: 'blush, embarrassed' },
+            // 후타 상세 — 후타 프리셋이 켜져 있을 때만 칩이 나타남(detail:'futa'). 각 그룹은 하나만 선택(상호배타).
+            //  발기: 고르지 않으면 프리셋의 'erection'(기본 발기) 사용. 반/무발기를 고르면 조합 시 erection을 빼서 모순 방지.
+            //  포피: 고르지 않으면 노출(무표기). 핵심 태그 1개씩만(간결).
+            { id: 'futa_erect_half', name: '반발기', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: 'half-erect' },
+            { id: 'futa_erect_flaccid', name: '무발기(축 처짐)', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: 'flaccid' },
+            { id: 'futa_skin_foreskin', name: '포경(덮임)', kind: 'append', on: false, group: 'futaSkin', detail: 'futa', text: 'foreskin' },
+            { id: 'futa_skin_phimosis', name: '반쯤 까짐', kind: 'append', on: false, group: 'futaSkin', detail: 'futa', text: 'phimosis' },
+            // 표정 프리셋 (group 'expr' — 하나 켜면 나머지 자동 꺼짐). 핵심 태그만 간결하게.
+            //  자주 쓰는 4종(유혹·절정·아헤가오·미소)은 항상 바에 보이고, 나머지는 '표정 더보기'로 접힘(more:true).
+            { id: 'expr_seductive', name: '유혹', kind: 'append', on: false, group: 'expr', text: 'seductive smile, bedroom eyes, looking at viewer' },
+            { id: 'expr_orgasm', name: '절정', kind: 'append', on: false, group: 'expr', text: '(orgasm:1.1), ecstasy, rolling eyes' },
+            { id: 'expr_ahegao', name: '아헤가오', kind: 'append', on: false, group: 'expr', text: '(ahegao:1.2), rolling eyes, tongue out, drooling' },
             { id: 'expr_smile', name: '미소', kind: 'append', on: false, group: 'expr', text: 'smile, happy' },
-            { id: 'expr_wink', name: '윙크', kind: 'append', on: false, group: 'expr', text: 'wink, one eye closed, smile' },
-            { id: 'expr_cry', name: '우는', kind: 'append', on: false, group: 'expr', text: 'crying, tears, crying with eyes open' }
+            { id: 'expr_neutral', name: '무표정', kind: 'append', on: false, group: 'expr', more: true, text: 'expressionless, closed mouth' },
+            { id: 'expr_shy', name: '수줍음', kind: 'append', on: false, group: 'expr', more: true, text: 'shy, blush, embarrassed' },
+            { id: 'expr_blush', name: '홍조', kind: 'append', on: false, group: 'expr', more: true, text: 'blush' },
+            { id: 'expr_tongue', name: '혀 내밀기', kind: 'append', on: false, group: 'expr', more: true, text: 'tongue out, saliva' },
+            { id: 'expr_smug', name: '능글(도발)', kind: 'append', on: false, group: 'expr', more: true, text: 'smug, grin' },
+            { id: 'expr_angry', name: '화남', kind: 'append', on: false, group: 'expr', more: true, text: 'angry, frown' },
+            { id: 'expr_surprised', name: '놀람', kind: 'append', on: false, group: 'expr', more: true, text: 'surprised, open mouth' },
+            { id: 'expr_heart', name: '하트눈', kind: 'append', on: false, group: 'expr', more: true, text: 'heart-shaped pupils' },
+            { id: 'expr_pout', name: '삐침', kind: 'append', on: false, group: 'expr', more: true, text: 'pout' },
+            { id: 'expr_wink', name: '윙크', kind: 'append', on: false, group: 'expr', more: true, text: 'wink, one eye closed, smile' },
+            { id: 'expr_cry', name: '우는', kind: 'append', on: false, group: 'expr', more: true, text: 'crying, tears' }
         ];
         const ANIMA_KEY = 'anima_settings_v1';
         const _ANIMA_SRCHIST_MAX = 24;   // 이전 원본(축소본) 보관 개수 — 저장 용량 초과 시 자동으로 줄임(_animaSave)
@@ -6866,10 +6887,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try {
                 const p = {};
                 ['prompt', 'steps', 'cfg', 'denoise', 'sampler', 'scheduler', 'seed', 'megapixels', 'upscaleMethod', 'refWeight', 'refMode',
-                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb'].forEach(k => p[k] = _anima[k]);
+                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb', 'exprMore'].forEach(k => p[k] = _anima[k]);
                 // 이 테마에서 뽑은 결과 이미지 목록도 저장(서버 URL만, Anima 전용 · 다른 테마와 완전 분리). 최근 80장.
                 p.results = (_anima.results || []).slice(0, _ANIMA_MAX_RESULTS).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed }));
-                p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null }));
+                p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null, detail: s.detail || null, more: !!s.more }));
                 // 이전에 넣은 원본 이미지(축소본)들 — 다시 불러오기용.
                 const hist = (_anima.srcHistory || []).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0 }));
                 // 용량(localStorage quota) 초과 시 이전 원본을 오래된 것부터 줄여가며 재시도 → 저장 자체가 실패해 설정이 통째로 날아가는 것 방지
@@ -6910,6 +6931,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     if (oldFuta && (oldFuta.text || '').trim() === OLD_FUTA_TEXT) _anima.snippets = _anima.snippets.filter(x => x.id !== 'futanari');
                     const addFuta = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === 'futa' && !_anima.snippets.some(x => x.id === d.id));
                     if (addFuta.length) _anima.snippets = _anima.snippets.concat(JSON.parse(JSON.stringify(addFuta)));
+                    // 마이그레이션: 후타 상세(발기·포피) 신규 추가 — 기존 사용자에게도 제공
+                    const addFutaD = ANIMA_DEFAULT_SNIPPETS.filter(d => d.detail === 'futa' && !_anima.snippets.some(x => x.id === d.id));
+                    if (addFutaD.length) _anima.snippets = _anima.snippets.concat(JSON.parse(JSON.stringify(addFutaD)));
                     // 마이그레이션: 표정 프리셋(group 'expr') 신규 추가
                     const addExpr = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === 'expr' && !_anima.snippets.some(x => x.id === d.id));
                     if (addExpr.length) _anima.snippets = _anima.snippets.concat(JSON.parse(JSON.stringify(addExpr)));
@@ -7285,7 +7309,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const base0 = (_anima.prompt || '').trim();
             if (!base0) { showToast('프롬프트를 입력하세요.', 'warning', 2500); return; }
             // 켜진 프롬프트 옵션(후타나리·표정 등)을 기본 프롬프트 뒤에 붙여 스냅샷
-            const extras = (_anima.snippets || []).filter(s => s.kind !== 'base' && s.on && s.text && s.text.trim()).map(s => s.text.trim()).join(', ');
+            let ons = (_anima.snippets || []).filter(s => s.kind !== 'base' && s.on && s.text && s.text.trim());
+            const futaActive = ons.some(s => s.group === 'futa');
+            // 후타 프리셋이 꺼져 있으면 후타 상세(발기·포피)는 무시 — 평범한 여성에 성기 태그만 붙는 실수 방지
+            if (!futaActive) ons = ons.filter(s => s.detail !== 'futa');
+            // 발기 상세(반/무발기)를 골랐으면 프리셋의 기본 'erection'을 빼서 모순 방지
+            const erectOverride = ons.some(s => s.group === 'futaErect');
+            let extras = ons.map(s => s.text.trim()).join(', ');
+            if (erectOverride) extras = extras.replace(/\berection\b\s*,\s*/gi, '').replace(/,?\s*\berection\b\s*$/gi, '');
             const prompt = extras ? (base0.replace(/,\s*$/, '') + ', ' + extras) : base0;
             // 클릭 순간의 값들을 먼저 확정(썸네일 생성 await 사이에 설정이 바뀌어도 안 섞이게)
             const seed = _animaSeedVal();   // -1이면 지금 랜덤 확정 → 대기열 항목마다 다른 시드
@@ -7589,7 +7620,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             s.on = !s.on;
             // 같은 group(거근/소추 등)은 상호배타: 하나 켜면 나머지 자동 꺼짐
             if (s.on && s.group) _anima.snippets.forEach(x => { if (x !== s && x.group === s.group) x.on = false; });
-            _animaSave(); _animaSyncChipStates();   // 전체 재그리기 X → 하단 바 스크롤 위치 유지
+            _animaSave();
+            // 후타 프리셋 토글은 상세(발기·포피) 칩의 표시 여부가 바뀌므로 전체 재그리기 필요
+            if (s.group === 'futa') _animaRenderSnippets();
+            else _animaSyncChipStates();   // 그 외엔 상태만 갱신 → 하단 바 스크롤 위치 유지
         }
         // 칩 토글 시 DOM을 다시 만들지 않고 상태(on/✓)만 갱신 — 하단 바 좌우 스크롤 위치가 리셋되지 않게.
         function _animaSyncChipStates() {
@@ -7607,24 +7641,62 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 });
             });
         }
+        // 자주 쓰는 표정(항상 바에 노출) — 나머지는 '표정 더보기'로 접힘
+        const _ANIMA_EXPR_PRIMARY = ['expr_seductive', 'expr_orgasm', 'expr_ahegao', 'expr_smile'];
+        // 기본 제공 표정 중 접힘 대상 id(구버전 저장분엔 more 플래그가 없어 id로도 판정)
+        const _ANIMA_EXPR_MORE = ['expr_neutral', 'expr_shy', 'expr_blush', 'expr_tongue', 'expr_smug', 'expr_angry', 'expr_surprised', 'expr_heart', 'expr_pout', 'expr_wink', 'expr_cry'];
+        function _animaIsExprMore(s) { return s.group === 'expr' && (s.more === true || _ANIMA_EXPR_MORE.includes(s.id)) && !_ANIMA_EXPR_PRIMARY.includes(s.id); }
+        function _animaChip(s) {
+            return `<button class="anima-chip${s.group ? ' g-' + s.group : ''}${s.on ? ' on' : ''}" data-id="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${s.on ? '✓ ' : ''}${_animaEsc(s.name)}</button>`;
+        }
         function _animaChipsHtml() {
-            const baseS = (_anima.snippets || []).filter(s => s.kind === 'base');
-            const appS = (_anima.snippets || []).filter(s => s.kind !== 'base');
+            const all = (_anima.snippets || []);
+            const baseS = all.filter(s => s.kind === 'base');
+            const appS = all.filter(s => s.kind !== 'base');
+            const futaS = appS.filter(s => s.group === 'futa');
+            const futaErect = appS.filter(s => s.detail === 'futa' && s.group === 'futaErect');
+            const futaSkin = appS.filter(s => s.detail === 'futa' && s.group === 'futaSkin');
+            const exprAll = appS.filter(s => s.group === 'expr');
+            const exprPrimary = exprAll.filter(s => !_animaIsExprMore(s));
+            const exprMoreList = exprAll.filter(s => _animaIsExprMore(s));
+            // 위 어디에도 안 속하는 나머지(사용자 커스텀 등)
+            const usedIds = new Set([...futaS, ...futaErect, ...futaSkin, ...exprAll].map(s => s.id));
+            const otherS = appS.filter(s => !usedIds.has(s.id));
+            const futaOn = futaS.some(s => s.on);
+            const exprMore = !!_anima.exprMore;
             const curP = (_anima.prompt || '').trim();
             let h = '';
             if (baseS.length) {
                 h += `<span class="anima-snip-lab">노출</span>`;
                 baseS.forEach(s => { const active = curP === (s.text || '').trim(); h += `<button class="anima-chip base${active ? ' on' : ''}" data-base="${s.id}" title="누르면 적용 · 켜져 있을 때 다시 누르면 해제(노출 없이 표정·옵션만) — ${(s.text || '').replace(/"/g, '&quot;')}">${_animaEsc(s.name)}</button>`; });
             }
-            if (appS.length) {
+            if (futaS.length) {
+                h += `<span class="anima-snip-lab">후타</span>`;
+                futaS.forEach(s => { h += _animaChip(s); });
+                // 후타가 켜져 있을 때만 상세(발기·포피) 노출 — 평소엔 칸이 안 늘어남
+                if (futaOn) {
+                    if (futaErect.length) { h += `<span class="anima-snip-lab">발기</span>`; futaErect.forEach(s => { h += _animaChip(s); }); }
+                    if (futaSkin.length) { h += `<span class="anima-snip-lab">포피</span>`; futaSkin.forEach(s => { h += _animaChip(s); }); }
+                }
+            }
+            if (exprAll.length) {
+                h += `<span class="anima-snip-lab">표정</span>`;
+                exprPrimary.forEach(s => { h += _animaChip(s); });
+                if (exprMoreList.length) {
+                    h += `<button class="anima-chip more-toggle" data-act="exprMore" title="표정 더 보기/접기">${exprMore ? '표정 접기 ▲' : '표정 더보기 ▾'}</button>`;
+                    if (exprMore) exprMoreList.forEach(s => { h += _animaChip(s); });
+                }
+            }
+            if (otherS.length) {
                 h += `<span class="anima-snip-lab">옵션</span>`;
-                appS.forEach(s => { h += `<button class="anima-chip${s.group ? ' g-' + s.group : ''}${s.on ? ' on' : ''}" data-id="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${s.on ? '✓ ' : ''}${_animaEsc(s.name)}</button>`; });
+                otherS.forEach(s => { h += _animaChip(s); });
             }
             return h;
         }
         function _animaBindChips(box) {
             box.querySelectorAll('.anima-chip[data-base]').forEach(c => c.onclick = () => _animaApplyBaseSnip(c.dataset.base));
             box.querySelectorAll('.anima-chip[data-id]').forEach(c => c.onclick = () => _animaToggleSnipById(c.dataset.id));
+            box.querySelectorAll('.anima-chip[data-act="exprMore"]').forEach(c => c.onclick = () => { _anima.exprMore = !_anima.exprMore; _animaSave(); _animaRenderSnippets(); });
         }
         function _animaRenderSnippets() {
             const box = _animaEl('#anima-snips'); if (!box) return;
@@ -7974,8 +8046,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-chip.base.on { background:color-mix(in srgb,#f43f5e 18%,transparent); border-color:#f43f5e; color:#f43f5e; }
           .anima-chip.g-futa { border-color:color-mix(in srgb,#a855f7 55%,var(--border-dim)); color:color-mix(in srgb,#a855f7 72%,var(--text-dim)); }   /* 후타나리 */
           .anima-chip.g-futa.on { background:color-mix(in srgb,#a855f7 18%,transparent); border-color:#a855f7; color:#a855f7; }
+          /* 후타 상세(발기·포피) — 후타 보라 계열보다 옅은 연보라로 '하위 설정'임을 표시 */
+          .anima-chip.g-futaErect, .anima-chip.g-futaSkin { border-color:color-mix(in srgb,#c084fc 50%,var(--border-dim)); color:color-mix(in srgb,#c084fc 70%,var(--text-dim)); }
+          .anima-chip.g-futaErect.on, .anima-chip.g-futaSkin.on { background:color-mix(in srgb,#c084fc 16%,transparent); border-color:#c084fc; color:#a855f7; }
           .anima-chip.g-expr { border-color:color-mix(in srgb,#f59e0b 60%,var(--border-dim)); color:color-mix(in srgb,#f59e0b 78%,var(--text-dim)); }  /* 표정 */
           .anima-chip.g-expr.on { background:color-mix(in srgb,#f59e0b 20%,transparent); border-color:#f59e0b; color:#d97706; }
+          .anima-chip.more-toggle { border-style:dashed; color:var(--text-dim); }
           .anima-chip.edit { border-style:dashed; }
           .anima-se-kind { background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 6px; color:var(--text-main); font-size:12px; }
           .anima-se-adds { display:flex; gap:8px; flex-wrap:wrap; }
