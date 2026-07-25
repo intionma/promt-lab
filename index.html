@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.61.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.61.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.61.0 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.61.1 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2016,7 +2016,15 @@
         const CHANGELOG = [
             // ── 2026-07-25 ──────────────────────────────────────────────────
             {
-                version: 'v9.61.0', date: '2026-07-25', time: '최신',
+                version: 'v9.61.1', date: '2026-07-25', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] <b>하단 바의 노출 아이콘을 눌러도 아무 반응이 없던 문제</b>를 고쳤습니다 — 프롬프트는 실제로 바뀌고 있었는데 <b>아이콘에 선택 표시가 안 켜져</b> 먹통처럼 보였습니다. 이제 누르는 즉시 표시가 바뀌고, 본문과 하단 바가 항상 같은 상태로 함께 갱신됩니다.",
+                    "[Anima 편집] 본문(② 프롬프트)의 옵션 영역도 <b>하단 바와 똑같은 아이콘</b>으로 바꾸고 <b>줄 정리</b>했습니다 — 예전엔 '노출/후타/표정' 이름표와 버튼이 한 덩어리로 뒤엉켜 읽기 어려웠는데, 이제 <b>이름표 | 버튼</b>이 줄별로 나뉘어 한눈에 들어옵니다. 후타를 켜면 발기·포피·사정이 바로 아래 줄에 들여써서 나타납니다.",
+                ]
+            },
+            {
+                version: 'v9.61.0', date: '2026-07-25', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] <b>연속 생성</b>을 추가했습니다 — <b>실행 버튼을 길게 누르면</b>(PC는 우클릭) 메뉴가 뜨고, <b>노출 전부 / 후타 크기 전부 / 표정 전부</b> 중 하나를 고르면 그 종류만 차례로 바꿔가며 한 번에 뽑습니다. 나머지 항목은 <b>지금 고른 그대로 고정</b>되고, 세트 전체가 <b>같은 시드</b>를 써서 무엇 때문에 달라졌는지 정확히 비교됩니다. (예: 후타를 노멀로 두고 노출만 4종 → 4장)",
@@ -7698,6 +7706,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     c.textContent = (s.on ? '✓ ' : '') + (s.name || '');   // textContent라 별도 이스케이프 불필요
                 });
             });
+            // ★ 아이콘(의상·후타)도 함께 갱신 — 예전엔 글자 칩만 갱신해서, 아이콘을 눌러도 선택 표시가
+            //   안 바뀌어 '눌러도 아무 반응 없다'로 보이던 버그가 있었다.
+            ['#anima-snips', '#anima-mact'].forEach(sel => {
+                const box = _animaEl(sel); if (!box) return;
+                box.querySelectorAll('.anima-ico[data-base]').forEach(b => {
+                    const s = _anima.snippets.find(x => x.id === b.dataset.base);
+                    const on = !!s && curP === (s.text || '').trim();
+                    b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+                });
+                box.querySelectorAll('.anima-ico[data-futa]').forEach(b => {
+                    const s = _anima.snippets.find(x => x.id === b.dataset.futa);
+                    const on = !!(s && s.on);
+                    b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+                });
+            });
             // 하단 바 '옵션' 요약 텍스트 갱신(펼치지 않아도 켜진 선택이 보이게)
             const sum = _animaEl('#anima-mact .anima-opts-sum'); if (sum && typeof _animaOptsSummary === 'function') sum.textContent = _animaOptsSummary();
         }
@@ -7826,6 +7849,46 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return parts.length ? parts.join(' · ') : '옵션 선택';
         }
 
+        // 본문(단계 ②) 옵션 영역 — 하단 바와 같은 아이콘을 쓰되, 폭이 넓으니 카테고리를 '라벨 | 항목' 행으로 정리한다.
+        //  (예전엔 라벨과 칩이 한 덩어리로 줄바꿈돼 뒤엉켜 보였음)
+        function _animaPanelHtml() {
+            const all = _anima.snippets || [], curP = (_anima.prompt || '').trim();
+            const row = (lab, items, cls) => `<div class="anima-orow${cls ? ' ' + cls : ''}"><span class="anima-olab">${lab}</span><div class="anima-oitems">${items}</div></div>`;
+            const baseS = all.filter(s => s.kind === 'base');
+            const _fo = ['futa_small', 'futa_normal', 'futa_large'];
+            const futaS = all.filter(s => s.group === 'futa').sort((a, b) => {
+                const x = _fo.indexOf(a.id), y = _fo.indexOf(b.id); return (x < 0 ? 999 : x) - (y < 0 ? 999 : y);
+            });
+            const exprAll = all.filter(s => s.group === 'expr');
+            const futaOn = futaS.some(s => s.on);
+            let h = '';
+            // 노출 — 아이콘 4개 + (사용자가 추가한 프리셋은 글자 칩으로)
+            const baseIco = baseS.map(s => _animaIcoBtn(s, 'pk', curP === (s.text || '').trim())).join('');
+            const baseTxt = baseS.filter(s => !_ANIMA_ICON_OF[s.id]).map(s =>
+                `<button class="anima-chip base${curP === (s.text || '').trim() ? ' on' : ''}" data-base="${s.id}">${_animaEsc(s.name)}</button>`).join('');
+            if (baseIco || baseTxt) h += row('노출', baseIco + baseTxt);
+            // 후타 크기 — 아이콘 3개. 켜져 있을 때만 상세(발기·포피·사정)를 아래에 들여써서 보여준다.
+            if (futaS.length) {
+                h += row('후타', futaS.map(s => _animaIcoBtn(s, 'pu', !!s.on)).join(''));
+                if (futaOn) ['futaErect:발기', 'futaSkin:포피', 'futaCum:사정'].forEach(pair => {
+                    const [g, lab] = pair.split(':');
+                    const list = all.filter(s => s.detail === 'futa' && s.group === g);
+                    if (list.length) h += row(lab, list.map(s =>
+                        `<button class="anima-chip lil${s.on ? ' on' : ''}" data-id="${s.id}">${_animaEsc(s.name)}</button>`).join(''), 'sub');
+                });
+            }
+            // 표정 — 하단 바와 같은 '최근 + 더보기' 규칙(펼침 상태도 공유)
+            if (exprAll.length) {
+                const shown = _animaExprOpen ? exprAll : _animaExprRecentList();
+                h += row('표정', shown.map(s => `<button class="anima-chip ex g-expr${s.on ? ' on' : ''}" data-id="${s.id}">${_animaEsc(s.name)}</button>`).join('')
+                    + `<button class="anima-chip ex tg" data-act="exprOpen">${_animaExprOpen ? '접기 ▴' : '더보기 ▾'}</button>`);
+            }
+            // 사용자가 직접 추가한 기타 옵션
+            const known = new Set([...baseS, ...futaS, ...exprAll].map(s => s.id));
+            const etc = all.filter(s => s.kind !== 'base' && !known.has(s.id) && s.detail !== 'futa');
+            if (etc.length) h += row('기타', etc.map(s => `<button class="anima-chip${s.on ? ' on' : ''}" data-id="${s.id}">${_animaEsc(s.name)}</button>`).join(''));
+            return h;
+        }
         // ══ 연속 생성(스윕) ═══════════════════════════════════════════════
         //  한 축만 훑고 나머지는 지금 고른 그대로 고정한다. (곱집합이 아니라 단일 축 → 장수가 폭발하지 않음)
         //  예) 노출 스윕 = 후타·표정은 그대로 두고 노출만 4종을 차례로 적용해 4장.
@@ -8006,8 +8069,26 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         function _animaRenderSnippets() {
             const box = _animaEl('#anima-snips'); if (!box) return;
-            box.innerHTML = _animaChipsHtml() + `<button class="anima-chip edit" id="anima-snip-editbtn">✏️ 편집</button>`;
-            _animaBindChips(box);
+            // 아이콘 심볼은 문서에 한 번만 주입(본문·하단 바가 공유)
+            try { if (_animaDom && !_animaDom.querySelector('.anima-icodefs')) _animaDom.insertAdjacentHTML('afterbegin', _ANIMA_ICON_DEFS); } catch (e) {}
+            box.innerHTML = _animaPanelHtml() + `<div class="anima-orow"><span class="anima-olab"></span><div class="anima-oitems"><button class="anima-chip edit" id="anima-snip-editbtn">✏️ 편집</button></div></div>`;
+            box.querySelectorAll('.anima-ico[data-base]').forEach(b => b.onclick = () => _animaApplyBaseSnip(b.dataset.base));
+            box.querySelectorAll('.anima-chip[data-base]').forEach(c => c.onclick = () => _animaApplyBaseSnip(c.dataset.base));
+            box.querySelectorAll('.anima-ico[data-futa]').forEach(b => b.onclick = () => {
+                const s = _anima.snippets.find(x => x.id === b.dataset.futa); if (!s) return;
+                s.on = !s.on;
+                if (s.on) _anima.snippets.forEach(x => { if (x !== s && x.group === 'futa') x.on = false; });
+                _animaSave(); _animaRenderSnippets();   // 상세 행이 생겼다 사라지므로 전체 재그리기
+            });
+            box.querySelectorAll('.anima-chip[data-id]').forEach(c => c.onclick = () => {
+                const s = _anima.snippets.find(x => x.id === c.dataset.id); if (!s) return;
+                s.on = !s.on;
+                if (s.on && s.group) _anima.snippets.forEach(x => { if (x !== s && x.group === s.group) x.on = false; });
+                if (s.on && s.group === 'expr') _animaExprTouch(s.id);
+                _animaSave(); _animaRenderSnippets();
+            });
+            const pe = box.querySelector('.anima-chip[data-act="exprOpen"]');
+            if (pe) pe.onclick = () => { _animaExprOpen = !_animaExprOpen; _animaRenderSnippets(); };
             const eb = box.querySelector('#anima-snip-editbtn'); if (eb) eb.onclick = () => { _animaSnipEditOpen = !_animaSnipEditOpen; _animaRenderSnipEdit(); };
             // 하단 고정 바 — 의상 4 · 후타 3은 아이콘으로 '바로 탭', 표정은 최근 쓴 것만 한 줄.
             //  후타 크기를 누르면 그 위로 상세 팝오버(발기·포피·사정)가 뜨고, ✕로만 닫힌다.
@@ -8029,8 +8110,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const exprRow = `<button class="anima-chip ex tg" data-act="exprOpen">표정 ${_animaExprOpen ? '▴' : '▾'}</button>`
                     + shown.map(s => `<button class="anima-chip ex g-expr${s.on ? ' on' : ''}" data-id="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${_animaEsc(s.name)}</button>`).join('')
                     + (_animaExprOpen ? `<button class="anima-chip edit" id="anima-mact-editbtn">✏️ 편집</button>` : '');
-                mact.innerHTML = _ANIMA_ICON_DEFS
-                    + _animaFutaPopHtml()
+                mact.innerHTML = _animaFutaPopHtml()
                     + `<div class="anima-mact-icos">${icoRow}</div>
                        <div class="anima-mact-expr${_animaExprOpen ? ' open' : ''}">${exprRow}</div>
                        <div class="anima-mact-bar">
@@ -8420,7 +8500,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-btn { flex:1; padding:12px; border-radius:11px; border:none; background:var(--accent-blue,#3b82f6); color:#fff; font-family:inherit; font-weight:800; font-size:13.5px; cursor:pointer; }
           .anima-btn.ghost { background:var(--bg-base); color:var(--text-main); border:1px solid var(--border-dim); }
           .anima-ta { width:100%; min-height:84px; resize:vertical; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:11px; padding:11px 13px; color:var(--text-main); font-family:var(--font-code); font-size:13px; line-height:1.5; outline:none; }
-          .anima-snips { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+          /* 본문 옵션 — '라벨 | 항목' 행으로 딱 나눠 정렬(예전엔 라벨과 칩이 한 줄에 뒤엉켰음) */
+          .anima-snips { display:flex; flex-direction:column; gap:7px; align-items:stretch; }
+          .anima-orow { display:flex; align-items:flex-start; gap:10px; }
+          .anima-olab { flex:0 0 42px; width:42px; padding-top:10px; font-size:11px; font-weight:800; color:var(--text-dim); text-align:right; line-height:1.2; }
+          .anima-oitems { flex:1 1 auto; min-width:0; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+          .anima-orow.sub .anima-olab { font-size:10.5px; opacity:.8; }
+          .anima-orow.sub .anima-oitems { padding-left:4px; }
+          @media (max-width:420px){ .anima-olab { flex-basis:36px; width:36px; font-size:10.5px; } }
           .anima-snip-lab { font-size:11px; font-weight:800; color:var(--text-dim); margin-right:-2px; }
           .anima-chip { border:1px solid var(--border-dim); background:var(--bg-base); color:var(--text-dim); border-radius:20px; padding:7px 13px; font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer; transition:.14s; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
           .anima-chip.on { background:color-mix(in srgb,var(--accent-blue,#3b82f6) 16%,transparent); border-color:var(--accent-blue,#3b82f6); color:var(--accent-blue,#3b82f6); }
