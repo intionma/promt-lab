@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.62.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.63.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.62.0 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.63.0 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1832,7 +1832,27 @@
         <!-- 닫기 버튼 -->
         <button onclick="closeLightbox()" title="닫기 (Esc)" style="position:absolute; top:16px; right:18px; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:20px; cursor:pointer; z-index:10;"><i class="fa-solid fa-xmark"></i></button>
         <!-- 카운터 -->
-        <span id="img-lightbox-counter" style="position:absolute; top:22px; left:50%; transform:translateX(-50%); color:#fff; font-size:13px; font-family:var(--font-ui); background:rgba(0,0,0,0.4); padding:4px 12px; border-radius:14px; z-index:10; display:none; pointer-events:none;"></span>
+        <style>
+          /* 카운터 — 스와이프하면 이미지 대신 이 숫자가 굴러간다(오도미터).
+             --act(0~1)는 드래그 진행률. 배경·크기·글자색이 함께 서서히 진해져 '반응한다'는 느낌을 준다. */
+          #img-lightbox-counter{
+            --act:0; position:absolute; top:22px; left:50%; z-index:10; display:none; pointer-events:none;
+            font-family:var(--font-ui); font-size:13px; line-height:17px; white-space:nowrap;
+            padding:4px 12px; border-radius:14px;
+            color:rgba(255,255,255,calc(0.80 + 0.20*var(--act)));
+            background:rgba(0,0,0,calc(0.36 + 0.26*var(--act)));
+            box-shadow:0 2px 10px rgba(0,0,0,calc(0.10 + 0.22*var(--act)));
+            transform:translateX(-50%) scale(calc(1 + 0.06*var(--act)));
+            transform-origin:50% 50%;
+          }
+          /* 손가락을 뗀 뒤에만 부드럽게 원위치 — 드래그 중엔 지연 없이 손끝을 그대로 따라간다 */
+          #img-lightbox-counter.lb-settle{ transition:color .22s ease, background .22s ease, box-shadow .22s ease, transform .22s cubic-bezier(.22,.61,.36,1); }
+          #img-lightbox-counter .lb-odo{ display:inline-block; height:17px; overflow:hidden; vertical-align:top; }
+          #img-lightbox-counter .lb-odo-strip{ display:block; will-change:transform; }
+          #img-lightbox-counter .lb-odo-strip i{ display:block; height:17px; font-style:normal; text-align:center; }
+          #img-lightbox-counter .lb-total{ display:inline-block; vertical-align:top; }
+        </style>
+        <span id="img-lightbox-counter"><span class="lb-odo"><span class="lb-odo-strip"><i></i><i></i><i></i></span></span><span class="lb-total"></span></span>
         <!-- 하단 옵션 캡션 — 어떤 노출/후타/표정으로 만든 이미지인지. 감상 방해 없게 은은하게, 확대하면 사라짐 -->
         <div id="img-lightbox-cap" style="position:absolute; left:50%; bottom:calc(18px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); max-width:min(92vw,760px); z-index:10; display:none; pointer-events:none; color:rgba(255,255,255,.82); font-size:12px; font-weight:600; font-family:var(--font-ui); line-height:1.45; text-align:center; background:rgba(0,0,0,.42); padding:6px 13px; border-radius:14px; backdrop-filter:blur(6px); transition:opacity .18s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
         <!-- 맞춤(전체 보기) ↔ 채우기(화면 꽉 차게) 토글 -->
@@ -1912,7 +1932,7 @@
                 <details style="background:var(--input-bg); border:1px solid var(--border-dim); border-radius:10px; padding:12px 14px;">
                     <summary style="cursor:pointer; font-size:12px; font-weight:700; color:var(--text-main);"><i class="fa-solid fa-file-code"></i> 종료 도우미 스크립트 (PC에서 1회 실행)</summary>
                     <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
-                        <div style="font-size:11px; color:var(--text-dim); line-height:1.6;">아래를 <code>shutdown_server.py</code>로 저장 후 PC에서 <code>python shutdown_server.py</code> 실행. (토큰은 위 입력칸과 똑같이 맞추세요)</div>
+                        <div style="font-size:11px; color:var(--text-dim); line-height:1.6;">위에 입력한 <b>토큰이 이미 반영된 상태</b>입니다 — <b>복사해서 <code>shutdown_server.py</code>로 저장</b>하고 실행하면 끝. 파일을 따로 고칠 필요 없습니다.</div>
                         <textarea id="shutdown-script" readonly style="width:100%; height:200px; background:var(--bg-base); border:1px solid var(--border-dim); border-radius:8px; padding:10px; color:var(--text-main); font-family:var(--font-code); font-size:11px; line-height:1.5; outline:none; resize:vertical;"></textarea>
                         <button class="action-btn" onclick="copyShutdownScript()" style="align-self:flex-start; color:var(--accent-green); border-color:var(--accent-green);"><i class="fa-solid fa-copy"></i> 스크립트 복사</button>
                     </div>
@@ -2016,7 +2036,16 @@
         const CHANGELOG = [
             // ── 2026-07-25 ──────────────────────────────────────────────────
             {
-                version: 'v9.62.0', date: '2026-07-25', time: '최신',
+                version: 'v9.63.0', date: '2026-07-25', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[크게 보기] 스와이프로 넘길 때 <b>이미지가 손가락을 따라 움직이던 모션을 없앴습니다</b> — 이제 사진은 1px도 흔들리지 않고 그 자리에 가만히 있다가, 넘어가는 순간 <b>툭 바뀝니다</b>. 감상에 방해가 없어요.",
+                    "[크게 보기] 대신 <b>위쪽 장수 표시(1 / 14)의 숫자가 손끝을 따라 굴러갑니다</b> — 살짝 밀면 숫자도 살짝 올라갔다가 <b>손을 떼면 제자리로 돌아오고</b>, 충분히 밀면 <b>숫자가 끝까지 넘어가며 다음 장</b>으로 갑니다. 미는 만큼 표시가 <b>서서히 또렷해져서</b> 내 손짓에 반응하는 게 느껴집니다. 첫 장·마지막 장에서는 살짝 튕기고 제자리로 돌아옵니다. (화살표·키보드로 넘길 때도 같은 방식으로 움직입니다. 총 장수는 조용히 바뀝니다.)",
+                    "[PC 종료] 종료 도우미 스크립트에 <b>입력한 토큰이 자동으로 들어갑니다</b> — 예전엔 복사한 뒤 파일에서 토큰을 찾아 직접 고쳐야 했는데, 이제 <b>복사 → 저장 → 실행</b>이면 끝입니다. 주소가 집 안 주소(192.168…)면 포트도 함께 맞춰 넣어줍니다.",
+                ]
+            },
+            {
+                version: 'v9.62.0', date: '2026-07-25', time: '',
                 tag: 'fix',
                 items: [
                     "[갤러리] <b>원본별로 묶기가 동작하지 않던 문제</b>를 고쳤습니다 — 페이지를 새로고침하면 '지금 어떤 원본으로 작업 중인지'를 잊어버려서, 그 뒤에 만든 이미지가 전부 <b>'원본 정보 없음'</b>으로 몰렸습니다. 이제 새로고침해도 원본이 기억되고, 예전에 만든 이미지도 <b>이전 원본 목록과 대조해 자동으로 되찾아</b> 제자리에 묶입니다.",
@@ -4811,13 +4840,41 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 `;
         const SHUTDOWN_KEY = 'shutdown_settings_v1';
 
+        // 입력한 토큰(+로컬 포트)을 스크립트에 그대로 박아준다 — 복사해서 저장하면 끝, 손으로 고칠 필요 없음.
+        function _shutdownLocalPort(url) {
+            try {
+                const u = new URL(/^https?:\/\//i.test(url) ? url : 'http://' + url);
+                const local = /^(localhost|127\.|0\.0\.0\.0|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(u.hostname);
+                // 터널(ts.net 등) 주소의 포트는 '바깥에서 보는 포트'라 스크립트가 열 포트와 다르다 → 기본값 유지
+                if (local && u.port) return parseInt(u.port, 10) || 8189;
+            } catch (e) {}
+            return 8189;
+        }
+        function _shutdownScriptText() {
+            const token = (document.getElementById('shutdown-token').value || '').trim() || 'change-me-1234';
+            const port  = _shutdownLocalPort((document.getElementById('shutdown-url').value || '').trim());
+            // 파이썬 문자열로 안전하게(따옴표·역슬래시 이스케이프)
+            const pyStr = '"' + token.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+            return _SHUTDOWN_SCRIPT
+                .replace('TOKEN = "change-me-1234"   # 앱의 토큰 입력칸과 똑같이 맞추세요',
+                         'TOKEN = ' + pyStr + '   # 앱에 입력한 토큰이 자동으로 들어갔습니다')
+                .replace('PORT  = 8189', 'PORT  = ' + port);
+        }
+        function _shutdownSyncScript() {
+            const ta = document.getElementById('shutdown-script');
+            if (ta) ta.value = _shutdownScriptText();
+        }
         function openShutdownModal() {
             try {
                 const s = JSON.parse(localStorage.getItem(SHUTDOWN_KEY) || '{}');
                 document.getElementById('shutdown-url').value = s.url || _comfyShutdownDefault();
                 document.getElementById('shutdown-token').value = s.token || 'change-me-1234';
             } catch (e) {}
-            document.getElementById('shutdown-script').value = _SHUTDOWN_SCRIPT;
+            _shutdownSyncScript();
+            ['shutdown-url', 'shutdown-token'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && !el._syncBound) { el._syncBound = true; el.addEventListener('input', _shutdownSyncScript); }
+            });
             document.getElementById('shutdown-status').textContent = '';
             // 타이머 진행 중이면 카운트다운 표시, 아니면 설정 화면
             if (_shutdownDeadline > Date.now()) _shutdownStartCountdown();
@@ -9605,6 +9662,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const track   = document.getElementById('img-lightbox-track');
             const counter = document.getElementById('img-lightbox-counter');
             const capEl   = document.getElementById('img-lightbox-cap');
+            const odoStrip = counter.querySelector('.lb-odo-strip');
+            const odoTotal = counter.querySelector('.lb-total');
             const btnPrev = document.getElementById('lb-btn-prev');
             const btnNext = document.getElementById('lb-btn-next');
             if (!box || !track) return;
@@ -9806,10 +9865,32 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _resetZoom(false); // 다른 이미지로 넘어가면 줌 초기화
             }
 
+            // ── 숫자 오도미터 ──────────────────────────────────────────────
+            //  스와이프해도 이미지는 1px도 움직이지 않는다. 대신 이 숫자가 드래그에 비례해 굴러가며
+            //  '지금 넘기는 중'임을 알려주고, 임계값을 넘기면 끝까지 굴러가고 이미지는 즉시 교체된다.
+            const ODO_H = 17;          // 한 칸 높이(px) — 위 CSS의 .lb-odo 높이와 반드시 같아야 함
+            let _odoAnim = false;      // 롤 애니메이션 중엔 _updateUI가 숫자를 덮어쓰지 않게
+            function _odoCells() {
+                const n = _lbUrls.length, cur = _lbIdx + 1, c = odoStrip.children;
+                // 양 끝에서는 이웃 칸에 같은 숫자를 넣어, 빈칸이 보이는 대신 '살짝 튕기고 마는' 느낌만 남긴다
+                c[0].textContent = cur > 1 ? String(cur - 1) : String(cur);
+                c[1].textContent = String(cur);
+                c[2].textContent = cur < n ? String(cur + 1) : String(cur);
+            }
+            function _odoApply(p, anim) {
+                odoStrip.style.transition = anim ? 'transform .2s cubic-bezier(.22,.61,.36,1)' : 'none';
+                odoStrip.style.transform  = `translateY(${-(1 + p) * ODO_H}px)`;
+            }
+            function _odoSync() { _odoCells(); _odoApply(0, false); }
+            function _odoAct(v, settle) {
+                counter.classList.toggle('lb-settle', !!settle);
+                counter.style.setProperty('--act', String(Math.max(0, Math.min(1, v))));
+            }
             function _updateUI() {
                 const n = _lbUrls.length, multi = n > 1;
                 counter.style.display = multi ? 'block' : 'none';
-                counter.textContent   = `${_lbIdx + 1} / ${n}`;
+                if (odoTotal) odoTotal.textContent = ' / ' + n;   // 총 장수는 굴리지 않고 조용히 갱신
+                if (!_odoAnim) _odoSync();
                 // 데스크톱만 좌우 화살표 버튼 — 모바일은 옛 ←→가 새 위/아래 방식과 헷갈려서 숨기고 가장자리 힌트로 안내
                 if (btnPrev) btnPrev.style.display = (!_lbCoarse && multi && _lbIdx > 0)     ? 'block' : 'none';
                 if (btnNext) btnNext.style.display = (!_lbCoarse && multi && _lbIdx < n - 1) ? 'block' : 'none';
@@ -9874,12 +9955,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (ptAxis !== 'h') return;
                 if (cancelFn) cancelFn();
                 ptDragged = true;
+                // ★ 이미지는 움직이지 않는다(감상 방해 금지). 대신 숫자가 손끝을 따라 굴러간다.
                 const n = _lbUrls.length;
-                let off = -VW() + dx;
-                // rubber band at edges
-                if (_lbIdx === 0     && dx > 0) off = -VW() + dx * RUBBER_K;
-                if (_lbIdx === n - 1 && dx < 0) off = -VW() + dx * RUBBER_K;
-                track.style.transform = `translateX(${off}px)`;
+                const threshold = VW() * SNAP_RATIO;
+                let p = -dx / threshold;                      // 왼쪽으로 밀면(dx<0) 다음 → p>0
+                if ((_lbIdx >= n - 1 && p > 0) || (_lbIdx <= 0 && p < 0)) p *= RUBBER_K * 2;   // 끝에선 저항(고무줄)
+                p = Math.max(-1, Math.min(1, p));
+                _odoApply(p, false);
+                _odoAct(Math.abs(p), false);                  // 진행률만큼 서서히 진해짐(전환 없이 즉시 따라옴)
             }
 
             function _end(x, y) {
@@ -9893,15 +9976,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _lbRefresh(); // 생성 중 새로 추가된 미리보기 반영
                 const n = _lbUrls.length;
                 const threshold = VW() * SNAP_RATIO;
+                _odoAct(0, true);                                        // 강조는 부드럽게 원위치
 
-                // 스와이프 넘김은 애니메이션 없이 '즉시'(화살표·가장자리 탭과 동일). 슬라이드 애니메이션 제거.
-                if (dx < -threshold && _lbIdx < n - 1) {
-                    _lbIdx++; _loadSlots(); _center(); _updateUI();       // 다음 이미지로 즉시
-                } else if (dx > threshold && _lbIdx > 0) {
-                    _lbIdx--; _loadSlots(); _center(); _updateUI();       // 이전 이미지로 즉시
-                } else {
-                    _center();                                           // 임계값 미달 → 즉시 원위치(스냅백도 애니메이션 없음)
-                }
+                // 이미지는 애니메이션 없이 즉시 교체되고, '넘어가는 느낌'은 숫자가 대신 낸다.
+                if (dx < -threshold && _lbIdx < n - 1)      lightboxNav(1);
+                else if (dx > threshold && _lbIdx > 0)      lightboxNav(-1);
+                else                                        _odoApply(0, true);   // 미달 → 숫자만 제자리로
             }
 
             // ── 터치 (스와이프 / 더블탭 줌 / 핀치 / 팬) ───────────────────
@@ -10045,11 +10125,19 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _lbRefresh(); // 생성 중 새로 추가된 미리보기 반영
                 const n = _lbUrls.length;
                 const newIdx = _lbIdx + dir;
-                if (newIdx < 0 || newIdx >= n) return;
+                if (newIdx < 0 || newIdx >= n) {              // 첫/마지막 — 더 못 간다는 걸 숫자로만 알린다
+                    _odoApply(dir > 0 ? 0.28 : -0.28, true);
+                    setTimeout(() => { if (!_odoAnim) _odoApply(0, true); }, 150);
+                    return;
+                }
+                _odoAnim = true;
+                _odoApply(dir > 0 ? 1 : -1, true);            // 숫자를 끝까지 굴린다(드래그 중이던 위치에서 이어서)
                 _lbIdx = newIdx;
-                _loadSlots();
+                _loadSlots();                                 // 이미지는 모션 없이 즉시 교체
                 _center();
                 _updateUI();
+                // 롤이 끝나면 새 인덱스 기준으로 숫자판을 조용히 재배치(보이는 숫자는 그대로라 티가 안 남)
+                setTimeout(() => { _odoAnim = false; _odoSync(); }, 210);
             };
 
             window.closeLightbox = function () {
