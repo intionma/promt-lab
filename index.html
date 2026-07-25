@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.60.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.61.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.60.0 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.61.0 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1833,6 +1833,8 @@
         <button onclick="closeLightbox()" title="닫기 (Esc)" style="position:absolute; top:16px; right:18px; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:20px; cursor:pointer; z-index:10;"><i class="fa-solid fa-xmark"></i></button>
         <!-- 카운터 -->
         <span id="img-lightbox-counter" style="position:absolute; top:22px; left:50%; transform:translateX(-50%); color:#fff; font-size:13px; font-family:var(--font-ui); background:rgba(0,0,0,0.4); padding:4px 12px; border-radius:14px; z-index:10; display:none; pointer-events:none;"></span>
+        <!-- 하단 옵션 캡션 — 어떤 노출/후타/표정으로 만든 이미지인지. 감상 방해 없게 은은하게, 확대하면 사라짐 -->
+        <div id="img-lightbox-cap" style="position:absolute; left:50%; bottom:calc(18px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); max-width:min(92vw,760px); z-index:10; display:none; pointer-events:none; color:rgba(255,255,255,.82); font-size:12px; font-weight:600; font-family:var(--font-ui); line-height:1.45; text-align:center; background:rgba(0,0,0,.42); padding:6px 13px; border-radius:14px; backdrop-filter:blur(6px); transition:opacity .18s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
         <!-- 맞춤(전체 보기) ↔ 채우기(화면 꽉 차게) 토글 -->
         <button id="lb-btn-fit" onclick="lightboxToggleFit()" title="화면 채우기 / 전체 보기 전환" style="position:absolute; top:16px; left:16px; z-index:10; height:36px; padding:0 13px; border-radius:18px; border:none; background:rgba(255,255,255,0.14); backdrop-filter:blur(6px); color:#fff; font-size:12.5px; font-weight:700; font-family:var(--font-ui); cursor:pointer; display:flex; align-items:center; gap:6px;"></button>
         <!-- 좌우 화살표 버튼 (이미지 양옆) -->
@@ -2014,7 +2016,16 @@
         const CHANGELOG = [
             // ── 2026-07-25 ──────────────────────────────────────────────────
             {
-                version: 'v9.60.0', date: '2026-07-25', time: '최신',
+                version: 'v9.61.0', date: '2026-07-25', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] <b>연속 생성</b>을 추가했습니다 — <b>실행 버튼을 길게 누르면</b>(PC는 우클릭) 메뉴가 뜨고, <b>노출 전부 / 후타 크기 전부 / 표정 전부</b> 중 하나를 고르면 그 종류만 차례로 바꿔가며 한 번에 뽑습니다. 나머지 항목은 <b>지금 고른 그대로 고정</b>되고, 세트 전체가 <b>같은 시드</b>를 써서 무엇 때문에 달라졌는지 정확히 비교됩니다. (예: 후타를 노멀로 두고 노출만 4종 → 4장)",
+                    "[Anima 편집] 연속 생성으로 <b>무엇을 돌릴지 미리 정해</b> 둘 수 있습니다 — 메뉴의 <b>[⚙ 무엇을 돌릴지 설정]</b>에서 노출·후타·표정 중 원하는 항목만 켜두면 그 세트로만 돌아가고, 설정은 저장됩니다. 노출에는 <b>'노출 없음'</b>(옷 그대로)도 넣을 수 있어요.",
+                    "[크게 보기] 이미지를 크게 보면 <b>하단에 그 이미지를 만든 선택</b>(노출 · 후타(발기·포피·사정) · 표정)이 작게 표시됩니다 — 여러 장을 비교할 때 어느 게 무엇인지 바로 알 수 있어요. 썸네일에는 붙지 않아 갤러리는 그대로 깔끔하고, <b>확대하면 자동으로 사라집니다</b>. (이번 업데이트 이후 만든 이미지부터 표시)",
+                ]
+            },
+            {
+                version: 'v9.60.0', date: '2026-07-25', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 하단 바를 <b>아이콘 방식</b>으로 새로 만들었습니다 — 노출 4종(전신·상의·하의·상하의)과 후타 크기 3종(소추·노멀·거근)이 <b>아이콘으로 항상 보여</b> 한 번만 누르면 바로 적용됩니다. 예전처럼 [옵션]을 열고 좌우로 한참 미는 단계가 사라졌어요.",
@@ -6854,6 +6865,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             customWf: '',               // 사용자가 붙여넣은 API 워크플로우(있으면 그대로 사용)
             snippets: [],               // 프롬프트 옵션 토글 [{id,name,text,on}] — 켜면 기본 프롬프트 뒤에 붙음
             exprRecent: [],             // 하단 바에 보일 '최근 쓴 표정' id 목록 — 이미 있는 걸 눌러도 순서는 그대로 둔다
+            sweep: null,                // 연속 생성에서 '무엇을 돌릴지' 저장 {base:[id..],futa:[..],expr:[..]}
             srcKey: null,               // 현재 원본 이미지의 고정 key — 생성 결과에 달아 '원본별 그룹뷰'로 묶는다
             galGroup: false,            // 갤러리 보기: false=전체(기존), true=원본별 그룹
             lastInputMode: 'clip',      // 마지막에 쓴 이미지 넣기 방식('clip'|'file') — 하단 바 좌측 버튼이 이걸 따라감
@@ -6912,9 +6924,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try {
                 const p = {};
                 ['prompt', 'steps', 'cfg', 'denoise', 'sampler', 'scheduler', 'seed', 'megapixels', 'upscaleMethod', 'refWeight', 'refMode',
-                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb', 'exprMore', 'exprRecent'].forEach(k => p[k] = _anima[k]);
+                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb', 'exprMore', 'exprRecent', 'sweep', 'galGroup'].forEach(k => p[k] = _anima[k]);
                 // 이 테마에서 뽑은 결과 이미지 목록도 저장(서버 URL만, Anima 전용 · 다른 테마와 완전 분리). 최근 80장.
-                p.results = (_anima.results || []).slice(0, _ANIMA_MAX_RESULTS).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed, src: r.src || null }));
+                p.results = (_anima.results || []).slice(0, _ANIMA_MAX_RESULTS).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed, src: r.src || null, opt: r.opt || '' }));
                 p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null, detail: s.detail || null, more: !!s.more }));
                 // 이전에 넣은 원본 이미지(축소본)들 — 다시 불러오기용.
                 const hist = (_anima.srcHistory || []).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0, key: h.key || null }));
@@ -6938,7 +6950,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const s = JSON.parse(localStorage.getItem(ANIMA_KEY) || 'null');
                 if (s && typeof s === 'object') {
                     Object.keys(s).forEach(k => { if (k === 'results' || k === 'snippets' || k === 'srcHistory') return; if (k in _anima && s[k] != null) _anima[k] = s[k]; });
-                    if (Array.isArray(s.results)) _anima.results = s.results.filter(r => r && r.url).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed, src: r.src || null }));
+                    if (Array.isArray(s.results)) _anima.results = s.results.filter(r => r && r.url).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed, src: r.src || null, opt: r.opt || '' }));
                     if (Array.isArray(s.snippets)) _anima.snippets = s.snippets.filter(x => x && x.id).map(x => ({ id: x.id, name: x.name || '옵션', text: x.text || '', on: !!x.on, kind: x.kind || 'append', group: x.group || null, detail: x.detail || null, more: !!x.more }));
                     if (Array.isArray(s.srcHistory)) _anima.srcHistory = s.srcHistory.filter(h => h && h.thumb).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0, key: h.key || null }));
                     if (_anima.imgThumb) { _anima.img = { dataURL: _anima.imgThumb, name: 'image' }; _anima.uploadedName = null; }
@@ -7180,7 +7192,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         // ── 결과 훅 (comfyGenerate 완료 시 finalize가 호출) ──
         window._animaOnResult = function (url, seed) {
-            _anima.results.unshift({ url, seed: (seed == null ? null : seed), src: _anima.srcKey || null });
+            _anima.results.unshift({ url, seed: (seed == null ? null : seed), src: _anima.srcKey || null, opt: _animaOptLabel() });
             if (_anima.results.length > _ANIMA_MAX_RESULTS) _anima.results.length = _ANIMA_MAX_RESULTS;
             _animaResSel = 0; // 새 결과를 현재 비교 대상으로
             _animaBusy = false;
@@ -7362,7 +7374,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const erectOverride = ons.some(s => s.group === 'futaErect');
             let extras = ons.map(s => s.text.trim()).join(', ');
             if (erectOverride) extras = extras.replace(/\berection\b\s*,\s*/gi, '').replace(/,?\s*\berection\b\s*$/gi, '');
-            const prompt = extras ? (base0.replace(/,\s*$/, '') + ', ' + extras) : base0;
+            // 끝에 남는 쉼표는 떼고 보낸다(옵션을 아무것도 안 켰을 때 기본 프롬프트가 ', '로 끝나 토큰을 헛되이 씀)
+            const prompt = (extras ? (base0.replace(/,\s*$/, '') + ', ' + extras) : base0).replace(/,\s*$/, '');
             // 클릭 순간의 값들을 먼저 확정(썸네일 생성 await 사이에 설정이 바뀌어도 안 섞이게)
             const seed = _animaSeedVal();   // -1이면 지금 랜덤 확정 → 대기열 항목마다 다른 시드
             const snap = { dataURL: _anima.img.dataURL, uploadedName: _anima.uploadedName };
@@ -7370,7 +7383,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 대기열 '표시용' 작은 썸네일(≈128px). 원본 768 dataURL을 목록에 박으면 30개일 때 HTML이 수백 KB라 렌더가 느려짐 → 작게.
             let qthumb = _anima.imgThumb || snap.dataURL || '';
             try { qthumb = await _animaThumb(snap.dataURL, 128); } catch (e) {}
-            const job = { id: ++_animaJobSeq, status: 'queued', thumb: qthumb, label: prompt, prompt, seed, snap, settings, srcKey: (_anima.srcKey || null) };
+            const job = { id: ++_animaJobSeq, status: 'queued', thumb: qthumb, label: prompt, prompt, seed, snap, settings, srcKey: (_anima.srcKey || null), opt: _animaOptLabel() };
             _animaJobs.push(job);
             const pend = _animaJobs.filter(j => j.status !== 'error').length;
             showToast(_animaRunning() ? `대기열에 추가됨 · 총 ${pend}개 (순서대로 이어서 처리)` : '생성 시작 — 계속 추가할 수 있어요', 'info', 1800);
@@ -7488,7 +7501,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         for (const nid in outs) (outs[nid].images || []).forEach(im => {
                             if ((im.type || 'output') === 'output') {
                                 const url = base + '/view?filename=' + encodeURIComponent(im.filename) + '&subfolder=' + encodeURIComponent(im.subfolder || '') + '&type=' + encodeURIComponent(im.type || 'output');
-                                _anima.results.unshift({ url, seed: (job.seed == null ? null : job.seed), src: (job.srcKey || _anima.srcKey || null) });
+                                _anima.results.unshift({ url, seed: (job.seed == null ? null : job.seed), src: (job.srcKey || _anima.srcKey || null), opt: (job.opt || '') });
                                 if (_anima.results.length > _ANIMA_MAX_RESULTS) _anima.results.length = _ANIMA_MAX_RESULTS;
                                 got = true;
                             }
@@ -7812,6 +7825,150 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (expr) parts.push(expr.name);
             return parts.length ? parts.join(' · ') : '옵션 선택';
         }
+
+        // ══ 연속 생성(스윕) ═══════════════════════════════════════════════
+        //  한 축만 훑고 나머지는 지금 고른 그대로 고정한다. (곱집합이 아니라 단일 축 → 장수가 폭발하지 않음)
+        //  예) 노출 스윕 = 후타·표정은 그대로 두고 노출만 4종을 차례로 적용해 4장.
+        //  시드는 세트 전체가 같아야 '무엇 때문에 달라졌는지'를 비교할 수 있으므로 한 번 뽑아 고정한다.
+        const _ANIMA_SWEEP_AXES = [
+            { key: 'base', name: '노출', pick: () => (_anima.snippets || []).filter(s => s.kind === 'base') },
+            { key: 'futa', name: '후타 크기', pick: () => { const o = ['futa_small', 'futa_normal', 'futa_large']; const f = (x) => { const i = o.indexOf(x.id); return i < 0 ? 999 : i; }; return (_anima.snippets || []).filter(s => s.group === 'futa').sort((a, b) => f(a) - f(b)); } },
+            { key: 'expr', name: '표정', pick: () => (_anima.snippets || []).filter(s => s.group === 'expr') },
+        ];
+        const _ANIMA_SWEEP_NONE = '__none__';   // '노출 없음'(해제 상태)도 한 칸으로 돌릴 수 있게
+        // 어떤 항목을 돌릴지 — 저장된 설정이 없으면 기본값(노출 4종·후타 3종·표정은 최근 4개)
+        function _animaSweepSel(axis) {
+            const items = axis.pick(), ids = items.map(s => s.id);
+            const saved = (_anima.sweep || {})[axis.key];
+            if (Array.isArray(saved)) {
+                const keep = saved.filter(id => id === _ANIMA_SWEEP_NONE || ids.includes(id));
+                return keep;   // 사용자가 전부 껐으면 빈 배열 그대로(0장 → 실행 불가 안내)
+            }
+            if (axis.key === 'expr') return _animaExprRecentList().map(s => s.id);
+            return ids;
+        }
+        function _animaSweepSetSel(axisKey, ids) {
+            if (!_anima.sweep || typeof _anima.sweep !== 'object') _anima.sweep = {};
+            _anima.sweep[axisKey] = ids.slice();
+            _animaSave();
+        }
+        // 스윕 실행 — 고른 항목마다 (그 항목만 켠 뒤) 대기열에 넣는다. 끝나면 원래 상태로 되돌린다.
+        async function _animaRunSweep(axisKey) {
+            const axis = _ANIMA_SWEEP_AXES.find(a => a.key === axisKey); if (!axis) return;
+            if (!_animaHasImage()) { showToast('먼저 이미지를 넣어주세요.', 'warning', 2500); return; }
+            const items = axis.pick(), sel = _animaSweepSel(axis);
+            if (!sel.length) { showToast(`${axis.name}에서 돌릴 항목을 하나 이상 골라주세요 (⚙ 설정)`, 'warning', 3000); return; }
+            // 되돌리기용 현재 상태 백업
+            const beforePrompt = _anima.prompt, beforeSeed = _anima.seed;
+            const beforeOn = {}; (_anima.snippets || []).forEach(s => beforeOn[s.id] = !!s.on);
+            // 세트 전체가 같은 시드를 쓰도록 지금 확정(-1이면 랜덤 하나를 뽑아 고정)
+            const fixed = _animaSeedVal();
+            _anima.seed = fixed;
+            let made = 0;
+            for (const id of sel) {
+                if (axis.key === 'base') {
+                    if (id === _ANIMA_SWEEP_NONE) _anima.prompt = _ANIMA_NEUTRAL_BASE;
+                    else { const s = items.find(x => x.id === id); if (!s) continue; _anima.prompt = s.text; }
+                } else {
+                    const s = items.find(x => x.id === id); if (!s) continue;
+                    // 같은 축은 하나만 켜지게(상호배타) — 다른 축은 손대지 않음
+                    items.forEach(x => { x.on = (x.id === id); });
+                }
+                await _animaGenerate();   // 대기열에 추가(파이프라인이 순서대로 처리)
+                made++;
+            }
+            // 원래 상태 복원 — 스윕은 '돌려보기'일 뿐 내 설정을 바꾸지 않는다
+            _anima.prompt = beforePrompt; _anima.seed = beforeSeed;
+            (_anima.snippets || []).forEach(s => { if (s.id in beforeOn) s.on = beforeOn[s.id]; });
+            const pt = _animaEl('#anima-prompt'); if (pt) pt.value = _anima.prompt;
+            _animaSave(); _animaRenderSnippets();
+            showToast(`🔁 ${axis.name} ${made}장을 대기열에 넣었어요 (시드 고정)`, 'success', 2600);
+        }
+        // 실행 버튼 길게 누르기 → 연속 생성 메뉴
+        let _animaSweepMenuEl = null;
+        function _animaCloseSweepMenu() { if (_animaSweepMenuEl) { try { _animaSweepMenuEl.remove(); } catch (e) {} _animaSweepMenuEl = null; } }
+        function _animaOpenSweepMenu() {
+            _animaCloseSweepMenu();
+            const wrap = document.createElement('div');
+            wrap.className = 'anima-sweep-back';
+            const rows = _ANIMA_SWEEP_AXES.map(a => {
+                const cnt = _animaSweepSel(a).length;
+                return `<button class="anima-sweep-row" data-ax="${a.key}"><span class="anima-sweep-nm">${a.name} 전부 돌리기</span><span class="anima-sweep-cnt">${cnt}장</span></button>`;
+            }).join('');
+            wrap.innerHTML = `<div class="anima-sweep-menu">
+                <div class="anima-sweep-head">🔁 연속 생성 <span>나머지는 지금 설정 그대로 · 시드 고정</span>
+                    <button class="anima-sweep-x" data-act="close" title="닫기">✕</button></div>
+                ${rows}
+                <button class="anima-sweep-row cfg" data-act="cfg"><span class="anima-sweep-nm">⚙ 무엇을 돌릴지 설정</span></button>
+                <div class="anima-sweep-cfg" id="anima-sweep-cfg"></div>
+            </div>`;
+            wrap.addEventListener('click', (e) => { if (e.target === wrap) _animaCloseSweepMenu(); });
+            (_animaDom || document.body).appendChild(wrap);
+            _animaSweepMenuEl = wrap;
+            wrap.querySelectorAll('.anima-sweep-row[data-ax]').forEach(b => b.onclick = () => { const k = b.dataset.ax; _animaCloseSweepMenu(); _animaRunSweep(k); });
+            wrap.querySelector('.anima-sweep-x').onclick = () => _animaCloseSweepMenu();
+            wrap.querySelector('.anima-sweep-row.cfg').onclick = () => {
+                const box = wrap.querySelector('#anima-sweep-cfg');
+                box.classList.toggle('open');
+                if (box.classList.contains('open')) _animaRenderSweepCfg(box, wrap);
+            };
+        }
+        function _animaRenderSweepCfg(box, wrap) {
+            let h = '';
+            _ANIMA_SWEEP_AXES.forEach(a => {
+                const sel = _animaSweepSel(a), items = a.pick();
+                h += `<div class="anima-sweep-sec">${a.name}</div><div class="anima-sweep-chips">`;
+                if (a.key === 'base') h += `<button class="anima-chip sw${sel.includes(_ANIMA_SWEEP_NONE) ? ' on' : ''}" data-ax="base" data-id="${_ANIMA_SWEEP_NONE}">노출 없음</button>`;
+                items.forEach(s => { h += `<button class="anima-chip sw${sel.includes(s.id) ? ' on' : ''}" data-ax="${a.key}" data-id="${s.id}">${_animaEsc(s.name)}</button>`; });
+                h += '</div>';
+            });
+            box.innerHTML = h;
+            box.querySelectorAll('.anima-chip.sw').forEach(c => c.onclick = () => {
+                const ax = c.dataset.ax, id = c.dataset.id;
+                const axis = _ANIMA_SWEEP_AXES.find(a => a.key === ax);
+                const cur = _animaSweepSel(axis);
+                const next = cur.includes(id) ? cur.filter(x => x !== id) : cur.concat([id]);
+                _animaSweepSetSel(ax, next);
+                _animaRenderSweepCfg(box, wrap);
+                // 상단 '몇 장' 표기도 즉시 갱신
+                wrap.querySelectorAll('.anima-sweep-row[data-ax]').forEach(b => {
+                    const a2 = _ANIMA_SWEEP_AXES.find(a => a.key === b.dataset.ax);
+                    const cnt = b.querySelector('.anima-sweep-cnt'); if (a2 && cnt) cnt.textContent = _animaSweepSel(a2).length + '장';
+                });
+            });
+        }
+        // 실행 버튼에 길게 누르기(모바일 롱프레스 / PC 우클릭)를 붙인다 — 짧게 누르면 기존처럼 1장 생성
+        function _animaBindRunLongPress(btn) {
+            if (!btn || btn._lpBound) return; btn._lpBound = true;
+            let t = null, fired = false;
+            const start = () => { fired = false; clearTimeout(t); t = setTimeout(() => { fired = true; try { if (navigator.vibrate) navigator.vibrate(15); } catch (e) {} _animaOpenSweepMenu(); }, 480); };
+            const cancel = () => { clearTimeout(t); t = null; };
+            btn.addEventListener('pointerdown', start);
+            btn.addEventListener('pointerup', cancel);
+            btn.addEventListener('pointerleave', cancel);
+            btn.addEventListener('pointercancel', cancel);
+            btn.addEventListener('click', (e) => { if (fired) { e.preventDefault(); e.stopPropagation(); fired = false; } }, true);
+            btn.addEventListener('contextmenu', (e) => { e.preventDefault(); _animaOpenSweepMenu(); });
+        }
+        // 생성 시점의 선택(노출·후타·표정)을 사람이 읽는 짧은 문구로 — 결과에 붙여 두면 크게 볼 때 하단에 뜬다.
+        //  예: "전신 노출 · 후타(노멀)(무발기·포경) · 유혹"  / 고른 게 없으면 빈 문자열(캡션 자체를 안 띄움)
+        function _animaOptLabel() {
+            try {
+                const all = _anima.snippets || [], curP = (_anima.prompt || '').trim(), parts = [];
+                const base = all.find(s => s.kind === 'base' && curP === (s.text || '').trim());
+                if (base) parts.push(base.name);
+                const futa = all.find(s => s.group === 'futa' && s.on);
+                if (futa) {
+                    const sub = ['futaErect', 'futaSkin', 'futaCum']
+                        .map(g => all.find(s => s.detail === 'futa' && s.group === g && s.on))
+                        .filter(Boolean).map(s => s.name.replace(/\(.*\)/, '').trim());
+                    parts.push(futa.name.replace('후타나리', '후타') + (sub.length ? ` (${sub.join('·')})` : ''));
+                }
+                const expr = all.find(s => s.group === 'expr' && s.on);
+                if (expr) parts.push(expr.name);
+                return parts.join(' · ');
+            } catch (e) { return ''; }
+        }
         // 후타 상세 팝오버 — 크기 아이콘 위에 뜬다. 발기·포피·사정 전부 텍스트 칩.
         //  ★ ✕ 버튼으로만 닫힌다(바깥을 눌러도 닫히지 않음) — 여러 항목을 연속으로 고르기 좋게.
         function _animaFutaPopHtml() {
@@ -7905,7 +8062,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (meb) meb.onclick = () => { _animaSnipEditOpen = true; _animaRenderSnipEdit(); try { _animaEl('#anima-snip-edit').scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {} };
                 _animaBindFutaPop(mact);
                 _animaSyncMactInput(); // 좌측 버튼을 마지막 입력 방식(클립보드/파일)에 맞춤 — 넣고 바로 실행하기 좋게
-                const mr = mact.querySelector('#anima-mact-run'); if (mr) mr.onclick = _animaGenerate;
+                const mr = mact.querySelector('#anima-mact-run'); if (mr) { mr.onclick = _animaGenerate; _animaBindRunLongPress(mr); }
             }
             _animaRenderRun();
             _animaRenderSnipEdit();
@@ -8038,6 +8195,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _animaGalManage = false;
             }
             box.innerHTML = html;
+            // 결과에 붙여 둔 옵션 라벨을 라이트박스 캡션 사전에 등록(크게 볼 때 하단에 표시)
+            try { window._lbCaptions = window._lbCaptions || {}; (_anima.results || []).forEach(r => { if (r && r.url && r.opt) window._lbCaptions[r.url] = r.opt; }); } catch (e) {}
             const openLB = (which) => { try { if (window.openLightbox) { const urls = [src, gen].filter(Boolean); const idx = (which === 0 && src) ? 0 : (src ? 1 : 0); window.openLightbox(urls[idx] || urls[0], urls, idx); } } catch (e) {} };
             box.querySelectorAll('.anima-frame').forEach(fr => { const lb = parseInt(fr.dataset.lb); if ((lb === 0 && src) || (lb === 1 && gen)) { fr.style.cursor = 'zoom-in'; fr.onclick = () => openLB(lb); } });
             // 이벤트 위임: 항목마다 핸들러를 붙이지 않고 갤러리 컨테이너에만 → 장수가 많아도 렌더가 가벼움(O(N) 바인딩 제거).
@@ -8179,6 +8338,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const sd = _animaEl('#anima-seed'); sd.value = (_anima.seed == null ? -1 : _anima.seed); sd.onchange = () => { const v = sd.value.trim(); _anima.seed = (v === '' || v === '-1') ? -1 : (parseInt(v) || -1); _animaSave(); };
             _animaEl('#anima-seed-rand').onclick = () => { _anima.seed = Math.floor(Math.random() * 1e9); sd.value = _anima.seed; _animaSave(); };
             _animaEl('#anima-run-btn').onclick = _animaGenerate;
+            _animaBindRunLongPress(_animaEl('#anima-run-btn'));
             _animaEl('#anima-file').onchange = (e) => { _animaAddFile(e.target.files); e.target.value = ''; };
             // ComfyUI 연결 (서버 주소는 공용 #comfy-url과 동기화 — 인프라라 공유)
             const urlIn = _animaEl('#anima-url');
@@ -8391,6 +8551,28 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
              칩은 줄바꿈(wrap)되어 후타나리 등 모든 옵션이 잘리지 않고 항상 보이고 눌린다(좌우 스크롤 불필요). */
           .anima-mact { display:flex; flex-direction:column; align-items:center; gap:8px; position:fixed; left:0; right:0; bottom:0; z-index:60;
             padding:9px 12px calc(9px + env(safe-area-inset-bottom, 0px)); background:var(--bg-panel); border-top:1px solid var(--border-dim); box-shadow:0 -6px 18px rgba(0,0,0,.25); }
+          /* ── 연속 생성(스윕) 메뉴 — 실행 버튼 길게 누르면 뜸 ── */
+          .anima-sweep-back { position:fixed; inset:0; z-index:120; background:rgba(0,0,0,.5); display:flex; align-items:flex-end; justify-content:center; padding:16px; }
+          .anima-sweep-menu { width:100%; max-width:520px; max-height:78vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+            background:var(--bg-panel); border:1px solid var(--border-dim); border-radius:16px; padding:12px; box-shadow:0 14px 40px rgba(0,0,0,.55); }
+          .anima-sweep-head { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; color:var(--text-main); margin:2px 2px 10px; flex-wrap:wrap; }
+          .anima-sweep-head span { font-size:10.5px; font-weight:600; color:var(--text-dim); }
+          .anima-sweep-x { margin-left:auto; width:28px; height:28px; flex:0 0 auto; border-radius:8px; border:1px solid var(--border-dim);
+            background:var(--bg-base); color:var(--text-dim); font-size:13px; cursor:pointer; }
+          .anima-sweep-row { display:flex; align-items:center; gap:10px; width:100%; margin-bottom:7px; padding:12px 13px; border-radius:12px;
+            border:1px solid var(--border-dim); background:var(--bg-base); color:var(--text-main); font-family:inherit; font-size:13.5px; font-weight:700; cursor:pointer; text-align:left; }
+          .anima-sweep-row:hover { border-color:var(--accent-blue,#3b82f6); }
+          .anima-sweep-nm { flex:1 1 auto; }
+          .anima-sweep-cnt { flex:0 0 auto; font-size:11px; font-weight:800; color:var(--accent-blue,#3b82f6);
+            background:color-mix(in srgb,var(--accent-blue,#3b82f6) 15%,transparent); border-radius:20px; padding:3px 9px; }
+          .anima-sweep-row.cfg { border-style:dashed; font-size:12.5px; color:var(--text-dim); margin-bottom:0; }
+          .anima-sweep-cfg { display:none; padding:4px 2px 2px; }
+          .anima-sweep-cfg.open { display:block; }
+          .anima-sweep-sec { font-size:10.5px; font-weight:800; color:var(--text-dim); margin:11px 0 6px; }
+          .anima-sweep-chips { display:flex; flex-wrap:wrap; gap:6px; }
+          .anima-chip.sw { opacity:.5; }
+          .anima-chip.sw.on { opacity:1; background:color-mix(in srgb,var(--accent-blue,#3b82f6) 16%,transparent);
+            border-color:var(--accent-blue,#3b82f6); color:var(--accent-blue,#3b82f6); }
           /* ── 하단 바(개편) ── 의상 4 · 후타 3은 아이콘으로 바로 탭, 표정은 최근 쓴 것만 한 줄, 아래에 📋 + 실행 ── */
           .anima-icodefs { position:absolute; width:0; height:0; overflow:hidden; }
           .anima-mact-icos { display:flex; align-items:center; gap:5px; width:100%; max-width:1000px; }
@@ -9251,6 +9433,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const box     = document.getElementById('img-lightbox');
             const track   = document.getElementById('img-lightbox-track');
             const counter = document.getElementById('img-lightbox-counter');
+            const capEl   = document.getElementById('img-lightbox-cap');
             const btnPrev = document.getElementById('lb-btn-prev');
             const btnNext = document.getElementById('lb-btn-next');
             if (!box || !track) return;
@@ -9368,6 +9551,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _zoomBadge.style.opacity = _isZoomed() ? '1' : '0';
                 _zoomBadge.textContent = _zoom.toFixed(1) + 'x';
                 _syncEdgeHints();   // 확대 중엔 가장자리 힌트 숨김
+                if (capEl && capEl.dataset.has === '1') capEl.style.display = _isZoomed() ? 'none' : 'block';   // 확대하면 캡션도 감춤
             }
             function _resetZoom(animate) { _zoom = 1; _zx = 0; _zy = 0; _applyZoom(!!animate); }
             // 한 점(cx,cy) 고정하며 배율 곱하기 — 휠·핀치·더블탭 공용
@@ -9458,6 +9642,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 // 데스크톱만 좌우 화살표 버튼 — 모바일은 옛 ←→가 새 위/아래 방식과 헷갈려서 숨기고 가장자리 힌트로 안내
                 if (btnPrev) btnPrev.style.display = (!_lbCoarse && multi && _lbIdx > 0)     ? 'block' : 'none';
                 if (btnNext) btnNext.style.display = (!_lbCoarse && multi && _lbIdx < n - 1) ? 'block' : 'none';
+                // 옵션 캡션 — 등록된 라벨이 있을 때만. 확대 중엔 감상 방해가 되니 감춘다.
+                if (capEl) {
+                    const lab = (window._lbCaptions && window._lbCaptions[_lbUrls[_lbIdx]]) || '';
+                    capEl.dataset.has = lab ? '1' : '0';
+                    if (lab) capEl.textContent = lab;
+                    capEl.style.display = (lab && !_isZoomed()) ? 'block' : 'none';
+                }
                 _syncEdgeHints();
             }
 
