@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.61.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.61.2 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.61.1 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.61.2 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2016,7 +2016,14 @@
         const CHANGELOG = [
             // ── 2026-07-25 ──────────────────────────────────────────────────
             {
-                version: 'v9.61.1', date: '2026-07-25', time: '최신',
+                version: 'v9.61.2', date: '2026-07-25', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] 하단 바에 보이는 <b>최근 표정을 4개 → 6개</b>로 늘렸습니다. 이름 길이에 맞춰 <b>한 줄에 들어가는 만큼만</b> 자동으로 보여주므로 줄바꿈으로 바가 두꺼워지지 않습니다(이름이 긴 표정만 모이면 5개). 화면 폭이 넓으면 더 많이 보입니다.",
+                ]
+            },
+            {
+                version: 'v9.61.1', date: '2026-07-25', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] <b>하단 바의 노출 아이콘을 눌러도 아무 반응이 없던 문제</b>를 고쳤습니다 — 프롬프트는 실제로 바뀌고 있었는데 <b>아이콘에 선택 표시가 안 켜져</b> 먹통처럼 보였습니다. 이제 누르는 즉시 표시가 바뀌고, 본문과 하단 바가 항상 같은 상태로 함께 갱신됩니다.",
@@ -7771,7 +7778,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // ── 표정 '최근 사용' 목록 ───────────────────────────────────────────
         //  하단 바엔 최근 쓴 것만 몇 개 보인다. 이미 목록에 있는 표정을 눌러도 순서를 바꾸지 않는다
         //  (누를 때마다 자리가 움직이면 손가락이 헷갈림). 목록에 없던 '신규' 표정을 골랐을 때만 맨 앞에 넣는다.
-        const _ANIMA_EXPR_RECENT_MAX = 4;
+        const _ANIMA_EXPR_RECENT_MAX = 6;   // 최근 목록 보관 개수(하단 바엔 이 중 '한 줄에 들어가는 만큼'만 보인다)
         function _animaExprRecentList() {
             const all = (_anima.snippets || []).filter(s => s.group === 'expr');
             let ids = (_anima.exprRecent || []).filter(id => all.some(s => s.id === id));
@@ -7849,6 +7856,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return parts.length ? parts.join(' · ') : '옵션 선택';
         }
 
+        // 하단 바 표정 줄이 절대 줄바꿈되지 않게 — 실제 폭을 재서 넘치는 칩만 감춘다.
+        //  (이름 길이가 '유혹'~'혀내밀기'로 제각각이라 개수를 고정하면 어떤 조합에선 반드시 넘친다)
+        function _animaFitExprRow(row) {
+            if (!row || _animaExprOpen) return;   // 펼침 상태는 줄바꿈이 정상이므로 손대지 않음
+            const kids = Array.from(row.children);
+            kids.forEach(c => { c.style.display = ''; });
+            const avail = row.clientWidth;
+            if (!avail) return;
+            const cs = getComputedStyle(row), gap = parseFloat(cs.columnGap || cs.gap || '5') || 5;
+            let used = 0;
+            kids.forEach((c, i) => {
+                const w = c.offsetWidth;
+                used += (i ? gap : 0) + w;
+                if (i > 0 && used > avail) c.style.display = 'none';   // 첫 칩([표정 ▾])은 항상 남긴다
+            });
+        }
         // 본문(단계 ②) 옵션 영역 — 하단 바와 같은 아이콘을 쓰되, 폭이 넓으니 카테고리를 '라벨 | 항목' 행으로 정리한다.
         //  (예전엔 라벨과 칩이 한 덩어리로 줄바꿈돼 뒤엉켜 보였음)
         function _animaPanelHtml() {
@@ -8140,6 +8163,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (eo) eo.onclick = () => { _animaExprOpen = !_animaExprOpen; _animaRenderSnippets(); };
                 const meb = mact.querySelector('#anima-mact-editbtn');
                 if (meb) meb.onclick = () => { _animaSnipEditOpen = true; _animaRenderSnipEdit(); try { _animaEl('#anima-snip-edit').scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {} };
+                _animaFitExprRow(mact.querySelector('.anima-mact-expr'));   // 줄바꿈 방지: 들어가는 만큼만 표시
                 _animaBindFutaPop(mact);
                 _animaSyncMactInput(); // 좌측 버튼을 마지막 입력 방식(클립보드/파일)에 맞춤 — 넣고 바로 실행하기 좋게
                 const mr = mact.querySelector('#anima-mact-run'); if (mr) { mr.onclick = _animaGenerate; _animaBindRunLongPress(mr); }
@@ -8450,7 +8474,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             inbox.addEventListener('drop', e => { e.preventDefault(); inbox.classList.remove('drag'); if (e.dataTransfer && e.dataTransfer.files) _animaAddFile(e.dataTransfer.files); });
             const onPaste = (e) => { if (_plCurrent !== 'anima') return; const items = e.clipboardData && e.clipboardData.items; if (!items) return; for (const it of items) { if (it.type && it.type.startsWith('image/')) { const f = it.getAsFile(); if (f) { _animaFileToDataURL(f).then(du => _animaSetImage(du, 'pasted')); e.preventDefault(); break; } } } };
             document.addEventListener('paste', onPaste);
-            const onResize = () => _animaSyncMactHeight();   // 폭이 바뀌면 칩 줄바꿈 수가 달라져 바 높이 재계산
+            const onResize = () => { _animaFitExprRow(_animaEl('#anima-mact .anima-mact-expr')); _animaSyncMactHeight(); };   // 폭이 바뀌면 표시 개수·바 높이 재계산
             window.addEventListener('resize', onResize);
             _animaSyncMactHeight();
             // (마운트 시 노드 스키마 프리페치는 제거 — 연결 전에 실패 요청이 나가 오류처럼 보이고 캐시를 오염시킬 수 있어,
@@ -8683,7 +8707,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           /* 표정 줄 — 기본은 최근 쓴 것만 한 줄(줄바꿈 없음), 펼치면 전체가 줄바꿈되어 보임 */
           .anima-mact-expr { display:flex; align-items:center; gap:5px; width:100%; max-width:1000px; overflow:hidden; }
           .anima-mact-expr.open { flex-wrap:wrap; overflow:visible; }
-          .anima-mact-expr .anima-chip { flex:0 0 auto; padding:5px 9px; font-size:11.5px; }
+          .anima-mact-expr .anima-chip { flex:0 0 auto; padding:5px 8px; font-size:11px; }
           .anima-mact-expr .anima-chip.tg { border-style:dashed; color:var(--text-dim); }
           .anima-mact-bar { display:flex; gap:8px; align-items:stretch; width:100%; max-width:1000px; }
           .anima-mact-clip { flex:0 0 auto; width:52px; font-size:17px; padding:0; display:flex; align-items:center; justify-content:center; }
