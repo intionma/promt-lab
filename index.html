@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.61.3 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.62.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.61.3 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.62.0 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2016,7 +2016,16 @@
         const CHANGELOG = [
             // ── 2026-07-25 ──────────────────────────────────────────────────
             {
-                version: 'v9.61.3', date: '2026-07-25', time: '최신',
+                version: 'v9.62.0', date: '2026-07-25', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[갤러리] <b>원본별로 묶기가 동작하지 않던 문제</b>를 고쳤습니다 — 페이지를 새로고침하면 '지금 어떤 원본으로 작업 중인지'를 잊어버려서, 그 뒤에 만든 이미지가 전부 <b>'원본 정보 없음'</b>으로 몰렸습니다. 이제 새로고침해도 원본이 기억되고, 예전에 만든 이미지도 <b>이전 원본 목록과 대조해 자동으로 되찾아</b> 제자리에 묶입니다.",
+                    "[크게 보기] 크게 본 채로 <b>대기열 결과가 도착하면 실시간으로 반영</b>됩니다 — 예전엔 몇 장이 더 나와도 <b>1/14에서 멈춰</b> 있어서 닫았다 다시 열어야 했습니다. 이제 보던 그림은 그대로 두고 <b>번호와 총 장수만 2/15처럼 늘어납니다</b>.",
+                    "[결과·비교] 결과 이미지를 크게 본 상태에서 <b>새 결과가 나오면 그 새 이미지로 바뀝니다</b> — 결과 창을 보고 있는 만큼 방금 뽑힌 그림이 바로 보이는 게 자연스러워서요. (갤러리에서 크게 본 경우엔 보던 그림이 그대로 유지됩니다)",
+                ]
+            },
+            {
+                version: 'v9.61.3', date: '2026-07-25', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] <b>페이지 맨 아래 내용이 하단 바에 가려지던 문제</b>를 고쳤습니다 — 바가 아이콘·표정 줄까지 생겨 두꺼워졌는데 아래 여백은 예전 한 줄 기준이라 약 100px이 잘려 있었습니다. 이제 바 높이에 맞춰 여백이 정확히 잡히고, 표정을 펼치거나 화면을 돌려도 다시 계산됩니다.",
@@ -6947,7 +6956,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try {
                 const p = {};
                 ['prompt', 'steps', 'cfg', 'denoise', 'sampler', 'scheduler', 'seed', 'megapixels', 'upscaleMethod', 'refWeight', 'refMode',
-                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb', 'exprMore', 'exprRecent', 'sweep', 'galGroup'].forEach(k => p[k] = _anima[k]);
+                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb', 'exprMore', 'exprRecent', 'sweep', 'galGroup', 'srcKey'].forEach(k => p[k] = _anima[k]);
                 // 이 테마에서 뽑은 결과 이미지 목록도 저장(서버 URL만, Anima 전용 · 다른 테마와 완전 분리). 최근 80장.
                 p.results = (_anima.results || []).slice(0, _ANIMA_MAX_RESULTS).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed, src: r.src || null, opt: r.opt || '' }));
                 p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null, detail: s.detail || null, more: !!s.more }));
@@ -6977,6 +6986,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     if (Array.isArray(s.snippets)) _anima.snippets = s.snippets.filter(x => x && x.id).map(x => ({ id: x.id, name: x.name || '옵션', text: x.text || '', on: !!x.on, kind: x.kind || 'append', group: x.group || null, detail: x.detail || null, more: !!x.more }));
                     if (Array.isArray(s.srcHistory)) _anima.srcHistory = s.srcHistory.filter(h => h && h.thumb).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0, key: h.key || null }));
                     if (_anima.imgThumb) { _anima.img = { dataURL: _anima.imgThumb, name: 'image' }; _anima.uploadedName = null; }
+                    // srcKey 복구 — 예전 버전은 srcKey를 저장하지 않아 새로고침 후 '원본 정보 없음'으로 묶였다.
+                    //  현재 원본 썸네일과 같은 항목을 이전 원본 목록에서 찾아 key를 되살린다.
+                    if (!_anima.srcKey && _anima.imgThumb) {
+                        const hit = (_anima.srcHistory || []).find(h => h && h.thumb === _anima.imgThumb && h.key);
+                        if (hit) _anima.srcKey = hit.key;
+                    }
                 }
                 // 저장된 옵션이 없으면 기본 제공
                 if (!_anima.snippets || !_anima.snippets.length) _anima.snippets = JSON.parse(JSON.stringify(ANIMA_DEFAULT_SNIPPETS));
@@ -7222,6 +7237,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { _animaSave(); } catch (e) {}
             try { _animaRenderRun(); } catch (e) {}
             try { _animaRenderResult(); } catch (e) {}
+            try { if (window._lbRefresh) window._lbRefresh(); } catch (e) {}   // 크게 보는 중이면 새 결과를 즉시 반영
             // 완료 알림 — 스크롤 위치와 무관하게 완료를 알 수 있게 (모바일 진동 포함)
             try { showToast('✅ 생성 완료 — 결과에서 확인하세요', 'success', 2500); } catch (e) {}
             try { if (navigator.vibrate) navigator.vibrate(80); } catch (e) {}
@@ -7534,6 +7550,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             _animaJobs = _animaJobs.filter(z => z !== job); // 완료 항목은 대기열에서 제거(결과·갤러리로 이동)
                             try { _animaSaveDebounced(); } catch (e) {}   // 완료마다 수백 KB 동기 저장(80ms)하지 않게 디바운스(이탈 시 flush됨)
                             _animaSyncBusy();
+                            try { if (window._lbRefresh) window._lbRefresh(); } catch (e) {}   // 크게 보는 중이면 새 결과를 즉시 반영
                             try { showToast('✅ 생성 완료' + (_animaJobs.filter(j => j.status !== 'error').length ? ` · 남은 ${_animaJobs.filter(j => j.status !== 'error').length}개 계속…` : ''), 'success', 2200); } catch (e) {}
                             try { if (navigator.vibrate) navigator.vibrate(80); } catch (e) {}
                             _animaScrollToResult();
@@ -8321,7 +8338,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             box.innerHTML = html;
             // 결과에 붙여 둔 옵션 라벨을 라이트박스 캡션 사전에 등록(크게 볼 때 하단에 표시)
             try { window._lbCaptions = window._lbCaptions || {}; (_anima.results || []).forEach(r => { if (r && r.url && r.opt) window._lbCaptions[r.url] = r.opt; }); } catch (e) {}
-            const openLB = (which) => { try { if (window.openLightbox) { const urls = [src, gen].filter(Boolean); const idx = (which === 0 && src) ? 0 : (src ? 1 : 0); window.openLightbox(urls[idx] || urls[0], urls, idx); } } catch (e) {} };
+            const openLB = (which) => {
+                try {
+                    if (!window.openLightbox) return;
+                    const urls = [src, gen].filter(Boolean);
+                    const idx = (which === 0 && src) ? 0 : (src ? 1 : 0);
+                    // 크게 보는 동안 목록을 다시 물어볼 함수 — 대기열 결과가 도착하면 '결과' 자리가 새 이미지로 바뀐다
+                    window._lbLivePending = () => {
+                        const s0 = _animaHasImage() ? _anima.img.dataURL : null;
+                        const r0 = _anima.results[_animaResSel];
+                        const g0 = r0 ? r0.url : null;
+                        return { urls: [s0, g0].filter(Boolean), caps: [s0 ? '' : null, g0 ? (r0.opt || '') : null].filter(x => x !== null) };
+                    };
+                    window._lbCapPending = [src ? '' : null, gen ? ((_anima.results[_animaResSel] || {}).opt || '') : null].filter(x => x !== null);
+                    window.openLightbox(urls[idx] || urls[0], urls, idx);
+                } catch (e) {}
+            };
             box.querySelectorAll('.anima-frame').forEach(fr => { const lb = parseInt(fr.dataset.lb); if ((lb === 0 && src) || (lb === 1 && gen)) { fr.style.cursor = 'zoom-in'; fr.onclick = () => openLB(lb); } });
             // 이벤트 위임: 항목마다 핸들러를 붙이지 않고 갤러리 컨테이너에만 → 장수가 많아도 렌더가 가벼움(O(N) 바인딩 제거).
             //  (원본별 보기에선 그룹마다 컨테이너가 하나씩 생기므로 전부에 건다)
@@ -8338,7 +8370,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const gi = e.target.closest('.anima-gitem'); if (!gi) return;
                 const i = parseInt(gi.dataset.i);
                 _animaResSel = i; _animaRenderResult();   // 비교 대상으로 선택
-                try { if (window.openLightbox) { const urls = _anima.results.map(r => r.url); window._lbCapPending = _anima.results.map(r => r.opt || ''); window.openLightbox(urls[i], urls, i); } } catch (err) {}   // 크게 보기(전체 좌우 넘김)
+                try {
+                    if (window.openLightbox) {
+                        const urls = _anima.results.map(r => r.url);
+                        window._lbCapPending = _anima.results.map(r => r.opt || '');
+                        // 생성이 끝나 목록이 늘어나도 보던 이미지를 계속 보면서 번호·총장수만 갱신되게 한다
+                        window._lbLivePending = () => ({ urls: _anima.results.map(r => r.url), caps: _anima.results.map(r => r.opt || '') });
+                        window.openLightbox(urls[i], urls, i);
+                    }
+                } catch (err) {}   // 크게 보기(전체 좌우 넘김)
             });
             // 보기 전환(전체 / 원본별)
             box.querySelectorAll('.anima-gal-vb').forEach(b => b.onclick = () => {
@@ -9553,7 +9593,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         })();
 
         // ── 풀스크린 이미지 뷰어 ──
-        let _lbUrls = [], _lbIdx = 0, _lbParent = null, _lbCaps = null;
+        let _lbUrls = [], _lbIdx = 0, _lbParent = null, _lbCaps = null, _lbLive = null;
 
         (function () {
             const SNAP_RATIO = 0.25;
@@ -9785,17 +9825,34 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
             // 라이트박스가 열린 동안 원본 컨테이너에서 이미지 목록을 실시간 재조회
             // (생성 중 새 미리보기가 추가돼도 닫았다 켜지 않고 바로 넘길 수 있게)
+            //  ★ 크게 보는 도중 목록이 늘어나면(대기열 결과 도착) 즉시 반영한다.
+            //    - 갤러리: 보던 이미지를 계속 보되 위치·총장수만 갱신 (1/14 → 2/15)
+            //    - 결과 비교창: 목록이 [원본, 현재결과]라 새 결과가 오면 그 자리가 새 이미지로 바뀐다
             function _lbRefresh() {
-                if (!_lbParent || box.style.display === 'none') return;
-                const cur = _lbUrls[_lbIdx];
-                const imgs = Array.from(_lbParent.querySelectorAll('img[src]')).map(i => i.src).filter(Boolean);
-                if (!imgs.length) return;
-                const changed = imgs.length !== _lbUrls.length;
+                if (box.style.display === 'none') return;
+                let imgs = null, caps = null;
+                if (typeof _lbLive === 'function') {           // 앱이 넘겨준 실시간 목록이 우선
+                    try { const r = _lbLive(); if (r && Array.isArray(r.urls) && r.urls.length) { imgs = r.urls; caps = Array.isArray(r.caps) ? r.caps : null; } } catch (e) {}
+                }
+                if (!imgs && _lbParent) {                      // 예전 방식(컨테이너에서 재조회) 폴백
+                    const q = Array.from(_lbParent.querySelectorAll('img[src]')).map(i => i.src).filter(Boolean);
+                    if (q.length) imgs = q;
+                }
+                if (!imgs) return;
+                const prevUrl = _lbUrls[_lbIdx];
+                const lenChanged = imgs.length !== _lbUrls.length;
                 _lbUrls = imgs;
-                const ni = cur ? imgs.indexOf(cur) : -1;
-                _lbIdx = ni >= 0 ? ni : Math.min(_lbIdx, imgs.length - 1);
-                if (changed && !_busy) { _loadSlots(); _updateUI(); }
+                _lbCaps = (caps && caps.length === imgs.length) ? caps : null;
+                // 보던 이미지가 목록에 그대로 있으면 그 위치로 따라간다(앞에 새 이미지가 끼어들어도 같은 그림을 계속 봄).
+                // 없으면(결과창처럼 그 자리가 교체된 경우) 같은 인덱스를 유지 → 새 이미지가 보인다.
+                let ni = prevUrl ? imgs.indexOf(prevUrl) : -1;
+                if (ni < 0) ni = Math.min(_lbIdx, imgs.length - 1);
+                _lbIdx = Math.max(0, ni);
+                if (_busy) return;
+                if (lenChanged || _lbUrls[_lbIdx] !== prevUrl) _loadSlots();
+                _updateUI();
             }
+            window._lbRefresh = _lbRefresh;   // 새 결과가 도착했을 때 앱이 직접 호출
             window._lbRefresh = _lbRefresh;
 
             // ── 드래그/스와이프 공용 상태 ────────────────────────────────
@@ -9965,6 +10022,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 //  한 번 쓰고 비워서 다른 경로에서 남은 값이 새지 않게 한다.
                 _lbCaps = (Array.isArray(window._lbCapPending) && window._lbCapPending.length === _lbUrls.length) ? window._lbCapPending : null;
                 window._lbCapPending = null;
+                // 열려 있는 동안 목록을 다시 물어볼 함수(생성이 끝나 결과가 늘면 실시간 반영). 1회 소비.
+                _lbLive = (typeof window._lbLivePending === 'function') ? window._lbLivePending : null;
+                window._lbLivePending = null;
                 _lbIdx  = typeof idx === 'number' && idx >= 0 && idx < _lbUrls.length
                           ? idx : Math.max(0, _lbUrls.indexOf(url));
                 _lbParent = null; // 직접 호출은 실시간 갱신 대상 아님 (openLightboxFromEl에서 설정)
