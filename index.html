@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.59.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.60.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.59.0 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.60.0 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2014,7 +2014,17 @@
         const CHANGELOG = [
             // ── 2026-07-25 ──────────────────────────────────────────────────
             {
-                version: 'v9.59.0', date: '2026-07-25', time: '최신',
+                version: 'v9.60.0', date: '2026-07-25', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] 하단 바를 <b>아이콘 방식</b>으로 새로 만들었습니다 — 노출 4종(전신·상의·하의·상하의)과 후타 크기 3종(소추·노멀·거근)이 <b>아이콘으로 항상 보여</b> 한 번만 누르면 바로 적용됩니다. 예전처럼 [옵션]을 열고 좌우로 한참 미는 단계가 사라졌어요.",
+                    "[Anima 편집] <b>후타 크기를 누르면 그 위로 상세 창</b>이 뜹니다 — 발기(반발기·무발기) · 포피(귀두 노출·포경) · 사정(사정·과다 사정)을 여기서 고릅니다. 이 창은 <b>✕를 눌러야만 닫혀서</b>, 바깥을 실수로 눌러도 사라지지 않고 여러 항목을 연달아 고를 수 있습니다.",
+                    "[Anima 편집] 표정은 <b>최근에 쓴 것만</b> 하단 바에 한 줄로 보여 바로 켜고 끌 수 있습니다. <b>[표정 ▾]</b>를 누르면 전체 목록이 펼쳐지고, 거기서 고른 <b>새 표정만</b> 최근 목록 맨 앞에 들어옵니다 — 이미 바에 있는 표정을 눌러도 <b>자리가 바뀌지 않아</b> 손에 익은 위치 그대로 쓸 수 있어요.",
+                    "[갤러리] <b>원본별로 묶어보기</b>를 추가했습니다 — 갤러리 오른쪽 위 <b>[전체 / 원본별]</b>로 전환하면, 같은 사진으로 여러 장 뽑은 결과가 <b>원본 썸네일과 장수</b>가 붙은 그룹으로 정리돼 보입니다. 기존 전체 보기도 그대로 쓸 수 있어요. (이번 업데이트 이후 만든 이미지부터 원본이 기록되며, 이전 것들은 '원본 정보 없음'으로 묶입니다.)",
+                ]
+            },
+            {
+                version: 'v9.59.0', date: '2026-07-25', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 하단 바를 대폭 정리했습니다 — 예전엔 노출·후타·표정 칩이 한 줄에 뒤섞여 좌우로 한참 밀어야 했는데, 이제 <b>[옵션]</b> 버튼 하나로 접혀 있고 지금 켜진 선택이 버튼에 요약돼 보입니다. 누르면 <b>노출 / 후타 / 표정</b>이 카테고리별로 정리된 시트가 위로 펼쳐지고, 칩이 줄바꿈돼 <b>가로로 밀 필요가 없습니다</b>. 후타를 켜면 그 자리 바로 아래에 발기·포피·사정 상세가 나타나 찾기 쉽습니다.",
@@ -6843,6 +6853,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _wf: null,                  // 워크플로우 버전 스탬프(마이그레이션용)
             customWf: '',               // 사용자가 붙여넣은 API 워크플로우(있으면 그대로 사용)
             snippets: [],               // 프롬프트 옵션 토글 [{id,name,text,on}] — 켜면 기본 프롬프트 뒤에 붙음
+            exprRecent: [],             // 하단 바에 보일 '최근 쓴 표정' id 목록 — 이미 있는 걸 눌러도 순서는 그대로 둔다
+            srcKey: null,               // 현재 원본 이미지의 고정 key — 생성 결과에 달아 '원본별 그룹뷰'로 묶는다
+            galGroup: false,            // 갤러리 보기: false=전체(기존), true=원본별 그룹
             lastInputMode: 'clip',      // 마지막에 쓴 이미지 넣기 방식('clip'|'file') — 하단 바 좌측 버튼이 이걸 따라감
             galSize: 96,                // 갤러리 썸네일 한 칸 최소 너비(px) — 슬라이더로 크게/작게 (60~220)
             flattenBg: 'white',         // 투명 배경 채우기 색('white'|'gray'|'black') — 투명 PNG만 자동 감지해 이 색으로 평탄화
@@ -6899,12 +6912,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try {
                 const p = {};
                 ['prompt', 'steps', 'cfg', 'denoise', 'sampler', 'scheduler', 'seed', 'megapixels', 'upscaleMethod', 'refWeight', 'refMode',
-                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb', 'exprMore'].forEach(k => p[k] = _anima[k]);
+                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb', 'exprMore', 'exprRecent'].forEach(k => p[k] = _anima[k]);
                 // 이 테마에서 뽑은 결과 이미지 목록도 저장(서버 URL만, Anima 전용 · 다른 테마와 완전 분리). 최근 80장.
-                p.results = (_anima.results || []).slice(0, _ANIMA_MAX_RESULTS).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed }));
+                p.results = (_anima.results || []).slice(0, _ANIMA_MAX_RESULTS).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed, src: r.src || null }));
                 p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null, detail: s.detail || null, more: !!s.more }));
                 // 이전에 넣은 원본 이미지(축소본)들 — 다시 불러오기용.
-                const hist = (_anima.srcHistory || []).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0 }));
+                const hist = (_anima.srcHistory || []).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0, key: h.key || null }));
                 // 용량(localStorage quota) 초과 시 이전 원본을 오래된 것부터 줄여가며 재시도 → 저장 자체가 실패해 설정이 통째로 날아가는 것 방지
                 for (let n = hist.length; ; n--) {
                     p.srcHistory = hist.slice(0, Math.max(0, n));
@@ -6925,9 +6938,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const s = JSON.parse(localStorage.getItem(ANIMA_KEY) || 'null');
                 if (s && typeof s === 'object') {
                     Object.keys(s).forEach(k => { if (k === 'results' || k === 'snippets' || k === 'srcHistory') return; if (k in _anima && s[k] != null) _anima[k] = s[k]; });
-                    if (Array.isArray(s.results)) _anima.results = s.results.filter(r => r && r.url).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed }));
+                    if (Array.isArray(s.results)) _anima.results = s.results.filter(r => r && r.url).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed, src: r.src || null }));
                     if (Array.isArray(s.snippets)) _anima.snippets = s.snippets.filter(x => x && x.id).map(x => ({ id: x.id, name: x.name || '옵션', text: x.text || '', on: !!x.on, kind: x.kind || 'append', group: x.group || null, detail: x.detail || null, more: !!x.more }));
-                    if (Array.isArray(s.srcHistory)) _anima.srcHistory = s.srcHistory.filter(h => h && h.thumb).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0 }));
+                    if (Array.isArray(s.srcHistory)) _anima.srcHistory = s.srcHistory.filter(h => h && h.thumb).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0, key: h.key || null }));
                     if (_anima.imgThumb) { _anima.img = { dataURL: _anima.imgThumb, name: 'image' }; _anima.uploadedName = null; }
                 }
                 // 저장된 옵션이 없으면 기본 제공
@@ -7167,7 +7180,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         // ── 결과 훅 (comfyGenerate 완료 시 finalize가 호출) ──
         window._animaOnResult = function (url, seed) {
-            _anima.results.unshift({ url, seed: (seed == null ? null : seed) });
+            _anima.results.unshift({ url, seed: (seed == null ? null : seed), src: _anima.srcKey || null });
             if (_anima.results.length > _ANIMA_MAX_RESULTS) _anima.results.length = _ANIMA_MAX_RESULTS;
             _animaResSel = 0; // 새 결과를 현재 비교 대상으로
             _animaBusy = false;
@@ -7181,6 +7194,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         };
 
         let _animaDom = null, _animaBusy = false, _animaResSel = 0, _animaGalManage = false, _animaOptsOpen = false;
+        let _animaExprOpen = false;   // 하단 바 표정 줄 펼침 여부
+        let _animaFutaPop = null;     // 열려 있는 후타 상세 팝오버의 크기 id (✕로만 닫힘)
         // 결과 카드로 부드럽게 스크롤 (좁은 화면: 실행하면 스피너/결과가 안 보이는 문제 해결)
         function _animaScrollToResult() {
             try {
@@ -7256,14 +7271,20 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { _animaRenderInput(); _animaRenderResult(); } catch (e) {}
         }
         // 넣은 원본(축소본)을 히스토리 맨 앞에 기록 — 같은 이미지는 중복 제거, 최근 8장 유지.
+        //  각 원본에 고정 key를 부여한다 → 생성 결과에 이 key를 달아 두면 갤러리에서 '원본별'로 묶어볼 수 있다.
+        //  (같은 이미지를 다시 넣어도 key는 그대로라 예전 결과와 같은 그룹으로 이어진다)
         function _animaPushSrcHistory(thumb, name) {
-            if (!thumb) return;
+            if (!thumb) return null;
             try {
                 if (!Array.isArray(_anima.srcHistory)) _anima.srcHistory = [];
+                const ex = _anima.srcHistory.find(h => h && h.thumb === thumb);
+                const key = (ex && ex.key) || ('s' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
                 _anima.srcHistory = _anima.srcHistory.filter(h => h && h.thumb && h.thumb !== thumb);
-                _anima.srcHistory.unshift({ thumb, name: name || 'image', ts: Date.now() });
+                _anima.srcHistory.unshift({ thumb, name: name || 'image', ts: Date.now(), key });
                 if (_anima.srcHistory.length > _ANIMA_SRCHIST_MAX) _anima.srcHistory.length = _ANIMA_SRCHIST_MAX;
-            } catch (e) {}
+                _anima.srcKey = key;
+                return key;
+            } catch (e) { return null; }
         }
         // 히스토리에서 원본 다시 불러오기 (축소본을 현재 원본으로) — 재업로드 없이 복구
         function _animaLoadFromHistory(thumb, name) {
@@ -7349,7 +7370,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 대기열 '표시용' 작은 썸네일(≈128px). 원본 768 dataURL을 목록에 박으면 30개일 때 HTML이 수백 KB라 렌더가 느려짐 → 작게.
             let qthumb = _anima.imgThumb || snap.dataURL || '';
             try { qthumb = await _animaThumb(snap.dataURL, 128); } catch (e) {}
-            const job = { id: ++_animaJobSeq, status: 'queued', thumb: qthumb, label: prompt, prompt, seed, snap, settings };
+            const job = { id: ++_animaJobSeq, status: 'queued', thumb: qthumb, label: prompt, prompt, seed, snap, settings, srcKey: (_anima.srcKey || null) };
             _animaJobs.push(job);
             const pend = _animaJobs.filter(j => j.status !== 'error').length;
             showToast(_animaRunning() ? `대기열에 추가됨 · 총 ${pend}개 (순서대로 이어서 처리)` : '생성 시작 — 계속 추가할 수 있어요', 'info', 1800);
@@ -7467,7 +7488,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         for (const nid in outs) (outs[nid].images || []).forEach(im => {
                             if ((im.type || 'output') === 'output') {
                                 const url = base + '/view?filename=' + encodeURIComponent(im.filename) + '&subfolder=' + encodeURIComponent(im.subfolder || '') + '&type=' + encodeURIComponent(im.type || 'output');
-                                _anima.results.unshift({ url, seed: (job.seed == null ? null : job.seed) });
+                                _anima.results.unshift({ url, seed: (job.seed == null ? null : job.seed), src: (job.srcKey || _anima.srcKey || null) });
                                 if (_anima.results.length > _ANIMA_MAX_RESULTS) _anima.results.length = _ANIMA_MAX_RESULTS;
                                 got = true;
                             }
@@ -7675,6 +7696,58 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _animaChip(s) {
             return `<button class="anima-chip${s.group ? ' g-' + s.group : ''}${s.on ? ' on' : ''}" data-id="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${s.on ? '✓ ' : ''}${_animaEsc(s.name)}</button>`;
         }
+        // ── 하단 바 아이콘(인라인 SVG) ──────────────────────────────────────
+        //  CDN(Font Awesome) 없이도 항상 뜨도록 직접 그린 도형. 의상=옷 모양+빨간 사선(=그 옷을 벗김),
+        //  후타=크기 3단계. id → 심볼 매핑(스니펫 데이터엔 넣지 않아 사용자가 옵션을 편집해도 안전).
+        const _ANIMA_ICON_OF = {
+            base_full: 'nude', base_top: 'i-top', base_bottom: 'i-bot', base_topbottom: 'i-both',
+            futa_small: 'f-s', futa_normal: 'f-n', futa_large: 'f-b'
+        };
+        const _ANIMA_ICON_DEFS = `<svg class="anima-icodefs" aria-hidden="true">
+          <symbol id="ai-nude" viewBox="0 0 24 24">
+            <circle class="ai-gm" cx="12" cy="3.6" r="2.25"/><rect class="ai-gm" x="9.1" y="6.9" width="5.8" height="8" rx="2.3"/>
+            <rect class="ai-gm" x="6.1" y="7.3" width="2" height="6.5" rx="1"/><rect class="ai-gm" x="15.9" y="7.3" width="2" height="6.5" rx="1"/>
+            <rect class="ai-gm" x="9.3" y="15" width="2.35" height="7" rx="1.17"/><rect class="ai-gm" x="12.35" y="15" width="2.35" height="7" rx="1.17"/>
+          </symbol>
+          <symbol id="ai-tee" viewBox="0 0 24 24"><path class="ai-gm" d="M4.2 7.6 9 4.2h6l4.8 3.4-2.4 3.4L15.4 9.6V20H8.6V9.6l-2 1.4z"/></symbol>
+          <symbol id="ai-pants" viewBox="0 0 24 24"><path class="ai-gm" d="M7.2 3.4h9.6l-.6 17.4h-3.1L12 10.4l-1.1 10.4H7.8z"/></symbol>
+          <symbol id="ai-i-top" viewBox="0 0 24 24"><use href="#ai-tee"/><path class="ai-cut" d="M4 20 20 4"/><path class="ai-slash" d="M4 20 20 4"/></symbol>
+          <symbol id="ai-i-bot" viewBox="0 0 24 24"><use href="#ai-pants"/><path class="ai-cut" d="M4 20 20 4"/><path class="ai-slash" d="M4 20 20 4"/></symbol>
+          <symbol id="ai-i-both" viewBox="0 0 24 24"><g transform="translate(-1.2,-1.4) scale(0.62)"><use href="#ai-tee"/></g><g transform="translate(9.6,9.4) scale(0.6)"><use href="#ai-pants"/></g><path class="ai-cut" d="M3.4 20.6 20.6 3.4"/><path class="ai-slash" d="M3.4 20.6 20.6 3.4"/></symbol>
+          <symbol id="ai-f-s" viewBox="0 0 24 24">
+            <path class="ai-st" d="M4.2 7.2C4.2 12.2 5.8 14.6 9.2 15.1"/><path class="ai-st" d="M19.8 7.2C19.8 12.2 18.2 14.6 14.8 15.1"/>
+            <path class="ai-st" d="M9.2 12C9.3 17 10.2 20.5 12 20.7 13.8 20.5 14.7 17 14.8 12"/>
+          </symbol>
+          <symbol id="ai-f-n" viewBox="0 0 24 24">
+            <path class="ai-st" d="M10.2 15.9V9.8c0-1.1.8-2 1.8-2s1.8.9 1.8 2c0 2.4-.6 3.8-.4 6.1"/>
+            <ellipse class="ai-st" cx="9.7" cy="18" rx="2.3" ry="2.1"/><ellipse class="ai-st" cx="14.3" cy="18" rx="2.3" ry="2.1"/>
+          </symbol>
+          <symbol id="ai-f-b" viewBox="0 0 24 24">
+            <path class="ai-st" d="M9.5 15.9V6.2a2.5 2.5 0 0 1 5 0v9.7"/>
+            <ellipse class="ai-st" cx="8.9" cy="18.2" rx="2.6" ry="2.4"/><ellipse class="ai-st" cx="15.1" cy="18.2" rx="2.6" ry="2.4"/>
+          </symbol>
+        </svg>`;
+        function _animaIcoBtn(s, kind, active) {
+            const ic = _ANIMA_ICON_OF[s.id];
+            if (!ic) return '';   // 아이콘이 없는(사용자가 새로 만든) 항목은 아이콘 줄에 넣지 않음
+            return `<button class="anima-ico ${kind}${active ? ' on' : ''}" data-${kind === 'pk' ? 'base' : 'futa'}="${s.id}" title="${_animaEsc(s.name)}" aria-label="${_animaEsc(s.name)}" aria-pressed="${active ? 'true' : 'false'}"><svg viewBox="0 0 24 24"><use href="#ai-${ic}"/></svg></button>`;
+        }
+        // ── 표정 '최근 사용' 목록 ───────────────────────────────────────────
+        //  하단 바엔 최근 쓴 것만 몇 개 보인다. 이미 목록에 있는 표정을 눌러도 순서를 바꾸지 않는다
+        //  (누를 때마다 자리가 움직이면 손가락이 헷갈림). 목록에 없던 '신규' 표정을 골랐을 때만 맨 앞에 넣는다.
+        const _ANIMA_EXPR_RECENT_MAX = 4;
+        function _animaExprRecentList() {
+            const all = (_anima.snippets || []).filter(s => s.group === 'expr');
+            let ids = (_anima.exprRecent || []).filter(id => all.some(s => s.id === id));
+            if (!ids.length) ids = all.slice(0, _ANIMA_EXPR_RECENT_MAX).map(s => s.id);   // 최초엔 앞쪽 기본값
+            return ids.slice(0, _ANIMA_EXPR_RECENT_MAX).map(id => all.find(s => s.id === id)).filter(Boolean);
+        }
+        function _animaExprTouch(id) {
+            const cur = _animaExprRecentList().map(s => s.id);
+            if (cur.includes(id)) return false;   // 이미 바에 있음 → 순서 유지(요청)
+            _anima.exprRecent = [id].concat(cur).slice(0, _ANIMA_EXPR_RECENT_MAX);
+            return true;   // 목록이 바뀜 → 다시 그려야 함
+        }
         function _animaChipsHtml() {
             const all = (_anima.snippets || []);
             const baseS = all.filter(s => s.kind === 'base');
@@ -7739,26 +7812,98 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (expr) parts.push(expr.name);
             return parts.length ? parts.join(' · ') : '옵션 선택';
         }
+        // 후타 상세 팝오버 — 크기 아이콘 위에 뜬다. 발기·포피·사정 전부 텍스트 칩.
+        //  ★ ✕ 버튼으로만 닫힌다(바깥을 눌러도 닫히지 않음) — 여러 항목을 연속으로 고르기 좋게.
+        function _animaFutaPopHtml() {
+            if (!_animaFutaPop) return '';
+            const all = _anima.snippets || [];
+            const size = all.find(s => s.id === _animaFutaPop && s.group === 'futa');
+            if (!size || !size.on) return '';
+            const sec = (lab, list) => list.length
+                ? `<div class="anima-fp-lab">${lab}</div>` + list.map(s =>
+                    `<button class="anima-chip lil${s.on ? ' on' : ''}" data-fd="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${_animaEsc(s.name)}</button>`).join('')
+                : '';
+            const g = (grp) => all.filter(s => s.detail === 'futa' && s.group === grp);
+            const ic = _ANIMA_ICON_OF[size.id];
+            return `<div class="anima-futapop" id="anima-futapop">
+                <div class="anima-fp-head">
+                    ${ic ? `<svg class="anima-fp-ico" viewBox="0 0 24 24"><use href="#ai-${ic}"/></svg>` : ''}
+                    <span>${_animaEsc(size.name)}</span>
+                    <button class="anima-fp-x" id="anima-fp-x" title="닫기" aria-label="닫기">✕</button>
+                </div>
+                <div class="anima-fp-body">${sec('발기', g('futaErect'))}${sec('포피', g('futaSkin'))}${sec('사정', g('futaCum'))}</div>
+            </div>`;
+        }
+        function _animaBindFutaPop(root) {
+            const pop = root.querySelector('#anima-futapop'); if (!pop) return;
+            // 팝오버 내부 클릭이 바깥(문서) 핸들러로 새어나가 다른 UI를 건드리지 않게
+            pop.addEventListener('click', (e) => e.stopPropagation());
+            pop.querySelectorAll('.anima-chip[data-fd]').forEach(c => c.onclick = () => {
+                const s = _anima.snippets.find(x => x.id === c.dataset.fd); if (!s) return;
+                s.on = !s.on;
+                if (s.on && s.group) _anima.snippets.forEach(x => { if (x !== s && x.group === s.group) x.on = false; });
+                _animaSave(); _animaRenderSnippets();   // 팝오버는 열린 채로 유지 → 연속 선택 가능
+            });
+            const x = pop.querySelector('#anima-fp-x');
+            if (x) x.onclick = () => { _animaFutaPop = null; _animaRenderSnippets(); };
+        }
         function _animaRenderSnippets() {
             const box = _animaEl('#anima-snips'); if (!box) return;
             box.innerHTML = _animaChipsHtml() + `<button class="anima-chip edit" id="anima-snip-editbtn">✏️ 편집</button>`;
             _animaBindChips(box);
             const eb = box.querySelector('#anima-snip-editbtn'); if (eb) eb.onclick = () => { _animaSnipEditOpen = !_animaSnipEditOpen; _animaRenderSnipEdit(); };
-            // 모바일 하단 고정 바 — [옵션(요약)] 버튼을 누르면 카테고리별로 정리된 시트가 위로 펼쳐짐(가로 스크롤 없이 줄바꿈).
+            // 하단 고정 바 — 의상 4 · 후타 3은 아이콘으로 '바로 탭', 표정은 최근 쓴 것만 한 줄.
+            //  후타 크기를 누르면 그 위로 상세 팝오버(발기·포피·사정)가 뜨고, ✕로만 닫힌다.
             const mact = _animaEl('#anima-mact');
             if (mact) {
-                mact.innerHTML = `<div class="anima-mact-sheet" id="anima-mact-sheet">${_animaChipsHtml()}<button class="anima-chip edit" id="anima-mact-editbtn">✏️ 옵션 편집</button></div>
-                    <div class="anima-mact-bar">
-                        <button class="anima-opts-trigger" id="anima-opts-trigger" aria-expanded="${_animaOptsOpen ? 'true' : 'false'}">
-                            <i class="fa-solid fa-sliders"></i><span class="anima-opts-sum">${_animaEsc(_animaOptsSummary())}</span><span class="anima-opts-car">${_animaOptsOpen ? '▾' : '▴'}</span>
-                        </button>
-                        <button id="anima-mact-clip" class="anima-btn ghost anima-mact-clip" title="클립보드 이미지 붙여넣기">📋</button>
-                        <button id="anima-mact-run" class="anima-run anima-mact-run"></button>
-                    </div>`;
-                mact.classList.toggle('open', _animaOptsOpen);
-                _animaBindChips(mact.querySelector('#anima-mact-sheet'));
-                const trg = mact.querySelector('#anima-opts-trigger'); if (trg) trg.onclick = () => { _animaOptsOpen = !_animaOptsOpen; _animaRenderSnippets(); };
-                const meb = mact.querySelector('#anima-mact-editbtn'); if (meb) meb.onclick = () => { _animaOptsOpen = false; _animaSnipEditOpen = true; _animaRenderSnippets(); _animaRenderSnipEdit(); try { _animaEl('#anima-snip-edit').scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {} };
+                const all = _anima.snippets || [];
+                const curP = (_anima.prompt || '').trim();
+                const baseS = all.filter(s => s.kind === 'base');
+                // 아이콘 줄은 항상 작은 것 → 큰 것 순서로(데이터 순서와 무관하게 크기 순이 직관적)
+                const _futaOrder = ['futa_small', 'futa_normal', 'futa_large'];
+                const _fo = (s) => { const i = _futaOrder.indexOf(s.id); return i < 0 ? 999 : i; };   // 사용자가 추가한 항목은 뒤로
+                const futaS = all.filter(s => s.group === 'futa').sort((a, b) => _fo(a) - _fo(b));
+                const exprAll = all.filter(s => s.group === 'expr');
+                const recent = _animaExprRecentList();
+                const shown = _animaExprOpen ? exprAll : recent;
+                const icoRow = baseS.map(s => _animaIcoBtn(s, 'pk', curP === (s.text || '').trim())).join('')
+                    + (futaS.length ? '<span class="anima-ico-sep"></span>' : '')
+                    + futaS.map(s => _animaIcoBtn(s, 'pu', !!s.on)).join('');
+                const exprRow = `<button class="anima-chip ex tg" data-act="exprOpen">표정 ${_animaExprOpen ? '▴' : '▾'}</button>`
+                    + shown.map(s => `<button class="anima-chip ex g-expr${s.on ? ' on' : ''}" data-id="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${_animaEsc(s.name)}</button>`).join('')
+                    + (_animaExprOpen ? `<button class="anima-chip edit" id="anima-mact-editbtn">✏️ 편집</button>` : '');
+                mact.innerHTML = _ANIMA_ICON_DEFS
+                    + _animaFutaPopHtml()
+                    + `<div class="anima-mact-icos">${icoRow}</div>
+                       <div class="anima-mact-expr${_animaExprOpen ? ' open' : ''}">${exprRow}</div>
+                       <div class="anima-mact-bar">
+                           <button id="anima-mact-clip" class="anima-btn ghost anima-mact-clip" title="클립보드 이미지 붙여넣기">📋</button>
+                           <button id="anima-mact-run" class="anima-run anima-mact-run"></button>
+                       </div>`;
+                // 의상(교체형) — 누르면 적용, 켜진 걸 다시 누르면 해제
+                mact.querySelectorAll('.anima-ico[data-base]').forEach(b => b.onclick = () => _animaApplyBaseSnip(b.dataset.base));
+                // 후타 크기 — 켜면서 상세 팝오버를 연다(이미 켜진 걸 다시 누르면 해제 + 팝오버 닫기)
+                mact.querySelectorAll('.anima-ico[data-futa]').forEach(b => b.onclick = () => {
+                    const id = b.dataset.futa, s = _anima.snippets.find(x => x.id === id); if (!s) return;
+                    const wasOn = !!s.on;
+                    s.on = !wasOn;
+                    if (s.on) _anima.snippets.forEach(x => { if (x !== s && x.group === 'futa') x.on = false; });
+                    _animaFutaPop = s.on ? id : null;
+                    _animaSave(); _animaRenderSnippets();
+                });
+                // 표정 — 목록에 이미 있으면 순서 유지, 펼침에서 고른 '신규'만 최근 목록 맨 앞으로
+                mact.querySelectorAll('.anima-chip[data-id]').forEach(c => c.onclick = () => {
+                    const id = c.dataset.id, s = _anima.snippets.find(x => x.id === id); if (!s) return;
+                    s.on = !s.on;
+                    if (s.on) _anima.snippets.forEach(x => { if (x !== s && x.group === s.group) x.on = false; });
+                    if (s.on) _animaExprTouch(id);
+                    _animaSave(); _animaRenderSnippets();
+                });
+                const eo = mact.querySelector('.anima-chip[data-act="exprOpen"]');
+                if (eo) eo.onclick = () => { _animaExprOpen = !_animaExprOpen; _animaRenderSnippets(); };
+                const meb = mact.querySelector('#anima-mact-editbtn');
+                if (meb) meb.onclick = () => { _animaSnipEditOpen = true; _animaRenderSnipEdit(); try { _animaEl('#anima-snip-edit').scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {} };
+                _animaBindFutaPop(mact);
                 _animaSyncMactInput(); // 좌측 버튼을 마지막 입력 방식(클립보드/파일)에 맞춤 — 넣고 바로 실행하기 좋게
                 const mr = mact.querySelector('#anima-mact-run'); if (mr) mr.onclick = _animaGenerate;
             }
@@ -7854,25 +7999,50 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 이 테마 전용 이미지 갤러리 (Anima에서 뽑은 것만 · 새로고침 유지)
             if (_anima.results.length) {
                 const gs = Math.min(220, Math.max(60, parseInt(_anima.galSize) || 96));
+                const grouped = !!_anima.galGroup;
                 html += `<div class="anima-gal-head"><span>🖼 이 테마 생성 이미지 <b>${_anima.results.length}</b></span>
                     <div class="anima-gal-tools">
+                        <span class="anima-gal-view" title="보기 방식">
+                            <button class="anima-gal-vb${grouped ? '' : ' on'}" data-view="all">전체</button><button class="anima-gal-vb${grouped ? ' on' : ''}" data-view="group">원본별</button>
+                        </span>
                         <span class="anima-gal-sz" title="썸네일 크기"><span class="anima-gal-szi sm">▪</span><input type="range" id="anima-gal-size" min="60" max="220" step="4" value="${gs}"><span class="anima-gal-szi lg">▪</span></span>
                         <button class="anima-gal-manage${_animaGalManage ? ' on' : ''}" id="anima-gal-manage">${_animaGalManage ? '완료' : '🗑 정리'}</button>
                         <button class="anima-gal-clear" id="anima-gal-clear">전체 비우기</button>
                     </div></div>`;
                 if (_animaGalManage) html += `<div class="anima-gal-tip">삭제할 이미지의 ✕를 누르세요 · 끝나면 [완료]</div>`;
-                html += `<div class="anima-gal${_animaGalManage ? ' manage' : ''}" style="column-width:${gs}px">`;
-                _anima.results.forEach((r, i) => { html += `<div class="anima-gitem${i === _animaResSel ? ' sel' : ''}" data-i="${i}"><img src="${_animaPreviewUrl(r.url, 62)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${r.url}'"><button class="anima-gx" data-i="${i}" title="삭제" aria-label="이 이미지 삭제">✕</button></div>`; });
-                html += '</div>';
+                // 한 장(썸네일)의 HTML — data-i는 항상 _anima.results 기준 '전역 인덱스'라 전체·그룹 어느 보기에서도 삭제/선택이 동일하게 동작
+                const cellHtml = (r, i) => `<div class="anima-gitem${i === _animaResSel ? ' sel' : ''}" data-i="${i}"><img src="${_animaPreviewUrl(r.url, 62)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${r.url}'"><button class="anima-gx" data-i="${i}" title="삭제" aria-label="이 이미지 삭제">✕</button></div>`;
+                if (!grouped) {
+                    html += `<div class="anima-gal${_animaGalManage ? ' manage' : ''}" style="column-width:${gs}px">`;
+                    _anima.results.forEach((r, i) => { html += cellHtml(r, i); });
+                    html += '</div>';
+                } else {
+                    // 원본별 그룹 — 결과는 최신순이라, 먼저 나온 그룹이 곧 '최근에 작업한 원본'이 된다
+                    const order = [], byKey = {};
+                    _anima.results.forEach((r, i) => {
+                        const k = r.src || '_none';
+                        if (!byKey[k]) { byKey[k] = []; order.push(k); }
+                        byKey[k].push(i);
+                    });
+                    order.forEach(k => {
+                        const idxs = byKey[k];
+                        const meta = (_anima.srcHistory || []).find(h => h && h.key === k);
+                        const title = k === '_none' ? '원본 정보 없음 <span class="anima-gg-sub">(이전에 만든 이미지)</span>' : _animaEsc(meta && meta.name ? meta.name : '원본');
+                        html += `<div class="anima-gg-head">${meta && meta.thumb ? `<img class="anima-gg-th" src="${meta.thumb}" loading="lazy">` : '<span class="anima-gg-th none">?</span>'}<span class="anima-gg-name">${title}</span><span class="anima-gg-cnt">${idxs.length}장</span></div>`;
+                        html += `<div class="anima-gal${_animaGalManage ? ' manage' : ''}" style="column-width:${gs}px">`;
+                        idxs.forEach(i => { html += cellHtml(_anima.results[i], i); });
+                        html += '</div>';
+                    });
+                }
             } else {
                 _animaGalManage = false;
             }
             box.innerHTML = html;
             const openLB = (which) => { try { if (window.openLightbox) { const urls = [src, gen].filter(Boolean); const idx = (which === 0 && src) ? 0 : (src ? 1 : 0); window.openLightbox(urls[idx] || urls[0], urls, idx); } } catch (e) {} };
             box.querySelectorAll('.anima-frame').forEach(fr => { const lb = parseInt(fr.dataset.lb); if ((lb === 0 && src) || (lb === 1 && gen)) { fr.style.cursor = 'zoom-in'; fr.onclick = () => openLB(lb); } });
-            // 이벤트 위임: 항목마다 핸들러를 붙이지 않고 갤러리 컨테이너 1개에만 → 장수가 많아도 렌더가 가벼움(O(N) 바인딩 제거).
-            const gal = box.querySelector('.anima-gal');
-            if (gal) gal.onclick = (e) => {
+            // 이벤트 위임: 항목마다 핸들러를 붙이지 않고 갤러리 컨테이너에만 → 장수가 많아도 렌더가 가벼움(O(N) 바인딩 제거).
+            //  (원본별 보기에선 그룹마다 컨테이너가 하나씩 생기므로 전부에 건다)
+            box.querySelectorAll('.anima-gal').forEach(gal => gal.onclick = (e) => {
                 const gx = e.target.closest('.anima-gx');
                 if (gx) {   // 삭제 (정리 모드에서 ✕로만)
                     e.stopPropagation(); const i = parseInt(gx.dataset.i);
@@ -7886,7 +8056,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const i = parseInt(gi.dataset.i);
                 _animaResSel = i; _animaRenderResult();   // 비교 대상으로 선택
                 try { if (window.openLightbox) { const urls = _anima.results.map(r => r.url); window.openLightbox(urls[i], urls, i); } } catch (err) {}   // 크게 보기(전체 좌우 넘김)
-            };
+            });
+            // 보기 전환(전체 / 원본별)
+            box.querySelectorAll('.anima-gal-vb').forEach(b => b.onclick = () => {
+                const g = b.dataset.view === 'group';
+                if (!!_anima.galGroup === g) return;
+                _anima.galGroup = g; _animaSave(); _animaRenderResult();
+            });
             const mng = box.querySelector('#anima-gal-manage');
             if (mng) mng.onclick = () => { _animaGalManage = !_animaGalManage; _animaRenderResult(); };
             const clr = box.querySelector('#anima-gal-clear');
@@ -7894,8 +8070,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 썸네일 크기 슬라이더 — 끌면 즉시 컬럼 폭 반영(재렌더 없이 부드럽게), 놓으면 저장
             const szEl = box.querySelector('#anima-gal-size');
             if (szEl) {
-                const gal = box.querySelector('.anima-gal');
-                szEl.oninput = () => { const v = Math.min(220, Math.max(60, parseInt(szEl.value) || 96)); if (gal) gal.style.columnWidth = v + 'px'; };
+                const gals = box.querySelectorAll('.anima-gal');   // 원본별 보기에선 그룹마다 하나씩
+                szEl.oninput = () => { const v = Math.min(220, Math.max(60, parseInt(szEl.value) || 96)); gals.forEach(g => g.style.columnWidth = v + 'px'); };
                 szEl.onchange = () => { _anima.galSize = Math.min(220, Math.max(60, parseInt(szEl.value) || 96)); _animaSave(); };
             }
         }
@@ -8171,16 +8347,30 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-wfhelp { font-size:11.5px; color:var(--text-dim); line-height:1.6; }
           .anima-gal-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:16px; font-size:12px; font-weight:800; color:var(--text-dim); flex-wrap:wrap; }
           .anima-gal-head b { color:var(--text-main); }
-          .anima-gal-tools { display:flex; align-items:center; gap:10px; }
+          .anima-gal-tools { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+          .anima-gal-tools > * { flex:0 0 auto; }
+          /* 보기 전환(전체 / 원본별) */
+          .anima-gal-view { display:inline-flex; border:1px solid var(--border-dim); border-radius:8px; overflow:hidden; }
+          .anima-gal-vb { background:transparent; border:none; padding:5px 9px; color:var(--text-dim); font-family:inherit; font-size:11px; font-weight:700; cursor:pointer;  white-space:nowrap; }
+          .anima-gal-vb + .anima-gal-vb { border-left:1px solid var(--border-dim); }
+          .anima-gal-vb.on { background:color-mix(in srgb,var(--accent-blue,#3b82f6) 20%,transparent); color:var(--accent-blue,#3b82f6); }
+          /* 원본별 그룹 머리글 — 어떤 원본에서 나온 결과인지 썸네일로 바로 확인 */
+          .anima-gg-head { display:flex; align-items:center; gap:8px; margin:14px 0 2px; padding-top:10px; border-top:1px dashed var(--border-dim); }
+          .anima-gg-head:first-of-type { border-top:none; padding-top:0; margin-top:10px; }
+          .anima-gg-th { width:30px; height:30px; flex:0 0 auto; border-radius:7px; object-fit:cover; border:1px solid var(--border-dim); background:#0b0e13; }
+          .anima-gg-th.none { display:flex; align-items:center; justify-content:center; color:var(--text-dim); font-size:13px; font-weight:800; }
+          .anima-gg-name { font-size:11.5px; font-weight:800; color:var(--text-main); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+          .anima-gg-sub { font-weight:600; color:var(--text-dim); }
+          .anima-gg-cnt { margin-left:auto; flex:0 0 auto; font-size:10.5px; font-weight:800; color:var(--text-dim); background:var(--bg-base); border:1px solid var(--border-dim); border-radius:20px; padding:2px 8px; }
           .anima-gal-sz { display:flex; align-items:center; gap:6px; }
           .anima-gal-szi { color:var(--text-dim); line-height:1; }
           .anima-gal-szi.sm { font-size:9px; } .anima-gal-szi.lg { font-size:15px; }
           #anima-gal-size { width:96px; accent-color:var(--accent-blue,#3b82f6); cursor:pointer; }
           @media (max-width:600px){ #anima-gal-size { width:76px; } }
-          .anima-gal-manage { background:transparent; border:1px solid var(--border-dim); border-radius:8px; padding:5px 10px; color:var(--text-dim); font-size:11px; font-weight:700; cursor:pointer; transition:.12s; }
+          .anima-gal-manage { background:transparent; border:1px solid var(--border-dim); border-radius:8px; padding:5px 10px; color:var(--text-dim); font-size:11px; font-weight:700; cursor:pointer; transition:.12s;  white-space:nowrap; }
           .anima-gal-manage:hover { color:var(--text-main); }
           .anima-gal-manage.on { color:#fff; background:#ef4444; border-color:#ef4444; }
-          .anima-gal-clear { background:transparent; border:1px solid var(--border-dim); border-radius:8px; padding:5px 10px; color:var(--text-dim); font-size:11px; font-weight:700; cursor:pointer; }
+          .anima-gal-clear { background:transparent; border:1px solid var(--border-dim); border-radius:8px; padding:5px 10px; color:var(--text-dim); font-size:11px; font-weight:700; cursor:pointer;  white-space:nowrap; }
           .anima-gal-clear:hover { color:#ef4444; border-color:rgba(239,68,68,.5); }
           .anima-gal-tip { margin-top:8px; font-size:11px; font-weight:600; color:#ef4444; }
           /* 메이슨리(다단 컬럼) — 각 이미지를 원본 비율 그대로(잘림 없이). 컬럼 폭은 슬라이더가 column-width로 제어 */
@@ -8201,22 +8391,46 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
              칩은 줄바꿈(wrap)되어 후타나리 등 모든 옵션이 잘리지 않고 항상 보이고 눌린다(좌우 스크롤 불필요). */
           .anima-mact { display:flex; flex-direction:column; align-items:center; gap:8px; position:fixed; left:0; right:0; bottom:0; z-index:60;
             padding:9px 12px calc(9px + env(safe-area-inset-bottom, 0px)); background:var(--bg-panel); border-top:1px solid var(--border-dim); box-shadow:0 -6px 18px rgba(0,0,0,.25); }
-          /* ── 하단 바(개편) ── [옵션(요약)] 버튼 + 📋 + 실행 한 줄. 옵션을 누르면 카테고리별 시트가 위로 펼쳐짐(줄바꿈, 세로 스크롤). */
+          /* ── 하단 바(개편) ── 의상 4 · 후타 3은 아이콘으로 바로 탭, 표정은 최근 쓴 것만 한 줄, 아래에 📋 + 실행 ── */
+          .anima-icodefs { position:absolute; width:0; height:0; overflow:hidden; }
+          .anima-mact-icos { display:flex; align-items:center; gap:5px; width:100%; max-width:1000px; }
+          .anima-ico { width:38px; height:38px; flex:0 0 auto; border-radius:11px; border:1px solid var(--border-dim);
+            background:var(--bg-base); display:flex; align-items:center; justify-content:center; padding:0; cursor:pointer; transition:.13s; }
+          .anima-ico svg { width:27px; height:27px; display:block; }
+          /* ★ <use>가 만드는 그림자 트리는 '.anima-ico .ai-gm' 같은 하위 선택자가 뚫지 못한다(아이콘이 검게 나옴).
+             → 색은 상속되는 CSS 변수로 내려보내고, 심볼 안에서는 단일 클래스 선택자로만 받는다. */
+          .ai-gm { fill:var(--ai-gm,#f43f5e); }
+          .ai-cut { stroke:var(--ai-cut,#171c26); stroke-width:3.4; stroke-linecap:round; }
+          .ai-slash { stroke:var(--ai-slash,#ff5c72); stroke-width:1.9; stroke-linecap:round; }
+          .ai-st { fill:none; stroke:var(--ai-st,#a855f7); stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+          .anima-ico { --ai-gm:color-mix(in srgb,#f43f5e 58%,var(--text-dim)); --ai-cut:var(--bg-base);
+            --ai-st:color-mix(in srgb,#a855f7 66%,var(--text-dim)); }
+          .anima-ico.pk { border-color:color-mix(in srgb,#f43f5e 42%,var(--border-dim)); }
+          .anima-ico.pk.on { background:color-mix(in srgb,#f43f5e 20%,transparent); border-color:#f43f5e;
+            --ai-gm:#f43f5e; --ai-cut:color-mix(in srgb,#f43f5e 20%,var(--bg-panel)); }
+          .anima-ico.pu { border-color:color-mix(in srgb,#a855f7 42%,var(--border-dim)); }
+          .anima-ico.pu.on { background:color-mix(in srgb,#a855f7 22%,transparent); border-color:#a855f7; --ai-st:#a855f7; }
+          .anima-ico-sep { width:1px; height:24px; background:var(--border-dim); margin:0 3px; flex:0 0 auto; }
+          /* 표정 줄 — 기본은 최근 쓴 것만 한 줄(줄바꿈 없음), 펼치면 전체가 줄바꿈되어 보임 */
+          .anima-mact-expr { display:flex; align-items:center; gap:5px; width:100%; max-width:1000px; overflow:hidden; }
+          .anima-mact-expr.open { flex-wrap:wrap; overflow:visible; }
+          .anima-mact-expr .anima-chip { flex:0 0 auto; padding:5px 9px; font-size:11.5px; }
+          .anima-mact-expr .anima-chip.tg { border-style:dashed; color:var(--text-dim); }
           .anima-mact-bar { display:flex; gap:8px; align-items:stretch; width:100%; max-width:1000px; }
-          .anima-opts-trigger { flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:8px; background:var(--bg-base); border:1px solid var(--border-dim); border-radius:12px; padding:0 12px; color:var(--text-main); font-family:inherit; font-size:13px; font-weight:700; cursor:pointer; }
-          .anima-opts-trigger i { color:var(--accent-blue,#3b82f6); flex:0 0 auto; }
-          .anima-opts-sum { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; color:var(--text-dim); }
-          .anima-opts-car { flex:0 0 auto; color:var(--text-dim); font-size:11px; }
           .anima-mact-clip { flex:0 0 auto; width:52px; font-size:17px; padding:0; display:flex; align-items:center; justify-content:center; }
-          .anima-mact-run { flex:2 1 auto; }
-          /* 시트 — 기본 접힘. 열리면 칩이 줄바꿈되고 라벨이 섹션 헤더가 됨(가로 스크롤 없음). */
-          .anima-mact-sheet { display:none; }
-          .anima-mact.open .anima-mact-sheet { display:flex; flex-wrap:wrap; gap:7px; align-items:center; width:100%; max-width:1000px; max-height:calc(60vh - 60px); overflow-y:auto; -webkit-overflow-scrolling:touch; padding:2px 2px 6px; }
-          .anima-mact-sheet .anima-chip { white-space:nowrap; }
-          .anima-mact-sheet .anima-snip-lab { display:block; flex-basis:100%; width:100%; margin:8px 0 -1px; font-size:11px; font-weight:800; color:var(--text-dim); }
-          .anima-mact-sheet .anima-snip-lab:first-child { margin-top:0; }
-          .anima-mact-sheet .anima-snip-lab.sub { flex-basis:100%; font-size:10.5px; opacity:.85; padding-left:8px; margin-top:4px; }
-          .anima-mact-sheet .anima-snip-lab.sub::before { content:'└ '; opacity:.6; }
+          .anima-mact-run { flex:1 1 auto; }
+          /* 후타 상세 팝오버 — 바 위에 뜸. ✕로만 닫힘(바깥 클릭으로 안 닫힘) */
+          .anima-futapop { width:100%; max-width:1000px; background:var(--bg-panel); border:1px solid color-mix(in srgb,#a855f7 45%,var(--border-dim));
+            border-radius:14px; padding:9px 11px 11px; box-shadow:0 10px 28px rgba(0,0,0,.5); margin-bottom:2px; }
+          .anima-fp-head { display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:800; color:#c084fc; margin-bottom:2px; }
+          .anima-fp-ico { width:18px; height:18px; flex:0 0 auto; --ai-st:#c084fc; }
+          .anima-fp-x { margin-left:auto; width:26px; height:26px; flex:0 0 auto; border-radius:8px; border:1px solid var(--border-dim);
+            background:var(--bg-base); color:var(--text-dim); font-size:12px; line-height:1; cursor:pointer; }
+          .anima-fp-x:hover { color:#f43f5e; border-color:rgba(244,63,94,.5); }
+          .anima-fp-body { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+          .anima-fp-lab { flex-basis:100%; width:100%; font-size:9.5px; font-weight:800; color:var(--text-dim); margin:5px 0 -1px; }
+          .anima-chip.lil { border-color:color-mix(in srgb,#c084fc 45%,var(--border-dim)); color:color-mix(in srgb,#c084fc 78%,var(--text-dim)); }
+          .anima-chip.lil.on { background:color-mix(in srgb,#c084fc 18%,transparent); border-color:#c084fc; color:#c084fc; }
           /* 바 높이만큼 콘텐츠 하단 여백 확보(가림 방지) — 실제 높이는 JS가 --anima-mact-h로 넣어줌 */
           #anima-root .anima-wrap { padding-bottom: calc(var(--anima-mact-h, 128px) + 16px); }`;
 
