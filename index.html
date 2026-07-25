@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.63.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.63.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.63.0 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.63.1 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1932,9 +1932,12 @@
                 <details style="background:var(--input-bg); border:1px solid var(--border-dim); border-radius:10px; padding:12px 14px;">
                     <summary style="cursor:pointer; font-size:12px; font-weight:700; color:var(--text-main);"><i class="fa-solid fa-file-code"></i> 종료 도우미 스크립트 (PC에서 1회 실행)</summary>
                     <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
-                        <div style="font-size:11px; color:var(--text-dim); line-height:1.6;">위에 입력한 <b>토큰이 이미 반영된 상태</b>입니다 — <b>복사해서 <code>shutdown_server.py</code>로 저장</b>하고 실행하면 끝. 파일을 따로 고칠 필요 없습니다.</div>
+                        <div style="font-size:11px; color:var(--text-dim); line-height:1.6;">위에 입력한 <b>토큰이 이미 반영된 파일</b>입니다 — <b>받아서 ComfyUI 폴더에 넣고 실행</b>하면 끝. 파일을 열어 고칠 필요 없습니다. (폰에서 보고 있다면 <b>복사</b>해서 PC로 옮기세요)</div>
                         <textarea id="shutdown-script" readonly style="width:100%; height:200px; background:var(--bg-base); border:1px solid var(--border-dim); border-radius:8px; padding:10px; color:var(--text-main); font-family:var(--font-code); font-size:11px; line-height:1.5; outline:none; resize:vertical;"></textarea>
-                        <button class="action-btn" onclick="copyShutdownScript()" style="align-self:flex-start; color:var(--accent-green); border-color:var(--accent-green);"><i class="fa-solid fa-copy"></i> 스크립트 복사</button>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button class="action-btn" onclick="downloadShutdownScript()" style="color:var(--accent-green); border-color:var(--accent-green);"><i class="fa-solid fa-download"></i> shutdown_server.py 받기</button>
+                            <button class="action-btn" onclick="copyShutdownScript()"><i class="fa-solid fa-copy"></i> 복사</button>
+                        </div>
                     </div>
                 </details>
             </div>
@@ -2036,7 +2039,14 @@
         const CHANGELOG = [
             // ── 2026-07-25 ──────────────────────────────────────────────────
             {
-                version: 'v9.63.0', date: '2026-07-25', time: '최신',
+                version: 'v9.63.1', date: '2026-07-25', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[PC 종료] 종료 도우미를 <b>파일로 바로 받을 수 있게</b> 했습니다 — <b>[shutdown_server.py 받기]</b> 버튼을 누르면 <b>토큰이 이미 들어간 파일</b>이 그대로 받아집니다. 복사해서 붙여넣고 저장하는 과정 없이, <b>받아서 ComfyUI 폴더에 넣고 실행</b>하면 끝이에요. (폰에서 보고 있다면 기존처럼 <b>복사</b> 버튼으로 PC에 옮기면 됩니다)",
+                ]
+            },
+            {
+                version: 'v9.63.0', date: '2026-07-25', time: '',
                 tag: 'feat',
                 items: [
                     "[크게 보기] 스와이프로 넘길 때 <b>이미지가 손가락을 따라 움직이던 모션을 없앴습니다</b> — 이제 사진은 1px도 흔들리지 않고 그 자리에 가만히 있다가, 넘어가는 순간 <b>툭 바뀝니다</b>. 감상에 방해가 없어요.",
@@ -4860,6 +4870,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                          'TOKEN = ' + pyStr + '   # 앱에 입력한 토큰이 자동으로 들어갔습니다')
                 .replace('PORT  = 8189', 'PORT  = ' + port);
         }
+        // 스크립트를 파일로 바로 받기 — 복사 붙여넣기 없이 저장만 하면 끝
+        function downloadShutdownScript() {
+            try {
+                const blob = new Blob([_shutdownScriptText()], { type: 'text/x-python;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'shutdown_server.py';
+                document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                showToast('shutdown_server.py 를 받았어요 — ComfyUI 폴더에 넣고 실행하세요', 'success', 3200);
+            } catch (e) {
+                showToast('다운로드 실패: ' + (e && e.message || e) + ' — 아래 복사 버튼을 쓰세요', 'error', 4000);
+            }
+        }
+        window.downloadShutdownScript = downloadShutdownScript;
         function _shutdownSyncScript() {
             const ta = document.getElementById('shutdown-script');
             if (ta) ta.value = _shutdownScriptText();
