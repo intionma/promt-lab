@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.65.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.65.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.65.0 &nbsp;·&nbsp; 2026-07-26 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.65.1 &nbsp;·&nbsp; 2026-07-26 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2038,9 +2038,16 @@
         // 토스트 알림
         // ── 업데이트 내역 ────────────────────────────────────────────────────
         const CHANGELOG = [
+            {
+                version: 'v9.65.1', date: '2026-07-26', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[성인 콘텐츠] 성인 표시를 끈 채 <b>Anima 편집</b>에 들어가도 남아 있던 <b>후타 옵션과 성인 표정(유혹·절정·아헤가오·혀 내밀기)</b>을 모두 숨겼습니다. 예전에 골라 둔 성인 표정도 자동으로 해제되며, 실행·연속 생성·옵션 편집에서도 다시 나타나지 않습니다.",
+                ]
+            },
             // ── 2026-07-25 ──────────────────────────────────────────────────
             {
-                version: 'v9.65.0', date: '2026-07-26', time: '최신',
+                version: 'v9.65.0', date: '2026-07-26', time: '',
                 tag: 'feat',
                 items: [
                     "[완전 초기화] <b>메뉴 맨 아래</b>로 옮겼습니다 — 예전엔 'DB 관리 → 코드 편집' 안쪽에 숨어 있어 찾기 어려웠어요. 이제 햄버거 메뉴 최하단에 구분선과 함께 있고, <b>세 번</b> 확인한 뒤에만 실행됩니다.",
@@ -7512,7 +7519,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!base0) { showToast('프롬프트를 입력하세요.', 'warning', 2500); return; }
             // 켜진 프롬프트 옵션(후타나리·표정 등)을 기본 프롬프트 뒤에 붙여 스냅샷
             let ons = (_anima.snippets || []).filter(s => s.kind !== 'base' && s.on && s.text && s.text.trim());
-            if (!_adultOn()) ons = ons.filter(s => s.group !== 'futa' && s.detail !== 'futa');   // 성인 꺼짐 → 후타 계열 제외
+            if (!_adultOn()) ons = ons.filter(s => !_animaSnippetIsAdult(s));   // 성인 꺼짐 → 후타·성인 표정 제외
             const futaActive = ons.some(s => s.group === 'futa');
             // 후타 프리셋이 꺼져 있으면 후타 상세(발기·포피)는 무시 — 평범한 여성에 성기 태그만 붙는 실수 방지
             if (!futaActive) ons = ons.filter(s => s.detail !== 'futa');
@@ -7867,6 +7874,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         const _ANIMA_EXPR_PRIMARY = ['expr_seductive', 'expr_orgasm', 'expr_ahegao', 'expr_smile'];
         // 기본 제공 표정 중 접힘 대상 id(구버전 저장분엔 more 플래그가 없어 id로도 판정)
         const _ANIMA_EXPR_MORE = ['expr_neutral', 'expr_shy', 'expr_blush', 'expr_tongue', 'expr_smug', 'expr_angry', 'expr_surprised', 'expr_heart', 'expr_pout', 'expr_wink', 'expr_cry'];
+        // 성인 표시 OFF에서 숨길 표정. 노출 프리셋(kind=base)과 후타 계열은 구조로 판별하고,
+        // 표정은 일반 표정과 섞여 있으므로 기본 제공 id를 명시한다(사용자 커스텀 표정은 임의 삭제하지 않음).
+        const _ANIMA_ADULT_EXPR_IDS = new Set(['expr_seductive', 'expr_orgasm', 'expr_ahegao', 'expr_tongue']);
+        function _animaSnippetIsAdult(s) {
+            return !!s && (s.kind === 'base' || s.group === 'futa' || s.detail === 'futa' || _ANIMA_ADULT_EXPR_IDS.has(s.id));
+        }
+        function _animaVisibleSnippets() {
+            const all = _anima.snippets || [];
+            return _adultOn() ? all : all.filter(s => !_animaSnippetIsAdult(s));
+        }
         function _animaIsExprMore(s) { return s.group === 'expr' && (s.more === true || _ANIMA_EXPR_MORE.includes(s.id)) && !_ANIMA_EXPR_PRIMARY.includes(s.id); }
         function _animaChip(s) {
             return `<button class="anima-chip${s.group ? ' g-' + s.group : ''}${s.on ? ' on' : ''}" data-id="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${s.on ? '✓ ' : ''}${_animaEsc(s.name)}</button>`;
@@ -7912,7 +7929,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         //  (누를 때마다 자리가 움직이면 손가락이 헷갈림). 목록에 없던 '신규' 표정을 골랐을 때만 맨 앞에 넣는다.
         const _ANIMA_EXPR_RECENT_MAX = 6;   // 최근 목록 보관 개수(하단 바엔 이 중 '한 줄에 들어가는 만큼'만 보인다)
         function _animaExprRecentList() {
-            const all = (_anima.snippets || []).filter(s => s.group === 'expr');
+            const all = _animaVisibleSnippets().filter(s => s.group === 'expr');
             let ids = (_anima.exprRecent || []).filter(id => all.some(s => s.id === id));
             if (!ids.length) ids = all.slice(0, _ANIMA_EXPR_RECENT_MAX).map(s => s.id);   // 최초엔 앞쪽 기본값
             return ids.slice(0, _ANIMA_EXPR_RECENT_MAX).map(id => all.find(s => s.id === id)).filter(Boolean);
@@ -7924,7 +7941,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return true;   // 목록이 바뀜 → 다시 그려야 함
         }
         function _animaChipsHtml() {
-            const all = (_anima.snippets || []);
+            const all = _animaVisibleSnippets();
             const baseS = all.filter(s => s.kind === 'base');
             const appS = all.filter(s => s.kind !== 'base');
             const futaS = appS.filter(s => s.group === 'futa');
@@ -8007,7 +8024,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // 본문(단계 ②) 옵션 영역 — 하단 바와 같은 아이콘을 쓰되, 폭이 넓으니 카테고리를 '라벨 | 항목' 행으로 정리한다.
         //  (예전엔 라벨과 칩이 한 덩어리로 줄바꿈돼 뒤엉켜 보였음)
         function _animaPanelHtml() {
-            const all = _anima.snippets || [], curP = (_anima.prompt || '').trim();
+            const all = _animaVisibleSnippets(), curP = (_anima.prompt || '').trim();
             const row = (lab, items, cls) => `<div class="anima-orow${cls ? ' ' + cls : ''}"><span class="anima-olab">${lab}</span><div class="anima-oitems">${items}</div></div>`;
             const adult = _adultOn();                       // 꺼져 있으면 노출·후타 줄을 아예 만들지 않는다
             const baseS = adult ? all.filter(s => s.kind === 'base') : [];
@@ -8052,7 +8069,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         const _ANIMA_SWEEP_AXES = [
             { key: 'base', name: '노출', pick: () => (_anima.snippets || []).filter(s => s.kind === 'base') },
             { key: 'futa', name: '후타 크기', pick: () => { const o = ['futa_small', 'futa_normal', 'futa_large']; const f = (x) => { const i = o.indexOf(x.id); return i < 0 ? 999 : i; }; return (_anima.snippets || []).filter(s => s.group === 'futa').sort((a, b) => f(a) - f(b)); } },
-            { key: 'expr', name: '표정', pick: () => (_anima.snippets || []).filter(s => s.group === 'expr') },
+            { key: 'expr', name: '표정', pick: () => _animaVisibleSnippets().filter(s => s.group === 'expr') },
         ];
         const _ANIMA_SWEEP_NONE = '__none__';   // '노출 없음'(해제 상태)도 한 칸으로 돌릴 수 있게
         // 어떤 항목을 돌릴지 — 저장된 설정이 없으면 기본값(노출 4종·후타 3종·표정은 최근 4개)
@@ -8195,7 +8212,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (_adultOn()) return false;
             let changed = false;
             (_anima.snippets || []).forEach(x => {
-                if (x.on && (x.group === 'futa' || x.detail === 'futa')) { x.on = false; changed = true; }
+                if (x.on && _animaSnippetIsAdult(x)) { x.on = false; changed = true; }
             });
             const cur = (_anima.prompt || '').trim();
             const isPreset = (_anima.snippets || []).some(x => x.kind === 'base' && (x.text || '').trim() === cur);
@@ -8270,7 +8287,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  후타 크기를 누르면 그 위로 상세 팝오버(발기·포피·사정)가 뜨고, ✕로만 닫힌다.
             const mact = _animaEl('#anima-mact');
             if (mact) {
-                const all = _anima.snippets || [];
+                const all = _animaVisibleSnippets();
                 const curP = (_anima.prompt || '').trim();
                 const adult = _adultOn();                   // 성인 표시가 꺼지면 노출·후타 아이콘을 내린다
                 const baseS = adult ? all.filter(s => s.kind === 'base') : [];
@@ -8377,7 +8394,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!_animaSnipEditOpen) { box.style.display = 'none'; box.innerHTML = ''; return; }
             box.style.display = 'flex';
             let h = '<div class="anima-se-head">옵션 편집 — <b>노출교체</b>는 누르면 기본 프롬프트를 바꾸고, <b>추가</b>는 켜면 뒤에 붙습니다</div>';
-            (_anima.snippets || []).forEach(s => {
+            _animaVisibleSnippets().forEach(s => {
                 h += `<div class="anima-se-item" data-id="${s.id}">
                     <div class="anima-se-row"><input class="anima-se-name" data-k="name" value="${_animaEsc(s.name)}" placeholder="이름"><select class="anima-se-kind" data-k="kind"><option value="append"${s.kind !== 'base' ? ' selected' : ''}>추가</option><option value="base"${s.kind === 'base' ? ' selected' : ''}>노출교체</option></select><button class="anima-se-del" title="삭제">🗑</button></div>
                     <textarea class="anima-se-text" data-k="text" placeholder="프롬프트 (예: futanari, penis, ...)">${_animaEsc(s.text)}</textarea></div>`;
