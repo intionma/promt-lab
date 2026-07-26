@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.63.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.64.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.63.1 &nbsp;·&nbsp; 2026-07-25 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.64.0 &nbsp;·&nbsp; 2026-07-26 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2039,7 +2039,16 @@
         const CHANGELOG = [
             // ── 2026-07-25 ──────────────────────────────────────────────────
             {
-                version: 'v9.63.1', date: '2026-07-25', time: '최신',
+                version: 'v9.64.0', date: '2026-07-26', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[성인 콘텐츠] 메뉴의 <b>\"성인 콘텐츠 (19+)\"</b> 하나로 <b>모든 테마</b>가 한 번에 켜지고 꺼집니다 — 예전엔 추천 창에만 적용돼서 <b>Anima 편집·이미지 변환·태그 카탈로그</b>에는 19+ 항목이 그대로 보였습니다. 이제 끄면 <b>노출·후타 관련 버튼이 전부 사라지고</b>, 켜면 즉시 다시 나타납니다.",
+                    "[성인 콘텐츠] <b>처음 들어오면 항상 꺼져 있습니다</b> — 다른 사람에게 보여줄 때 일반(SFW) 화면만 보입니다. Anima 편집은 꺼진 상태에서 <b>기본 프롬프트도 노출 문구 없이</b> 시작하고, 켜져 있던 노출·후타 선택은 끌 때 자동으로 정리됩니다. (직접 써 넣은 문장은 건드리지 않습니다)",
+                    "[성인 콘텐츠] 꺼져 있으면 Anima의 <b>연속 생성 메뉴도 '표정'만</b> 남고, 이미지 변환의 <b>노출 프리셋 칸</b>과 태그 카탈로그의 <b>19+ 팩</b>도 목록에서 숨겨집니다.",
+                ]
+            },
+            {
+                version: 'v9.63.1', date: '2026-07-25', time: '',
                 tag: 'feat',
                 items: [
                     "[PC 종료] 종료 도우미를 <b>파일로 바로 받을 수 있게</b> 했습니다 — <b>[shutdown_server.py 받기]</b> 버튼을 누르면 <b>토큰이 이미 들어간 파일</b>이 그대로 받아집니다. 복사해서 붙여넣고 저장하는 과정 없이, <b>받아서 ComfyUI 폴더에 넣고 실행</b>하면 끝이에요. (폰에서 보고 있다면 기존처럼 <b>복사</b> 버튼으로 PC에 옮기면 됩니다)",
@@ -7310,6 +7319,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return wf;
         }
 
+        // ══ 성인 콘텐츠 표시 게이트 ═══════════════════════════════════════
+        //  햄버거 메뉴의 "성인 콘텐츠 (19+)" 하나로 모든 테마(Anima·이미지 변환·추천·카탈로그)를 일괄 제어한다.
+        //  ADULT_OPTIN_KEY 상수는 파일 아래쪽에서 선언되므로 TDZ를 피해 키를 직접 읽는다. 기본값은 '꺼짐'.
+        function _adultOn() { try { return localStorage.getItem('adult_optin_v1') === '1'; } catch (e) { return false; } }
+        window._adultOn = _adultOn;
+
         // ── 결과 훅 (comfyGenerate 완료 시 finalize가 호출) ──
         window._animaOnResult = function (url, seed) {
             _anima.results.unshift({ url, seed: (seed == null ? null : seed), src: _anima.srcKey || null, opt: _animaOptLabel() });
@@ -7488,6 +7503,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!base0) { showToast('프롬프트를 입력하세요.', 'warning', 2500); return; }
             // 켜진 프롬프트 옵션(후타나리·표정 등)을 기본 프롬프트 뒤에 붙여 스냅샷
             let ons = (_anima.snippets || []).filter(s => s.kind !== 'base' && s.on && s.text && s.text.trim());
+            if (!_adultOn()) ons = ons.filter(s => s.group !== 'futa' && s.detail !== 'futa');   // 성인 꺼짐 → 후타 계열 제외
             const futaActive = ons.some(s => s.group === 'futa');
             // 후타 프리셋이 꺼져 있으면 후타 상세(발기·포피)는 무시 — 평범한 여성에 성기 태그만 붙는 실수 방지
             if (!futaActive) ons = ons.filter(s => s.detail !== 'futa');
@@ -7984,11 +8000,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _animaPanelHtml() {
             const all = _anima.snippets || [], curP = (_anima.prompt || '').trim();
             const row = (lab, items, cls) => `<div class="anima-orow${cls ? ' ' + cls : ''}"><span class="anima-olab">${lab}</span><div class="anima-oitems">${items}</div></div>`;
-            const baseS = all.filter(s => s.kind === 'base');
+            const adult = _adultOn();                       // 꺼져 있으면 노출·후타 줄을 아예 만들지 않는다
+            const baseS = adult ? all.filter(s => s.kind === 'base') : [];
             const _fo = ['futa_small', 'futa_normal', 'futa_large'];
-            const futaS = all.filter(s => s.group === 'futa').sort((a, b) => {
+            const futaS = adult ? all.filter(s => s.group === 'futa').sort((a, b) => {
                 const x = _fo.indexOf(a.id), y = _fo.indexOf(b.id); return (x < 0 ? 999 : x) - (y < 0 ? 999 : y);
-            });
+            }) : [];
             const exprAll = all.filter(s => s.group === 'expr');
             const futaOn = futaS.some(s => s.on);
             let h = '';
@@ -8082,9 +8099,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _animaCloseSweepMenu() { if (_animaSweepMenuEl) { try { _animaSweepMenuEl.remove(); } catch (e) {} _animaSweepMenuEl = null; } }
         function _animaOpenSweepMenu() {
             _animaCloseSweepMenu();
+            const _axes = _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr');   // 성인 꺼짐 → 표정만
             const wrap = document.createElement('div');
             wrap.className = 'anima-sweep-back';
-            const rows = _ANIMA_SWEEP_AXES.map(a => {
+            const rows = _axes.map(a => {
                 const cnt = _animaSweepSel(a).length;
                 return `<button class="anima-sweep-row" data-ax="${a.key}"><span class="anima-sweep-nm">${a.name} 전부 돌리기</span><span class="anima-sweep-cnt">${cnt}장</span></button>`;
             }).join('');
@@ -8108,7 +8126,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         function _animaRenderSweepCfg(box, wrap) {
             let h = '';
-            _ANIMA_SWEEP_AXES.forEach(a => {
+            _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr').forEach(a => {
                 const sel = _animaSweepSel(a), items = a.pick();
                 h += `<div class="anima-sweep-sec">${a.name}</div><div class="anima-sweep-chips">`;
                 if (a.key === 'base') h += `<button class="anima-chip sw${sel.includes(_ANIMA_SWEEP_NONE) ? ' on' : ''}" data-ax="base" data-id="${_ANIMA_SWEEP_NONE}">노출 없음</button>`;
@@ -8162,10 +8180,29 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 return parts.join(' · ');
             } catch (e) { return ''; }
         }
+        // 성인 표시가 꺼지면 Anima의 노출·후타 선택을 해제하고, 기본 프롬프트도 중립으로 되돌린다.
+        //  사용자가 직접 쓴 문장은 건드리지 않는다(알려진 노출 프리셋 문구일 때만 교체).
+        function _animaApplyAdultGate() {
+            if (_adultOn()) return false;
+            let changed = false;
+            (_anima.snippets || []).forEach(x => {
+                if (x.on && (x.group === 'futa' || x.detail === 'futa')) { x.on = false; changed = true; }
+            });
+            const cur = (_anima.prompt || '').trim();
+            const isPreset = (_anima.snippets || []).some(x => x.kind === 'base' && (x.text || '').trim() === cur);
+            const isDefault = cur === (ANIMA_DEFAULTS && ANIMA_DEFAULTS.prompt || '').trim();
+            if (cur && (isPreset || isDefault)) {
+                _anima.prompt = _ANIMA_NEUTRAL_BASE;
+                const pt = _animaEl('#anima-prompt'); if (pt) pt.value = _anima.prompt;
+                changed = true;
+            }
+            if (changed) { try { _animaSave(); } catch (e) {} }
+            return changed;
+        }
         // 후타 상세 팝오버 — 크기 아이콘 위에 뜬다. 발기·포피·사정 전부 텍스트 칩.
         //  ★ ✕ 버튼으로만 닫힌다(바깥을 눌러도 닫히지 않음) — 여러 항목을 연속으로 고르기 좋게.
         function _animaFutaPopHtml() {
-            if (!_animaFutaPop) return '';
+            if (!_animaFutaPop || !_adultOn()) return '';
             const all = _anima.snippets || [];
             const size = all.find(s => s.id === _animaFutaPop && s.group === 'futa');
             if (!size || !size.on) return '';
@@ -8226,11 +8263,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (mact) {
                 const all = _anima.snippets || [];
                 const curP = (_anima.prompt || '').trim();
-                const baseS = all.filter(s => s.kind === 'base');
+                const adult = _adultOn();                   // 성인 표시가 꺼지면 노출·후타 아이콘을 내린다
+                const baseS = adult ? all.filter(s => s.kind === 'base') : [];
                 // 아이콘 줄은 항상 작은 것 → 큰 것 순서로(데이터 순서와 무관하게 크기 순이 직관적)
                 const _futaOrder = ['futa_small', 'futa_normal', 'futa_large'];
                 const _fo = (s) => { const i = _futaOrder.indexOf(s.id); return i < 0 ? 999 : i; };   // 사용자가 추가한 항목은 뒤로
-                const futaS = all.filter(s => s.group === 'futa').sort((a, b) => _fo(a) - _fo(b));
+                const futaS = adult ? all.filter(s => s.group === 'futa').sort((a, b) => _fo(a) - _fo(b)) : [];
                 const exprAll = all.filter(s => s.group === 'expr');
                 const recent = _animaExprRecentList();
                 const shown = _animaExprOpen ? exprAll : recent;
@@ -8579,6 +8617,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!document.getElementById('anima-style')) { const st = document.createElement('style'); st.id = 'anima-style'; st.textContent = ANIMA_CSS; document.head.appendChild(st); }
             _animaDom = document.createElement('div'); _animaDom.id = 'anima-root'; _animaDom.innerHTML = ANIMA_HTML;
             document.body.appendChild(_animaDom);
+            _animaApplyAdultGate();   // 성인 표시가 꺼져 있으면 진입 시점에 노출·후타를 정리하고 프롬프트도 중립으로
             _animaRenderInput(); _animaRenderRun(); _animaRenderResult(); _animaRenderAdv(); _animaRenderSnippets(); _animaRenderQueue();
             const pt = _animaEl('#anima-prompt'); pt.value = _anima.prompt; pt.oninput = () => { _anima.prompt = pt.value; _animaSaveDebounced(); };
             const sd = _animaEl('#anima-seed'); sd.value = (_anima.seed == null ? -1 : _anima.seed); sd.onchange = () => { const v = sd.value.trim(); _anima.seed = (v === '' || v === '-1') ? -1 : (parseInt(v) || -1); _animaSave(); };
@@ -12205,8 +12244,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 try { if (_adultPackOn && !_adultPackLoading) _adultPackToggle(); } catch (e) {}
                 try { if (_hardcoreOn && !_hardcoreLoading) _hardcoreToggle(); } catch (e) {}
             }
-            if (typeof showToast === 'function') showToast(_adultOptIn ? '성인 콘텐츠 표시 켜짐 — 추천에서 19+ 팩을 받을 수 있어요' : '성인 콘텐츠 표시 꺼짐 (기본 상태)', 'info', 2000);
+            if (typeof showToast === 'function') showToast(_adultOptIn ? '성인 콘텐츠 표시 켜짐 — 모든 테마에서 19+ 항목이 보입니다' : '성인 콘텐츠 표시 꺼짐 (기본 상태) — 모든 테마에서 19+ 항목이 숨겨집니다', 'info', 2400);
             try { renderRecommendModal(false); } catch (e) {}
+            // 모든 테마 즉시 반영 — Anima(노출·후타·프롬프트) / 이미지 변환(노출 칩) / 태그 카탈로그
+            try { _animaApplyAdultGate(); } catch (e) {}
+            try { _animaRenderSnippets(); } catch (e) {}
+            try { _animaRenderResult(); } catch (e) {}
+            try { if (window._i2iRenderExposureChips) window._i2iRenderExposureChips(); } catch (e) {}
+            try { if (typeof renderTagCatalog === 'function') renderTagCatalog(false); } catch (e) {}   // 열려 있을 때만 갱신(create=false)
         }
         window.toggleAdultOptIn = toggleAdultOptIn;
         function _loadPreset(file, key, arr) {
@@ -16367,10 +16412,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 body.appendChild(availSec);
                 fetch(CATALOG_INDEX_URL).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(idx => {
                     const packs = (idx && idx.packs) || [];
-                    let ah = `<div style="font-size:12px;font-weight:800;color:var(--text-dim);margin-bottom:8px;">받을 수 있는 팩 (${packs.length})</div>`;
+                    const _shown = packs.filter(m => !(m.nsfw && !_adultOn()));
+                    let ah = `<div style="font-size:12px;font-weight:800;color:var(--text-dim);margin-bottom:8px;">받을 수 있는 팩 (${_shown.length})</div>`;
                     availSec.innerHTML = ah;
-                    if (!packs.length) availSec.innerHTML += `<div style="font-size:12px;color:var(--text-dim);">등록된 팩이 없습니다.</div>`;
+                    if (!_shown.length) availSec.innerHTML += `<div style="font-size:12px;color:var(--text-dim);">등록된 팩이 없습니다.</div>`;
                     packs.forEach(meta => {
+                        if (meta.nsfw && !_adultOn()) return;   // 성인 표시가 꺼져 있으면 19+ 팩은 목록에 내지 않는다
                         const isIn = installed.some(p => p.id === meta.id);
                         const row = document.createElement('div');
                         row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border-dim);border-radius:10px;margin-bottom:7px;';
@@ -23216,7 +23263,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const simpleAnalyzeBtn = el('button', { class: 'action-btn', style: 'flex:0 0 auto; font-size:12px; padding:0 12px; background:var(--bg-base); border:1px solid var(--border-dim);', title: '이미지를 다시 분석해 태그를 새로 채웁니다', html: '<i class="fa-solid fa-magnifying-glass-chart"></i> 다시 분석', onclick: () => runAnalyze() });
             // 노출/후타 프리셋 칩 (간편) — 분석된 원본 태그 위에 얹어 생성. 그룹 내 배타(다시 누르면 해제).
             const exposureRow = el('div', { class: 'i2i-expo-chips' });
+            const exposureTitle = el('div', { style: 'font-size:11.5px; font-weight:700; color:var(--text-dim);' }, '🔞 노출 프리셋 (선택 — 분석 위에 얹기)');
+            window._i2iRenderExposureChips = () => { try { _renderExposureChips(); } catch (e) {} };   // 성인 토글 시 외부에서 호출
             function _renderExposureChips() {
+                // 성인 표시가 꺼져 있으면 노출·후타 칩을 통째로 감춘다(메뉴에서 켜면 즉시 나타남)
+                const adult = (typeof _adultOn === 'function') ? _adultOn() : false;
+                exposureRow.style.display = adult ? '' : 'none';
+                exposureTitle.style.display = adult ? '' : 'none';
+                if (!adult) { _img2img.exposure = ''; _img2img.futa = ''; exposureRow.innerHTML = ''; return; }
                 exposureRow.innerHTML = '';
                 const lab = (t) => exposureRow.appendChild(el('span', { class: 'i2i-expo-lab' }, t));
                 const mkChip = (id, name, curKey) => {
@@ -23234,7 +23288,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const simpleTWrap = el('div', { class: 'i2i-simple-only', style: 'display:flex; flex-direction:column; gap:11px; background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:12px; padding:13px;' },
                 el('div', { style: 'display:flex; align-items:center; gap:6px;' }, el('span', { style: 'font-size:13px; font-weight:800; color:var(--text-main);' }, '✍ 프롬프트 (자동 분석됨)'), mkHelp('간편 프롬프트', '이미지를 넣으면 <b>자동 분석</b>으로 이 칸이 채워집니다. 직접 손봐도 되고, 비워도 됩니다.<br>· <b>실사·품질 태그</b>(photo, score_9 등)는 전송 시 자동 추가.<br>· 아래 <b>노출/후타 프리셋</b>은 분석된 원본 위에 얹혀 적용됩니다(옷 태그는 자동으로 정리).<br>· 세밀 설정(체크포인트·포즈·얼굴·업스케일 등)은 <b>전문</b> 모드에서 한 번만 해두면 됩니다.')),
                 simpleTPrompt,
-                el('div', { style: 'font-size:11.5px; font-weight:700; color:var(--text-dim);' }, '🔞 노출 프리셋 (선택 — 분석 위에 얹기)'),
+                exposureTitle,
                 exposureRow,
                 el('div', { style: 'display:flex; gap:8px; align-items:stretch;' }, simpleRunBtn, simpleAnalyzeBtn),
                 el('div', { style: 'font-size:11px; color:var(--text-dim); line-height:1.5;', html: '이미지를 넣으면 자동 분석되고, <b>재생성 시엔 다시 분석하지 않고</b> 그 태그를 재활용합니다(이미지를 바꾸면 다시 분석). 포즈 고정·얼굴 보정 등은 <b>전문</b> 모드에서.' }));
