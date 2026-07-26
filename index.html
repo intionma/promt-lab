@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.64.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.65.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.64.0 &nbsp;·&nbsp; 2026-07-26 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.65.0 &nbsp;·&nbsp; 2026-07-26 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1285,6 +1285,8 @@
             <button class="gt-menu-item" data-tool="adultoptin" style="--gc:#f87171;" onclick="closeGtMenu();toggleAdultOptIn()"><i class="fa-solid fa-user-lock"></i><span>성인 콘텐츠 (19+)</span><small>켜면 추천에 19+ 팩 버튼 표시 (기본 꺼짐)</small></button>
             <button class="gt-menu-item" data-tool="mockmode" style="--gc:#a855f7;" onclick="closeGtMenu();comfyToggleMockMode()"><i class="fa-solid fa-flask"></i><span>개발자 모드</span><small>ComfyUI 없이 가상으로 연결·생성</small></button>
             <button class="gt-menu-item" data-tool="shutdown" style="--gc:#ef4444;" onclick="closeGtMenu();openShutdownModal()"><i class="fa-solid fa-power-off"></i><span>PC 종료</span><small>도우미 스크립트 필요</small></button>
+            <div style="height:1px; background:var(--border-dim); margin:8px 6px;"></div>
+            <button class="gt-menu-item" data-tool="hardreset" style="--gc:#dc2626;" onclick="closeGtMenu();hardResetAll()"><i class="fa-solid fa-triangle-exclamation"></i><span style="color:#dc2626;">완전 초기화</span><small>모든 테마·설정·저장 내용을 처음 상태로 (되돌릴 수 없음)</small></button>
         </div>
     </header>
 
@@ -1575,7 +1577,6 @@
                     <button class="action-btn" onclick="openDBFormatGuide()" title="입력 형식 가이드" style="color:var(--text-dim); border-color:var(--border-dim);"><i class="fa-solid fa-circle-info"></i> ⓘ</button>
                     <button class="action-btn" onclick="formatDBText()" style="color:var(--accent-blue); border-color:var(--accent-blue);"><i class="fa-solid fa-indent"></i> 정렬</button>
                     <button class="action-btn" onclick="saveDBText()" style="background:var(--accent-green); color:#fff; border:none;"><i class="fa-solid fa-floppy-disk"></i> 저장 적용</button>
-                    <button class="action-btn" onclick="hardResetAll()" style="background:var(--accent-danger); color:#fff; border:none;"><i class="fa-solid fa-trash-can"></i> 완전 리셋</button>
                 </div>
                 <div style="flex:1; overflow:hidden; display:flex; flex-direction:column; padding: 16px 24px;">
                     <textarea id="db-text-area" spellcheck="false"
@@ -2039,7 +2040,15 @@
         const CHANGELOG = [
             // ── 2026-07-25 ──────────────────────────────────────────────────
             {
-                version: 'v9.64.0', date: '2026-07-26', time: '최신',
+                version: 'v9.65.0', date: '2026-07-26', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[완전 초기화] <b>메뉴 맨 아래</b>로 옮겼습니다 — 예전엔 'DB 관리 → 코드 편집' 안쪽에 숨어 있어 찾기 어려웠어요. 이제 햄버거 메뉴 최하단에 구분선과 함께 있고, <b>세 번</b> 확인한 뒤에만 실행됩니다.",
+                    "[완전 초기화] 이제 <b>정말로 전부</b> 지웁니다 — 예전엔 태그 DB·조합·즐겨찾기 정도만 지워서 <b>Anima 편집 설정과 생성 이미지 목록, ComfyUI 주소, 이미지 변환 설정, 태그 카탈로그로 받은 팩, 성인 표시 설정, 테마 선택</b>이 그대로 남았습니다. 이제 <b>새 컴퓨터에서 처음 들어온 것과 똑같은 상태</b>가 됩니다.",
+                ]
+            },
+            {
+                version: 'v9.64.0', date: '2026-07-26', time: '',
                 tag: 'feat',
                 items: [
                     "[성인 콘텐츠] 메뉴의 <b>\"성인 콘텐츠 (19+)\"</b> 하나로 <b>모든 테마</b>가 한 번에 켜지고 꺼집니다 — 예전엔 추천 창에만 적용돼서 <b>Anima 편집·이미지 변환·태그 카탈로그</b>에는 19+ 항목이 그대로 보였습니다. 이제 끄면 <b>노출·후타 관련 버튼이 전부 사라지고</b>, 켜면 즉시 다시 나타납니다.",
@@ -21751,28 +21760,45 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
         }
 
+        // 완전 초기화 — '새 컴퓨터에서 처음 들어온 상태'로 되돌린다.
+        //  ★ 예전엔 키를 하나씩 나열해 지웠는데, 기능이 늘 때마다(Anima·테마·ComfyUI·성인 토글·
+        //    카탈로그 등) 빠짐없이 갱신하기가 불가능해 늘 찌꺼기가 남았다. 그래서 저장소를 통째로 비운다.
+        async function _wipeAllStorage() {
+            const done = [];
+            try { const nL = localStorage.length; localStorage.clear(); done.push('localStorage(' + nL + ')'); } catch (e) {}
+            try { const nS = sessionStorage.length; sessionStorage.clear(); done.push('sessionStorage(' + nS + ')'); } catch (e) {}
+            // ★ 지운 직후 리로드까지의 짧은 틈에 디바운스된 저장(예: Anima 400ms)이 되살아나 값을 다시 쓸 수 있다.
+            //   어떤 경로에서도 다시 쓰지 못하도록 쓰기 자체를 막는다(곧 리로드되므로 부작용 없음).
+            try { localStorage.setItem = function () {}; sessionStorage.setItem = function () {}; } catch (e) {}
+            // IndexedDB — 태그 카탈로그(pl_catalog) 등 설치한 팩까지 제거
+            try {
+                let names = [];
+                if (indexedDB.databases) { names = (await indexedDB.databases()).map(d => d && d.name).filter(Boolean); }
+                if (!names.length) names = ['pl_catalog'];   // databases() 미지원 브라우저 대비
+                await Promise.all(names.map(nm => new Promise(res => {
+                    try { const rq = indexedDB.deleteDatabase(nm); rq.onsuccess = rq.onerror = rq.onblocked = () => res(); }
+                    catch (e) { res(); }
+                })));
+                if (names.length) done.push('IndexedDB(' + names.length + ')');
+            } catch (e) {}
+            // 캐시 스토리지(있으면)
+            try { if (window.caches && caches.keys) { const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); if (ks.length) done.push('cache(' + ks.length + ')'); } } catch (e) {}
+            return done;
+        }
         function hardResetAll() {
-            showConfirm('⚠️ 정말로 완전 리셋하시겠습니까?\n태그 DB, 간편 조합, 에디터 내용, 가중치, 즐겨찾기가 모두 삭제됩니다.', () => {
-                showConfirm('🚨 마지막 경고입니다. 모든 데이터가 영구 삭제됩니다. 정말 리셋하시겠습니까?', () => {
-                    // 모든 관련 localStorage 키 삭제
-                    const keys = [
-                        'pro_prompt_db_v7_0',
-                        'combo_fs_v2',
-                        'context_tabs_v1',
-                        'context_states_v1',
-                        'tag_default_weights_v1',
-                        'pro_prompt_favs_v7_0',
-                        'pro_prompt_recents_v7_0',
-                        'pro_prompt_presets_v7_0',
-                        'pro_prompt_combos_v7_0',
-                        'panel_widths_v1',
-                    ];
-                    keys.forEach(k => localStorage.removeItem(k));
-                    showToast('완전 리셋 완료. 페이지를 새로고침합니다...', 'info', 1500);
-                    setTimeout(() => location.reload(), 1600);
+            showConfirm('⚠️ 완전 초기화를 시작할까요?\n\n모든 테마의 설정·저장 내용이 사라집니다.\n(태그 DB · 간편 조합 · 에디터 내용 · 즐겨찾기 · 프리셋 ·\n Anima 편집 설정과 생성 이미지 목록 · ComfyUI 주소 ·\n 이미지 변환 설정 · 태그 카탈로그 팩 · 성인 표시 설정)', () => {
+                showConfirm('🚨 두 번째 확인입니다.\n\n이 작업은 되돌릴 수 없습니다.\n남겨둘 게 있다면 지금 취소하고 [내보내기]로 백업하세요.', () => {
+                    showConfirm('🔴 마지막 확인입니다.\n\n지금 초기화하면 이 브라우저에 처음 들어온 상태가 됩니다.\n정말 진행할까요?', async () => {
+                        let done = [];
+                        try { done = await _wipeAllStorage(); } catch (e) {}
+                        try { showToast('완전 초기화 완료 — ' + (done.join(' · ') || '삭제할 데이터 없음') + '. 새로고침합니다…', 'info', 1800); } catch (e) {}
+                        // 저장 디바운스가 남아 있으면 지운 값을 다시 쓸 수 있으므로 곧바로 하드 리로드
+                        setTimeout(() => { try { location.replace(location.pathname); } catch (e) { location.reload(); } }, 900);
+                    });
                 });
             });
         }
+        window.hardResetAll = hardResetAll;
 
         // ===== 인라인 태그 편집/추가 팝업 =====
         let _tipState = {}; // { mode: 'edit'|'add', layerId, folderName, index }
