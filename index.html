@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.68.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.68.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.68.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.68.1 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2040,7 +2040,17 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.68.0', date: '2026-07-28', time: '최신',
+                version: 'v9.68.1', date: '2026-07-28', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] <b>고품질·최고 품질이 이미지를 망가뜨리던 문제</b>를 고쳤습니다 — 원본의 옷·얼굴·머리카락이 통째로 사라지고 형태가 늘어진 채 하얗게 뜨는 결과가 나왔습니다. <b>메가픽셀을 올린 게 원인</b>이었어요. 이 모델은 1MP 근처에서 만들어져서, 2로만 올려도 원본을 붙잡아 주는 장치가 어긋나 <b>모델이 원본을 못 보고</b> 그립니다. 이제 <b>세 프리셋 모두 메가픽셀 1로 고정</b>하고 <b>스텝만</b> 바꿉니다(기본 3 · 고품질 6 · 최고 8).",
+                    "[Anima 편집] 그래서 <b>스텝이 화질을 올리는 진짜 방법</b>이라는 게 확인됐습니다 — 8스텝은 3스텝보다 뚜렷하게 선명합니다. 메가픽셀은 <b>1을 넘기면 눈에 띄는 경고</b>가 뜨고, ? 설명도 사실대로 다시 썼습니다(예전 설명은 메가픽셀을 올리라고 잘못 안내하고 있었습니다).",
+                    "[Anima 편집] <b>품질 버튼(기본·고품질·최고)이 항상 보입니다</b> — 예전엔 '고급 설정'을 펼쳐야 나와서 빠르게 못 골랐어요. 이제 고급 설정을 열지 않아도 바로 누를 수 있습니다.",
+                    "[Anima 편집] <b>② 프롬프트 칸을 접을 수 있게</b> 했습니다 — 머리줄을 누르면 접히고, 결과·갤러리가 훨씬 위로 올라옵니다. 노출·후타·표정·실행은 어차피 <b>하단 바에 다 있으니까요</b>. 접어도 <b>실행 버튼과 시드는 그대로 남고</b>, 머리줄에 <b>지금 고른 것이 요약</b>돼 보입니다(하단 바에서 바꾸면 요약도 따라갑니다). 접은 상태는 기억됩니다.",
+                ]
+            },
+            {
+                version: 'v9.68.0', date: '2026-07-28', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] <b>포즈 프리셋</b>이 생겼습니다 — 본문 옵션과 하단 바에 <b>[포즈 ▾]</b> 줄이 추가돼, 표정처럼 <b>한 번 눌러</b> 포즈를 바꿀 수 있어요. <b>정면 직립 · 게다리 벌리기 · 자위 · 게다리+더블피스</b>가 기본으로 보이고, 펼치면 손으로 벌려 보이기 · 엉덩이 내밀기 · 네발 기기 · 쪼그려 벌리기도 있습니다. 하단 바 칩은 <b>청록색</b>이라 표정(주황)과 바로 구분돼요.",
@@ -7062,6 +7072,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             srcKey: null,               // 현재 원본 이미지의 고정 key — 생성 결과에 달아 '원본별 그룹뷰'로 묶는다
             galGroup: false,            // 갤러리 보기: false=전체(기존), true=원본별 그룹
             myPreset: null,             // 사용자가 저장한 품질 값 {steps, megapixels} — 프리셋 '내 설정'
+            promptOpen: true,           // ② 프롬프트 카드 펼침 여부 — 접으면 결과·갤러리가 위로 올라온다
             lastInputMode: 'clip',      // 마지막에 쓴 이미지 넣기 방식('clip'|'file') — 하단 바 좌측 버튼이 이걸 따라감
             galSize: 96,                // 갤러리 썸네일 한 칸 최소 너비(px) — 슬라이더로 크게/작게 (60~220)
             flattenBg: 'white',         // 투명 배경 채우기 색('white'|'gray'|'black') — 투명 PNG만 자동 감지해 이 색으로 평탄화
@@ -7222,7 +7233,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try {
                 const p = {};
                 ['prompt', 'steps', 'cfg', 'denoise', 'sampler', 'scheduler', 'seed', 'megapixels', 'upscaleMethod', 'refWeight', 'refMode',
-                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb', 'exprMore', 'exprRecent', 'sweep', 'galGroup', 'srcKey', 'myPreset'].forEach(k => p[k] = _anima[k]);
+                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb', 'exprMore', 'exprRecent', 'sweep', 'galGroup', 'srcKey', 'myPreset', 'promptOpen'].forEach(k => p[k] = _anima[k]);
                 // 결과 이미지 목록은 여기 없다 — IndexedDB(_animaIdb*)로 옮겼다. 장수가 늘어도 이 저장이 무거워지지 않는다.
                 p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null, detail: s.detail || null, more: !!s.more }));
                 // 이전에 넣은 원본 이미지(축소본)들 — 다시 불러오기용. 여기 남은 것 중엔 이게 제일 크다(그림 데이터).
@@ -8482,6 +8493,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
             _animaRenderRun();
             _animaRenderSnipEdit();
+            try { _animaRenderPromptFold(); } catch (e) {}   // 접혀 있으면 머리줄 요약을 새 선택으로 갱신
             _animaSyncMactHeight();  // 바 높이만큼 콘텐츠 하단 여백 재계산
         }
         // 하단 바 칩 줄을 좌우 드래그해 스크롤 — 터치·마우스 공용(JS 구동).
@@ -8822,10 +8834,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
               <input type="file" id="anima-file" accept="image/*" hidden>
             </div>
             <div class="anima-card">
-              <div class="anima-step"><span class="n">2</span> 프롬프트</div>
-              <textarea id="anima-prompt" class="anima-ta" placeholder="원하는 결과를 적으세요 (편집 프롬프트)"></textarea>
-              <div class="anima-snips" id="anima-snips"></div>
-              <div class="anima-snip-edit" id="anima-snip-edit" style="display:none"></div>
+              <div class="anima-step anima-p-head" id="anima-prompt-toggle" title="접기 / 펼치기"><span class="n">2</span> 프롬프트<span class="anima-p-sum" id="anima-prompt-sum"></span><span class="anima-p-ar" id="anima-prompt-ar">▾</span></div>
+              <div id="anima-prompt-body">
+                <textarea id="anima-prompt" class="anima-ta" placeholder="원하는 결과를 적으세요 (편집 프롬프트)"></textarea>
+                <div class="anima-snips" id="anima-snips"></div>
+                <div class="anima-snip-edit" id="anima-snip-edit" style="display:none"></div>
+              </div>
               <div class="anima-runrow">
                 <button id="anima-run-btn" class="anima-run">✨ 실행 (생성)</button>
                 <div class="anima-seed"><label>시드</label><input type="text" id="anima-seed" placeholder="-1(랜덤)"><button id="anima-seed-rand" title="랜덤">🎲</button></div>
@@ -8833,6 +8847,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
               <div class="anima-queue" id="anima-queue"></div>
             </div>
             <div class="anima-card">
+              <div id="anima-preset-bar"></div>
               <div class="anima-adv-toggle" id="anima-adv-toggle">▼ 고급 설정 (모델·스텝·강도)</div>
               <div class="anima-adv" id="anima-adv" style="display:none"></div>
             </div>
@@ -8845,12 +8860,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           <div class="anima-mact" id="anima-mact"></div>`;
 
         // ══ 품질 프리셋 ═══════════════════════════════════════════════════
-        //  손대는 건 '스텝'과 '메가픽셀' 둘뿐이다. CFG는 이 모델(distilled)에서 1이 설계값이라
-        //  올리면 좋아지는 게 아니라 망가지고, 변환·참조 강도는 품질이 아니라 취향이라 건드리지 않는다.
+        //  ★ 실제로 돌려 확인한 결과(v9.68.1): 품질 레버는 '스텝'뿐이다.
+        //    - 스텝 8 / 1MP → 3스텝보다 뚜렷하게 선명
+        //    - 2MP·3MP → 원본을 통째로 잃고 형태가 무너짐(참조가 안 걸림). 그래서 메가픽셀은 1 고정.
+        //    CFG는 distilled 설계값 1이라 제외, 변환·참조 강도는 품질이 아니라 취향이라 제외.
         const _ANIMA_PRESETS = [
             { id: 'basic', name: '기본', steps: 3, megapixels: 1 },
-            { id: 'high', name: '고품질', steps: 6, megapixels: 2 },
-            { id: 'max', name: '최고 품질', steps: 8, megapixels: 3 },
+            { id: 'high', name: '고품질', steps: 6, megapixels: 1 },
+            { id: 'max', name: '최고 품질', steps: 8, megapixels: 1 },
         ];
         function _animaPresetMatch() {
             const p = _ANIMA_PRESETS.find(x => +_anima.steps === x.steps && +_anima.megapixels === x.megapixels);
@@ -8865,16 +8882,63 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _ANIMA_PRESETS.forEach(p => { h += `<button class="anima-pbtn${cur === p.id ? ' on' : ''}" data-preset="${p.id}">${p.name}</button>`; });
             h += `<button class="anima-pbtn${cur === 'mine' ? ' on' : ''}${my ? '' : ' off'}" data-preset="mine" title="${my ? `내가 저장한 값 (스텝 ${my.steps} · 메가픽셀 ${my.megapixels})` : '아직 저장한 값이 없어요 — 💾로 지금 값을 저장하세요'}">내 설정</button>`;
             h += `<button class="anima-pbtn save" data-act="savemine" title="지금 값을 '내 설정'으로 저장">💾</button>`;
-            h += `<div class="anima-preset-note">스텝·메가픽셀만 바꿉니다. 어느 게 값어치를 하는지는 <b>실행 버튼을 길게 눌러 [품질 전부 돌리기]</b>로 같은 시드 3장을 뽑아 직접 비교해 보세요.</div></div>`;
+            h += `<div class="anima-preset-note">바꾸는 건 <b>스텝</b>뿐입니다(메가픽셀은 1 고정 — 올리면 원본을 잃고 뭉개져요). <b>실행 버튼을 길게 눌러 [품질 전부 돌리기]</b>로 같은 시드 3장을 뽑아 비교해 보세요.</div></div>`;
             return h;
+        }
+        // ② 프롬프트 접기 — 하단 바에 노출·후타·표정·실행이 다 있어서 이 칸은 대개 중복이고,
+        //  펼쳐 두면 결과·갤러리가 한참 아래로 밀린다. 접으면 머리줄에 지금 고른 걸 요약해 보여 준다.
+        //  (실행 버튼·시드·대기열은 접어도 남긴다 — 이건 '편집'이 아니라 '실행'이라 늘 필요하다)
+        function _animaPromptSummary() {
+            const all = _anima.snippets || [], curP = (_anima.prompt || '').trim(), parts = [];
+            const base = all.find(s => s.kind === 'base' && curP === (s.text || '').trim());
+            if (base) parts.push(base.name);
+            const futa = all.find(s => s.group === 'futa' && s.on);
+            if (futa) parts.push(futa.name.replace('후타나리', '후타'));
+            const pose = all.find(s => s.group === 'pose' && s.on);
+            if (pose) parts.push(pose.name);
+            const expr = all.find(s => s.group === 'expr' && s.on);
+            if (expr) parts.push(expr.name);
+            return parts.join(' · ');
+        }
+        function _animaRenderPromptFold() {
+            const body = _animaEl('#anima-prompt-body'), ar = _animaEl('#anima-prompt-ar'), sum = _animaEl('#anima-prompt-sum');
+            if (!body) return;
+            const open = _anima.promptOpen !== false;   // 기본은 펼침(처음 온 사람이 빈 카드를 보면 안 되니까)
+            body.style.display = open ? '' : 'none';
+            if (ar) ar.textContent = open ? '▾' : '▸';
+            if (sum) { const t = open ? '' : _animaPromptSummary(); sum.textContent = t; sum.style.display = t ? '' : 'none'; }
+            try { _animaSyncMactHeight(); } catch (e) {}
+        }
+        // 프리셋 줄은 '고급 설정' 밖에 항상 보이게 둔다 — 접힌 패널 안이면 빠르게 못 고른다.
+        function _animaRenderPresetBar() {
+            const box = _animaEl('#anima-preset-bar'); if (!box) return;
+            box.innerHTML = _animaPresetBarHtml();
+            _animaBindPresetBtns(box);
+        }
+        // 프리셋 버튼 동작 — 항상 보이는 줄과 (혹시 있을) 다른 위치에서 공용
+        function _animaBindPresetBtns(box) {
+            box.querySelectorAll('.anima-pbtn[data-preset]').forEach(b => b.onclick = () => {
+                const id = b.dataset.preset;
+                const p = id === 'mine' ? _anima.myPreset : _ANIMA_PRESETS.find(x => x.id === id);
+                if (!p) { showToast("먼저 💾로 지금 값을 '내 설정'에 저장하세요", 'warning', 2600); return; }
+                _anima.steps = p.steps; _anima.megapixels = p.megapixels;
+                _animaSave(); _animaRenderPresetBar(); _animaRenderAdv();
+                showToast(`${id === 'mine' ? '내 설정' : p.name} 적용 — 스텝 ${p.steps}`, 'success', 2000);
+            });
+            const sv = box.querySelector('.anima-pbtn[data-act="savemine"]');
+            if (sv) sv.onclick = () => {
+                _anima.myPreset = { steps: +_anima.steps, megapixels: +_anima.megapixels };
+                _animaSave(); _animaRenderPresetBar(); _animaRenderAdv();
+                showToast(`내 설정으로 저장했어요 — 스텝 ${_anima.myPreset.steps} · 메가픽셀 ${_anima.myPreset.megapixels}`, 'success', 2400);
+            };
         }
         // 각 설정 항목 설명 — 무엇인지 / 바꾸면 어떻게 되는지 / 왜 그 값을 권하는지.
         //  모르는 건 모른다고 쓴다(특히 스텝). 도움말이 아는 척하면 설정을 잘못 만지게 된다.
         const _ANIMA_HELP = {
             steps: `<b>무엇인가</b> — 그림을 몇 번에 걸쳐 다듬을지. 시간은 스텝 수에 거의 비례합니다.<br>
-                <b>이 모델은 좀 다릅니다</b> — 지금 쓰는 <b>Anima-Comradeship</b>은 <b>3스텝에 맞춰 훈련된(distilled) 모델</b>입니다. 일반 모델처럼 "올릴수록 깨끗해진다"가 그대로 성립하지 않고, 너무 올리면 색이 과해지거나 뭉개질 수도 있습니다.<br>
-                <b>게다가</b> 샘플러가 <b>euler_ancestral</b>이라 매 스텝 노이즈를 새로 섞습니다. 스텝을 바꾸면 <i>같은 그림이 정교해지는</i> 게 아니라 <b>그림 자체가 달라집니다</b>(시드가 같아도).<br>
-                <b>추천</b> — 기본 <b>3</b>. 더 올린다면 6 → 8 순서로. 다만 이 값들은 <b>검증된 게 아니라 합리적인 출발점</b>입니다. <b>[품질 전부 돌리기]</b>로 같은 시드 3장을 뽑아 <b>직접 눈으로 확인하고</b> 정하세요.`,
+                <b>이 워크플로우에서 품질을 올리는 유일한 값입니다</b> — 직접 돌려 확인한 결과, <b>8스텝이 3스텝보다 뚜렷하게 선명</b>했습니다. (원래는 3스텝에 맞춰 훈련된 모델이라 올리면 망가질 수도 있다고 봤는데, 실제로는 잘 견딥니다)<br>
+                <b>한 가지 알아둘 것</b> — 샘플러가 <b>euler_ancestral</b>이라 매 스텝 노이즈를 새로 섞습니다. 스텝을 바꾸면 <i>같은 그림이 정교해지는</i> 게 아니라 <b>그림 자체가 달라집니다</b>(시드가 같아도).<br>
+                <b>추천</b> — 기본 3 · 고품질 6 · 최고 8. <b>8보다 위는 아직 확인하지 못했습니다</b> — 12나 16이 더 나은지 궁금하면 직접 넣어 보고, 좋으면 💾로 <b>내 설정</b>에 저장해 두세요.`,
             cfg: `<b>무엇인가</b> — 프롬프트를 얼마나 강하게 따를지.<br>
                 <b>⚠ 이 값은 건드리지 마세요</b> — distilled 모델은 <b>cfg를 쓰지 않도록</b> 훈련됩니다. 올리면 프롬프트를 더 잘 따르는 게 아니라 <b>색이 타고 형태가 무너집니다.</b> 이 워크플로우의 설계값은 <b>1</b>입니다.<br>
                 <b>부작용 하나</b> — cfg가 1이면 <b>부정(negative) 프롬프트가 아예 안 먹습니다.</b> 아래 '워터마크·글자 억제'가 실험 딱지를 달고 있는 이유가 이거예요. 그 옵션은 켤 때만 cfg를 잠깐 올려서 부정 프롬프트를 살립니다.<br>
@@ -8889,9 +8953,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 <b>이럴 때 만지세요</b> — 얼굴이 원본과 딴판이면 조금 <b>올리고</b>, 표정·노출 지시가 안 먹으면 조금 <b>내려</b> 보세요. 0.1씩.<br>
                 <b>추천</b> — <b>1.</b> 취향 값이라 품질 프리셋이 건드리지 않습니다.`,
             megapixels: `<b>무엇인가</b> — 원본을 몇 백만 화소로 바꿔서 넣을지. <b>1이면 약 1024×1024</b> 정도입니다.<br>
-                <b>품질에 가장 확실한 레버입니다</b> — 올리면 <b>얼굴·손·머리카락 디테일이 실제로 늘어납니다.</b> 스텝과 달리 이건 구조적으로 그렇습니다(다룰 픽셀이 많아지니까).<br>
-                <b>대가</b> — 시간과 VRAM이 <b>대략 화소 수에 비례</b>해 늘어납니다. 1→2는 약 2배, 1→3은 약 3배. <b>메모리 부족(OOM)</b>이 나면 이 값부터 낮추세요.<br>
-                <b>추천</b> — 기본 <b>1</b>, 여유 있으면 2~3. GPU가 넉넉하면 4까지 올려도 됩니다.`,
+                <b>⚠ 1에서 올리지 마세요</b> — 직접 돌려 확인했습니다. <b>2로만 올려도 결과가 무너집니다</b>: 원본의 옷·얼굴·머리카락이 <b>통째로 사라지고</b>, 형태가 늘어지고, 색이 하얗게 빠집니다. 3은 더 심합니다.<br>
+                <b>왜 그런가</b> — 이 모델은 <b>1MP 근처에서 훈련</b>됐습니다. 그보다 커지면 원본을 붙잡아 주는 <b>참조(Reference)가 어긋나</b> 버려서, 모델이 원본을 못 보고 거의 백지에서 그립니다. 배선 문제가 아니라 <b>모델의 한계</b>라 설정으로 해결되지 않습니다.<br>
+                <b>화질을 올리고 싶다면</b> — 이 값 말고 <b>스텝</b>을 올리세요. 그게 이 워크플로우에서 실제로 듣는 유일한 레버입니다.<br>
+                <b>추천</b> — <b>1 고정.</b> 품질 프리셋도 항상 1로 되돌립니다.`,
             sampler: `<b>무엇인가</b> — 노이즈를 걷어내는 알고리즘. ComfyUI에 있는 이름과 <b>철자가 정확히 같아야</b> 합니다.<br>
                 <b>euler_ancestral</b>은 매 스텝 노이즈를 새로 섞는 방식(ancestral)이라 변화가 다양합니다. 대신 <b>스텝 수를 바꾸면 그림이 꽤 달라집니다.</b><br>
                 <b>추천</b> — <b>euler_ancestral 유지.</b> 이 워크플로우가 이 조합으로 맞춰져 있습니다. 다른 게 더 낫다는 근거가 없어서 품질 프리셋도 건드리지 않습니다.`,
@@ -8952,7 +9017,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         // 프리셋 버튼의 선택 표시만 갱신 — 숫자칸을 직접 고쳤을 때 전체를 다시 그리면 포커스가 날아간다
         function _animaSyncPresetBar() {
-            const box = _animaEl('#anima-adv'); if (!box) return;
+            const box = _animaEl('#anima-preset-bar'); if (!box) return;
             const cur = _animaPresetMatch();
             box.querySelectorAll('.anima-pbtn[data-preset]').forEach(b => b.classList.toggle('on', b.dataset.preset === cur));
         }
@@ -8967,12 +9032,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  (이미 시도했으면 즉시 false로 돌아와 재귀하지 않는다)
             _animaLoadSamplerEnums().then(ok => { if (ok) _animaRenderAdv(); }).catch(() => {});
             box.innerHTML =
-                _animaPresetBarHtml() +
                 row('스텝(steps)', num('steps', 1, 1, 60), '기본 3', 'steps') +
                 row('CFG', num('cfg', 0.1, 0), '기본 1 · 바꾸지 마세요', 'cfg') +
                 row('변환 강도(denoise)', num('denoise', 0.05, 0, 1), '기본 1', 'denoise') +
                 row('참조 강도', num('refWeight', 0.1, 0), 'Cosmos reference 강도(기본 1)', 'refWeight') +
-                row('메가픽셀', num('megapixels', 0.5, 0.5, 4), '입력 이미지 크기(기본 1)', 'megapixels') +
+                row('메가픽셀', num('megapixels', 0.5, 0.5, 4),
+                    (+_anima.megapixels > 1
+                        ? `<b class="anima-warn">⚠ 1을 넘기면 원본을 잃고 뭉개집니다 — 1로 되돌리세요</b>`
+                        : '입력 이미지 크기 · <b>1 고정 권장</b>'), 'megapixels') +
                 row('샘플러', `<span class="anima-inline">${_animaSelHtml('sampler', _animaSamplers())}<button class="anima-enum-rf" id="anima-enum-rf" title="ComfyUI에서 설치된 목록 다시 가져오기" aria-label="목록 새로고침">🔄</button></span>`,
                     (_animaSamplerOpts ? `ComfyUI에서 가져온 목록 (${_animaSamplers().length}개)` : '기본 euler_ancestral'), 'sampler') +
                 row('스케줄러', _animaSelHtml('scheduler', _animaSchedulers()), '기본 simple', 'scheduler') +
@@ -8994,7 +9061,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     if (inp.type === 'number') { let v = parseFloat(inp.value); if (isNaN(v)) v = ANIMA_DEFAULTS[k] != null ? ANIMA_DEFAULTS[k] : 0; _anima[k] = v; }
                     else _anima[k] = inp.value;
                     _animaSave();
-                    if (k === 'steps' || k === 'megapixels') _animaSyncPresetBar();   // 직접 고치면 프리셋 선택 표시도 따라간다
+                    if (k === 'steps' || k === 'megapixels') { _animaRenderPresetBar(); _animaRenderAdv(); }   // 선택 표시·경고문구 동기화
                 };
             });
             // 샘플러·스케줄러 목록 다시 가져오기
@@ -9013,21 +9080,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _animaHelpCloseAll();
                 if (willOpen) { el.classList.add('open'); q.classList.add('on'); }
             });
-            // 품질 프리셋
-            box.querySelectorAll('.anima-pbtn[data-preset]').forEach(b => b.onclick = () => {
-                const id = b.dataset.preset;
-                const p = id === 'mine' ? _anima.myPreset : _ANIMA_PRESETS.find(x => x.id === id);
-                if (!p) { showToast("먼저 💾로 지금 값을 '내 설정'에 저장하세요", 'warning', 2600); return; }
-                _anima.steps = p.steps; _anima.megapixels = p.megapixels;
-                _animaSave(); _animaRenderAdv();
-                showToast(`${id === 'mine' ? '내 설정' : p.name} 적용 — 스텝 ${p.steps} · 메가픽셀 ${p.megapixels}`, 'success', 2200);
-            });
-            const sv = box.querySelector('.anima-pbtn[data-act="savemine"]');
-            if (sv) sv.onclick = () => {
-                _anima.myPreset = { steps: +_anima.steps, megapixels: +_anima.megapixels };
-                _animaSave(); _animaRenderAdv();
-                showToast(`내 설정으로 저장했어요 — 스텝 ${_anima.myPreset.steps} · 메가픽셀 ${_anima.myPreset.megapixels}`, 'success', 2400);
-            };
             const wm = box.querySelector('#anima-suppresswm');
             if (wm) wm.onchange = () => { _anima.suppressWm = wm.checked; _animaSave(); showToast(wm.checked ? '워터마크·글자 억제 켬 (실험 — 품질이 달라질 수 있어요)' : '워터마크·글자 억제 끔', 'info', 2200); };
             const rb = box.querySelector('#anima-reset');
@@ -9057,6 +9109,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _animaEl('#anima-seed-rand').onclick = () => { _anima.seed = Math.floor(Math.random() * 1e9); sd.value = _anima.seed; _animaSave(); };
             _animaEl('#anima-run-btn').onclick = _animaGenerate;
             _animaBindRunLongPress(_animaEl('#anima-run-btn'));
+            _animaRenderPresetBar();   // 품질 프리셋 — 고급 설정을 열지 않아도 바로 고를 수 있게
+            _animaRenderPromptFold();
+            const pth = _animaEl('#anima-prompt-toggle');
+            if (pth) pth.onclick = () => { _anima.promptOpen = (_anima.promptOpen === false); _animaSave(); _animaRenderPromptFold(); };
             _animaEl('#anima-file').onchange = (e) => { _animaAddFile(e.target.files); e.target.value = ''; };
             // ComfyUI 연결 (서버 주소는 공용 #comfy-url과 동기화 — 인프라라 공유)
             const urlIn = _animaEl('#anima-url');
@@ -9111,6 +9167,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-card { background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:16px; padding:14px; display:flex; flex-direction:column; gap:12px; }
           .anima-step { display:flex; align-items:center; gap:9px; font-size:13px; font-weight:800; color:var(--text-main); }
           .anima-step .n { width:22px; height:22px; border-radius:50%; background:var(--accent-blue,#3b82f6); color:#fff; display:grid; place-items:center; font-size:12px; flex:0 0 auto; }
+          /* ② 프롬프트 접기 머리줄 — 접으면 지금 고른 걸 요약해 보여 준다 */
+          .anima-p-head { cursor:pointer; user-select:none; -webkit-user-select:none; }
+          .anima-p-head:hover { color:var(--accent-blue,#3b82f6); }
+          .anima-p-sum { flex:1 1 auto; min-width:0; font-size:11.5px; font-weight:700; color:var(--text-dim);
+            overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+          .anima-p-ar { margin-left:auto; flex:0 0 auto; font-size:11px; color:var(--text-dim); }
+          .anima-p-sum + .anima-p-ar { margin-left:6px; }
+          .anima-warn { color:#f59e0b; }
           .anima-input { border:1.5px dashed var(--border-dim); border-radius:14px; transition:.15s; }
           .anima-input.drag { border-color:var(--accent-blue,#3b82f6); background:color-mix(in srgb,var(--accent-blue,#3b82f6) 10%,transparent); }
           .anima-drop-in { display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px; padding:26px 16px; }
