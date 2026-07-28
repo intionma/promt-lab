@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.67.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.67.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.67.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.67.1 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2040,7 +2040,15 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.67.0', date: '2026-07-28', time: '최신',
+                version: 'v9.67.1', date: '2026-07-28', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] <b>샘플러·스케줄러를 골라서</b> 쓸 수 있게 했습니다 — 예전엔 이름을 직접 타이핑해야 했고 철자가 하나만 틀려도 생성이 실패했어요. 이제 <b>목록에서 고르면 끝</b>입니다. ComfyUI에 연결돼 있으면 <b>실제로 설치된 목록</b>을 그대로 가져오고(옆 🔄로 다시 가져오기), 연결 전이라도 표준 목록에서 바로 고를 수 있습니다. 직접 써 넣었던 이름이 목록에 없어도 <b>그대로 유지</b>됩니다.",
+                    "[Anima 편집] 고급 설정의 <b>? 설명이 다른 곳을 누르면 닫히게</b> 했습니다 — 끄려고 ?를 다시 찾아 누르는 게 번거로웠어요. 다른 ?를 누르면 앞엣것은 알아서 닫혀 <b>한 번에 하나만</b> 열립니다. (설명 안쪽을 눌러 글자를 선택하는 건 그대로 됩니다)",
+                ]
+            },
+            {
+                version: 'v9.67.0', date: '2026-07-28', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 고급 설정에 <b>품질 프리셋</b>을 넣었습니다 — <b>기본 / 고품질 / 최고 품질</b> 버튼 하나로 끝납니다. 바꾸는 건 <b>스텝과 메가픽셀 둘뿐</b>이고, <b>CFG는 절대 건드리지 않습니다</b>(이 모델은 CFG를 올리면 좋아지는 게 아니라 망가져요). 지금 쓰는 값이 마음에 들면 <b>💾로 '내 설정'에 저장</b>해 두고 언제든 되돌아올 수 있어요.",
@@ -8818,6 +8826,57 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 <b>바꾸면</b> 결과가 달라지긴 합니다(karras·beta·sgm_uniform 등). 다만 <b>이 모델에서 뭐가 더 낫다는 근거는 없습니다.</b><br>
                 <b>추천</b> — <b>simple 유지.</b> 굳이 실험하시려면 시드를 고정해 두고 하나씩 바꿔 비교하세요.`,
         };
+        // ══ 샘플러·스케줄러 목록 ═══════════════════════════════════════════
+        //  ComfyUI에 실제로 설치된 목록을 /object_info의 KSampler에서 가져온다(설치본마다 다름).
+        //  연결 전이거나 실패하면 아래 표준 목록으로 대신한다 — 어느 쪽이든 타이핑할 일은 없다.
+        const _ANIMA_SAMPLERS_FALLBACK = ['euler', 'euler_cfg_pp', 'euler_ancestral', 'euler_ancestral_cfg_pp', 'heun', 'heunpp2',
+            'dpm_2', 'dpm_2_ancestral', 'lms', 'dpm_fast', 'dpm_adaptive', 'dpmpp_2s_ancestral', 'dpmpp_sde', 'dpmpp_sde_gpu',
+            'dpmpp_2m', 'dpmpp_2m_sde', 'dpmpp_2m_sde_gpu', 'dpmpp_3m_sde', 'dpmpp_3m_sde_gpu', 'ddpm', 'lcm',
+            'ipndm', 'ipndm_v', 'deis', 'res_multistep', 'ddim', 'uni_pc', 'uni_pc_bh2'];
+        const _ANIMA_SCHEDULERS_FALLBACK = ['normal', 'karras', 'exponential', 'sgm_uniform', 'simple', 'ddim_uniform', 'beta', 'linear_quadratic', 'kl_optimal'];
+        let _animaSamplerOpts = null, _animaSchedulerOpts = null, _animaEnumTried = false;
+        const _animaSamplers = () => _animaSamplerOpts || _ANIMA_SAMPLERS_FALLBACK;
+        const _animaSchedulers = () => _animaSchedulerOpts || _ANIMA_SCHEDULERS_FALLBACK;
+        // 설치본 목록 가져오기. 마운트 때가 아니라 '고급 설정을 열 때' 부른다
+        //  — 연결도 하기 전에 실패 요청을 날리면 오류처럼 보인다.
+        async function _animaLoadSamplerEnums(force) {
+            if (_animaEnumTried && !force) return false;
+            _animaEnumTried = true;
+            try {
+                const [sm, sc] = await Promise.all([
+                    _comfyNodeEnum('KSampler', 'sampler_name').catch(() => null),
+                    _comfyNodeEnum('KSampler', 'scheduler').catch(() => null),
+                ]);
+                let ch = false;
+                if (Array.isArray(sm) && sm.length) { _animaSamplerOpts = sm; ch = true; }
+                if (Array.isArray(sc) && sc.length) { _animaSchedulerOpts = sc; ch = true; }
+                return ch;
+            } catch (e) { return false; }
+        }
+        // 드롭다운 — 설치본에 없는 값(직접 써 넣었거나 예전 설정)이라도 목록 맨 앞에 넣어 잃지 않게 한다
+        function _animaSelHtml(k, list) {
+            const cur = String(_anima[k] == null ? '' : _anima[k]);
+            const opts = list.slice();
+            if (cur && opts.indexOf(cur) < 0) opts.unshift(cur);
+            return `<select data-k="${k}">` + opts.map(o =>
+                `<option value="${_animaEsc(o)}"${o === cur ? ' selected' : ''}>${_animaEsc(o)}</option>`).join('') + `</select>`;
+        }
+        // 열려 있는 '?' 설명을 모두 닫는다
+        function _animaHelpCloseAll() {
+            const box = _animaEl('#anima-adv'); if (!box) return false;
+            const open = box.querySelectorAll('.anima-help.open');
+            if (!open.length) return false;
+            open.forEach(el => el.classList.remove('open'));
+            box.querySelectorAll('.anima-q.on').forEach(q => q.classList.remove('on'));
+            return true;
+        }
+        // 설명 바깥을 누르면 닫는다 — 다시 '?'를 찾아 눌러 끄는 건 번거롭다.
+        //  '?' 버튼과 설명 안쪽(글자 선택 등)은 예외.
+        function _animaHelpOutside(e) {
+            const t = e.target;
+            if (t && t.closest && (t.closest('.anima-help') || t.closest('.anima-q'))) return;
+            _animaHelpCloseAll();
+        }
         // 프리셋 버튼의 선택 표시만 갱신 — 숫자칸을 직접 고쳤을 때 전체를 다시 그리면 포커스가 날아간다
         function _animaSyncPresetBar() {
             const box = _animaEl('#anima-adv'); if (!box) return;
@@ -8831,6 +8890,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 + (hk ? `<div class="anima-help" data-for="${hk}">${_ANIMA_HELP[hk] || ''}</div>` : '');
             const num = (k, step, min, max) => `<input type="number" data-k="${k}" value="${_anima[k]}" step="${step}" ${min != null ? `min="${min}"` : ''} ${max != null ? `max="${max}"` : ''}>`;
             const txt = (k) => `<input type="text" data-k="${k}" value="${_anima[k]}">`;
+            // 고급 설정을 여는 이 시점에 설치본 목록을 한 번 가져온다. 도착하면 목록만 갱신해 다시 그린다.
+            //  (이미 시도했으면 즉시 false로 돌아와 재귀하지 않는다)
+            _animaLoadSamplerEnums().then(ok => { if (ok) _animaRenderAdv(); }).catch(() => {});
             box.innerHTML =
                 _animaPresetBarHtml() +
                 row('스텝(steps)', num('steps', 1, 1, 60), '기본 3', 'steps') +
@@ -8838,8 +8900,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 row('변환 강도(denoise)', num('denoise', 0.05, 0, 1), '기본 1', 'denoise') +
                 row('참조 강도', num('refWeight', 0.1, 0), 'Cosmos reference 강도(기본 1)', 'refWeight') +
                 row('메가픽셀', num('megapixels', 0.5, 0.5, 4), '입력 이미지 크기(기본 1)', 'megapixels') +
-                row('샘플러', `<input type="text" data-k="sampler" value="${_anima.sampler}">`, '기본 euler_ancestral', 'sampler') +
-                row('스케줄러', `<input type="text" data-k="scheduler" value="${_anima.scheduler}">`, '기본 simple', 'scheduler') +
+                row('샘플러', `<span class="anima-inline">${_animaSelHtml('sampler', _animaSamplers())}<button class="anima-enum-rf" id="anima-enum-rf" title="ComfyUI에서 설치된 목록 다시 가져오기" aria-label="목록 새로고침">🔄</button></span>`,
+                    (_animaSamplerOpts ? `ComfyUI에서 가져온 목록 (${_animaSamplers().length}개)` : '기본 euler_ancestral'), 'sampler') +
+                row('스케줄러', _animaSelHtml('scheduler', _animaSchedulers()), '기본 simple', 'scheduler') +
                 `<label class="anima-wmrow"><input type="checkbox" id="anima-suppresswm" ${_anima.suppressWm ? 'checked' : ''}><span>🧪 워터마크·글자 억제 <b>(실험)</b></span></label>
                  <div class="anima-wmhelp">소스 이미지의 워터마크·로고·글자를 줄입니다. Anima는 cfg=1이라 부정 프롬프트가 원래 안 먹어서, 켜면 <b>cfg를 올리고</b> 진짜 부정 프롬프트를 넣습니다. 그래서 <b>결과 품질·속도가 달라질 수 있어요</b>(3스텝 distilled). 효과가 애매하면 소스에서 워터마크를 잘라내고 올리는 게 가장 확실합니다.</div>` +
                 `<div class="anima-adv-sec">모델 파일 (설치된 이름과 정확히 일치해야 함)</div>` +
@@ -8852,7 +8915,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                  <div class="anima-wfhelp">ComfyUI에서 <b>⚙ → Enable Dev mode → Save (API Format)</b>으로 받은 JSON을 아래에 붙여넣으면, 내장 워크플로우 대신 <b>그걸 그대로</b> 사용합니다 (이미지·프롬프트·시드만 자동 주입). 비워두면 내장 워크플로우를 씁니다.</div>
                  <textarea id="anima-customwf" class="anima-ta" style="min-height:70px; font-size:11px;" placeholder='{ "61": { "class_type": "CLIPLoader", ... }, ... }  ← Save (API Format) JSON'></textarea>
                  <div class="anima-adv-actions"><button id="anima-copywf" class="anima-btn ghost">📋 전송되는 워크플로우 JSON 복사</button><button id="anima-reset" class="anima-btn ghost">↺ 기본값으로 복원</button></div>`;
-            box.querySelectorAll('input[data-k]').forEach(inp => {
+            box.querySelectorAll('[data-k]').forEach(inp => {   // input + select 공용
                 inp.onchange = () => {
                     const k = inp.dataset.k;
                     if (inp.type === 'number') { let v = parseFloat(inp.value); if (isNaN(v)) v = ANIMA_DEFAULTS[k] != null ? ANIMA_DEFAULTS[k] : 0; _anima[k] = v; }
@@ -8861,11 +8924,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     if (k === 'steps' || k === 'megapixels') _animaSyncPresetBar();   // 직접 고치면 프리셋 선택 표시도 따라간다
                 };
             });
-            // '?' — 그 항목 설명 펼치기/접기
+            // 샘플러·스케줄러 목록 다시 가져오기
+            const erf = box.querySelector('#anima-enum-rf');
+            if (erf) erf.onclick = async () => {
+                erf.disabled = true; erf.textContent = '…';
+                const ok = await _animaLoadSamplerEnums(true);
+                erf.disabled = false; erf.textContent = '🔄';
+                if (ok) { _animaRenderAdv(); showToast(`목록을 가져왔어요 — 샘플러 ${_animaSamplers().length}개 · 스케줄러 ${_animaSchedulers().length}개`, 'success', 2400); }
+                else showToast('ComfyUI에서 목록을 못 가져왔어요 — 연결을 확인하세요 (표준 목록으로 계속 쓸 수 있어요)', 'warning', 3200);
+            };
+            // '?' — 그 항목 설명 펼치기/접기. 한 번에 하나만 열어 둔다(여러 개가 열려 화면이 길어지지 않게).
             box.querySelectorAll('.anima-q').forEach(q => q.onclick = () => {
                 const el = box.querySelector(`.anima-help[data-for="${q.dataset.help}"]`); if (!el) return;
-                const open = el.classList.toggle('open');
-                q.classList.toggle('on', open);
+                const willOpen = !el.classList.contains('open');
+                _animaHelpCloseAll();
+                if (willOpen) { el.classList.add('open'); q.classList.add('on'); }
             });
             // 품질 프리셋
             box.querySelectorAll('.anima-pbtn[data-preset]').forEach(b => b.onclick = () => {
@@ -8943,6 +9016,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const onPaste = (e) => { if (_plCurrent !== 'anima') return; const items = e.clipboardData && e.clipboardData.items; if (!items) return; for (const it of items) { if (it.type && it.type.startsWith('image/')) { const f = it.getAsFile(); if (f) { _animaFileToDataURL(f).then(du => _animaSetImage(du, 'pasted')); e.preventDefault(); break; } } } };
             document.addEventListener('paste', onPaste);
             document.addEventListener('click', _animaFutaPopOutside, true);   // 후타 상세: 바깥을 누르면 닫기(캡처 단계)
+            document.addEventListener('click', _animaHelpOutside, true);      // 고급 설정 '?' 설명도 바깥을 누르면 닫기
             const onResize = () => { _animaFitExprRow(_animaEl('#anima-mact .anima-mact-expr')); _animaSyncMactHeight(); };   // 폭이 바뀌면 표시 개수·바 높이 재계산
             window.addEventListener('resize', onResize);
             _animaSyncMactHeight();
@@ -9073,6 +9147,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-arow label { font-size:12px; font-weight:700; color:var(--text-dim); }
           .anima-arow input { background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:7px 9px; color:var(--text-main); font-size:12px; min-width:0; }
           .anima-arow input[type=text] { width:100%; }
+          /* 샘플러·스케줄러는 타이핑이 아니라 고르기 — 설치본 목록에서 선택 */
+          .anima-arow select { width:100%; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px;
+            padding:7px 9px; color:var(--text-main); font-family:inherit; font-size:12px; min-width:0; cursor:pointer; }
+          .anima-inline { display:flex; align-items:center; gap:6px; min-width:0; }
+          .anima-inline select { flex:1 1 auto; }
+          .anima-enum-rf { flex:0 0 auto; background:transparent; border:1px solid var(--border-dim); border-radius:8px;
+            padding:6px 9px; font-size:12px; line-height:1; cursor:pointer; color:var(--text-dim); }
+          .anima-enum-rf:hover { border-color:var(--accent-blue,#3b82f6); }
+          .anima-enum-rf:disabled { opacity:.5; cursor:default; }
           .anima-arow .hint { grid-column:2; font-size:11px; color:var(--text-faint,var(--text-dim)); margin-top:-2px; }
           .anima-adv-sec { font-size:11px; font-weight:800; color:var(--text-dim); text-transform:uppercase; letter-spacing:.03em; margin-top:6px; padding-top:8px; border-top:1px solid var(--border-dim); }
           .anima-wmrow { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:var(--text-main); cursor:pointer; margin-top:6px; }
