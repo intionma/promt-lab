@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.65.2 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.66.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.65.2 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.66.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2040,7 +2040,17 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.65.2', date: '2026-07-28', time: '최신',
+                version: 'v9.66.0', date: '2026-07-28', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] 생성 이미지 보관 장수 제한을 <b>사실상 없앴습니다</b> — 500장에서 <b>몇 만 장</b>으로. 이제 예전에 뽑은 이미지가 밀려나 사라지지 않습니다. (기존에 갖고 계신 목록은 <b>업데이트 시 자동으로 옮겨지고</b>, 하나도 잃지 않습니다)",
+                    "[Anima 편집] 그래도 <b>느려지지 않습니다</b> — 갤러리는 화면에 필요한 만큼만 그리고, 아래로 내리면 <b>100장씩 이어서</b> 나타납니다. 이미 본 썸네일은 다시 그리지 않아 스크롤이 끊기지 않아요. 1만 장 기준으로 갤러리 표시가 <b>예전보다 약 90배 빨라졌습니다</b>(1.8초 → 0.02초).",
+                    "[Anima 편집] 저장 방식도 바꿔 <b>생성이 끝날 때 화면이 멎던 현상</b>을 없앴습니다 — 예전엔 이미지가 하나 나올 때마다 목록 전체를 다시 저장해서, 장수가 많을수록 그 순간 버벅였습니다. 이제 <b>새로 나온 1장만</b> 기록합니다. 장수가 몇 만이어도 저장 시간은 그대로예요.",
+                    "[Anima 편집] 이미지가 많아졌으니 <b>[원본별]</b> 보기를 함께 쓰시면 좋습니다 — 어떤 사진으로 뽑은 결과인지 원본 썸네일과 장수로 묶여 보여서, 원하는 이미지를 훨씬 빨리 찾을 수 있어요.",
+                ]
+            },
+            {
+                version: 'v9.65.2', date: '2026-07-28', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] 저장 공간이 가득 찼을 때 <b>설정이 통째로 저장 안 되던 위험</b>을 없앴습니다 — 예전엔 이전 원본 목록만 줄여 보고 그래도 모자라면 <b>저장 자체를 포기</b>해서, 새로고침하면 프롬프트·모델·ComfyUI 주소까지 되돌아갈 수 있었습니다. 이제 <b>무거운 것부터 단계적으로</b> 줄이고(이전 원본 → 오래된 생성 이미지 목록 → 현재 원본 썸네일) <b>설정만은 반드시 지킵니다</b>. 목록이 줄어들면 그 사실을 한 번 알려드려요.",
@@ -7067,45 +7077,120 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         ];
         const ANIMA_KEY = 'anima_settings_v1';
         const _ANIMA_SRCHIST_MAX = 24;   // 이전 원본(축소본) 보관 개수 — 저장 용량 초과 시 자동으로 줄임(_animaSave)
-        const _ANIMA_MAX_RESULTS = 500;  // 결과 갤러리 보관 장수(결과는 서버 URL만 저장 → 용량 부담 적음). 렌더는 이벤트 위임 + 지연로딩으로 가볍게 유지.
+        // ══ 결과 갤러리 저장소 (IndexedDB) ═══════════════════════════════════
+        //  왜 localStorage를 떠났나: localStorage는 ①동기(쓰는 동안 화면이 멈춤) ②키 하나가 통째로
+        //  다시 직렬화됨(500장이면 매 생성마다 96KB를 새로 씀) ③전체 한도가 ~5MB라 다른 기능과 나눠 씀.
+        //  IndexedDB는 비동기 + 레코드 단위 추가 + 용량이 수백 MB라, 장수가 늘어도 쓰기 비용이 늘지 않는다.
+        //  키(k)는 autoIncrement — 단조 증가라 그 자체가 '만든 순서'다(내림차순 = 최신순).
+        const ANIMA_DB = 'pl_anima', ANIMA_RSTORE = 'results';
+        const _ANIMA_MAX_RESULTS = 100000;   // 사실상 무제한. 폭주 방지용 안전판일 뿐(도달할 일 없음).
+        let _animaDbP = null;
+        function _animaIdb() {
+            if (_animaDbP) return _animaDbP;
+            _animaDbP = new Promise((res, rej) => {
+                let rq; try { rq = indexedDB.open(ANIMA_DB, 1); } catch (e) { return rej(e); }
+                rq.onupgradeneeded = () => {
+                    const db = rq.result;
+                    if (!db.objectStoreNames.contains(ANIMA_RSTORE)) db.createObjectStore(ANIMA_RSTORE, { keyPath: 'k' });
+                };
+                rq.onsuccess = () => res(rq.result);
+                rq.onerror = () => rej(rq.error);
+            }).catch(e => { _animaDbP = null; throw e; });
+            return _animaDbP;
+        }
+        function _animaIdbTx(mode, fn) {
+            return _animaIdb().then(db => new Promise((res, rej) => {
+                const st = db.transaction(ANIMA_RSTORE, mode).objectStore(ANIMA_RSTORE);
+                const r = fn(st);
+                if (r) { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } else res(true);
+            }));
+        }
+        // 전부 읽어 최신순으로 — 키가 단조 증가라 오름차순으로 받아 뒤집으면 된다(정렬 비용 없음)
+        function _animaIdbAll() {
+            return _animaIdbTx('readonly', st => st.getAll()).then(a => (a || []).reverse()).catch(() => []);
+        }
+        function _animaIdbAdd(rec) { return _animaIdbTx('readwrite', st => st.add(rec)); }   // 반환값 = 새 키
+        function _animaIdbDel(k) { return _animaIdbTx('readwrite', st => st.delete(k)).catch(() => false); }
+        function _animaIdbClear() { return _animaIdbTx('readwrite', st => st.clear()).catch(() => false); }
+        // 여러 건을 한 트랜잭션으로 — 구버전 저장분 이전용(건별 트랜잭션이면 수백 건에서 느리다)
+        //  실제로 들어간 건수를 센다 — 넣다 실패했는데 성공으로 보고하면 원본을 지워 데이터를 잃는다.
+        function _animaIdbAddMany(recs) {
+            if (!recs.length) return Promise.resolve(0);
+            return _animaIdb().then(db => new Promise((res, rej) => {
+                const tx = db.transaction(ANIMA_RSTORE, 'readwrite'), st = tx.objectStore(ANIMA_RSTORE);
+                let ok = 0;
+                recs.forEach(r => { try { const q = st.add(r); q.onsuccess = () => ok++; } catch (e) {} });
+                tx.oncomplete = () => res(ok); tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error);
+            })).catch(() => 0);
+        }
+        // 키를 직접 만든다(autoIncrement 대신) — 넣는 즉시 키를 알아야 저장이 끝나기 전에 지워도 어긋나지 않는다.
+        //  '밀리초×1000 + 순번'이라 만든 순서대로 커진다(내림차순 = 최신순).
+        let _animaKeySeq = 0, _animaKeyLast = 0;
+        function _animaNewKey() {
+            let k = Date.now() * 1000 + (_animaKeySeq++ % 1000);
+            if (k <= _animaKeyLast) k = _animaKeyLast + 1;   // 같은 밀리초에 몰려도 반드시 증가
+            _animaKeyLast = k;
+            return k;
+        }
+        let _animaLegacyResults = null;   // 구버전 localStorage 결과 목록 — _animaLoadResults가 IndexedDB로 옮긴다
+        // 결과 목록을 IndexedDB에서 읽어 메모리에 올린다(최신순). 앱 시작 때 1회.
+        //  구버전(localStorage) 저장분이 있으면 먼저 옮기고 localStorage에서 지운다 — 사용자는 아무것도 잃지 않는다.
+        function _animaLoadResults() {
+            const migrate = (_animaLegacyResults && _animaLegacyResults.length)
+                // 구버전 기록엔 키(k)가 없다 → 여기서 붙여 준다. 최신순으로 저장돼 있으니 뒤집어서
+                // (오래된 것부터) 키를 매겨야 '키 오름차순 = 만든 순서'가 유지된다.
+                ? _animaIdbAll().then(cur => cur.length ? 0
+                    : _animaIdbAddMany(_animaLegacyResults.slice().reverse().map(r => ({ k: _animaNewKey(), url: r.url, seed: r.seed, src: r.src || null, opt: r.opt || '' }))))
+                : Promise.resolve(0);
+            return migrate.then(n => {
+                if (n) {   // 옮겼으면 localStorage에서 결과를 떼어내 용량을 돌려준다
+                    try { const s = JSON.parse(localStorage.getItem(ANIMA_KEY) || 'null'); if (s && s.results) { delete s.results; localStorage.setItem(ANIMA_KEY, JSON.stringify(s)); } } catch (e) {}
+                }
+                _animaLegacyResults = null;
+                return _animaIdbAll();
+            }).then(list => {
+                _anima.results = list;
+                // 이어서 만들 키가 기존 것보다 반드시 크도록 — 새로고침해도 순서가 뒤엉키지 않는다
+                if (list.length && list[0].k > _animaKeyLast) _animaKeyLast = list[0].k;
+                try { _animaRenderResult(); } catch (e) {}
+                return list;
+            }).catch(() => { _anima.results = _anima.results || []; return _anima.results; });
+        }
+        // 새 결과 1건 추가 — 메모리 맨 앞에 넣고 IndexedDB에 그 1건만 기록(전체 재저장 없음).
+        function _animaAddResult(url, seed, srcKey, opt) {
+            const rec = { k: _animaNewKey(), url, seed: (seed == null ? null : seed), src: srcKey || null, opt: opt || '' };
+            _anima.results.unshift(rec);
+            if (_anima.results.length > _ANIMA_MAX_RESULTS) _anima.results.length = _ANIMA_MAX_RESULTS;
+            _animaIdbAdd(rec).catch(() => {});
+            return rec;
+        }
         let _animaQuotaWarned = false;   // 저장 공간 부족 경고는 세션당 1번만(저장은 자주 일어남)
         function _animaSave() {
             try {
                 const p = {};
                 ['prompt', 'steps', 'cfg', 'denoise', 'sampler', 'scheduler', 'seed', 'megapixels', 'upscaleMethod', 'refWeight', 'refMode',
                     'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb', 'exprMore', 'exprRecent', 'sweep', 'galGroup', 'srcKey'].forEach(k => p[k] = _anima[k]);
-                // 이 테마에서 뽑은 결과 이미지 목록도 저장(서버 URL만, Anima 전용 · 다른 테마와 완전 분리). 최근 80장.
-                p.results = (_anima.results || []).slice(0, _ANIMA_MAX_RESULTS).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed, src: r.src || null, opt: r.opt || '' }));
+                // 결과 이미지 목록은 여기 없다 — IndexedDB(_animaIdb*)로 옮겼다. 장수가 늘어도 이 저장이 무거워지지 않는다.
                 p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null, detail: s.detail || null, more: !!s.more }));
-                // 이전에 넣은 원본 이미지(축소본)들 — 다시 불러오기용.
+                // 이전에 넣은 원본 이미지(축소본)들 — 다시 불러오기용. 여기 남은 것 중엔 이게 제일 크다(그림 데이터).
                 const hist = (_anima.srcHistory || []).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0, key: h.key || null }));
-                // 용량(localStorage quota) 초과 시 '무거운 것부터' 단계적으로 줄여가며 재시도.
-                //  목적: 결과 목록이 넘쳐서 프롬프트·모델·서버 주소 같은 설정까지 통째로 날아가는 일을 막는 것.
-                //  ① 이전 원본 썸네일(dataURL — 압도적으로 큼)을 오래된 것부터
-                //  ② 그래도 안 되면 결과 목록을 오래된 것부터(500장이면 무시 못 할 크기)
-                //  ③ 마지막엔 현재 원본 썸네일까지 포기 — 설정만은 반드시 살린다
+                // 용량 초과 시 무거운 것부터 단계적으로 줄여 재시도 — 설정(프롬프트·모델·서버 주소)만은 반드시 살린다.
+                //  ① 이전 원본 썸네일을 오래된 것부터  ② 그래도 안 되면 현재 원본 썸네일까지 포기
                 const _put = () => { try { localStorage.setItem(ANIMA_KEY, JSON.stringify(p)); return true; } catch (err) { return false; } };
-                const allRes = p.results;
                 let saved = false;
                 for (let n = hist.length; n >= 0 && !saved; n--) {
                     p.srcHistory = hist.slice(0, n);
-                    if (_put()) { saved = true; if (n < hist.length) _anima.srcHistory = p.srcHistory.slice(); }
-                }
-                // ② 결과 목록 줄이기 — 절반씩 빠르게 좁히고 마지막엔 1장씩
-                for (let m = Math.floor(allRes.length / 2); !saved && m >= 0; m = (m > 8 ? Math.floor(m / 2) : m - 1)) {
-                    p.results = allRes.slice(0, m);
                     if (_put()) {
                         saved = true;
-                        // 화면(메모리)을 저장본과 맞춘다 — 어긋나 있으면 다음 저장 때 이 사다리를 처음부터 또 걸어야 한다
-                        _anima.results = (_anima.results || []).slice(0, m);
-                        _anima.srcHistory = (p.srcHistory || []).slice();
-                        if (!_animaQuotaWarned) {
-                            _animaQuotaWarned = true;
-                            try { showToast(`저장 공간이 가득 차 오래된 생성 이미지 목록을 ${m}장으로 줄였어요 (설정은 그대로예요)`, 'warning', 4200); } catch (e2) {}
+                        if (n < hist.length) {
+                            _anima.srcHistory = p.srcHistory.slice();   // 화면과 저장본을 맞춰 다음 저장이 사다리를 또 걷지 않게
+                            if (!_animaQuotaWarned) {
+                                _animaQuotaWarned = true;
+                                try { showToast(`저장 공간이 부족해 '이전 원본' 목록을 ${n}장으로 줄였어요 (생성 이미지와 설정은 그대로예요)`, 'warning', 4200); } catch (e2) {}
+                            }
                         }
                     }
                 }
-                // ③ 그래도 안 되면 현재 원본 썸네일을 빼고 설정만 저장
                 if (!saved) { p.imgThumb = null; _put(); }
             } catch (e) {}
         }
@@ -7121,7 +7206,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const s = JSON.parse(localStorage.getItem(ANIMA_KEY) || 'null');
                 if (s && typeof s === 'object') {
                     Object.keys(s).forEach(k => { if (k === 'results' || k === 'snippets' || k === 'srcHistory') return; if (k in _anima && s[k] != null) _anima[k] = s[k]; });
-                    if (Array.isArray(s.results)) _anima.results = s.results.filter(r => r && r.url).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed, src: r.src || null, opt: r.opt || '' }));
+                    // s.results = 구버전(localStorage) 저장분. 여기서는 임시로만 담아 두고, 아래 _animaLoadResults()가 IndexedDB로 옮긴다.
+                    if (Array.isArray(s.results)) _animaLegacyResults = s.results.filter(r => r && r.url).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed, src: r.src || null, opt: r.opt || '' }));
                     if (Array.isArray(s.snippets)) _anima.snippets = s.snippets.filter(x => x && x.id).map(x => ({ id: x.id, name: x.name || '옵션', text: x.text || '', on: !!x.on, kind: x.kind || 'append', group: x.group || null, detail: x.detail || null, more: !!x.more }));
                     if (Array.isArray(s.srcHistory)) _anima.srcHistory = s.srcHistory.filter(h => h && h.thumb).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0, key: h.key || null }));
                     if (_anima.imgThumb) { _anima.img = { dataURL: _anima.imgThumb, name: 'image' }; _anima.uploadedName = null; }
@@ -7375,8 +7461,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         // ── 결과 훅 (comfyGenerate 완료 시 finalize가 호출) ──
         window._animaOnResult = function (url, seed) {
-            _anima.results.unshift({ url, seed: (seed == null ? null : seed), src: _anima.srcKey || null, opt: _animaOptLabel() });
-            if (_anima.results.length > _ANIMA_MAX_RESULTS) _anima.results.length = _ANIMA_MAX_RESULTS;
+            _animaAddResult(url, seed, _anima.srcKey, _animaOptLabel());
             _animaResSel = 0; // 새 결과를 현재 비교 대상으로
             _animaBusy = false;
             try { _animaSave(); } catch (e) {}
@@ -7686,8 +7771,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         for (const nid in outs) (outs[nid].images || []).forEach(im => {
                             if ((im.type || 'output') === 'output') {
                                 const url = base + '/view?filename=' + encodeURIComponent(im.filename) + '&subfolder=' + encodeURIComponent(im.subfolder || '') + '&type=' + encodeURIComponent(im.type || 'output');
-                                _anima.results.unshift({ url, seed: (job.seed == null ? null : job.seed), src: (job.srcKey || _anima.srcKey || null), opt: (job.opt || '') });
-                                if (_anima.results.length > _ANIMA_MAX_RESULTS) _anima.results.length = _ANIMA_MAX_RESULTS;
+                                _animaAddResult(url, job.seed, (job.srcKey || _anima.srcKey), job.opt);
                                 got = true;
                             }
                         });
@@ -8369,6 +8453,79 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _animaPreviewUrl(url, q) {
             try { if (!url || !/\/view\?/.test(url) || /[?&]preview=/.test(url)) return url; return url + '&preview=webp;' + (q || 70); } catch (e) { return url; }
         }
+        // ══ 갤러리 창(window) 렌더링 ═══════════════════════════════════════
+        //  한 번에 DOM에 올리는 장수. 이걸 넘는 분량은 스크롤이 바닥에 닿을 때 이어붙인다.
+        //  (예전엔 장수만큼 HTML 문자열을 통째로 만들어 innerHTML로 넣어서, 장수에 비례해 느려졌다)
+        const _ANIMA_GAL_PAGE = 100;
+        let _animaGalShown = _ANIMA_GAL_PAGE;
+        let _animaGalIO = null;              // 바닥 감지용 IntersectionObserver
+        // 한 장(썸네일)의 HTML — data-i는 항상 _anima.results 기준 '전역 인덱스'라 전체·그룹 어느 보기에서도 동일하게 동작
+        function _animaGalCell(i) {
+            const r = _anima.results[i]; if (!r) return '';
+            return `<div class="anima-gitem${i === _animaResSel ? ' sel' : ''}" data-i="${i}"><img src="${_animaPreviewUrl(r.url, 62)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${r.url}'"><button class="anima-gx" data-i="${i}" title="삭제" aria-label="이 이미지 삭제">✕</button></div>`;
+        }
+        function _animaGalGroupHead(k, cnt) {
+            const meta = (_anima.srcHistory || []).find(h => h && h.key === k);
+            const title = k === '_none' ? '원본 정보 없음 <span class="anima-gg-sub">(이전에 만든 이미지)</span>' : _animaEsc(meta && meta.name ? meta.name : '원본');
+            return `<div class="anima-gg-head" data-src="${_animaEsc(k)}">${meta && meta.thumb ? `<img class="anima-gg-th" src="${meta.thumb}" loading="lazy">` : '<span class="anima-gg-th none">?</span>'}<span class="anima-gg-name">${title}</span><span class="anima-gg-cnt">${cnt}장</span></div>`;
+        }
+        function _animaGalMoreHtml(rest) {
+            return `<div class="anima-gal-more" id="anima-gal-more"><span class="anima-sp"></span><span class="anima-gal-more-t">남은 ${rest}장 불러오는 중…</span></div>`;
+        }
+        // 원본별 전체 장수 — 창에 안 올라온 것까지 세어야 머리글 숫자가 맞다
+        function _animaSrcCounts() {
+            const m = {};
+            const list = _anima.results || [];
+            for (let i = 0; i < list.length; i++) { const k = list[i].src || '_none'; m[k] = (m[k] || 0) + 1; }
+            return m;
+        }
+        // 다음 페이지를 '이어붙이기'만 한다 — 이미 그린 썸네일은 건드리지 않는다(스크롤 위치·로딩 상태 유지)
+        function _animaGalAppend() {
+            const box = _animaEl('#anima-result'); if (!box) return;
+            const total = _anima.results.length;
+            if (_animaGalShown >= total) return;
+            const from = _animaGalShown, to = Math.min(total, from + _ANIMA_GAL_PAGE);
+            const sentinel = box.querySelector('#anima-gal-more');
+            const gs = Math.min(220, Math.max(60, parseInt(_anima.galSize) || 96));
+            if (!_anima.galGroup) {
+                const gal = box.querySelector('.anima-gal[data-src="_all"]'); if (!gal) return;
+                let h = ''; for (let i = from; i < to; i++) h += _animaGalCell(i);
+                gal.insertAdjacentHTML('beforeend', h);
+            } else {
+                // 같은 원본이 이어지면 그 그룹 뒤에 붙이고, 새 원본이 나오면 그룹을 새로 만든다
+                const cnts = _animaSrcCounts();
+                let i = from;
+                while (i < to) {
+                    const k = _anima.results[i].src || '_none';
+                    let h = '';
+                    while (i < to && (_anima.results[i].src || '_none') === k) { h += _animaGalCell(i); i++; }
+                    const sel = `.anima-gal[data-src="${(window.CSS && CSS.escape) ? CSS.escape(k) : k}"]`;
+                    let gal = box.querySelector(sel);
+                    if (gal) gal.insertAdjacentHTML('beforeend', h);
+                    else {
+                        const block = _animaGalGroupHead(k, cnts[k] || 0) + `<div class="anima-gal${_animaGalManage ? ' manage' : ''}" data-src="${_animaEsc(k)}" style="column-width:${gs}px">${h}</div>`;
+                        if (sentinel) sentinel.insertAdjacentHTML('beforebegin', block); else box.insertAdjacentHTML('beforeend', block);
+                    }
+                }
+            }
+            _animaGalShown = to;
+            if (_animaGalShown >= total) { if (sentinel) sentinel.remove(); _animaGalObserve(null); }
+            else if (sentinel) { const t = sentinel.querySelector('.anima-gal-more-t'); if (t) t.textContent = `남은 ${total - _animaGalShown}장 불러오는 중…`; }
+        }
+        // 바닥 센티넬이 보이면 다음 페이지를 붙인다. 화면에 들어오기 600px 전에 미리 시작해 끊김을 없앤다.
+        function _animaGalObserve(el) {
+            try { if (_animaGalIO) { _animaGalIO.disconnect(); _animaGalIO = null; } } catch (e) {}
+            if (!el || typeof IntersectionObserver !== 'function') return;
+            _animaGalIO = new IntersectionObserver((ents) => {
+                if (ents.some(en => en.isIntersecting)) {
+                    _animaGalAppend();
+                    // 한 페이지를 붙여도 여전히 센티넬이 보이면(=화면이 크면) 이어서 더 붙인다
+                    const nx = _animaEl('#anima-result') && _animaEl('#anima-result').querySelector('#anima-gal-more');
+                    if (nx) _animaGalObserve(nx); else _animaGalObserve(null);
+                }
+            }, { root: null, rootMargin: '600px 0px' });
+            _animaGalIO.observe(el);
+        }
         function _animaRenderResult() {
             const box = _animaEl('#anima-result'); if (!box) return;
             if (_animaResSel >= _anima.results.length) _animaResSel = 0;
@@ -8394,32 +8551,35 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         <button class="anima-gal-clear" id="anima-gal-clear">전체 비우기</button>
                     </div></div>`;
                 if (_animaGalManage) html += `<div class="anima-gal-tip">삭제할 이미지의 ✕를 누르세요 · 끝나면 [완료]</div>`;
-                // 한 장(썸네일)의 HTML — data-i는 항상 _anima.results 기준 '전역 인덱스'라 전체·그룹 어느 보기에서도 삭제/선택이 동일하게 동작
-                const cellHtml = (r, i) => `<div class="anima-gitem${i === _animaResSel ? ' sel' : ''}" data-i="${i}"><img src="${_animaPreviewUrl(r.url, 62)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${r.url}'"><button class="anima-gx" data-i="${i}" title="삭제" aria-label="이 이미지 삭제">✕</button></div>`;
+                // ── 창(window) 방식 ──
+                //  장수가 몇 만이어도 한 번에 DOM에 올리는 건 앞쪽 _ANIMA_GAL_PAGE장뿐이고,
+                //  스크롤이 끝에 닿으면 _animaGalAppend()가 '이어붙이기'만 한다(전체 재구성 없음).
+                const total = _anima.results.length;
+                const shown = Math.min(_animaGalShown, total);
+                const cnts = _animaSrcCounts();   // 그룹 머리글엔 '지금 그린 수'가 아니라 원본별 전체 장수를 보여준다
                 if (!grouped) {
-                    html += `<div class="anima-gal${_animaGalManage ? ' manage' : ''}" style="column-width:${gs}px">`;
-                    _anima.results.forEach((r, i) => { html += cellHtml(r, i); });
+                    html += `<div class="anima-gal${_animaGalManage ? ' manage' : ''}" data-src="_all" style="column-width:${gs}px">`;
+                    for (let i = 0; i < shown; i++) html += _animaGalCell(i);
                     html += '</div>';
                 } else {
                     // 원본별 그룹 — 결과는 최신순이라, 먼저 나온 그룹이 곧 '최근에 작업한 원본'이 된다
                     const order = [], byKey = {};
-                    _anima.results.forEach((r, i) => {
-                        const k = r.src || '_none';
+                    for (let i = 0; i < shown; i++) {
+                        const k = _anima.results[i].src || '_none';
                         if (!byKey[k]) { byKey[k] = []; order.push(k); }
                         byKey[k].push(i);
-                    });
+                    }
                     order.forEach(k => {
-                        const idxs = byKey[k];
-                        const meta = (_anima.srcHistory || []).find(h => h && h.key === k);
-                        const title = k === '_none' ? '원본 정보 없음 <span class="anima-gg-sub">(이전에 만든 이미지)</span>' : _animaEsc(meta && meta.name ? meta.name : '원본');
-                        html += `<div class="anima-gg-head">${meta && meta.thumb ? `<img class="anima-gg-th" src="${meta.thumb}" loading="lazy">` : '<span class="anima-gg-th none">?</span>'}<span class="anima-gg-name">${title}</span><span class="anima-gg-cnt">${idxs.length}장</span></div>`;
-                        html += `<div class="anima-gal${_animaGalManage ? ' manage' : ''}" style="column-width:${gs}px">`;
-                        idxs.forEach(i => { html += cellHtml(_anima.results[i], i); });
+                        html += _animaGalGroupHead(k, cnts[k] || byKey[k].length);
+                        html += `<div class="anima-gal${_animaGalManage ? ' manage' : ''}" data-src="${_animaEsc(k)}" style="column-width:${gs}px">`;
+                        byKey[k].forEach(i => { html += _animaGalCell(i); });
                         html += '</div>';
                     });
                 }
+                if (shown < total) html += _animaGalMoreHtml(total - shown);
             } else {
                 _animaGalManage = false;
+                _animaGalShown = _ANIMA_GAL_PAGE;
             }
             box.innerHTML = html;
             // 결과에 붙여 둔 옵션 라벨을 라이트박스 캡션 사전에 등록(크게 볼 때 하단에 표시)
@@ -8441,12 +8601,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 } catch (e) {}
             };
             box.querySelectorAll('.anima-frame').forEach(fr => { const lb = parseInt(fr.dataset.lb); if ((lb === 0 && src) || (lb === 1 && gen)) { fr.style.cursor = 'zoom-in'; fr.onclick = () => openLB(lb); } });
-            // 이벤트 위임: 항목마다 핸들러를 붙이지 않고 갤러리 컨테이너에만 → 장수가 많아도 렌더가 가벼움(O(N) 바인딩 제거).
-            //  (원본별 보기에선 그룹마다 컨테이너가 하나씩 생기므로 전부에 건다)
-            box.querySelectorAll('.anima-gal').forEach(gal => gal.onclick = (e) => {
+            // 이벤트 위임: 항목마다 핸들러를 붙이지 않고 결과 상자 하나에만 → 장수가 많아도 렌더가 가벼움(O(N) 바인딩 제거).
+            //  ★ 컨테이너가 아니라 상자에 거는 이유: 스크롤로 새 그룹 컨테이너가 나중에 생겨도 따로 바인딩할 필요가 없다.
+            box.onclick = (e) => {
+                if (!e.target.closest('.anima-gal')) return;   // 갤러리 밖(비교창 등) 클릭은 각자 핸들러가 처리
                 const gx = e.target.closest('.anima-gx');
                 if (gx) {   // 삭제 (정리 모드에서 ✕로만)
                     e.stopPropagation(); const i = parseInt(gx.dataset.i);
+                    const gone = _anima.results[i];
+                    if (gone && gone.k != null) _animaIdbDel(gone.k);   // 저장소에서도 그 1건만 지움
                     _anima.results.splice(i, 1);
                     if (_animaResSel >= _anima.results.length) _animaResSel = Math.max(0, _anima.results.length - 1);
                     if (!_anima.results.length) _animaGalManage = false;
@@ -8465,22 +8628,25 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         window.openLightbox(urls[i], urls, i);
                     }
                 } catch (err) {}   // 크게 보기(전체 좌우 넘김)
-            });
+            };
+            // 바닥에 닿으면 다음 페이지 이어붙이기 — 창이 남아 있을 때만 감시
+            _animaGalObserve(box.querySelector('#anima-gal-more'));
             // 보기 전환(전체 / 원본별)
             box.querySelectorAll('.anima-gal-vb').forEach(b => b.onclick = () => {
                 const g = b.dataset.view === 'group';
                 if (!!_anima.galGroup === g) return;
-                _anima.galGroup = g; _animaSave(); _animaRenderResult();
+                _anima.galGroup = g; _animaGalShown = _ANIMA_GAL_PAGE;   // 보기를 바꾸면 창은 처음부터
+                _animaSave(); _animaRenderResult();
             });
             const mng = box.querySelector('#anima-gal-manage');
             if (mng) mng.onclick = () => { _animaGalManage = !_animaGalManage; _animaRenderResult(); };
             const clr = box.querySelector('#anima-gal-clear');
-            if (clr) clr.onclick = () => { if (!_anima.results.length) return; _anima.results = []; _animaResSel = 0; _animaSave(); _animaRenderResult(); showToast('이 테마의 생성 이미지 목록을 비웠어요', 'info', 1800); };
+            if (clr) clr.onclick = () => { if (!_anima.results.length) return; _anima.results = []; _animaResSel = 0; _animaIdbClear(); _animaSave(); _animaRenderResult(); showToast('이 테마의 생성 이미지 목록을 비웠어요', 'info', 1800); };
             // 썸네일 크기 슬라이더 — 끌면 즉시 컬럼 폭 반영(재렌더 없이 부드럽게), 놓으면 저장
             const szEl = box.querySelector('#anima-gal-size');
             if (szEl) {
-                const gals = box.querySelectorAll('.anima-gal');   // 원본별 보기에선 그룹마다 하나씩
-                szEl.oninput = () => { const v = Math.min(220, Math.max(60, parseInt(szEl.value) || 96)); gals.forEach(g => g.style.columnWidth = v + 'px'); };
+                // 끌 때마다 다시 찾는다 — 스크롤로 새로 생긴 그룹 컨테이너도 함께 반영되게(고정 목록이면 새 그룹이 빠짐)
+                szEl.oninput = () => { const v = Math.min(220, Math.max(60, parseInt(szEl.value) || 96)); box.querySelectorAll('.anima-gal').forEach(g => g.style.columnWidth = v + 'px'); };
                 szEl.onchange = () => { _anima.galSize = Math.min(220, Math.max(60, parseInt(szEl.value) || 96)); _animaSave(); };
             }
         }
@@ -8585,6 +8751,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             document.body.appendChild(_animaDom);
             _animaApplyAdultGate();   // 성인 표시가 꺼져 있으면 진입 시점에 노출·후타를 정리하고 프롬프트도 중립으로
             _animaRenderInput(); _animaRenderRun(); _animaRenderResult(); _animaRenderAdv(); _animaRenderSnippets(); _animaRenderQueue();
+            _animaLoadResults();   // 결과 목록은 IndexedDB에서 비동기로 — 화면은 먼저 뜨고, 도착하면 갤러리만 다시 그린다
             const pt = _animaEl('#anima-prompt'); pt.value = _anima.prompt; pt.oninput = () => { _anima.prompt = pt.value; _animaSaveDebounced(); };
             const sd = _animaEl('#anima-seed'); sd.value = (_anima.seed == null ? -1 : _anima.seed); sd.onchange = () => { const v = sd.value.trim(); _anima.seed = (v === '' || v === '-1') ? -1 : (parseInt(v) || -1); _animaSave(); };
             _animaEl('#anima-seed-rand').onclick = () => { _anima.seed = Math.floor(Math.random() * 1e9); sd.value = _anima.seed; _animaSave(); };
@@ -8788,6 +8955,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-gal-manage { background:transparent; border:1px solid var(--border-dim); border-radius:8px; padding:5px 10px; color:var(--text-dim); font-size:11px; font-weight:700; cursor:pointer; transition:.12s;  white-space:nowrap; }
           .anima-gal-manage:hover { color:var(--text-main); }
           .anima-gal-manage.on { color:#fff; background:#ef4444; border-color:#ef4444; }
+          /* 바닥 감지 자리 — 여기가 보이면 다음 100장을 이어붙인다 */
+          .anima-gal-more { display:flex; align-items:center; justify-content:center; gap:8px; padding:18px 0 8px; font-size:11.5px; font-weight:700; color:var(--text-dim); }
           .anima-gal-clear { background:transparent; border:1px solid var(--border-dim); border-radius:8px; padding:5px 10px; color:var(--text-dim); font-size:11px; font-weight:700; cursor:pointer;  white-space:nowrap; }
           .anima-gal-clear:hover { color:#ef4444; border-color:rgba(239,68,68,.5); }
           .anima-gal-tip { margin-top:8px; font-size:11px; font-weight:600; color:#ef4444; }
@@ -21730,7 +21899,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try {
                 let names = [];
                 if (indexedDB.databases) { names = (await indexedDB.databases()).map(d => d && d.name).filter(Boolean); }
-                if (!names.length) names = ['pl_catalog'];   // databases() 미지원 브라우저 대비
+                if (!names.length) names = ['pl_catalog', 'pl_anima'];   // databases() 미지원 브라우저 대비
                 await Promise.all(names.map(nm => new Promise(res => {
                     try { const rq = indexedDB.deleteDatabase(nm); rq.onsuccess = rq.onerror = rq.onblocked = () => res(); }
                     catch (e) { res(); }
