@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.67.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.68.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.67.1 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.68.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2040,7 +2040,19 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.67.1', date: '2026-07-28', time: '최신',
+                version: 'v9.68.0', date: '2026-07-28', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] <b>포즈 프리셋</b>이 생겼습니다 — 본문 옵션과 하단 바에 <b>[포즈 ▾]</b> 줄이 추가돼, 표정처럼 <b>한 번 눌러</b> 포즈를 바꿀 수 있어요. <b>정면 직립 · 게다리 벌리기 · 자위 · 게다리+더블피스</b>가 기본으로 보이고, 펼치면 손으로 벌려 보이기 · 엉덩이 내밀기 · 네발 기기 · 쪼그려 벌리기도 있습니다. 하단 바 칩은 <b>청록색</b>이라 표정(주황)과 바로 구분돼요.",
+                    "[Anima 편집] <b>자위 포즈는 후타 여부를 스스로 압니다</b> — 후타 프리셋이 켜져 있으면 손동작이 자동으로 바뀝니다(여성: 손가락 / 후타: 손으로 잡기). 따로 고를 필요 없어요. (✏️ 편집으로 문구를 직접 고치셨다면 그 내용을 존중합니다)",
+                    "[Anima 편집] <b>원본에 여캐가 2명일 때 쓰는 2인 포즈</b>도 들어갔습니다 — 딥키스, 후타 섹스(한 명만 후타 / 둘 다 후타). 원본에 없는 인물을 새로 만들어야 하는 포즈는 넣지 않았습니다. (1명짜리 이미지에 2인 포즈를 켜면 없던 인물이 생길 수 있으니 원본 인원에 맞춰 쓰세요)",
+                    "[Anima 편집] 연속 생성(실행 길게 누르기)에 <b>'포즈 전부 돌리기'</b>가 추가됐습니다 — 같은 시드로 포즈만 바꿔가며 비교할 수 있어요. 기본은 하단 바에 보이는 최근 포즈들이고, ⚙ 설정에서 2인 포즈까지 골라 넣을 수 있습니다.",
+                    "[Anima 편집] 포즈도 표정처럼 <b>최근 쓴 것이 하단 바에 남고</b>, 크게 보기 하단 캡션에 <b>어떤 포즈로 만든 이미지인지</b> 함께 표시됩니다.",
+                    "[성인 콘텐츠] 새 포즈 중 19+ 항목은 성인 표시를 끄면 함께 숨겨지고(정면 직립만 남음), 끄는 순간 켜져 있던 19+ 포즈도 자동 해제됩니다.",
+                ]
+            },
+            {
+                version: 'v9.67.1', date: '2026-07-28', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] <b>샘플러·스케줄러를 골라서</b> 쓸 수 있게 했습니다 — 예전엔 이름을 직접 타이핑해야 했고 철자가 하나만 틀려도 생성이 실패했어요. 이제 <b>목록에서 고르면 끝</b>입니다. ComfyUI에 연결돼 있으면 <b>실제로 설치된 목록</b>을 그대로 가져오고(옆 🔄로 다시 가져오기), 연결 전이라도 표준 목록에서 바로 고를 수 있습니다. 직접 써 넣었던 이름이 목록에 없어도 <b>그대로 유지</b>됩니다.",
@@ -7045,6 +7057,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             customWf: '',               // 사용자가 붙여넣은 API 워크플로우(있으면 그대로 사용)
             snippets: [],               // 프롬프트 옵션 토글 [{id,name,text,on}] — 켜면 기본 프롬프트 뒤에 붙음
             exprRecent: [],             // 하단 바에 보일 '최근 쓴 표정' id 목록 — 이미 있는 걸 눌러도 순서는 그대로 둔다
+            poseRecent: [],             // 하단 바에 보일 '최근 쓴 포즈' id 목록 — 표정과 같은 규칙
             sweep: null,                // 연속 생성에서 '무엇을 돌릴지' 저장 {base:[id..],futa:[..],expr:[..]}
             srcKey: null,               // 현재 원본 이미지의 고정 key — 생성 결과에 달아 '원본별 그룹뷰'로 묶는다
             galGroup: false,            // 갤러리 보기: false=전체(기존), true=원본별 그룹
@@ -7096,8 +7109,25 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { id: 'expr_heart', name: '하트눈', kind: 'append', on: false, group: 'expr', more: true, text: 'heart-shaped pupils' },
             { id: 'expr_pout', name: '삐침', kind: 'append', on: false, group: 'expr', more: true, text: 'pout' },
             { id: 'expr_wink', name: '윙크', kind: 'append', on: false, group: 'expr', more: true, text: 'wink, one eye closed, smile' },
-            { id: 'expr_cry', name: '우는', kind: 'append', on: false, group: 'expr', more: true, text: 'crying, tears' }
+            { id: 'expr_cry', name: '우는', kind: 'append', on: false, group: 'expr', more: true, text: 'crying, tears' },
+            // 포즈 프리셋 (group 'pose' — 하나 켜면 나머지 자동 꺼짐). 표정과 같은 '자주 쓰는 것 + 더보기(more)' 규칙.
+            //  ★ 원본에 없는 인물(남성 등)을 새로 만들어야 성립하는 포즈는 넣지 않는다 — 2인 포즈는 원본에 이미 2명일 때 쓰는 용도.
+            //  nsfw:true 항목은 성인 표시(19+)가 꺼져 있으면 숨겨지고 프롬프트에도 안 들어간다.
+            { id: 'pose_stand_front', name: '정면 직립', kind: 'append', on: false, group: 'pose', text: '(standing, facing viewer, straight-on:1.2), arms at sides, full body' },
+            { id: 'pose_mlegs', name: '게다리 벌리기', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(m legs, spread legs:1.3), lying, on back, presenting' },
+            { id: 'pose_masturbation', name: '자위', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(masturbation, fingering:1.2), hand between legs, spread legs' },
+            { id: 'pose_mlegs_vsign', name: '게다리+더블피스', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(m legs, spread legs:1.3), double v, looking at viewer' },
+            { id: 'pose_spread_pussy', name: '손으로 벌려 보이기', kind: 'append', on: false, group: 'pose', nsfw: true, more: true, text: '(spread pussy:1.3), spread legs, presenting' },
+            { id: 'pose_bent_over', name: '엉덩이 내밀기', kind: 'append', on: false, group: 'pose', nsfw: true, more: true, text: '(bent over, ass focus:1.2), from behind, looking back, presenting' },
+            { id: 'pose_allfours', name: '네발 기기', kind: 'append', on: false, group: 'pose', nsfw: true, more: true, text: '(all fours:1.2), top-down bottom-up, looking at viewer' },
+            { id: 'pose_squat', name: '쪼그려 벌리기', kind: 'append', on: false, group: 'pose', nsfw: true, more: true, text: '(squatting, spread legs:1.3), tiptoes, knees apart' },
+            // 2인 포즈 — 원본 이미지에 여캐가 2명일 때만 의도대로 나온다(1명이면 없던 인물이 생길 수 있음 → 이름에 명시)
+            { id: 'pose_2g_kiss', name: '딥키스 (원본 2인)', kind: 'append', on: false, group: 'pose', nsfw: true, more: true, text: '2girls, yuri, (french kiss:1.3), kiss, tongue, saliva, eye contact, hugging' },
+            { id: 'pose_2g_futasex', name: '후타 섹스 (2인·한 명 후타)', kind: 'append', on: false, group: 'pose', nsfw: true, more: true, text: '2girls, (futa with female:1.3), futanari, sex, vaginal, penis, penetration' },
+            { id: 'pose_2g_futafuta', name: '후타 섹스 (2인·둘 다 후타)', kind: 'append', on: false, group: 'pose', nsfw: true, more: true, text: '2girls, (futa with futa:1.3), futanari, sex, penis' }
         ];
+        // '자위' 포즈는 후타 여부에 따라 손동작이 달라야 한다 — 후타 프리셋이 켜져 있으면 생성 시 이 문구로 자동 교체.
+        const _ANIMA_POSE_MAST_FUTA = '(masturbation, grabbing own penis, handjob:1.2), spread legs';
         const ANIMA_KEY = 'anima_settings_v1';
         const _ANIMA_SRCHIST_MAX = 24;   // 이전 원본(축소본) 보관 개수 — 저장 용량 초과 시 자동으로 줄임(_animaSave)
         // ══ 결과 갤러리 저장소 (IndexedDB) ═══════════════════════════════════
@@ -7231,7 +7261,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     Object.keys(s).forEach(k => { if (k === 'results' || k === 'snippets' || k === 'srcHistory') return; if (k in _anima && s[k] != null) _anima[k] = s[k]; });
                     // s.results = 구버전(localStorage) 저장분. 여기서는 임시로만 담아 두고, 아래 _animaLoadResults()가 IndexedDB로 옮긴다.
                     if (Array.isArray(s.results)) _animaLegacyResults = s.results.filter(r => r && r.url).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed, src: r.src || null, opt: r.opt || '' }));
-                    if (Array.isArray(s.snippets)) _anima.snippets = s.snippets.filter(x => x && x.id).map(x => ({ id: x.id, name: x.name || '옵션', text: x.text || '', on: !!x.on, kind: x.kind || 'append', group: x.group || null, detail: x.detail || null, more: !!x.more }));
+                    if (Array.isArray(s.snippets)) _anima.snippets = s.snippets.filter(x => x && x.id).map(x => ({ id: x.id, name: x.name || '옵션', text: x.text || '', on: !!x.on, kind: x.kind || 'append', group: x.group || null, detail: x.detail || null, more: !!x.more, nsfw: !!x.nsfw }));
                     if (Array.isArray(s.srcHistory)) _anima.srcHistory = s.srcHistory.filter(h => h && h.thumb).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0, key: h.key || null }));
                     if (_anima.imgThumb) { _anima.img = { dataURL: _anima.imgThumb, name: 'image' }; _anima.uploadedName = null; }
                     // srcKey 복구 — 예전 버전은 srcKey를 저장하지 않아 새로고침 후 '원본 정보 없음'으로 묶였다.
@@ -7272,6 +7302,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     // 마이그레이션: 표정 프리셋(group 'expr') 신규 추가
                     const addExpr = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === 'expr' && !_anima.snippets.some(x => x.id === d.id));
                     if (addExpr.length) _anima.snippets = _anima.snippets.concat(JSON.parse(JSON.stringify(addExpr)));
+                    // 마이그레이션: 포즈 프리셋(group 'pose') 신규 추가
+                    const addPose = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === 'pose' && !_anima.snippets.some(x => x.id === d.id));
+                    if (addPose.length) _anima.snippets = _anima.snippets.concat(JSON.parse(JSON.stringify(addPose)));
                     // 마이그레이션: '하의만 벗기기' 기본 텍스트 보강(pussy) — 사용자가 안 고친 경우에만
                     const OLD_BOTTOM_TEXT = 'masterpiece, best quality, score_7, (bottomless, no panties, uncensored, :2), ';
                     const bt = _anima.snippets.find(x => x.id === 'base_bottom');
@@ -7498,6 +7531,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         let _animaDom = null, _animaBusy = false, _animaResSel = 0, _animaGalManage = false;
         let _animaExprOpen = false;   // 하단 바 표정 줄 펼침 여부
+        let _animaPoseOpen = false;   // 하단 바 포즈 줄 펼침 여부
         let _animaFutaPop = null;     // 열려 있는 후타 상세 팝오버의 크기 id (✕로만 닫힘)
         // (자동 스크롤 제거 — 생성 때마다 화면이 결과로 튀면 옵션을 계속 만지기 불편하다.
         //  완료는 토스트·진동으로 알리고, 어디를 보고 있든 그 자리를 지킨다.)
@@ -7651,13 +7685,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!base0) { showToast('프롬프트를 입력하세요.', 'warning', 2500); return; }
             // 켜진 프롬프트 옵션(후타나리·표정 등)을 기본 프롬프트 뒤에 붙여 스냅샷
             let ons = (_anima.snippets || []).filter(s => s.kind !== 'base' && s.on && s.text && s.text.trim());
-            if (!_adultOn()) ons = ons.filter(s => s.group !== 'futa' && s.detail !== 'futa');   // 성인 꺼짐 → 후타 계열 제외
+            if (!_adultOn()) ons = ons.filter(s => s.group !== 'futa' && s.detail !== 'futa' && !s.nsfw);   // 성인 꺼짐 → 후타 계열·19+ 포즈 제외
             const futaActive = ons.some(s => s.group === 'futa');
             // 후타 프리셋이 꺼져 있으면 후타 상세(발기·포피)는 무시 — 평범한 여성에 성기 태그만 붙는 실수 방지
             if (!futaActive) ons = ons.filter(s => s.detail !== 'futa');
             // 발기 상세(반/무발기)를 골랐으면 프리셋의 기본 'erection'을 빼서 모순 방지
             const erectOverride = ons.some(s => s.group === 'futaErect');
-            let extras = ons.map(s => s.text.trim()).join(', ');
+            // '자위' 포즈는 후타가 켜져 있으면 손동작 태그로 교체(여성: 손가락 / 후타: 손으로 잡기).
+            //  사용자가 ✏️ 편집으로 텍스트를 직접 고쳤으면 그 내용을 존중해 교체하지 않는다.
+            let extras = ons.map(s => {
+                if (s.id === 'pose_masturbation' && futaActive) {
+                    const def = ANIMA_DEFAULT_SNIPPETS.find(d => d.id === s.id);
+                    if (def && s.text.trim() === def.text) return _ANIMA_POSE_MAST_FUTA;
+                }
+                return s.text.trim();
+            }).join(', ');
             if (erectOverride) extras = extras.replace(/\berection\b\s*,\s*/gi, '').replace(/,?\s*\berection\b\s*$/gi, '');
             // 끝에 남는 쉼표는 떼고 보낸다(옵션을 아무것도 안 켰을 때 기본 프롬프트가 ', '로 끝나 토큰을 헛되이 씀)
             const prompt = (extras ? (base0.replace(/,\s*$/, '') + ', ' + extras) : base0).replace(/,\s*$/, '');
@@ -8023,27 +8065,32 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!ic) return '';   // 아이콘이 없는(사용자가 새로 만든) 항목은 아이콘 줄에 넣지 않음
             return `<button class="anima-ico ${kind}${active ? ' on' : ''}" data-${kind === 'pk' ? 'base' : 'futa'}="${s.id}" title="${_animaEsc(s.name)}" aria-label="${_animaEsc(s.name)}" aria-pressed="${active ? 'true' : 'false'}"><svg viewBox="0 0 24 24"><use href="#ai-${ic}"/></svg></button>`;
         }
-        // ── 표정 '최근 사용' 목록 ───────────────────────────────────────────
-        //  하단 바엔 최근 쓴 것만 몇 개 보인다. 이미 목록에 있는 표정을 눌러도 순서를 바꾸지 않는다
-        //  (누를 때마다 자리가 움직이면 손가락이 헷갈림). 목록에 없던 '신규' 표정을 골랐을 때만 맨 앞에 넣는다.
+        // ── 표정·포즈 '최근 사용' 목록 (공용 규칙) ───────────────────────────
+        //  하단 바엔 최근 쓴 것만 몇 개 보인다. 이미 목록에 있는 칩을 눌러도 순서를 바꾸지 않는다
+        //  (누를 때마다 자리가 움직이면 손가락이 헷갈림). 목록에 없던 '신규' 항목을 골랐을 때만 맨 앞에 넣는다.
         const _ANIMA_EXPR_RECENT_MAX = 6;   // 최근 목록 보관 개수(하단 바엔 이 중 '한 줄에 들어가는 만큼'만 보인다)
-        function _animaExprRecentList() {
-            const all = (_anima.snippets || []).filter(s => s.group === 'expr');
-            let ids = (_anima.exprRecent || []).filter(id => all.some(s => s.id === id));
+        function _animaRecentList(group, storeKey) {
+            // 포즈는 19+ 항목이 섞여 있어 성인 표시가 꺼지면 여기서도 걸러진다(표정은 전부 일반이라 영향 없음)
+            const all = (_anima.snippets || []).filter(s => s.group === group && (_adultOn() || !s.nsfw));
+            let ids = (_anima[storeKey] || []).filter(id => all.some(s => s.id === id));
             if (!ids.length) ids = all.slice(0, _ANIMA_EXPR_RECENT_MAX).map(s => s.id);   // 최초엔 앞쪽 기본값
             return ids.slice(0, _ANIMA_EXPR_RECENT_MAX).map(id => all.find(s => s.id === id)).filter(Boolean);
         }
-        function _animaExprTouch(id) {
-            const cur = _animaExprRecentList().map(s => s.id);
+        function _animaRecentTouch(group, storeKey, id) {
+            const cur = _animaRecentList(group, storeKey).map(s => s.id);
             if (cur.includes(id)) return false;   // 이미 바에 있음 → 순서 유지(요청)
-            _anima.exprRecent = [id].concat(cur).slice(0, _ANIMA_EXPR_RECENT_MAX);
+            _anima[storeKey] = [id].concat(cur).slice(0, _ANIMA_EXPR_RECENT_MAX);
             return true;   // 목록이 바뀜 → 다시 그려야 함
         }
+        function _animaExprRecentList() { return _animaRecentList('expr', 'exprRecent'); }
+        function _animaExprTouch(id) { return _animaRecentTouch('expr', 'exprRecent', id); }
+        function _animaPoseRecentList() { return _animaRecentList('pose', 'poseRecent'); }
+        function _animaPoseTouch(id) { return _animaRecentTouch('pose', 'poseRecent', id); }
 
-        // 하단 바 표정 줄이 절대 줄바꿈되지 않게 — 실제 폭을 재서 넘치는 칩만 감춘다.
-        //  (이름 길이가 '유혹'~'혀내밀기'로 제각각이라 개수를 고정하면 어떤 조합에선 반드시 넘친다)
-        function _animaFitExprRow(row) {
-            if (!row || _animaExprOpen) return;   // 펼침 상태는 줄바꿈이 정상이므로 손대지 않음
+        // 하단 바 표정·포즈 줄이 절대 줄바꿈되지 않게 — 실제 폭을 재서 넘치는 칩만 감춘다.
+        //  (이름 길이가 제각각이라 개수를 고정하면 어떤 조합에선 반드시 넘친다)
+        function _animaFitChipRow(row, open) {
+            if (!row || open) return;   // 펼침 상태는 줄바꿈이 정상이므로 손대지 않음
             const kids = Array.from(row.children);
             kids.forEach(c => { c.style.display = ''; });
             const avail = row.clientWidth;
@@ -8091,11 +8138,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 h += row('표정', shown.map(s => `<button class="anima-chip ex g-expr${s.on ? ' on' : ''}" data-id="${s.id}">${_animaEsc(s.name)}</button>`).join('')
                     + `<button class="anima-chip ex tg" data-act="exprOpen">${_animaExprOpen ? '접기 ▴' : '더보기 ▾'}</button>`);
             }
+            // 포즈 — 표정과 같은 규칙. 19+ 포즈는 성인 표시가 꺼지면 목록에서 빠진다.
+            const poseAll = all.filter(s => s.group === 'pose' && (adult || !s.nsfw));
+            if (poseAll.length) {
+                const shownP = _animaPoseOpen ? poseAll : _animaPoseRecentList();
+                h += row('포즈', shownP.map(s => `<button class="anima-chip ex g-pose${s.on ? ' on' : ''}" data-id="${s.id}">${_animaEsc(s.name)}</button>`).join('')
+                    + `<button class="anima-chip ex tg" data-act="poseOpen">${_animaPoseOpen ? '접기 ▴' : '더보기 ▾'}</button>`);
+            }
             // 사용자가 직접 추가한 기타 옵션
             //  ★ '이미 다뤄진 항목'은 성인 표시 여부와 무관하게 원본 목록(all)에서 판정한다.
             //    baseS·futaS로 판정하면 성인이 꺼졌을 때 그 배열이 비어 후타 프리셋이 '기타'로 새어 나왔다.
             const known = new Set(all.filter(s =>
-                s.kind === 'base' || s.group === 'futa' || s.detail === 'futa' || s.group === 'expr').map(s => s.id));
+                s.kind === 'base' || s.group === 'futa' || s.detail === 'futa' || s.group === 'expr' || s.group === 'pose').map(s => s.id));
             const etc = all.filter(s => s.kind !== 'base' && !known.has(s.id));
             if (etc.length) h += row('기타', etc.map(s => `<button class="anima-chip${s.on ? ' on' : ''}" data-id="${s.id}">${_animaEsc(s.name)}</button>`).join(''));
             return h;
@@ -8108,6 +8162,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { key: 'base', name: '노출', pick: () => (_anima.snippets || []).filter(s => s.kind === 'base') },
             { key: 'futa', name: '후타 크기', pick: () => { const o = ['futa_small', 'futa_normal', 'futa_large']; const f = (x) => { const i = o.indexOf(x.id); return i < 0 ? 999 : i; }; return (_anima.snippets || []).filter(s => s.group === 'futa').sort((a, b) => f(a) - f(b)); } },
             { key: 'expr', name: '표정', pick: () => (_anima.snippets || []).filter(s => s.group === 'expr') },
+            // 포즈 — 19+ 포즈는 성인 표시가 꺼지면 돌리기 목록에서도 빠진다
+            { key: 'pose', name: '포즈', pick: () => (_anima.snippets || []).filter(s => s.group === 'pose' && (_adultOn() || !s.nsfw)) },
             // 유일하게 '설정'을 바꾸는 축(settings:true) — 나머지는 프롬프트 옵션을 켰다 껐다 한다.
             //  스텝을 올리는 게 정말 값어치를 하는지 눈으로 확인하라고 넣은 축이다(같은 시드·같은 옵션 3장).
             { key: 'quality', name: '품질', settings: true, pick: () => _ANIMA_PRESETS.map(p => ({ id: p.id, name: p.name })) },
@@ -8122,6 +8178,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 return keep;   // 사용자가 전부 껐으면 빈 배열 그대로(0장 → 실행 불가 안내)
             }
             if (axis.key === 'expr') return _animaExprRecentList().map(s => s.id);
+            if (axis.key === 'pose') return _animaPoseRecentList().map(s => s.id);   // 기본 = 최근 목록(2인 포즈까지 전부 돌면 낭비)
             return ids;
         }
         function _animaSweepSetSel(axisKey, ids) {
@@ -8172,7 +8229,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _animaCloseSweepMenu() { if (_animaSweepMenuEl) { try { _animaSweepMenuEl.remove(); } catch (e) {} _animaSweepMenuEl = null; } }
         function _animaOpenSweepMenu() {
             _animaCloseSweepMenu();
-            const _axes = _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr' || a.key === 'quality');   // 성인 꺼짐 → 표정만
+            const _axes = _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'quality');   // 성인 꺼짐 → 표정·포즈(일반)·품질만
             const wrap = document.createElement('div');
             wrap.className = 'anima-sweep-back';
             const rows = _axes.map(a => {
@@ -8199,7 +8256,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         function _animaRenderSweepCfg(box, wrap) {
             let h = '';
-            _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr' || a.key === 'quality').forEach(a => {
+            _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'quality').forEach(a => {
                 const sel = _animaSweepSel(a), items = a.pick();
                 h += `<div class="anima-sweep-sec">${a.name}</div><div class="anima-sweep-chips">`;
                 if (a.key === 'base') h += `<button class="anima-chip sw${sel.includes(_ANIMA_SWEEP_NONE) ? ' on' : ''}" data-ax="base" data-id="${_ANIMA_SWEEP_NONE}">노출 없음</button>`;
@@ -8250,6 +8307,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }
                 const expr = all.find(s => s.group === 'expr' && s.on);
                 if (expr) parts.push(expr.name);
+                const pose = all.find(s => s.group === 'pose' && s.on);
+                if (pose) parts.push(pose.name);
                 // 품질 — '품질 전부 돌리기'로 뽑은 세트는 옵션이 전부 같아서, 이게 없으면 어느 게 어느 건지 구분이 안 된다.
                 //  기본값(3/1)일 땐 굳이 붙이지 않아 평소 캡션이 지저분해지지 않게 한다.
                 const q = _animaPresetMatch();
@@ -8264,7 +8323,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (_adultOn()) return false;
             let changed = false;
             (_anima.snippets || []).forEach(x => {
-                if (x.on && (x.group === 'futa' || x.detail === 'futa')) { x.on = false; changed = true; }
+                if (x.on && (x.group === 'futa' || x.detail === 'futa' || x.nsfw)) { x.on = false; changed = true; }   // 19+ 포즈도 함께 해제
             });
             const cur = (_anima.prompt || '').trim();
             const isPreset = (_anima.snippets || []).some(x => x.kind === 'base' && (x.text || '').trim() === cur);
@@ -8344,10 +8403,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 s.on = !s.on;
                 if (s.on && s.group) _anima.snippets.forEach(x => { if (x !== s && x.group === s.group) x.on = false; });
                 if (s.on && s.group === 'expr') _animaExprTouch(s.id);
+                if (s.on && s.group === 'pose') _animaPoseTouch(s.id);
                 _animaSave(); _animaRenderSnippets();
             });
             const pe = box.querySelector('.anima-chip[data-act="exprOpen"]');
             if (pe) pe.onclick = () => { _animaExprOpen = !_animaExprOpen; _animaRenderSnippets(); };
+            const pp = box.querySelector('.anima-chip[data-act="poseOpen"]');
+            if (pp) pp.onclick = () => { _animaPoseOpen = !_animaPoseOpen; _animaRenderSnippets(); };
             const eb = box.querySelector('#anima-snip-editbtn'); if (eb) eb.onclick = () => { _animaSnipEditOpen = !_animaSnipEditOpen; _animaRenderSnipEdit(); };
             // 하단 고정 바 — 의상 4 · 후타 3은 아이콘으로 '바로 탭', 표정은 최근 쓴 것만 한 줄.
             //  후타 크기를 누르면 그 위로 상세 팝오버(발기·포피·사정)가 뜨고, ✕로만 닫힌다.
@@ -8370,8 +8432,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const exprRow = `<button class="anima-chip ex tg" data-act="exprOpen">표정 ${_animaExprOpen ? '▴' : '▾'}</button>`
                     + shown.map(s => `<button class="anima-chip ex g-expr${s.on ? ' on' : ''}" data-id="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${_animaEsc(s.name)}</button>`).join('')
                     + (_animaExprOpen ? `<button class="anima-chip edit" id="anima-mact-editbtn">✏️ 편집</button>` : '');
+                // 포즈 줄 — 표정과 같은 '최근 + 펼치기' 규칙. 19+ 포즈는 성인 표시가 꺼지면 빠진다.
+                const poseAll = all.filter(s => s.group === 'pose' && (adult || !s.nsfw));
+                const shownP = _animaPoseOpen ? poseAll : _animaPoseRecentList();
+                const poseRow = `<button class="anima-chip ex tg" data-act="poseOpen">포즈 ${_animaPoseOpen ? '▴' : '▾'}</button>`
+                    + shownP.map(s => `<button class="anima-chip ex g-pose${s.on ? ' on' : ''}" data-id="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${_animaEsc(s.name)}</button>`).join('');
                 mact.innerHTML = _animaFutaPopHtml()
                     + `<div class="anima-mact-icos">${icoRow}</div>
+                       ${poseAll.length ? `<div class="anima-mact-pose${_animaPoseOpen ? ' open' : ''}">${poseRow}</div>` : ''}
                        <div class="anima-mact-expr${_animaExprOpen ? ' open' : ''}">${exprRow}</div>
                        <div class="anima-mact-bar">
                            <button id="anima-mact-clip" class="anima-btn ghost anima-mact-clip" title="클립보드 이미지 붙여넣기">📋</button>
@@ -8390,19 +8458,24 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     _animaFutaPop = s.on ? id : null;   // 상세가 열린 상태에서 같은 크기를 누르면 끄고 닫는다
                     _animaSave(); _animaRenderSnippets();
                 });
-                // 표정 — 목록에 이미 있으면 순서 유지, 펼침에서 고른 '신규'만 최근 목록 맨 앞으로
+                // 표정·포즈 — 목록에 이미 있으면 순서 유지, 펼침에서 고른 '신규'만 각자의 최근 목록 맨 앞으로
+                //  ★ 최근 목록은 그룹별로 따로 관리 — 포즈 칩이 표정 최근 목록의 자리를 잡아먹지 않게 그룹을 보고 넣는다.
                 mact.querySelectorAll('.anima-chip[data-id]').forEach(c => c.onclick = () => {
                     const id = c.dataset.id, s = _anima.snippets.find(x => x.id === id); if (!s) return;
                     s.on = !s.on;
                     if (s.on) _anima.snippets.forEach(x => { if (x !== s && x.group === s.group) x.on = false; });
-                    if (s.on) _animaExprTouch(id);
+                    if (s.on && s.group === 'expr') _animaExprTouch(id);
+                    if (s.on && s.group === 'pose') _animaPoseTouch(id);
                     _animaSave(); _animaRenderSnippets();
                 });
                 const eo = mact.querySelector('.anima-chip[data-act="exprOpen"]');
                 if (eo) eo.onclick = () => { _animaExprOpen = !_animaExprOpen; _animaRenderSnippets(); };
+                const po = mact.querySelector('.anima-chip[data-act="poseOpen"]');
+                if (po) po.onclick = () => { _animaPoseOpen = !_animaPoseOpen; _animaRenderSnippets(); };
                 const meb = mact.querySelector('#anima-mact-editbtn');
                 if (meb) meb.onclick = () => { _animaSnipEditOpen = true; _animaRenderSnipEdit(); try { _animaEl('#anima-snip-edit').scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {} };
-                _animaFitExprRow(mact.querySelector('.anima-mact-expr'));   // 줄바꿈 방지: 들어가는 만큼만 표시
+                _animaFitChipRow(mact.querySelector('.anima-mact-expr'), _animaExprOpen);   // 줄바꿈 방지: 들어가는 만큼만 표시
+                _animaFitChipRow(mact.querySelector('.anima-mact-pose'), _animaPoseOpen);
                 _animaBindFutaPop(mact);
                 _animaSyncMactInput(); // 좌측 버튼을 마지막 입력 방식(클립보드/파일)에 맞춤 — 넣고 바로 실행하기 좋게
                 const mr = mact.querySelector('#anima-mact-run'); if (mr) { mr.onclick = _animaGenerate; _animaBindRunLongPress(mr); }
@@ -9017,7 +9090,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             document.addEventListener('paste', onPaste);
             document.addEventListener('click', _animaFutaPopOutside, true);   // 후타 상세: 바깥을 누르면 닫기(캡처 단계)
             document.addEventListener('click', _animaHelpOutside, true);      // 고급 설정 '?' 설명도 바깥을 누르면 닫기
-            const onResize = () => { _animaFitExprRow(_animaEl('#anima-mact .anima-mact-expr')); _animaSyncMactHeight(); };   // 폭이 바뀌면 표시 개수·바 높이 재계산
+            const onResize = () => { _animaFitChipRow(_animaEl('#anima-mact .anima-mact-expr'), _animaExprOpen); _animaFitChipRow(_animaEl('#anima-mact .anima-mact-pose'), _animaPoseOpen); _animaSyncMactHeight(); };   // 폭이 바뀌면 표시 개수·바 높이 재계산
             window.addEventListener('resize', onResize);
             _animaSyncMactHeight();
             // (마운트 시 노드 스키마 프리페치는 제거 — 연결 전에 실패 요청이 나가 오류처럼 보이고 캐시를 오염시킬 수 있어,
@@ -9088,6 +9161,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-chip.g-futaErect.on, .anima-chip.g-futaSkin.on { background:color-mix(in srgb,#c084fc 16%,transparent); border-color:#c084fc; color:#a855f7; }
           .anima-chip.g-expr { border-color:color-mix(in srgb,#f59e0b 60%,var(--border-dim)); color:color-mix(in srgb,#f59e0b 78%,var(--text-dim)); }  /* 표정 */
           .anima-chip.g-expr.on { background:color-mix(in srgb,#f59e0b 20%,transparent); border-color:#f59e0b; color:#d97706; }
+          .anima-chip.g-pose { border-color:color-mix(in srgb,#14b8a6 60%,var(--border-dim)); color:color-mix(in srgb,#14b8a6 78%,var(--text-dim)); }  /* 포즈 */
+          .anima-chip.g-pose.on { background:color-mix(in srgb,#14b8a6 20%,transparent); border-color:#14b8a6; color:#0d9488; }
           .anima-chip.more-toggle { border-style:dashed; color:var(--text-dim); }
           .anima-chip.edit { border-style:dashed; }
           .anima-se-kind { background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 6px; color:var(--text-main); font-size:12px; }
@@ -9299,10 +9374,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-ico.pu.on { background:color-mix(in srgb,#a855f7 22%,transparent); border-color:#a855f7; --ai-st:#a855f7; }
           .anima-ico-sep { width:1px; height:24px; background:var(--border-dim); margin:0 3px; flex:0 0 auto; }
           /* 표정 줄 — 기본은 최근 쓴 것만 한 줄(줄바꿈 없음), 펼치면 전체가 줄바꿈되어 보임 */
-          .anima-mact-expr { display:flex; align-items:center; gap:5px; width:100%; max-width:1000px; overflow:hidden; }
-          .anima-mact-expr.open { flex-wrap:wrap; overflow:visible; }
-          .anima-mact-expr .anima-chip { flex:0 0 auto; padding:5px 8px; font-size:11px; }
-          .anima-mact-expr .anima-chip.tg { border-style:dashed; color:var(--text-dim); }
+          .anima-mact-expr, .anima-mact-pose { display:flex; align-items:center; gap:5px; width:100%; max-width:1000px; overflow:hidden; }
+          .anima-mact-expr.open, .anima-mact-pose.open { flex-wrap:wrap; overflow:visible; }
+          .anima-mact-expr .anima-chip, .anima-mact-pose .anima-chip { flex:0 0 auto; padding:5px 8px; font-size:11px; }
+          .anima-mact-expr .anima-chip.tg, .anima-mact-pose .anima-chip.tg { border-style:dashed; color:var(--text-dim); }
           .anima-mact-bar { display:flex; gap:8px; align-items:stretch; width:100%; max-width:1000px; }
           .anima-mact-clip { flex:0 0 auto; width:52px; font-size:17px; padding:0; display:flex; align-items:center; justify-content:center; }
           .anima-mact-run { flex:1 1 auto; }
