@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.65.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.65.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.65.0 &nbsp;·&nbsp; 2026-07-26 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.65.1 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2038,9 +2038,17 @@
         // 토스트 알림
         // ── 업데이트 내역 ────────────────────────────────────────────────────
         const CHANGELOG = [
+            // ── 2026-07-28 ──────────────────────────────────────────────────
+            {
+                version: 'v9.65.1', date: '2026-07-28', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[성인 콘텐츠] 표시를 <b>꺼도 후타 버튼이 '기타'에 남아 있던 문제</b>를 고쳤습니다 — 하단 바에서는 제대로 사라졌지만, ②프롬프트 영역 맨 아래 <b>기타</b> 줄에 후타나리(거근·노멀·소추)가 그대로 보였습니다. 이제 끄면 <b>어디에도 남지 않습니다</b>.",
+                ]
+            },
             // ── 2026-07-25 ──────────────────────────────────────────────────
             {
-                version: 'v9.65.0', date: '2026-07-26', time: '최신',
+                version: 'v9.65.0', date: '2026-07-26', time: '',
                 tag: 'feat',
                 items: [
                     "[완전 초기화] <b>메뉴 맨 아래</b>로 옮겼습니다 — 예전엔 'DB 관리 → 코드 편집' 안쪽에 숨어 있어 찾기 어려웠어요. 이제 햄버거 메뉴 최하단에 구분선과 함께 있고, <b>세 번</b> 확인한 뒤에만 실행됩니다.",
@@ -8040,8 +8048,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     + `<button class="anima-chip ex tg" data-act="exprOpen">${_animaExprOpen ? '접기 ▴' : '더보기 ▾'}</button>`);
             }
             // 사용자가 직접 추가한 기타 옵션
-            const known = new Set([...baseS, ...futaS, ...exprAll].map(s => s.id));
-            const etc = all.filter(s => s.kind !== 'base' && !known.has(s.id) && s.detail !== 'futa');
+            //  ★ '이미 다뤄진 항목'은 성인 표시 여부와 무관하게 원본 목록(all)에서 판정한다.
+            //    baseS·futaS로 판정하면 성인이 꺼졌을 때 그 배열이 비어 후타 프리셋이 '기타'로 새어 나왔다.
+            const known = new Set(all.filter(s =>
+                s.kind === 'base' || s.group === 'futa' || s.detail === 'futa' || s.group === 'expr').map(s => s.id));
+            const etc = all.filter(s => s.kind !== 'base' && !known.has(s.id));
             if (etc.length) h += row('기타', etc.map(s => `<button class="anima-chip${s.on ? ' on' : ''}" data-id="${s.id}">${_animaEsc(s.name)}</button>`).join(''));
             return h;
         }
@@ -10007,7 +10018,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _updateUI();
             }
             window._lbRefresh = _lbRefresh;   // 새 결과가 도착했을 때 앱이 직접 호출
-            window._lbRefresh = _lbRefresh;
 
             // ── 드래그/스와이프 공용 상태 ────────────────────────────────
             let ptX = null, ptY = null, ptAxis = null, ptDragged = false;
