@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.66.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.67.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.66.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.67.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2040,7 +2040,21 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.66.0', date: '2026-07-28', time: '최신',
+                version: 'v9.67.0', date: '2026-07-28', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] 고급 설정에 <b>품질 프리셋</b>을 넣었습니다 — <b>기본 / 고품질 / 최고 품질</b> 버튼 하나로 끝납니다. 바꾸는 건 <b>스텝과 메가픽셀 둘뿐</b>이고, <b>CFG는 절대 건드리지 않습니다</b>(이 모델은 CFG를 올리면 좋아지는 게 아니라 망가져요). 지금 쓰는 값이 마음에 들면 <b>💾로 '내 설정'에 저장</b>해 두고 언제든 되돌아올 수 있어요.",
+                    "[Anima 편집] <b>어느 품질이 값어치를 하는지 직접 확인</b>할 수 있습니다 — 실행 버튼을 길게 눌러 <b>[품질 전부 돌리기]</b>를 고르면 <b>같은 이미지·같은 시드·같은 옵션</b>으로 기본/고품질/최고 품질 <b>3장</b>이 나옵니다. 나란히 놓고 보시면 스텝을 올릴 값어치가 있는지 바로 판단됩니다. (크게 보면 아래에 어느 품질인지 표시돼요)",
+                    "[Anima 편집] 고급 설정의 <b>모든 항목에 ? 버튼</b>을 달았습니다 — 그게 뭔지, 올리면/내리면 어떻게 되는지, 왜 그 값을 권하는지를 자세히 적어뒀습니다. <b>모르는 건 모른다고 적었습니다</b> — 예를 들어 스텝은 이 모델이 3스텝 기준이라 올린다고 무조건 좋아지진 않아서, 직접 비교해 보시라고 안내합니다. (안내 문구가 옛 모델 기준으로 잘못 적혀 있던 것도 바로잡았습니다)",
+                    "[갤러리] <b>원본별</b>이 진짜 <b>폴더</b>가 됐습니다 — 누르면 원본 썸네일과 장수가 붙은 <b>폴더 목록</b>이 뜨고, 폴더에 들어가면 <b>그 원본으로 만든 것만</b> 보입니다. <b>[← 전체]</b>로 나옵니다. 크게 보기도 그 폴더 안에서만 넘어가서 다른 원본 이미지가 끼어들지 않아요.",
+                    "[갤러리] 폴더 안은 <b>왼쪽에서 오른쪽으로 순서대로</b> 놓입니다 — 예전엔 위아래로 채워져서 순서를 따라가기 어려웠어요. (전체 보기는 지금처럼 빈틈 없이 채우는 방식 그대로입니다)",
+                    "[Anima 편집] 생성이 끝날 때 <b>화면이 결과로 확 내려가던 것을 없앴습니다</b> — 옵션을 만지는 중에 화면이 튀어 불편했어요. 완료는 알림과 진동으로만 알립니다. (모바일·PC 모두)",
+                    "[Anima 편집] 후타 상세 창이 <b>다른 곳을 누르면 바로 닫힙니다</b> — 예전엔 ✕를 눌러야만 닫혔어요. 발기·포피·사정을 고를 땐 그대로 열려 있고, <b>후타 크기를 바꿔도 닫히지 않고</b> 그 크기의 상세로 바뀝니다. 닫은 뒤 크기를 다시 누르면 <b>후타가 꺼지지 않고 상세만 다시 열립니다</b>.",
+                    "[Anima 편집] 연속 생성 메뉴에서 <b>[⚙ 무엇을 돌릴지 설정]을 맨 위로</b> 옮기고, 메뉴가 <b>실행 버튼을 덮지 않게</b> 띄웠습니다 — 모바일에서 손가락을 떼다가 잘못 눌리던 문제가 사라집니다.",
+                ]
+            },
+            {
+                version: 'v9.66.0', date: '2026-07-28', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 생성 이미지 보관 장수 제한을 <b>사실상 없앴습니다</b> — 500장에서 <b>몇 만 장</b>으로. 이제 예전에 뽑은 이미지가 밀려나 사라지지 않습니다. (기존에 갖고 계신 목록은 <b>업데이트 시 자동으로 옮겨지고</b>, 하나도 잃지 않습니다)",
@@ -7026,6 +7040,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             sweep: null,                // 연속 생성에서 '무엇을 돌릴지' 저장 {base:[id..],futa:[..],expr:[..]}
             srcKey: null,               // 현재 원본 이미지의 고정 key — 생성 결과에 달아 '원본별 그룹뷰'로 묶는다
             galGroup: false,            // 갤러리 보기: false=전체(기존), true=원본별 그룹
+            myPreset: null,             // 사용자가 저장한 품질 값 {steps, megapixels} — 프리셋 '내 설정'
             lastInputMode: 'clip',      // 마지막에 쓴 이미지 넣기 방식('clip'|'file') — 하단 바 좌측 버튼이 이걸 따라감
             galSize: 96,                // 갤러리 썸네일 한 칸 최소 너비(px) — 슬라이더로 크게/작게 (60~220)
             flattenBg: 'white',         // 투명 배경 채우기 색('white'|'gray'|'black') — 투명 PNG만 자동 감지해 이 색으로 평탄화
@@ -7169,7 +7184,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try {
                 const p = {};
                 ['prompt', 'steps', 'cfg', 'denoise', 'sampler', 'scheduler', 'seed', 'megapixels', 'upscaleMethod', 'refWeight', 'refMode',
-                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb', 'exprMore', 'exprRecent', 'sweep', 'galGroup', 'srcKey'].forEach(k => p[k] = _anima[k]);
+                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb', 'exprMore', 'exprRecent', 'sweep', 'galGroup', 'srcKey', 'myPreset'].forEach(k => p[k] = _anima[k]);
                 // 결과 이미지 목록은 여기 없다 — IndexedDB(_animaIdb*)로 옮겼다. 장수가 늘어도 이 저장이 무거워지지 않는다.
                 p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null, detail: s.detail || null, more: !!s.more }));
                 // 이전에 넣은 원본 이미지(축소본)들 — 다시 불러오기용. 여기 남은 것 중엔 이게 제일 크다(그림 데이터).
@@ -7471,25 +7486,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 완료 알림 — 스크롤 위치와 무관하게 완료를 알 수 있게 (모바일 진동 포함)
             try { showToast('✅ 생성 완료 — 결과에서 확인하세요', 'success', 2500); } catch (e) {}
             try { if (navigator.vibrate) navigator.vibrate(80); } catch (e) {}
-            _animaScrollToResult();
         };
 
         let _animaDom = null, _animaBusy = false, _animaResSel = 0, _animaGalManage = false;
         let _animaExprOpen = false;   // 하단 바 표정 줄 펼침 여부
         let _animaFutaPop = null;     // 열려 있는 후타 상세 팝오버의 크기 id (✕로만 닫힘)
-        // 결과 카드로 부드럽게 스크롤 (좁은 화면: 실행하면 스피너/결과가 안 보이는 문제 해결)
-        function _animaScrollToResult() {
-            try {
-                if (window.innerWidth > 760) return;
-                const el = _animaEl('#anima-result');
-                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } catch (e) {}
-        }
+        // (자동 스크롤 제거 — 생성 때마다 화면이 결과로 튀면 옵션을 계속 만지기 불편하다.
+        //  완료는 토스트·진동으로 알리고, 어디를 보고 있든 그 자리를 지킨다.)
         function _animaSetBusy(b) {
             _animaBusy = b;
             try { _animaRenderRun(); } catch (e) {}
             try { _animaRenderResult(); } catch (e) {}   // 결과 칸에 스피너 표시/해제
-            if (b) _animaScrollToResult();   // 실행 즉시 진행(스피너)이 보이게
         }
 
         // 투명 배경 채우기 색
@@ -7783,7 +7790,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             try { if (window._lbRefresh) window._lbRefresh(); } catch (e) {}   // 크게 보는 중이면 새 결과를 즉시 반영
                             try { showToast('✅ 생성 완료' + (_animaJobs.filter(j => j.status !== 'error').length ? ` · 남은 ${_animaJobs.filter(j => j.status !== 'error').length}개 계속…` : ''), 'success', 2200); } catch (e) {}
                             try { if (navigator.vibrate) navigator.vibrate(80); } catch (e) {}
-                            _animaScrollToResult();
                             _animaPump();
                             return;
                         }
@@ -8094,6 +8100,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { key: 'base', name: '노출', pick: () => (_anima.snippets || []).filter(s => s.kind === 'base') },
             { key: 'futa', name: '후타 크기', pick: () => { const o = ['futa_small', 'futa_normal', 'futa_large']; const f = (x) => { const i = o.indexOf(x.id); return i < 0 ? 999 : i; }; return (_anima.snippets || []).filter(s => s.group === 'futa').sort((a, b) => f(a) - f(b)); } },
             { key: 'expr', name: '표정', pick: () => (_anima.snippets || []).filter(s => s.group === 'expr') },
+            // 유일하게 '설정'을 바꾸는 축(settings:true) — 나머지는 프롬프트 옵션을 켰다 껐다 한다.
+            //  스텝을 올리는 게 정말 값어치를 하는지 눈으로 확인하라고 넣은 축이다(같은 시드·같은 옵션 3장).
+            { key: 'quality', name: '품질', settings: true, pick: () => _ANIMA_PRESETS.map(p => ({ id: p.id, name: p.name })) },
         ];
         const _ANIMA_SWEEP_NONE = '__none__';   // '노출 없음'(해제 상태)도 한 칸으로 돌릴 수 있게
         // 어떤 항목을 돌릴지 — 저장된 설정이 없으면 기본값(노출 4종·후타 3종·표정은 최근 4개)
@@ -8120,13 +8129,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!sel.length) { showToast(`${axis.name}에서 돌릴 항목을 하나 이상 골라주세요 (⚙ 설정)`, 'warning', 3000); return; }
             // 되돌리기용 현재 상태 백업
             const beforePrompt = _anima.prompt, beforeSeed = _anima.seed;
+            const beforeSteps = _anima.steps, beforeMp = _anima.megapixels;   // 품질 축은 이 둘을 건드린다
             const beforeOn = {}; (_anima.snippets || []).forEach(s => beforeOn[s.id] = !!s.on);
             // 세트 전체가 같은 시드를 쓰도록 지금 확정(-1이면 랜덤 하나를 뽑아 고정)
             const fixed = _animaSeedVal();
             _anima.seed = fixed;
             let made = 0;
             for (const id of sel) {
-                if (axis.key === 'base') {
+                if (axis.settings) {
+                    // 품질 축 — 프롬프트·옵션은 그대로 두고 스텝·메가픽셀만 갈아끼운다
+                    const q = _ANIMA_PRESETS.find(x => x.id === id); if (!q) continue;
+                    _anima.steps = q.steps; _anima.megapixels = q.megapixels;
+                } else if (axis.key === 'base') {
                     if (id === _ANIMA_SWEEP_NONE) _anima.prompt = _ANIMA_NEUTRAL_BASE;
                     else { const s = items.find(x => x.id === id); if (!s) continue; _anima.prompt = s.text; }
                 } else {
@@ -8139,9 +8153,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
             // 원래 상태 복원 — 스윕은 '돌려보기'일 뿐 내 설정을 바꾸지 않는다
             _anima.prompt = beforePrompt; _anima.seed = beforeSeed;
+            _anima.steps = beforeSteps; _anima.megapixels = beforeMp;
             (_anima.snippets || []).forEach(s => { if (s.id in beforeOn) s.on = beforeOn[s.id]; });
             const pt = _animaEl('#anima-prompt'); if (pt) pt.value = _anima.prompt;
-            _animaSave(); _animaRenderSnippets();
+            _animaSave(); _animaRenderSnippets(); _animaRenderAdv();
             showToast(`🔁 ${axis.name} ${made}장을 대기열에 넣었어요 (시드 고정)`, 'success', 2600);
         }
         // 실행 버튼 길게 누르기 → 연속 생성 메뉴
@@ -8149,7 +8164,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _animaCloseSweepMenu() { if (_animaSweepMenuEl) { try { _animaSweepMenuEl.remove(); } catch (e) {} _animaSweepMenuEl = null; } }
         function _animaOpenSweepMenu() {
             _animaCloseSweepMenu();
-            const _axes = _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr');   // 성인 꺼짐 → 표정만
+            const _axes = _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr' || a.key === 'quality');   // 성인 꺼짐 → 표정만
             const wrap = document.createElement('div');
             wrap.className = 'anima-sweep-back';
             const rows = _axes.map(a => {
@@ -8159,9 +8174,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             wrap.innerHTML = `<div class="anima-sweep-menu">
                 <div class="anima-sweep-head">🔁 연속 생성 <span>나머지는 지금 설정 그대로 · 시드 고정</span>
                     <button class="anima-sweep-x" data-act="close" title="닫기">✕</button></div>
-                ${rows}
                 <button class="anima-sweep-row cfg" data-act="cfg"><span class="anima-sweep-nm">⚙ 무엇을 돌릴지 설정</span></button>
                 <div class="anima-sweep-cfg" id="anima-sweep-cfg"></div>
+                ${rows}
             </div>`;
             wrap.addEventListener('click', (e) => { if (e.target === wrap) _animaCloseSweepMenu(); });
             (_animaDom || document.body).appendChild(wrap);
@@ -8176,7 +8191,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         function _animaRenderSweepCfg(box, wrap) {
             let h = '';
-            _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr').forEach(a => {
+            _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr' || a.key === 'quality').forEach(a => {
                 const sel = _animaSweepSel(a), items = a.pick();
                 h += `<div class="anima-sweep-sec">${a.name}</div><div class="anima-sweep-chips">`;
                 if (a.key === 'base') h += `<button class="anima-chip sw${sel.includes(_ANIMA_SWEEP_NONE) ? ' on' : ''}" data-ax="base" data-id="${_ANIMA_SWEEP_NONE}">노출 없음</button>`;
@@ -8227,6 +8242,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }
                 const expr = all.find(s => s.group === 'expr' && s.on);
                 if (expr) parts.push(expr.name);
+                // 품질 — '품질 전부 돌리기'로 뽑은 세트는 옵션이 전부 같아서, 이게 없으면 어느 게 어느 건지 구분이 안 된다.
+                //  기본값(3/1)일 땐 굳이 붙이지 않아 평소 캡션이 지저분해지지 않게 한다.
+                const q = _animaPresetMatch();
+                if (q && q !== 'basic') { const qp = _ANIMA_PRESETS.find(x => x.id === q); parts.push(qp ? qp.name : '내 설정'); }
+                else if (!q) parts.push(`${_anima.steps}스텝·${_anima.megapixels}MP`);
                 return parts.join(' · ');
             } catch (e) { return ''; }
         }
@@ -8250,7 +8270,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return changed;
         }
         // 후타 상세 팝오버 — 크기 아이콘 위에 뜬다. 발기·포피·사정 전부 텍스트 칩.
-        //  ★ ✕ 버튼으로만 닫힌다(바깥을 눌러도 닫히지 않음) — 여러 항목을 연속으로 고르기 좋게.
+        //  ★ 닫히는 규칙: 팝오버 '바깥'을 누르면 곧바로 닫힌다(그 버튼의 원래 동작도 그대로 수행된다).
+        //    예외 ① 팝오버 안의 칩(발기·포피·사정) → 연속으로 고를 수 있게 열린 채 유지
+        //    예외 ② 후타 크기(소추↔노멀↔거근) 전환 → 닫지 않고 그 크기의 상세로 갈아끼운다
+        //    (같은 크기를 다시 눌러 후타를 끄면 상세가 의미 없어지므로 그땐 닫는다)
         function _animaFutaPopHtml() {
             if (!_animaFutaPop || !_adultOn()) return '';
             const all = _anima.snippets || [];
@@ -8283,6 +8306,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             });
             const x = pop.querySelector('#anima-fp-x');
             if (x) x.onclick = () => { _animaFutaPop = null; _animaRenderSnippets(); };
+        }
+        // 팝오버 바깥을 누르면 닫는다. 캡처 단계에서 '열림 상태'만 먼저 끄고, 다시 그리는 건 다음 차례로 미룬다
+        //  → 누른 버튼의 원래 동작이 정상적으로 먼저 실행되고, 그 버튼이 어차피 다시 그리면 렌더가 한 번으로 끝난다.
+        function _animaFutaPopOutside(e) {
+            if (!_animaFutaPop) return;
+            const t = e.target;
+            if (!t || !t.closest) return;
+            if (t.closest('#anima-futapop')) return;              // 팝오버 안(발기·포피·사정) → 연속 선택 유지
+            if (t.closest('.anima-ico[data-futa]')) return;       // 후타 크기 전환 → 그 크기의 상세로 갈아끼움(자체 처리)
+            _animaFutaPop = null;
+            setTimeout(() => { try { if (_animaEl('#anima-futapop')) _animaRenderSnippets(); } catch (err) {} }, 0);
         }
         function _animaRenderSnippets() {
             const box = _animaEl('#anima-snips'); if (!box) return;
@@ -8340,10 +8374,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 // 후타 크기 — 켜면서 상세 팝오버를 연다(이미 켜진 걸 다시 누르면 해제 + 팝오버 닫기)
                 mact.querySelectorAll('.anima-ico[data-futa]').forEach(b => b.onclick = () => {
                     const id = b.dataset.futa, s = _anima.snippets.find(x => x.id === id); if (!s) return;
-                    const wasOn = !!s.on;
-                    s.on = !wasOn;
+                    // 켜져 있는데 상세가 닫혀 있으면(바깥을 눌러 닫은 뒤) 끄지 말고 '상세를 다시 연다'.
+                    //  안 그러면 상세를 다시 보려고 눌렀다가 후타가 꺼져 두 번 눌러야 한다.
+                    if (s.on && _animaFutaPop !== id) { _animaFutaPop = id; _animaRenderSnippets(); return; }
+                    s.on = !s.on;
                     if (s.on) _anima.snippets.forEach(x => { if (x !== s && x.group === 'futa') x.on = false; });
-                    _animaFutaPop = s.on ? id : null;
+                    _animaFutaPop = s.on ? id : null;   // 상세가 열린 상태에서 같은 크기를 누르면 끄고 닫는다
                     _animaSave(); _animaRenderSnippets();
                 });
                 // 표정 — 목록에 이미 있으면 순서 유지, 펼침에서 고른 '신규'만 최근 목록 맨 앞으로
@@ -8464,10 +8500,53 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const r = _anima.results[i]; if (!r) return '';
             return `<div class="anima-gitem${i === _animaResSel ? ' sel' : ''}" data-i="${i}"><img src="${_animaPreviewUrl(r.url, 62)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${r.url}'"><button class="anima-gx" data-i="${i}" title="삭제" aria-label="이 이미지 삭제">✕</button></div>`;
         }
-        function _animaGalGroupHead(k, cnt) {
+        // ── 원본별 = 폴더 ────────────────────────────────────────────────
+        //  _animaGalFolder = null 이면 '폴더 목록', 값이 있으면 그 폴더 안(그 원본으로 만든 것만).
+        //  세션 상태로만 둔다 — 새로고침하면 목록부터 다시 보는 게 덜 헷갈린다.
+        let _animaGalFolder = null;
+        function _animaFolderName(k) {
+            if (k === '_none') return '원본 정보 없음';
             const meta = (_anima.srcHistory || []).find(h => h && h.key === k);
-            const title = k === '_none' ? '원본 정보 없음 <span class="anima-gg-sub">(이전에 만든 이미지)</span>' : _animaEsc(meta && meta.name ? meta.name : '원본');
-            return `<div class="anima-gg-head" data-src="${_animaEsc(k)}">${meta && meta.thumb ? `<img class="anima-gg-th" src="${meta.thumb}" loading="lazy">` : '<span class="anima-gg-th none">?</span>'}<span class="anima-gg-name">${title}</span><span class="anima-gg-cnt">${cnt}장</span></div>`;
+            return (meta && meta.name) ? meta.name : '원본';
+        }
+        function _animaFolderThumb(k) {
+            const meta = (_anima.srcHistory || []).find(h => h && h.key === k);
+            return meta && meta.thumb ? meta.thumb : null;
+        }
+        // 폴더 카드 목록 — 결과가 최신순이라 '먼저 나온 원본 = 최근에 작업한 원본'이 된다.
+        function _animaFolderListHtml() {
+            const order = [], cnts = {};
+            const list = _anima.results || [];
+            for (let i = 0; i < list.length; i++) {
+                const k = list[i].src || '_none';
+                if (cnts[k] == null) { cnts[k] = 0; order.push(k); }
+                cnts[k]++;
+            }
+            let h = `<div class="anima-folders">`;
+            order.forEach(k => {
+                const th = _animaFolderThumb(k);
+                h += `<button class="anima-fold" data-fold="${_animaEsc(k)}" title="${_animaEsc(_animaFolderName(k))}">
+                    <span class="anima-fold-th">${th ? `<img src="${th}" loading="lazy" decoding="async">` : '<span class="anima-fold-no">?</span>'}</span>
+                    <span class="anima-fold-meta"><span class="anima-fold-n">${_animaEsc(_animaFolderName(k))}</span><span class="anima-fold-c">${cnts[k]}장</span></span></button>`;
+            });
+            h += `</div>`;
+            return h;
+        }
+        // 폴더 안 머리줄 — 어디에 있는지 + 나가는 길
+        function _animaFolderBarHtml(k, cnt) {
+            const th = _animaFolderThumb(k);
+            return `<div class="anima-fold-bar">
+                <button class="anima-fold-back" id="anima-fold-back">← 전체</button>
+                ${th ? `<img class="anima-gg-th" src="${th}" loading="lazy">` : '<span class="anima-gg-th none">?</span>'}
+                <span class="anima-gg-name">${_animaEsc(_animaFolderName(k))}</span><span class="anima-gg-cnt">${cnt}장</span></div>`;
+        }
+        // 지금 보기에서 그릴 항목들의 '전역 인덱스' 목록 (전체 = 전부 / 폴더 안 = 그 원본 것만)
+        function _animaGalIdxList() {
+            const list = _anima.results || [];
+            if (!_anima.galGroup || !_animaGalFolder) { const a = new Array(list.length); for (let i = 0; i < list.length; i++) a[i] = i; return a; }
+            const out = [];
+            for (let i = 0; i < list.length; i++) if ((list[i].src || '_none') === _animaGalFolder) out.push(i);
+            return out;
         }
         function _animaGalMoreHtml(rest) {
             return `<div class="anima-gal-more" id="anima-gal-more"><span class="anima-sp"></span><span class="anima-gal-more-t">남은 ${rest}장 불러오는 중…</span></div>`;
@@ -8482,32 +8561,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // 다음 페이지를 '이어붙이기'만 한다 — 이미 그린 썸네일은 건드리지 않는다(스크롤 위치·로딩 상태 유지)
         function _animaGalAppend() {
             const box = _animaEl('#anima-result'); if (!box) return;
-            const total = _anima.results.length;
+            const list = _animaGalIdxList();
+            const total = list.length;
             if (_animaGalShown >= total) return;
             const from = _animaGalShown, to = Math.min(total, from + _ANIMA_GAL_PAGE);
             const sentinel = box.querySelector('#anima-gal-more');
-            const gs = Math.min(220, Math.max(60, parseInt(_anima.galSize) || 96));
-            if (!_anima.galGroup) {
-                const gal = box.querySelector('.anima-gal[data-src="_all"]'); if (!gal) return;
-                let h = ''; for (let i = from; i < to; i++) h += _animaGalCell(i);
-                gal.insertAdjacentHTML('beforeend', h);
-            } else {
-                // 같은 원본이 이어지면 그 그룹 뒤에 붙이고, 새 원본이 나오면 그룹을 새로 만든다
-                const cnts = _animaSrcCounts();
-                let i = from;
-                while (i < to) {
-                    const k = _anima.results[i].src || '_none';
-                    let h = '';
-                    while (i < to && (_anima.results[i].src || '_none') === k) { h += _animaGalCell(i); i++; }
-                    const sel = `.anima-gal[data-src="${(window.CSS && CSS.escape) ? CSS.escape(k) : k}"]`;
-                    let gal = box.querySelector(sel);
-                    if (gal) gal.insertAdjacentHTML('beforeend', h);
-                    else {
-                        const block = _animaGalGroupHead(k, cnts[k] || 0) + `<div class="anima-gal${_animaGalManage ? ' manage' : ''}" data-src="${_animaEsc(k)}" style="column-width:${gs}px">${h}</div>`;
-                        if (sentinel) sentinel.insertAdjacentHTML('beforebegin', block); else box.insertAdjacentHTML('beforeend', block);
-                    }
-                }
-            }
+            const gal = box.querySelector('.anima-gal'); if (!gal) return;   // 전체·폴더 안 모두 컨테이너는 하나
+            let h = ''; for (let n = from; n < to; n++) h += _animaGalCell(list[n]);
+            gal.insertAdjacentHTML('beforeend', h);
             _animaGalShown = to;
             if (_animaGalShown >= total) { if (sentinel) sentinel.remove(); _animaGalObserve(null); }
             else if (sentinel) { const t = sentinel.querySelector('.anima-gal-more-t'); if (t) t.textContent = `남은 ${total - _animaGalShown}장 불러오는 중…`; }
@@ -8551,32 +8612,27 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         <button class="anima-gal-clear" id="anima-gal-clear">전체 비우기</button>
                     </div></div>`;
                 if (_animaGalManage) html += `<div class="anima-gal-tip">삭제할 이미지의 ✕를 누르세요 · 끝나면 [완료]</div>`;
-                // ── 창(window) 방식 ──
-                //  장수가 몇 만이어도 한 번에 DOM에 올리는 건 앞쪽 _ANIMA_GAL_PAGE장뿐이고,
-                //  스크롤이 끝에 닿으면 _animaGalAppend()가 '이어붙이기'만 한다(전체 재구성 없음).
-                const total = _anima.results.length;
-                const shown = Math.min(_animaGalShown, total);
-                const cnts = _animaSrcCounts();   // 그룹 머리글엔 '지금 그린 수'가 아니라 원본별 전체 장수를 보여준다
-                if (!grouped) {
-                    html += `<div class="anima-gal${_animaGalManage ? ' manage' : ''}" data-src="_all" style="column-width:${gs}px">`;
-                    for (let i = 0; i < shown; i++) html += _animaGalCell(i);
-                    html += '</div>';
+                if (grouped && !_animaGalFolder) {
+                    // 원본별 = 폴더 목록. 아직 아무 폴더에도 안 들어왔으면 폴더 카드만 보여준다.
+                    html += _animaFolderListHtml();
                 } else {
-                    // 원본별 그룹 — 결과는 최신순이라, 먼저 나온 그룹이 곧 '최근에 작업한 원본'이 된다
-                    const order = [], byKey = {};
-                    for (let i = 0; i < shown; i++) {
-                        const k = _anima.results[i].src || '_none';
-                        if (!byKey[k]) { byKey[k] = []; order.push(k); }
-                        byKey[k].push(i);
+                    // ── 창(window) 방식 ──
+                    //  장수가 몇 만이어도 한 번에 DOM에 올리는 건 앞쪽 _ANIMA_GAL_PAGE장뿐이고,
+                    //  스크롤이 끝에 닿으면 _animaGalAppend()가 '이어붙이기'만 한다(전체 재구성 없음).
+                    const list = _animaGalIdxList();          // 지금 보기에 해당하는 '전역 인덱스' 목록
+                    const total = list.length;
+                    const shown = Math.min(_animaGalShown, total);
+                    if (grouped) {   // 폴더 안 — 어느 폴더인지 알리고 나갈 길을 준다
+                        const cnts = _animaSrcCounts();
+                        html += _animaFolderBarHtml(_animaGalFolder, cnts[_animaGalFolder] || total);
                     }
-                    order.forEach(k => {
-                        html += _animaGalGroupHead(k, cnts[k] || byKey[k].length);
-                        html += `<div class="anima-gal${_animaGalManage ? ' manage' : ''}" data-src="${_animaEsc(k)}" style="column-width:${gs}px">`;
-                        byKey[k].forEach(i => { html += _animaGalCell(i); });
-                        html += '</div>';
-                    });
+                    // 폴더 안은 격자(왼→오른쪽 순서), 전체 보기는 기존 다단(세로로 채움) 그대로.
+                    const grid = grouped;
+                    html += `<div class="anima-gal${grid ? ' grid' : ''}${_animaGalManage ? ' manage' : ''}" data-src="${grouped ? _animaEsc(_animaGalFolder) : '_all'}" style="${grid ? `--gcw:${gs}px` : `column-width:${gs}px`}">`;
+                    for (let n = 0; n < shown; n++) html += _animaGalCell(list[n]);
+                    html += '</div>';
+                    if (shown < total) html += _animaGalMoreHtml(total - shown);
                 }
-                if (shown < total) html += _animaGalMoreHtml(total - shown);
             } else {
                 _animaGalManage = false;
                 _animaGalShown = _ANIMA_GAL_PAGE;
@@ -8621,21 +8677,33 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _animaResSel = i; _animaRenderResult();   // 비교 대상으로 선택
                 try {
                     if (window.openLightbox) {
-                        const urls = _anima.results.map(r => r.url);
-                        window._lbCapPending = _anima.results.map(r => r.opt || '');
+                        // 지금 보고 있는 범위 안에서만 좌우로 넘긴다 — 폴더에 들어와 있으면 그 원본 것만.
+                        const idxs = _animaGalIdxList();
+                        const pos = Math.max(0, idxs.indexOf(i));
+                        const urls = idxs.map(n => _anima.results[n].url);
+                        window._lbCapPending = idxs.map(n => _anima.results[n].opt || '');
                         // 생성이 끝나 목록이 늘어나도 보던 이미지를 계속 보면서 번호·총장수만 갱신되게 한다
-                        window._lbLivePending = () => ({ urls: _anima.results.map(r => r.url), caps: _anima.results.map(r => r.opt || '') });
-                        window.openLightbox(urls[i], urls, i);
+                        window._lbLivePending = () => {
+                            const L = _animaGalIdxList();
+                            return { urls: L.map(n => _anima.results[n].url), caps: L.map(n => _anima.results[n].opt || '') };
+                        };
+                        window.openLightbox(urls[pos], urls, pos);
                     }
-                } catch (err) {}   // 크게 보기(전체 좌우 넘김)
+                } catch (err) {}   // 크게 보기(현재 범위 안에서 좌우 넘김)
             };
             // 바닥에 닿으면 다음 페이지 이어붙이기 — 창이 남아 있을 때만 감시
             _animaGalObserve(box.querySelector('#anima-gal-more'));
+            // 폴더 들어가기 / 나오기
+            box.querySelectorAll('.anima-fold[data-fold]').forEach(f => f.onclick = () => {
+                _animaGalFolder = f.dataset.fold; _animaGalShown = _ANIMA_GAL_PAGE; _animaRenderResult();
+            });
+            const fb = box.querySelector('#anima-fold-back');
+            if (fb) fb.onclick = () => { _animaGalFolder = null; _animaGalShown = _ANIMA_GAL_PAGE; _animaRenderResult(); };
             // 보기 전환(전체 / 원본별)
             box.querySelectorAll('.anima-gal-vb').forEach(b => b.onclick = () => {
                 const g = b.dataset.view === 'group';
                 if (!!_anima.galGroup === g) return;
-                _anima.galGroup = g; _animaGalShown = _ANIMA_GAL_PAGE;   // 보기를 바꾸면 창은 처음부터
+                _anima.galGroup = g; _animaGalFolder = null; _animaGalShown = _ANIMA_GAL_PAGE;   // 보기를 바꾸면 폴더에서 나오고 창도 처음부터
                 _animaSave(); _animaRenderResult();
             });
             const mng = box.querySelector('#anima-gal-manage');
@@ -8695,19 +8763,83 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           <!-- 모바일 하단 고정 바: 노출·옵션 선택 + 실행 (스크롤 없이 핵심 흐름 완료) -->
           <div class="anima-mact" id="anima-mact"></div>`;
 
+        // ══ 품질 프리셋 ═══════════════════════════════════════════════════
+        //  손대는 건 '스텝'과 '메가픽셀' 둘뿐이다. CFG는 이 모델(distilled)에서 1이 설계값이라
+        //  올리면 좋아지는 게 아니라 망가지고, 변환·참조 강도는 품질이 아니라 취향이라 건드리지 않는다.
+        const _ANIMA_PRESETS = [
+            { id: 'basic', name: '기본', steps: 3, megapixels: 1 },
+            { id: 'high', name: '고품질', steps: 6, megapixels: 2 },
+            { id: 'max', name: '최고 품질', steps: 8, megapixels: 3 },
+        ];
+        function _animaPresetMatch() {
+            const p = _ANIMA_PRESETS.find(x => +_anima.steps === x.steps && +_anima.megapixels === x.megapixels);
+            if (p) return p.id;
+            const my = _anima.myPreset;
+            if (my && +_anima.steps === +my.steps && +_anima.megapixels === +my.megapixels) return 'mine';
+            return '';
+        }
+        function _animaPresetBarHtml() {
+            const cur = _animaPresetMatch(), my = _anima.myPreset;
+            let h = `<div class="anima-preset"><span class="anima-preset-lab">품질</span>`;
+            _ANIMA_PRESETS.forEach(p => { h += `<button class="anima-pbtn${cur === p.id ? ' on' : ''}" data-preset="${p.id}">${p.name}</button>`; });
+            h += `<button class="anima-pbtn${cur === 'mine' ? ' on' : ''}${my ? '' : ' off'}" data-preset="mine" title="${my ? `내가 저장한 값 (스텝 ${my.steps} · 메가픽셀 ${my.megapixels})` : '아직 저장한 값이 없어요 — 💾로 지금 값을 저장하세요'}">내 설정</button>`;
+            h += `<button class="anima-pbtn save" data-act="savemine" title="지금 값을 '내 설정'으로 저장">💾</button>`;
+            h += `<div class="anima-preset-note">스텝·메가픽셀만 바꿉니다. 어느 게 값어치를 하는지는 <b>실행 버튼을 길게 눌러 [품질 전부 돌리기]</b>로 같은 시드 3장을 뽑아 직접 비교해 보세요.</div></div>`;
+            return h;
+        }
+        // 각 설정 항목 설명 — 무엇인지 / 바꾸면 어떻게 되는지 / 왜 그 값을 권하는지.
+        //  모르는 건 모른다고 쓴다(특히 스텝). 도움말이 아는 척하면 설정을 잘못 만지게 된다.
+        const _ANIMA_HELP = {
+            steps: `<b>무엇인가</b> — 그림을 몇 번에 걸쳐 다듬을지. 시간은 스텝 수에 거의 비례합니다.<br>
+                <b>이 모델은 좀 다릅니다</b> — 지금 쓰는 <b>Anima-Comradeship</b>은 <b>3스텝에 맞춰 훈련된(distilled) 모델</b>입니다. 일반 모델처럼 "올릴수록 깨끗해진다"가 그대로 성립하지 않고, 너무 올리면 색이 과해지거나 뭉개질 수도 있습니다.<br>
+                <b>게다가</b> 샘플러가 <b>euler_ancestral</b>이라 매 스텝 노이즈를 새로 섞습니다. 스텝을 바꾸면 <i>같은 그림이 정교해지는</i> 게 아니라 <b>그림 자체가 달라집니다</b>(시드가 같아도).<br>
+                <b>추천</b> — 기본 <b>3</b>. 더 올린다면 6 → 8 순서로. 다만 이 값들은 <b>검증된 게 아니라 합리적인 출발점</b>입니다. <b>[품질 전부 돌리기]</b>로 같은 시드 3장을 뽑아 <b>직접 눈으로 확인하고</b> 정하세요.`,
+            cfg: `<b>무엇인가</b> — 프롬프트를 얼마나 강하게 따를지.<br>
+                <b>⚠ 이 값은 건드리지 마세요</b> — distilled 모델은 <b>cfg를 쓰지 않도록</b> 훈련됩니다. 올리면 프롬프트를 더 잘 따르는 게 아니라 <b>색이 타고 형태가 무너집니다.</b> 이 워크플로우의 설계값은 <b>1</b>입니다.<br>
+                <b>부작용 하나</b> — cfg가 1이면 <b>부정(negative) 프롬프트가 아예 안 먹습니다.</b> 아래 '워터마크·글자 억제'가 실험 딱지를 달고 있는 이유가 이거예요. 그 옵션은 켤 때만 cfg를 잠깐 올려서 부정 프롬프트를 살립니다.<br>
+                <b>추천</b> — <b>1 고정.</b> 품질 프리셋도 이 값은 절대 안 건드립니다.`,
+            denoise: `<b>무엇인가</b> — 원본을 얼마나 갈아엎을지. 0에 가까우면 원본을 거의 그대로 두고, 1이면 완전히 새로 그립니다.<br>
+                <b>이 워크플로우는</b> 1이 기본입니다. 원본의 인물·구도는 아래 <b>참조 강도</b>가 붙잡고, 그림 자체는 새로 그리는 구조라서요.<br>
+                <b>내리면</b> 원본에 가까워지지만 '옷 벗기기' 같은 <b>편집 지시가 잘 안 먹습니다.</b><br>
+                <b>추천</b> — <b>1 유지.</b> 이건 품질이 아니라 용도 값이라 품질 프리셋이 건드리지 않습니다.`,
+            refWeight: `<b>무엇인가</b> — Cosmos Reference가 원본을 얼마나 꽉 붙잡을지. 결과의 <b>얼굴·체형·구도가 원본과 얼마나 같은지</b>를 정합니다.<br>
+                <b>올리면</b> 원본에 더 충실해지지만, 너무 높으면 프롬프트 지시(표정·노출 등)가 밀립니다.<br>
+                <b>내리면</b> 지시는 잘 먹지만 <b>원본 인물에서 멀어집니다.</b><br>
+                <b>이럴 때 만지세요</b> — 얼굴이 원본과 딴판이면 조금 <b>올리고</b>, 표정·노출 지시가 안 먹으면 조금 <b>내려</b> 보세요. 0.1씩.<br>
+                <b>추천</b> — <b>1.</b> 취향 값이라 품질 프리셋이 건드리지 않습니다.`,
+            megapixels: `<b>무엇인가</b> — 원본을 몇 백만 화소로 바꿔서 넣을지. <b>1이면 약 1024×1024</b> 정도입니다.<br>
+                <b>품질에 가장 확실한 레버입니다</b> — 올리면 <b>얼굴·손·머리카락 디테일이 실제로 늘어납니다.</b> 스텝과 달리 이건 구조적으로 그렇습니다(다룰 픽셀이 많아지니까).<br>
+                <b>대가</b> — 시간과 VRAM이 <b>대략 화소 수에 비례</b>해 늘어납니다. 1→2는 약 2배, 1→3은 약 3배. <b>메모리 부족(OOM)</b>이 나면 이 값부터 낮추세요.<br>
+                <b>추천</b> — 기본 <b>1</b>, 여유 있으면 2~3. GPU가 넉넉하면 4까지 올려도 됩니다.`,
+            sampler: `<b>무엇인가</b> — 노이즈를 걷어내는 알고리즘. ComfyUI에 있는 이름과 <b>철자가 정확히 같아야</b> 합니다.<br>
+                <b>euler_ancestral</b>은 매 스텝 노이즈를 새로 섞는 방식(ancestral)이라 변화가 다양합니다. 대신 <b>스텝 수를 바꾸면 그림이 꽤 달라집니다.</b><br>
+                <b>추천</b> — <b>euler_ancestral 유지.</b> 이 워크플로우가 이 조합으로 맞춰져 있습니다. 다른 게 더 낫다는 근거가 없어서 품질 프리셋도 건드리지 않습니다.`,
+            scheduler: `<b>무엇인가</b> — 스텝마다 노이즈를 얼마씩 줄일지 배분하는 방식.<br>
+                <b>바꾸면</b> 결과가 달라지긴 합니다(karras·beta·sgm_uniform 등). 다만 <b>이 모델에서 뭐가 더 낫다는 근거는 없습니다.</b><br>
+                <b>추천</b> — <b>simple 유지.</b> 굳이 실험하시려면 시드를 고정해 두고 하나씩 바꿔 비교하세요.`,
+        };
+        // 프리셋 버튼의 선택 표시만 갱신 — 숫자칸을 직접 고쳤을 때 전체를 다시 그리면 포커스가 날아간다
+        function _animaSyncPresetBar() {
+            const box = _animaEl('#anima-adv'); if (!box) return;
+            const cur = _animaPresetMatch();
+            box.querySelectorAll('.anima-pbtn[data-preset]').forEach(b => b.classList.toggle('on', b.dataset.preset === cur));
+        }
         function _animaRenderAdv() {
             const box = _animaEl('#anima-adv'); if (!box) return;
-            const row = (label, inputHtml, hint) => `<div class="anima-arow"><label>${label}</label>${inputHtml}${hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
+            // 라벨 옆 '?' → 그 항목 설명을 아래에 펼친다(모바일에선 마우스 올리기가 없으니 토글 방식)
+            const row = (label, inputHtml, hint, hk) => `<div class="anima-arow"><label>${label}${hk ? ` <button class="anima-q" data-help="${hk}" title="설명 보기" aria-label="설명 보기">?</button>` : ''}</label>${inputHtml}${hint ? `<span class="hint">${hint}</span>` : ''}</div>`
+                + (hk ? `<div class="anima-help" data-for="${hk}">${_ANIMA_HELP[hk] || ''}</div>` : '');
             const num = (k, step, min, max) => `<input type="number" data-k="${k}" value="${_anima[k]}" step="${step}" ${min != null ? `min="${min}"` : ''} ${max != null ? `max="${max}"` : ''}>`;
             const txt = (k) => `<input type="text" data-k="${k}" value="${_anima[k]}">`;
             box.innerHTML =
-                row('스텝(steps)', num('steps', 1, 1, 60), '기본 8') +
-                row('CFG', num('cfg', 0.1, 0), '기본 1') +
-                row('변환 강도(denoise)', num('denoise', 0.05, 0, 1), '기본 1') +
-                row('참조 강도', num('refWeight', 0.1, 0), 'Cosmos reference 강도(기본 1)') +
-                row('메가픽셀', num('megapixels', 0.5, 0.5, 4), '입력 이미지 크기(기본 2)') +
-                row('샘플러', `<input type="text" data-k="sampler" value="${_anima.sampler}">`, '') +
-                row('스케줄러', `<input type="text" data-k="scheduler" value="${_anima.scheduler}">`, '') +
+                _animaPresetBarHtml() +
+                row('스텝(steps)', num('steps', 1, 1, 60), '기본 3', 'steps') +
+                row('CFG', num('cfg', 0.1, 0), '기본 1 · 바꾸지 마세요', 'cfg') +
+                row('변환 강도(denoise)', num('denoise', 0.05, 0, 1), '기본 1', 'denoise') +
+                row('참조 강도', num('refWeight', 0.1, 0), 'Cosmos reference 강도(기본 1)', 'refWeight') +
+                row('메가픽셀', num('megapixels', 0.5, 0.5, 4), '입력 이미지 크기(기본 1)', 'megapixels') +
+                row('샘플러', `<input type="text" data-k="sampler" value="${_anima.sampler}">`, '기본 euler_ancestral', 'sampler') +
+                row('스케줄러', `<input type="text" data-k="scheduler" value="${_anima.scheduler}">`, '기본 simple', 'scheduler') +
                 `<label class="anima-wmrow"><input type="checkbox" id="anima-suppresswm" ${_anima.suppressWm ? 'checked' : ''}><span>🧪 워터마크·글자 억제 <b>(실험)</b></span></label>
                  <div class="anima-wmhelp">소스 이미지의 워터마크·로고·글자를 줄입니다. Anima는 cfg=1이라 부정 프롬프트가 원래 안 먹어서, 켜면 <b>cfg를 올리고</b> 진짜 부정 프롬프트를 넣습니다. 그래서 <b>결과 품질·속도가 달라질 수 있어요</b>(3스텝 distilled). 효과가 애매하면 소스에서 워터마크를 잘라내고 올리는 게 가장 확실합니다.</div>` +
                 `<div class="anima-adv-sec">모델 파일 (설치된 이름과 정확히 일치해야 함)</div>` +
@@ -8726,8 +8858,30 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     if (inp.type === 'number') { let v = parseFloat(inp.value); if (isNaN(v)) v = ANIMA_DEFAULTS[k] != null ? ANIMA_DEFAULTS[k] : 0; _anima[k] = v; }
                     else _anima[k] = inp.value;
                     _animaSave();
+                    if (k === 'steps' || k === 'megapixels') _animaSyncPresetBar();   // 직접 고치면 프리셋 선택 표시도 따라간다
                 };
             });
+            // '?' — 그 항목 설명 펼치기/접기
+            box.querySelectorAll('.anima-q').forEach(q => q.onclick = () => {
+                const el = box.querySelector(`.anima-help[data-for="${q.dataset.help}"]`); if (!el) return;
+                const open = el.classList.toggle('open');
+                q.classList.toggle('on', open);
+            });
+            // 품질 프리셋
+            box.querySelectorAll('.anima-pbtn[data-preset]').forEach(b => b.onclick = () => {
+                const id = b.dataset.preset;
+                const p = id === 'mine' ? _anima.myPreset : _ANIMA_PRESETS.find(x => x.id === id);
+                if (!p) { showToast("먼저 💾로 지금 값을 '내 설정'에 저장하세요", 'warning', 2600); return; }
+                _anima.steps = p.steps; _anima.megapixels = p.megapixels;
+                _animaSave(); _animaRenderAdv();
+                showToast(`${id === 'mine' ? '내 설정' : p.name} 적용 — 스텝 ${p.steps} · 메가픽셀 ${p.megapixels}`, 'success', 2200);
+            });
+            const sv = box.querySelector('.anima-pbtn[data-act="savemine"]');
+            if (sv) sv.onclick = () => {
+                _anima.myPreset = { steps: +_anima.steps, megapixels: +_anima.megapixels };
+                _animaSave(); _animaRenderAdv();
+                showToast(`내 설정으로 저장했어요 — 스텝 ${_anima.myPreset.steps} · 메가픽셀 ${_anima.myPreset.megapixels}`, 'success', 2400);
+            };
             const wm = box.querySelector('#anima-suppresswm');
             if (wm) wm.onchange = () => { _anima.suppressWm = wm.checked; _animaSave(); showToast(wm.checked ? '워터마크·글자 억제 켬 (실험 — 품질이 달라질 수 있어요)' : '워터마크·글자 억제 끔', 'info', 2200); };
             const rb = box.querySelector('#anima-reset');
@@ -8788,6 +8942,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             inbox.addEventListener('drop', e => { e.preventDefault(); inbox.classList.remove('drag'); if (e.dataTransfer && e.dataTransfer.files) _animaAddFile(e.dataTransfer.files); });
             const onPaste = (e) => { if (_plCurrent !== 'anima') return; const items = e.clipboardData && e.clipboardData.items; if (!items) return; for (const it of items) { if (it.type && it.type.startsWith('image/')) { const f = it.getAsFile(); if (f) { _animaFileToDataURL(f).then(du => _animaSetImage(du, 'pasted')); e.preventDefault(); break; } } } };
             document.addEventListener('paste', onPaste);
+            document.addEventListener('click', _animaFutaPopOutside, true);   // 후타 상세: 바깥을 누르면 닫기(캡처 단계)
             const onResize = () => { _animaFitExprRow(_animaEl('#anima-mact .anima-mact-expr')); _animaSyncMactHeight(); };   // 폭이 바뀌면 표시 개수·바 높이 재계산
             window.addEventListener('resize', onResize);
             _animaSyncMactHeight();
@@ -8896,6 +9051,24 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-seed button { background:var(--bg-base); border:1px solid var(--border-dim); border-radius:9px; padding:9px 11px; cursor:pointer; color:var(--text-main); }
           .anima-adv-toggle { font-size:12.5px; font-weight:800; color:var(--text-main); cursor:pointer; user-select:none; }
           .anima-adv { flex-direction:column; gap:9px; }
+          /* 품질 프리셋 줄 — 버튼 라벨은 짧게(모바일에서 줄바꿈·비대해짐 방지) */
+          .anima-preset { display:flex; align-items:center; flex-wrap:wrap; gap:6px; padding:2px 0 11px; margin-bottom:9px; border-bottom:1px dashed var(--border-dim); }
+          .anima-preset-lab { font-size:11.5px; font-weight:800; color:var(--text-dim); margin-right:2px; }
+          .anima-pbtn { border:1px solid var(--border-dim); background:var(--bg-base); color:var(--text-dim); border-radius:18px;
+            padding:6px 12px; font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; transition:.13s; }
+          .anima-pbtn:hover { border-color:var(--accent-blue,#3b82f6); color:var(--text-main); }
+          .anima-pbtn.on { background:color-mix(in srgb,var(--accent-blue,#3b82f6) 18%,transparent); border-color:var(--accent-blue,#3b82f6); color:var(--accent-blue,#3b82f6); }
+          .anima-pbtn.off { opacity:.45; }
+          .anima-pbtn.save { padding:6px 9px; }
+          .anima-preset-note { flex:1 1 100%; font-size:10.5px; line-height:1.6; color:var(--text-dim); margin-top:2px; }
+          /* 라벨 옆 '?' + 펼쳐지는 설명 */
+          .anima-q { width:16px; height:16px; padding:0; flex:0 0 auto; border-radius:50%; border:1px solid var(--border-dim);
+            background:transparent; color:var(--text-dim); font-family:inherit; font-size:10px; font-weight:800; line-height:1; cursor:pointer; vertical-align:middle; }
+          .anima-q:hover, .anima-q.on { border-color:var(--accent-blue,#3b82f6); color:var(--accent-blue,#3b82f6); }
+          .anima-help { display:none; grid-column:1 / -1; margin:2px 0 8px; padding:10px 12px; border-radius:10px;
+            background:var(--bg-base); border:1px solid var(--border-dim); font-size:11.5px; line-height:1.75; color:var(--text-dim); }
+          .anima-help.open { display:block; }
+          .anima-help b { color:var(--text-main); }
           .anima-arow { display:grid; grid-template-columns:120px 1fr; gap:8px 10px; align-items:center; }
           .anima-arow label { font-size:12px; font-weight:700; color:var(--text-dim); }
           .anima-arow input { background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:7px 9px; color:var(--text-main); font-size:12px; min-width:0; }
@@ -8939,7 +9112,27 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-gal-vb { background:transparent; border:none; padding:5px 9px; color:var(--text-dim); font-family:inherit; font-size:11px; font-weight:700; cursor:pointer;  white-space:nowrap; }
           .anima-gal-vb + .anima-gal-vb { border-left:1px solid var(--border-dim); }
           .anima-gal-vb.on { background:color-mix(in srgb,var(--accent-blue,#3b82f6) 20%,transparent); color:var(--accent-blue,#3b82f6); }
-          /* 원본별 그룹 머리글 — 어떤 원본에서 나온 결과인지 썸네일로 바로 확인 */
+          /* ── 원본별 = 폴더 ── */
+          .anima-folders { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:9px; margin-top:11px; }
+          .anima-fold { display:flex; align-items:center; gap:10px; text-align:left; padding:9px; border-radius:12px; cursor:pointer;
+            background:var(--bg-base); border:1px solid var(--border-dim); font-family:inherit; transition:.13s; min-width:0; }
+          .anima-fold:hover { border-color:var(--accent-blue,#3b82f6); transform:translateY(-1px); }
+          .anima-fold-th { width:46px; height:46px; flex:0 0 auto; border-radius:9px; overflow:hidden; background:#0b0e13;
+            border:1px solid var(--border-dim); display:flex; align-items:center; justify-content:center; }
+          .anima-fold-th img { width:100%; height:100%; object-fit:cover; display:block; }
+          .anima-fold-no { color:var(--text-dim); font-size:15px; font-weight:800; }
+          .anima-fold-meta { display:flex; flex-direction:column; gap:3px; min-width:0; }
+          .anima-fold-n { font-size:12px; font-weight:800; color:var(--text-main); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+          .anima-fold-c { font-size:10.5px; font-weight:700; color:var(--text-dim); }
+          /* 폴더 안 머리줄 */
+          .anima-fold-bar { display:flex; align-items:center; gap:8px; margin:12px 0 2px; }
+          .anima-fold-back { flex:0 0 auto; background:transparent; border:1px solid var(--border-dim); border-radius:8px; padding:6px 11px;
+            color:var(--text-dim); font-family:inherit; font-size:11.5px; font-weight:800; cursor:pointer; white-space:nowrap; }
+          .anima-fold-back:hover { color:var(--accent-blue,#3b82f6); border-color:var(--accent-blue,#3b82f6); }
+          /* 폴더 안 정렬 — 다단(세로로 채움)이 아니라 격자라서 왼→오른쪽 순서대로 읽힌다.
+             자르지 않으려고 높이는 원본 비율 그대로 두고 위쪽 정렬(같은 원본이면 비율이 같아 줄이 고르게 맞는다). */
+          .anima-gal.grid { column-width:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(var(--gcw,96px),1fr)); gap:8px; align-items:start; }
+          .anima-gal.grid .anima-gitem { margin-bottom:0; }
           .anima-gg-head { display:flex; align-items:center; gap:8px; margin:14px 0 2px; padding-top:10px; border-top:1px dashed var(--border-dim); }
           .anima-gg-head:first-of-type { border-top:none; padding-top:0; margin-top:10px; }
           .anima-gg-th { width:30px; height:30px; flex:0 0 auto; border-radius:7px; object-fit:cover; border:1px solid var(--border-dim); background:#0b0e13; }
@@ -8979,8 +9172,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-mact { display:flex; flex-direction:column; align-items:center; gap:8px; position:fixed; left:0; right:0; bottom:0; z-index:60;
             padding:9px 12px calc(9px + env(safe-area-inset-bottom, 0px)); background:var(--bg-panel); border-top:1px solid var(--border-dim); box-shadow:0 -6px 18px rgba(0,0,0,.25); }
           /* ── 연속 생성(스윕) 메뉴 — 실행 버튼 길게 누르면 뜸 ── */
-          .anima-sweep-back { position:fixed; inset:0; z-index:120; background:rgba(0,0,0,.5); display:flex; align-items:flex-end; justify-content:center; padding:16px; }
-          .anima-sweep-menu { width:100%; max-width:520px; max-height:78vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+          /* 하단 바(실행 버튼) 높이만큼 띄운다 — 롱프레스로 열자마자 메뉴가 손가락 아래에 깔려 오터치되던 문제 */
+          .anima-sweep-back { position:fixed; inset:0; z-index:120; background:rgba(0,0,0,.5); display:flex; align-items:flex-end; justify-content:center;
+            padding:16px 16px calc(var(--anima-mact-h, 0px) + 26px); }
+          .anima-sweep-menu { width:100%; max-width:520px; max-height:calc(100vh - var(--anima-mact-h, 0px) - 76px); overflow-y:auto; -webkit-overflow-scrolling:touch;
             background:var(--bg-panel); border:1px solid var(--border-dim); border-radius:16px; padding:12px; box-shadow:0 14px 40px rgba(0,0,0,.55); }
           .anima-sweep-head { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; color:var(--text-main); margin:2px 2px 10px; flex-wrap:wrap; }
           .anima-sweep-head span { font-size:10.5px; font-weight:600; color:var(--text-dim); }
@@ -8992,7 +9187,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-sweep-nm { flex:1 1 auto; }
           .anima-sweep-cnt { flex:0 0 auto; font-size:11px; font-weight:800; color:var(--accent-blue,#3b82f6);
             background:color-mix(in srgb,var(--accent-blue,#3b82f6) 15%,transparent); border-radius:20px; padding:3px 9px; }
-          .anima-sweep-row.cfg { border-style:dashed; font-size:12.5px; color:var(--text-dim); margin-bottom:0; }
+          .anima-sweep-row.cfg { border-style:dashed; font-size:12.5px; color:var(--text-dim); }
           .anima-sweep-cfg { display:none; padding:4px 2px 2px; }
           .anima-sweep-cfg.open { display:block; }
           .anima-sweep-sec { font-size:10.5px; font-weight:800; color:var(--text-dim); margin:11px 0 6px; }
