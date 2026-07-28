@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.65.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.65.2 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1246,7 +1246,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.65.1 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.65.2 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2040,7 +2040,15 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.65.1', date: '2026-07-28', time: '최신',
+                version: 'v9.65.2', date: '2026-07-28', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] 저장 공간이 가득 찼을 때 <b>설정이 통째로 저장 안 되던 위험</b>을 없앴습니다 — 예전엔 이전 원본 목록만 줄여 보고 그래도 모자라면 <b>저장 자체를 포기</b>해서, 새로고침하면 프롬프트·모델·ComfyUI 주소까지 되돌아갈 수 있었습니다. 이제 <b>무거운 것부터 단계적으로</b> 줄이고(이전 원본 → 오래된 생성 이미지 목록 → 현재 원본 썸네일) <b>설정만은 반드시 지킵니다</b>. 목록이 줄어들면 그 사실을 한 번 알려드려요.",
+                    "[내부 정리] 하단 바를 아이콘 방식으로 바꾸기 전의 <b>옛 코드 84줄</b>을 걷어냈습니다 — 화면 동작은 그대로이고, 앱이 조금 더 가벼워집니다.",
+                ]
+            },
+            {
+                version: 'v9.65.1', date: '2026-07-28', time: '',
                 tag: 'fix',
                 items: [
                     "[성인 콘텐츠] 표시를 <b>꺼도 후타 버튼이 '기타'에 남아 있던 문제</b>를 고쳤습니다 — 하단 바에서는 제대로 사라졌지만, ②프롬프트 영역 맨 아래 <b>기타</b> 줄에 후타나리(거근·노멀·소추)가 그대로 보였습니다. 이제 끄면 <b>어디에도 남지 않습니다</b>.",
@@ -7060,6 +7068,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         const ANIMA_KEY = 'anima_settings_v1';
         const _ANIMA_SRCHIST_MAX = 24;   // 이전 원본(축소본) 보관 개수 — 저장 용량 초과 시 자동으로 줄임(_animaSave)
         const _ANIMA_MAX_RESULTS = 500;  // 결과 갤러리 보관 장수(결과는 서버 URL만 저장 → 용량 부담 적음). 렌더는 이벤트 위임 + 지연로딩으로 가볍게 유지.
+        let _animaQuotaWarned = false;   // 저장 공간 부족 경고는 세션당 1번만(저장은 자주 일어남)
         function _animaSave() {
             try {
                 const p = {};
@@ -7070,12 +7079,34 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null, detail: s.detail || null, more: !!s.more }));
                 // 이전에 넣은 원본 이미지(축소본)들 — 다시 불러오기용.
                 const hist = (_anima.srcHistory || []).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0, key: h.key || null }));
-                // 용량(localStorage quota) 초과 시 이전 원본을 오래된 것부터 줄여가며 재시도 → 저장 자체가 실패해 설정이 통째로 날아가는 것 방지
-                for (let n = hist.length; ; n--) {
-                    p.srcHistory = hist.slice(0, Math.max(0, n));
-                    try { localStorage.setItem(ANIMA_KEY, JSON.stringify(p)); if (n < hist.length) _anima.srcHistory = p.srcHistory.slice(); break; }
-                    catch (err) { if (n <= 0) throw err; /* 계속 줄여서 재시도 */ }
+                // 용량(localStorage quota) 초과 시 '무거운 것부터' 단계적으로 줄여가며 재시도.
+                //  목적: 결과 목록이 넘쳐서 프롬프트·모델·서버 주소 같은 설정까지 통째로 날아가는 일을 막는 것.
+                //  ① 이전 원본 썸네일(dataURL — 압도적으로 큼)을 오래된 것부터
+                //  ② 그래도 안 되면 결과 목록을 오래된 것부터(500장이면 무시 못 할 크기)
+                //  ③ 마지막엔 현재 원본 썸네일까지 포기 — 설정만은 반드시 살린다
+                const _put = () => { try { localStorage.setItem(ANIMA_KEY, JSON.stringify(p)); return true; } catch (err) { return false; } };
+                const allRes = p.results;
+                let saved = false;
+                for (let n = hist.length; n >= 0 && !saved; n--) {
+                    p.srcHistory = hist.slice(0, n);
+                    if (_put()) { saved = true; if (n < hist.length) _anima.srcHistory = p.srcHistory.slice(); }
                 }
+                // ② 결과 목록 줄이기 — 절반씩 빠르게 좁히고 마지막엔 1장씩
+                for (let m = Math.floor(allRes.length / 2); !saved && m >= 0; m = (m > 8 ? Math.floor(m / 2) : m - 1)) {
+                    p.results = allRes.slice(0, m);
+                    if (_put()) {
+                        saved = true;
+                        // 화면(메모리)을 저장본과 맞춘다 — 어긋나 있으면 다음 저장 때 이 사다리를 처음부터 또 걸어야 한다
+                        _anima.results = (_anima.results || []).slice(0, m);
+                        _anima.srcHistory = (p.srcHistory || []).slice();
+                        if (!_animaQuotaWarned) {
+                            _animaQuotaWarned = true;
+                            try { showToast(`저장 공간이 가득 차 오래된 생성 이미지 목록을 ${m}장으로 줄였어요 (설정은 그대로예요)`, 'warning', 4200); } catch (e2) {}
+                        }
+                    }
+                }
+                // ③ 그래도 안 되면 현재 원본 썸네일을 빼고 설정만 저장
+                if (!saved) { p.imgThumb = null; _put(); }
             } catch (e) {}
         }
         // 프롬프트 타이핑처럼 잦은 변경용 — 썸네일·원본기록(수백 KB) 직렬화를 매 키 입력마다 하지 않게 디바운스
@@ -7358,7 +7389,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _animaScrollToResult();
         };
 
-        let _animaDom = null, _animaBusy = false, _animaResSel = 0, _animaGalManage = false, _animaOptsOpen = false;
+        let _animaDom = null, _animaBusy = false, _animaResSel = 0, _animaGalManage = false;
         let _animaExprOpen = false;   // 하단 바 표정 줄 펼침 여부
         let _animaFutaPop = null;     // 열려 있는 후타 상세 팝오버의 크기 id (✕로만 닫힘)
         // 결과 카드로 부드럽게 스크롤 (좁은 화면: 실행하면 스피너/결과가 안 보이는 문제 해결)
@@ -7828,16 +7859,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const pt = _animaEl('#anima-prompt'); if (pt) pt.value = _anima.prompt;
             _animaSave(); _animaSyncChipStates();   // 전체 재그리기 X → 하단 바 스크롤 위치 유지
         }
-        function _animaToggleSnipById(id) {
-            const s = _anima.snippets.find(x => x.id === id); if (!s) return;
-            s.on = !s.on;
-            // 같은 group(거근/소추 등)은 상호배타: 하나 켜면 나머지 자동 꺼짐
-            if (s.on && s.group) _anima.snippets.forEach(x => { if (x !== s && x.group === s.group) x.on = false; });
-            _animaSave();
-            // 후타 프리셋 토글은 상세(발기·포피) 칩의 표시 여부가 바뀌므로 전체 재그리기 필요
-            if (s.group === 'futa') _animaRenderSnippets();
-            else _animaSyncChipStates();   // 그 외엔 상태만 갱신 → 하단 바 스크롤 위치 유지
-        }
         // 칩 토글 시 DOM을 다시 만들지 않고 상태(on/✓)만 갱신 — 하단 바 좌우 스크롤 위치가 리셋되지 않게.
         function _animaSyncChipStates() {
             const curP = (_anima.prompt || '').trim();
@@ -7849,8 +7870,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 });
                 box.querySelectorAll('.anima-chip[data-id]').forEach(c => {
                     const s = _anima.snippets.find(x => x.id === c.dataset.id); if (!s) return;
-                    c.classList.toggle('on', !!s.on);
-                    c.textContent = (s.on ? '✓ ' : '') + (s.name || '');   // textContent라 별도 이스케이프 불필요
+                    c.classList.toggle('on', !!s.on);   // 선택 표시는 색(.on)으로만 — 지금 칩 서식엔 '✓' 접두어가 없다
                 });
             });
             // ★ 아이콘(의상·후타)도 함께 갱신 — 예전엔 글자 칩만 갱신해서, 아이콘을 눌러도 선택 표시가
@@ -7868,16 +7888,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
                 });
             });
-            // 하단 바 '옵션' 요약 텍스트 갱신(펼치지 않아도 켜진 선택이 보이게)
-            const sum = _animaEl('#anima-mact .anima-opts-sum'); if (sum && typeof _animaOptsSummary === 'function') sum.textContent = _animaOptsSummary();
-        }
-        // 자주 쓰는 표정(항상 바에 노출) — 나머지는 '표정 더보기'로 접힘
-        const _ANIMA_EXPR_PRIMARY = ['expr_seductive', 'expr_orgasm', 'expr_ahegao', 'expr_smile'];
-        // 기본 제공 표정 중 접힘 대상 id(구버전 저장분엔 more 플래그가 없어 id로도 판정)
-        const _ANIMA_EXPR_MORE = ['expr_neutral', 'expr_shy', 'expr_blush', 'expr_tongue', 'expr_smug', 'expr_angry', 'expr_surprised', 'expr_heart', 'expr_pout', 'expr_wink', 'expr_cry'];
-        function _animaIsExprMore(s) { return s.group === 'expr' && (s.more === true || _ANIMA_EXPR_MORE.includes(s.id)) && !_ANIMA_EXPR_PRIMARY.includes(s.id); }
-        function _animaChip(s) {
-            return `<button class="anima-chip${s.group ? ' g-' + s.group : ''}${s.on ? ' on' : ''}" data-id="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${s.on ? '✓ ' : ''}${_animaEsc(s.name)}</button>`;
         }
         // ── 하단 바 아이콘(인라인 SVG) ──────────────────────────────────────
         //  CDN(Font Awesome) 없이도 항상 뜨도록 직접 그린 도형. 의상=옷 모양+빨간 사선(=그 옷을 벗김),
@@ -7930,70 +7940,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (cur.includes(id)) return false;   // 이미 바에 있음 → 순서 유지(요청)
             _anima.exprRecent = [id].concat(cur).slice(0, _ANIMA_EXPR_RECENT_MAX);
             return true;   // 목록이 바뀜 → 다시 그려야 함
-        }
-        function _animaChipsHtml() {
-            const all = (_anima.snippets || []);
-            const baseS = all.filter(s => s.kind === 'base');
-            const appS = all.filter(s => s.kind !== 'base');
-            const futaS = appS.filter(s => s.group === 'futa');
-            const futaErect = appS.filter(s => s.detail === 'futa' && s.group === 'futaErect');
-            const futaSkin = appS.filter(s => s.detail === 'futa' && s.group === 'futaSkin');
-            const futaCum = appS.filter(s => s.detail === 'futa' && s.group === 'futaCum');
-            const exprAll = appS.filter(s => s.group === 'expr');
-            const exprPrimary = exprAll.filter(s => !_animaIsExprMore(s));
-            const exprMoreList = exprAll.filter(s => _animaIsExprMore(s));
-            // 위 어디에도 안 속하는 나머지(사용자 커스텀 등)
-            const usedIds = new Set([...futaS, ...futaErect, ...futaSkin, ...futaCum, ...exprAll].map(s => s.id));
-            const otherS = appS.filter(s => !usedIds.has(s.id));
-            const futaOn = futaS.some(s => s.on);
-            const exprMore = !!_anima.exprMore;
-            const curP = (_anima.prompt || '').trim();
-            let h = '';
-            if (baseS.length) {
-                h += `<span class="anima-snip-lab">노출</span>`;
-                baseS.forEach(s => { const active = curP === (s.text || '').trim(); h += `<button class="anima-chip base${active ? ' on' : ''}" data-base="${s.id}" title="누르면 적용 · 켜져 있을 때 다시 누르면 해제(노출 없이 표정·옵션만) — ${(s.text || '').replace(/"/g, '&quot;')}">${_animaEsc(s.name)}</button>`; });
-            }
-            if (futaS.length) {
-                h += `<span class="anima-snip-lab">후타</span>`;
-                futaS.forEach(s => { h += _animaChip(s); });
-                // 후타가 켜져 있을 때만 상세(발기·포피) 노출 — 평소엔 칸이 안 늘어남
-                if (futaOn) {
-                    if (futaErect.length) { h += `<span class="anima-snip-lab sub">발기</span>`; futaErect.forEach(s => { h += _animaChip(s); }); }
-                    if (futaSkin.length) { h += `<span class="anima-snip-lab sub">포피</span>`; futaSkin.forEach(s => { h += _animaChip(s); }); }
-                    if (futaCum.length) { h += `<span class="anima-snip-lab sub">사정</span>`; futaCum.forEach(s => { h += _animaChip(s); }); }
-                }
-            }
-            if (exprAll.length) {
-                h += `<span class="anima-snip-lab">표정</span>`;
-                exprPrimary.forEach(s => { h += _animaChip(s); });
-                if (exprMoreList.length) {
-                    h += `<button class="anima-chip more-toggle" data-act="exprMore" title="표정 더 보기/접기">${exprMore ? '표정 접기 ▲' : '표정 더보기 ▾'}</button>`;
-                    if (exprMore) exprMoreList.forEach(s => { h += _animaChip(s); });
-                }
-            }
-            if (otherS.length) {
-                h += `<span class="anima-snip-lab">옵션</span>`;
-                otherS.forEach(s => { h += _animaChip(s); });
-            }
-            return h;
-        }
-        function _animaBindChips(box) {
-            box.querySelectorAll('.anima-chip[data-base]').forEach(c => c.onclick = () => _animaApplyBaseSnip(c.dataset.base));
-            box.querySelectorAll('.anima-chip[data-id]').forEach(c => c.onclick = () => _animaToggleSnipById(c.dataset.id));
-            box.querySelectorAll('.anima-chip[data-act="exprMore"]').forEach(c => c.onclick = () => { _anima.exprMore = !_anima.exprMore; _animaSave(); _animaRenderSnippets(); });
-        }
-        // 하단 바 '옵션' 버튼에 현재 선택을 요약해 보여줌(펼치지 않아도 뭐가 켜졌는지 파악)
-        function _animaOptsSummary() {
-            const all = _anima.snippets || [];
-            const curP = (_anima.prompt || '').trim();
-            const parts = [];
-            const baseOn = all.find(s => s.kind === 'base' && curP === (s.text || '').trim());
-            if (baseOn) parts.push(baseOn.name);
-            const futa = all.find(s => s.group === 'futa' && s.on);
-            if (futa) parts.push(futa.name.replace('후타나리', '후타'));
-            const expr = all.find(s => s.group === 'expr' && s.on);
-            if (expr) parts.push(expr.name);
-            return parts.length ? parts.join(' · ') : '옵션 선택';
         }
 
         // 하단 바 표정 줄이 절대 줄바꿈되지 않게 — 실제 폭을 재서 넘치는 칩만 감춘다.
