@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.68.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.68.2 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1185,7 +1185,10 @@
             .sub-folder { content-visibility: auto; contain-intrinsic-size: auto 240px; }
             .layer-group { content-visibility: auto; contain-intrinsic-size: auto 60px; }
             .pl-grid > * { content-visibility: auto; contain-intrinsic-size: auto 128px; }
-            .anima-gitem, .cmp-card { content-visibility: auto; contain-intrinsic-size: auto 180px; }
+            .cmp-card { content-visibility: auto; contain-intrinsic-size: auto 180px; }
+            /* .anima-gitem 은 제외 — 갤러리를 '창 방식'(한 번에 100장)으로 바꾼 뒤로는 이득이 거의 없고
+               (렌더 6ms→5ms), 대신 화면에 들고 날 때마다 높이를 다시 어림잡아 masonry가 들썩였다.
+               스크롤 중 보던 그림이 밀리는 원인이라 뺀다. 지연 로딩(loading=lazy)은 그대로 유지. */
             /* 끝없이 도는 장식 애니메이션은 매 프레임 합성 → 모바일에선 정지(기능 무관, 물결/파도 장식) */
             [style*="comfy-water-spin"], [style*="comfy-wave-row"] { animation: none !important; }
         }
@@ -1246,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.68.1 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.68.2 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2040,7 +2043,15 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.68.1', date: '2026-07-28', time: '최신',
+                version: 'v9.68.2', date: '2026-07-28', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] <b>버튼을 누를 때마다 화면이 위로 솟구치던 문제</b>를 고쳤습니다 — 후타를 켜면 상세 줄이 생기고 표정을 펼치면 목록이 늘어나는데, 그 칸이 갤러리보다 <b>위</b>에 있다 보니 아래 내용이 통째로 100px 넘게 밀렸습니다. 이제 무엇을 누르든 <b>보고 있던 그림이 제자리에 그대로</b> 있습니다.",
+                    "[갤러리] <b>스크롤할 때 그림이 들썩이던 것</b>도 없앴습니다 — 화면 밖 썸네일의 높이를 어림잡던 방식 때문에 스크롤 도중 갤러리 길이가 최대 1400px까지 출렁였습니다. 갤러리를 100장씩 나눠 그리게 바뀐 뒤로는 이 방식이 득이 없어서(속도 차이 거의 없음) 걷어냈습니다. 이제 <b>스크롤 중 길이가 전혀 변하지 않습니다</b>.",
+                ]
+            },
+            {
+                version: 'v9.68.1', date: '2026-07-28', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] <b>고품질·최고 품질이 이미지를 망가뜨리던 문제</b>를 고쳤습니다 — 원본의 옷·얼굴·머리카락이 통째로 사라지고 형태가 늘어진 채 하얗게 뜨는 결과가 나왔습니다. <b>메가픽셀을 올린 게 원인</b>이었어요. 이 모델은 1MP 근처에서 만들어져서, 2로만 올려도 원본을 붙잡아 주는 장치가 어긋나 <b>모델이 원본을 못 보고</b> 그립니다. 이제 <b>세 프리셋 모두 메가픽셀 1로 고정</b>하고 <b>스텝만</b> 바꿉니다(기본 3 · 고품질 6 · 최고 8).",
@@ -8396,7 +8407,25 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _animaFutaPop = null;
             setTimeout(() => { try { if (_animaEl('#anima-futapop')) _animaRenderSnippets(); } catch (err) {} }, 0);
         }
+        // 다시 그리는 동안 '보고 있던 위치'를 붙잡아 둔다.
+        //  왜 필요한가: ②옵션 영역은 갤러리보다 위에 있어서, 후타 상세 줄이 생기거나 사라지면
+        //  아래 내용이 통째로 100px 넘게 밀린다. 브라우저의 자동 앵커링은 innerHTML로 노드를
+        //  통째로 갈아치우면 기준 노드를 잃어 동작하지 않는다 → 결과 칸을 기준 삼아 직접 되돌린다.
+        function _animaAnchorScroll(fn) {
+            const root = _animaDom, anchor = _animaEl('#anima-result');
+            const t0 = (root && anchor) ? anchor.getBoundingClientRect().top : null;
+            fn();
+            if (t0 == null) return;
+            try {
+                const t1 = anchor.getBoundingClientRect().top;
+                const d = t1 - t0;
+                if (Math.abs(d) > 1) root.scrollTop += d;
+            } catch (e) {}
+        }
         function _animaRenderSnippets() {
+            return _animaAnchorScroll(_animaRenderSnippetsInner);
+        }
+        function _animaRenderSnippetsInner() {
             const box = _animaEl('#anima-snips'); if (!box) return;
             // 아이콘 심볼은 문서에 한 번만 주입(본문·하단 바가 공유)
             try { if (_animaDom && !_animaDom.querySelector('.anima-icodefs')) _animaDom.insertAdjacentHTML('afterbegin', _ANIMA_ICON_DEFS); } catch (e) {}
@@ -8537,7 +8566,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             const gap = parseFloat(cs.rowGap || cs.gap || '0') || 0;
                             h -= (pop.offsetHeight || 0) + gap;
                         }
-                        _animaDom.style.setProperty('--anima-mact-h', Math.max(0, h) + 'px');
+                        // 이 여백 변경은 렌더보다 한 박자 늦게(rAF) 일어나므로 여기서도 위치를 붙잡아 준다.
+                        //  안 그러면 '표정 더보기'처럼 바 높이가 바뀌는 동작에서 보던 그림이 밀린다.
+                        _animaAnchorScroll(() => _animaDom.style.setProperty('--anima-mact-h', Math.max(0, h) + 'px'));
                     } catch (e) {}
                 });
             } catch (e) {}
