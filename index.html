@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.69.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.70.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.69.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.70.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2043,7 +2043,16 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.69.0', date: '2026-07-28', time: '최신',
+                version: 'v9.70.0', date: '2026-07-28', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] ✏️ 편집에 <b>↺ 되돌리기</b>가 생겼습니다 — 기본 제공 옵션(노출·후타·표정·포즈)의 프롬프트나 이름을 고쳤어도 <b>언제든 원래대로</b> 돌릴 수 있어요. 그 항목만 되돌아가고 다른 설정은 그대로입니다.",
+                    "[Anima 편집] 고친 항목에는 <b>'✏️ 수정됨' 표시</b>가 붙습니다 — 왜 붙냐면, <b>고친 항목은 앞으로 기본값이 개선돼도 업데이트를 받지 않기 때문</b>이에요(직접 쓰신 내용을 지우지 않으려고 일부러 그렇게 동작합니다). 최신 기본값을 받고 싶으면 <b>↺</b>를 누르시면 됩니다.",
+                    "[Anima 편집] 직접 만드신 옵션에는 ↺가 붙지 않습니다 — 되돌릴 기본값이 없으니까요. 되돌리기는 <b>한 번 확인</b>을 물어봅니다.",
+                ]
+            },
+            {
+                version: 'v9.69.0', date: '2026-07-28', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 후타 크기에 <b>초거근</b>이 추가돼 <b>소추 · 노멀 · 거근 · 초거근</b> 4단계가 됐습니다. 하단 바에도 <b>전용 아이콘</b>으로 바로 뜨고, 연속 생성 '후타 크기 전부 돌리기'도 4장으로 늘어납니다.",
@@ -8595,14 +8604,31 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 });
             } catch (e) {}
         }
+        // 이 옵션이 '기본 제공 프리셋인데 사용자가 고친 상태'인가?
+        //  직접 만든 옵션(기본 목록에 없는 id)은 되돌릴 원본이 없으므로 false.
+        //  on(켜짐)·group 같은 상태 값은 비교에서 제외 — 켜고 끄는 건 '수정'이 아니다.
+        function _animaSnipModified(s) {
+            if (!s) return false;
+            const def = ANIMA_DEFAULT_SNIPPETS.find(d => d.id === s.id);
+            if (!def) return false;
+            return (s.text || '').trim() !== (def.text || '').trim()
+                || (s.name || '') !== (def.name || '')
+                || (s.kind || 'append') !== (def.kind || 'append');
+        }
         function _animaRenderSnipEdit() {
             const box = _animaEl('#anima-snip-edit'); if (!box) return;
             if (!_animaSnipEditOpen) { box.style.display = 'none'; box.innerHTML = ''; return; }
             box.style.display = 'flex';
             let h = '<div class="anima-se-head">옵션 편집 — <b>노출교체</b>는 누르면 기본 프롬프트를 바꾸고, <b>추가</b>는 켜면 뒤에 붙습니다</div>';
             (_anima.snippets || []).forEach(s => {
-                h += `<div class="anima-se-item" data-id="${s.id}">
-                    <div class="anima-se-row"><input class="anima-se-name" data-k="name" value="${_animaEsc(s.name)}" placeholder="이름"><select class="anima-se-kind" data-k="kind"><option value="append"${s.kind !== 'base' ? ' selected' : ''}>추가</option><option value="base"${s.kind === 'base' ? ' selected' : ''}>노출교체</option></select><button class="anima-se-del" title="삭제">🗑</button></div>
+                // 기본 제공 프리셋이 원래 값과 달라졌으면 '수정됨' 표시 + ↺ 되돌리기를 띄운다.
+                //  (마이그레이션은 직접 고친 문구를 존중해 건드리지 않으므로, 되돌릴 방법이 없으면 이후 개선을 영영 못 받는다)
+                // ★ ↺·안내문은 '항상 DOM에 두고' modified 클래스로만 보였다 감췄다 한다.
+                //   (프롬프트를 고칠 때마다 편집창을 다시 그리면 입력 포커스가 튀므로, 클래스 토글로만 처리)
+                const isDef = !!ANIMA_DEFAULT_SNIPPETS.find(d => d.id === s.id);   // 직접 만든 옵션은 되돌릴 원본이 없다
+                h += `<div class="anima-se-item${_animaSnipModified(s) ? ' modified' : ''}" data-id="${s.id}">
+                    <div class="anima-se-row"><input class="anima-se-name" data-k="name" value="${_animaEsc(s.name)}" placeholder="이름"><select class="anima-se-kind" data-k="kind"><option value="append"${s.kind !== 'base' ? ' selected' : ''}>추가</option><option value="base"${s.kind === 'base' ? ' selected' : ''}>노출교체</option></select>${isDef ? '<button class="anima-se-rst" title="기본값으로 되돌리기" aria-label="기본값으로 되돌리기">↺</button>' : ''}<button class="anima-se-del" title="삭제">🗑</button></div>
+                    ${isDef ? '<div class="anima-se-mod">✏️ 수정됨 — 기본값이 바뀌어도 이 항목은 그대로 유지됩니다. <b>↺</b>로 되돌릴 수 있어요.</div>' : ''}
                     <textarea class="anima-se-text" data-k="text" placeholder="프롬프트 (예: futanari, penis, ...)">${_animaEsc(s.text)}</textarea></div>`;
             });
             h += `<div class="anima-se-adds"><button class="anima-btn ghost anima-se-add" data-kind="append">＋ 추가 옵션</button><button class="anima-btn ghost anima-se-add" data-kind="base">＋ 노출 프리셋</button></div>`;
@@ -8610,9 +8636,23 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             box.querySelectorAll('.anima-se-item').forEach(it => {
                 const id = it.dataset.id; const s = _anima.snippets.find(x => x.id === id); if (!s) return;
                 it.querySelector('.anima-se-name').onchange = (e) => { s.name = e.target.value; _animaSave(); _animaRenderSnippets(); };
-                it.querySelector('.anima-se-text').onchange = (e) => { s.text = e.target.value; _animaSave(); };
+                // 프롬프트 수정 — 편집창을 다시 그리지 않고 '수정됨' 표시만 갱신(입력 중 포커스 유지)
+                it.querySelector('.anima-se-text').onchange = (e) => { s.text = e.target.value; _animaSave(); it.classList.toggle('modified', _animaSnipModified(s)); };
                 it.querySelector('.anima-se-kind').onchange = (e) => { s.kind = e.target.value; if (s.kind === 'base') s.on = false; _animaSave(); _animaRenderSnippets(); };
                 it.querySelector('.anima-se-del').onclick = () => { _anima.snippets = _anima.snippets.filter(x => x.id !== id); _animaSave(); _animaRenderSnippets(); };
+                const rst = it.querySelector('.anima-se-rst');
+                if (rst) rst.onclick = () => {
+                    const def = ANIMA_DEFAULT_SNIPPETS.find(d => d.id === id); if (!def) return;
+                    if (!confirm(`'${def.name}'을(를) 기본값으로 되돌릴까요?\n\n직접 고치신 내용은 사라집니다.`)) return;
+                    // 이름·프롬프트만이 아니라 기본 정의를 통째로 복원한다(group·detail·nsfw 등이 예전 저장본에서 어긋나 있어도 함께 교정).
+                    //  켜짐(on) 상태만은 지금 것을 유지 — 되돌린다고 선택까지 풀리면 당황스럽다.
+                    const wasOn = !!s.on;
+                    Object.keys(s).forEach(k => { if (k !== 'id') delete s[k]; });
+                    Object.assign(s, JSON.parse(JSON.stringify(def)), { on: wasOn });
+                    if (!s.kind) s.kind = 'append';
+                    _animaSave(); _animaRenderSnippets();   // 편집창도 함께 다시 그려져 '수정됨' 표시가 사라진다
+                    try { showToast(`↺ '${def.name}'을(를) 기본값으로 되돌렸어요`, 'success', 2200); } catch (e) {}
+                };
             });
             box.querySelectorAll('.anima-se-add').forEach(btn => btn.onclick = () => { const kind = btn.dataset.kind || 'append'; _anima.snippets.push({ id: 'sn_' + Math.random().toString(36).slice(2, 8), name: kind === 'base' ? '새 프리셋' : '새 옵션', text: '', on: false, kind }); _animaSave(); _animaRenderSnippets(); });
         }
@@ -9290,6 +9330,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-se-row { display:flex; gap:6px; }
           .anima-se-name { flex:1; min-width:0; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-size:12.5px; font-weight:700; }
           .anima-se-del { background:var(--bg-surface); border:1px solid var(--border-dim); border-radius:8px; padding:8px 11px; cursor:pointer; }
+          /* 되돌리기(↺) — 기본 프리셋을 고쳤을 때만 나타난다. 삭제(🗑)와 헷갈리지 않게 파란 계열로. */
+          .anima-se-rst { background:var(--bg-surface); border:1px solid color-mix(in srgb,var(--accent-blue,#3b82f6) 55%,var(--border-dim));
+            color:var(--accent-blue,#3b82f6); border-radius:8px; padding:8px 11px; cursor:pointer; font-size:14px; font-weight:800; line-height:1; }
+          .anima-se-rst:hover { background:color-mix(in srgb,var(--accent-blue,#3b82f6) 14%,transparent); }
+          .anima-se-item.modified { border-left:2px solid color-mix(in srgb,var(--accent-blue,#3b82f6) 60%,transparent); padding-left:8px; }
+          .anima-se-mod { font-size:10.5px; line-height:1.5; color:var(--text-dim); }
+          /* 고치지 않은 항목에선 ↺·안내문을 감춘다(DOM엔 남아 있어 다시 그리지 않고 토글만 하면 된다) */
+          .anima-se-item:not(.modified) .anima-se-rst, .anima-se-item:not(.modified) .anima-se-mod { display:none; }
           .anima-se-text { width:100%; min-height:64px; resize:vertical; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 10px; color:var(--text-main); font-family:var(--font-code); font-size:11.5px; line-height:1.5; }
           .anima-se-add { align-self:flex-start; }
           .anima-runrow { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
