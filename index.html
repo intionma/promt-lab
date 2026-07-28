@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.71.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.72.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.71.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.72.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2043,7 +2043,16 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.71.0', date: '2026-07-28', time: '최신',
+                version: 'v9.72.0', date: '2026-07-28', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] <b>'귀두 노출'이 시원찮던 문제</b>를 고쳤습니다 — 원인은 넣고 있던 태그가 <b>단부루 전체에서 41건뿐인 유령 태그</b>라 그림에 거의 아무 영향도 못 줬기 때문입니다. 알고 보니 <b>귀두 노출은 이미 기본 상태</b>였어요(일본 쪽 그림 관행상 대부분 그렇게 그려집니다). 그래서 <b>태그를 넣지 않는 것</b>이 정답이라, 이 항목은 이제 '포피 태그를 빼는 선택지'로 동작합니다.",
+                    "[Anima 편집] 대신 <b>덮인 쪽</b>을 두 단계로 나눴습니다 — <b>포피 덮임</b>(살짝 덮인 느낌)과 <b>완전 포경</b>(귀두가 완전히 가려짐). 둘 다 실제로 많이 쓰이는 표현이라 확실하게 반영됩니다.",
+                    "[Anima 편집] 예전에 <b>'반쯤 까짐'</b>이라는 이름으로 있다가 뜻이 틀려서 사라졌던 항목이 <b>'완전 포경'</b>이라는 제 이름을 찾아 돌아왔습니다.",
+                ]
+            },
+            {
+                version: 'v9.71.0', date: '2026-07-28', time: '',
                 tag: 'feat',
                 items: [
                     "[크게 보기] 썸네일을 누르면 <b>기다림 없이 즉시</b> 뜹니다 — 예전엔 갤러리에 이미 받아둔 그림이 있는데도 <b>화질 숫자가 미묘하게 달라</b> 브라우저가 이걸 '다른 그림'으로 보고 처음부터 다시 받았습니다. 게다가 그 위에 <b>원본(수 MB)까지</b> 받고 있었어요. 이제 목록에 있던 바로 그 그림을 그대로 띄웁니다.",
@@ -7141,8 +7150,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  사정: 프리셋에서 분리 — 고르지 않으면 사정 없음(기본).
             { id: 'futa_erect_half', name: '반발기', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: 'half-erect' },
             { id: 'futa_erect_flaccid', name: '무발기(축 처짐)', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: 'flaccid' },
-            { id: 'futa_skin_glans', name: '귀두 노출', kind: 'append', on: false, group: 'futaSkin', detail: 'futa', text: 'glans' },
-            { id: 'futa_skin_foreskin', name: '포경(덮임)', kind: 'append', on: false, group: 'futaSkin', detail: 'futa', text: 'foreskin' },
+            // 포피 — ★ '귀두 노출'에는 넣을 태그가 없다(일부러 비워 둔 것).
+            //  단부루 위키: 일본에서 성인 남성의 포피가 귀두를 덮는 것에 낙인이 있어 "대부분의 음경은 포피가 젖혀진 상태로 그려진다".
+            //  즉 귀두 노출이 이미 기본값이라 그걸 가리키는 태그가 존재하지 않는다(retracted foreskin 계열 전부 0건).
+            //  예전엔 여기에 glans를 넣었는데 단부루 전체에서 41건뿐인 유령 태그라, 효과가 없는 정도가 아니라 노이즈였다.
+            //  → 이 항목은 '포피 태그를 넣지 않는다'는 선택지로만 동작한다(같은 그룹이라 누르면 아래 둘이 꺼진다).
+            { id: 'futa_skin_glans', name: '귀두 노출(기본)', kind: 'append', on: false, group: 'futaSkin', detail: 'futa', text: '' },
+            { id: 'futa_skin_foreskin', name: '포피 덮임', kind: 'append', on: false, group: 'futaSkin', detail: 'futa', text: 'foreskin' },
+            { id: 'futa_skin_phimosis', name: '완전 포경', kind: 'append', on: false, group: 'futaSkin', detail: 'futa', text: 'phimosis' },
             { id: 'futa_cum_normal', name: '사정', kind: 'append', on: false, group: 'futaCum', detail: 'futa', text: 'ejaculation, cum' },
             { id: 'futa_cum_excessive', name: '과다 사정', kind: 'append', on: false, group: 'futaCum', detail: 'futa', text: 'ejaculation, excessive cum, projectile cum' },
             // 표정 프리셋 (group 'expr' — 하나 켜면 나머지 자동 꺼짐). 핵심 태그만 간결하게.
@@ -7353,8 +7368,26 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         const lg = _anima.snippets.find(x => x.id === 'futa_large'), lgDef = ANIMA_DEFAULT_SNIPPETS.find(d => d.id === 'futa_large');
                         if (lg && lgDef && (lg.text || '').trim() === PREV_LARGE) lg.text = lgDef.text;
                     }
-                    // 마이그레이션: 부정확했던 구 포피 옵션(반쯤=phimosis) 제거 — 새 포피(귀두노출/포경)로 대체
-                    _anima.snippets = _anima.snippets.filter(x => x.id !== 'futa_skin_phimosis');
+                    // 마이그레이션: phimosis 항목의 '이름'만 바로잡는다.
+                    //  예전엔 '반쯤 까짐'이라 불러서 뜻이 틀렸고(phimosis = 귀두가 완전히 덮인 상태) 그래서 항목째 지웠는데,
+                    //  태그 자체는 단부루 4,275건짜리 멀쩡한 놈이라 제 이름으로 되살린다.
+                    //  ★ 지우지 않고 이름만 고친다 — 지웠다 다시 넣으면 사용자가 고친 문구까지 매번 날아간다.
+                    {
+                        const ph = _anima.snippets.find(x => x.id === 'futa_skin_phimosis');
+                        const phDef = ANIMA_DEFAULT_SNIPPETS.find(d => d.id === 'futa_skin_phimosis');
+                        if (ph && phDef && ph.name === '반쯤 까짐' && (ph.text || '').trim() === 'phimosis') ph.name = phDef.name;
+                    }
+                    // 마이그레이션: '귀두 노출'에서 유령 태그(glans, 단부루 41건) 제거 — 넣을 태그가 없는 자리라 비운다.
+                    //  ✏️로 직접 고쳐 쓰던 분은 건드리지 않는다.
+                    {
+                        const gl = _anima.snippets.find(x => x.id === 'futa_skin_glans');
+                        if (gl && (gl.text || '').trim() === 'glans') {
+                            gl.text = '';
+                            if (gl.name === '귀두 노출') gl.name = '귀두 노출(기본)';   // 태그가 없는 게 정상임을 이름으로 알림
+                        }
+                        const fs = _anima.snippets.find(x => x.id === 'futa_skin_foreskin');
+                        if (fs && (fs.text || '').trim() === 'foreskin' && fs.name === '포경(덮임)') fs.name = '포피 덮임';
+                    }
                     // 마이그레이션: 후타 상세(발기·포피·사정) 신규 추가 — 기존 사용자에게도 제공
                     const addFutaD = ANIMA_DEFAULT_SNIPPETS.filter(d => d.detail === 'futa' && !_anima.snippets.some(x => x.id === d.id));
                     if (addFutaD.length) _anima.snippets = _anima.snippets.concat(JSON.parse(JSON.stringify(addFutaD)));
