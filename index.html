@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.76.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.77.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.76.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.77.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2043,7 +2043,16 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.76.0', date: '2026-07-28', time: '최신',
+                version: 'v9.77.0', date: '2026-07-28', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] <b>너무 매끈해지던 문제</b>를 고쳤습니다 — 직전 업데이트에서 <b>핏줄 질감을 지나치게 많이 빼버렸습니다</b>. 포피나 반발기를 고르기만 해도 질감이 통째로 사라져 밋밋해졌어요.",
+                    "[Anima 편집] 이제 <b>무발기(축 처짐)에서만</b> 핏줄 표현이 빠집니다 — 부풀지 않은 상태에서 핏줄이 서는 건 실제로 불가능하니까요. <b>포피·반발기에서는 핏줄 질감이 그대로 유지</b>됩니다. 포피는 <b>귀두</b>를 덮는 것이고 핏줄은 <b>기둥</b>에 있는 거라 함께 있어도 자연스럽고, 반쯤 선 상태도 핏줄이 보이는 게 맞습니다.",
+                    "[Anima 편집] 포피·발기 표현이 크기에 밀리지 않도록 <b>힘을 실어 둔 것은 그대로</b>입니다 — 질감은 살리면서 원하는 상태도 반영되게 균형을 맞췄습니다.",
+                ]
+            },
+            {
+                version: 'v9.76.0', date: '2026-07-28', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] <b>반발기·무발기가 잘 안 먹던 문제</b>를 고쳤습니다 — 포피 때와 <b>똑같은 원인</b>이었습니다. 거근·초거근에 들어 있는 <b>'혈관이 불거진 모양'</b> 표현은 사실상 <b>'발기했다'</b>는 뜻이라, <b>'힘을 빼라'와 정면으로 모순</b>되고 힘까지 더 셌습니다. 이제 <b>발기 상태를 고르면 그 표현이 자동으로 빠집니다.</b>",
@@ -7877,12 +7886,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 return s.text.trim();
             }).join(', ');
             if (erectOverride) extras = extras.replace(/\berection\b\s*,\s*/gi, '').replace(/,?\s*\berection\b\s*$/gi, '');
-            // 'veiny penis'(혈관이 불거진 기둥)는 사실상 '발기해서 드러난 상태'를 뜻한다.
-            //  그래서 포피를 덮으라고 할 때도, 반발기·무발기로 힘을 빼라고 할 때도 정면으로 모순된다.
-            //  게다가 크기 프리셋의 (…:1.3~1.4) 괄호 안에 있어 힘까지 세서 이쪽 지시가 밀린다.
-            //  (소추·노멀엔 veiny penis가 없어서 그쪽만 잘 먹혔던 것과도 앞뒤가 맞는다)
-            //  → 포피나 발기 상태를 고르면 이 태그를 뺀다. erection 제거와 같은 원리.
-            if (erectOverride || ons.some(s => s.group === 'futaSkin')) {
+            // 'veiny penis'(핏줄이 불거진 기둥)는 '부풀어 있다'는 뜻을 함께 담는다.
+            //  ★ 무발기일 때만 뺀다. 부풀지 않으면 핏줄이 설 수 없으니 이건 진짜 모순이다.
+            //    반면 포피는 '귀두를 덮는 것'이고 이 태그는 '기둥의 핏줄'이라 함께 있어도 되고,
+            //    반쯤 선 상태도 어느 정도 핏줄이 보인다 — 거기까지 빼면 질감이 통째로 사라져
+            //    밋밋해진다(예전엔 과하게 뺐다). 그쪽은 가중치로 눌러 이기게 한다.
+            if (ons.some(s => s.id === 'futa_erect_flaccid')) {
                 extras = extras.replace(/\bveiny penis\b\s*,\s*/gi, '').replace(/,?\s*\bveiny penis\b/gi, '');
             }
             // 끝에 남는 쉼표는 떼고 보낸다(옵션을 아무것도 안 켰을 때 기본 프롬프트가 ', '로 끝나 토큰을 헛되이 씀)
