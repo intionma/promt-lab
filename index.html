@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.70.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.71.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.70.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.71.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2043,7 +2043,18 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.70.0', date: '2026-07-28', time: '최신',
+                version: 'v9.71.0', date: '2026-07-28', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[크게 보기] 썸네일을 누르면 <b>기다림 없이 즉시</b> 뜹니다 — 예전엔 갤러리에 이미 받아둔 그림이 있는데도 <b>화질 숫자가 미묘하게 달라</b> 브라우저가 이걸 '다른 그림'으로 보고 처음부터 다시 받았습니다. 게다가 그 위에 <b>원본(수 MB)까지</b> 받고 있었어요. 이제 목록에 있던 바로 그 그림을 그대로 띄웁니다.",
+                    "[크게 보기] 화질이 <b>3단계로</b> 올라갑니다 — ① 누르는 즉시 목록 화질로 뜨고, ② <b>한 장을 잠시 보고 있으면</b> 조용히 선명해지고, ③ <b>확대하면</b> 그때 원본을 받습니다. 훅훅 넘길 땐 ②를 아예 건너뛰어서, 넘기는 속도가 네트워크에 묶이지 않습니다.",
+                    "[크게 보기] <b>생성 중에는 좌우 미리 받기를 멈춥니다</b> — 대기열을 50~100장씩 걸어두고 결과를 넘겨 볼 때, 미리 받기가 생성 전송과 대역폭을 다투면 <b>생성 자체가 느려지기</b> 때문입니다. 이때도 <b>클릭하면 즉시 뜨는 건 그대로</b>이고, 대기열이 비면 미리 받기가 다시 켜집니다.",
+                    "[크게 보기] 좌우로 넘기다 <b>확대했다가 돌아와도</b> 이미 올려둔 화질을 그대로 유지하고, 창을 닫으면 예약돼 있던 다운로드를 <b>깔끔히 취소</b>합니다(닫은 뒤에 데이터가 새지 않게).",
+                    "[Anima 편집] 원본↔결과 <b>비교창</b>도 갤러리 썸네일과 <b>같은 화질</b>로 통일했습니다 — 같은 그림을 두 번 받지 않게 되어 결과가 더 빨리 뜹니다.",
+                ]
+            },
+            {
+                version: 'v9.70.0', date: '2026-07-28', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] ✏️ 편집에 <b>↺ 되돌리기</b>가 생겼습니다 — 기본 제공 옵션(노출·후타·표정·포즈)의 프롬프트나 이름을 고쳤어도 <b>언제든 원래대로</b> 돌릴 수 있어요. 그 항목만 되돌아가고 다른 설정은 그대로입니다.",
@@ -7562,6 +7573,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         //  ADULT_OPTIN_KEY 상수는 파일 아래쪽에서 선언되므로 TDZ를 피해 키를 직접 읽는다. 기본값은 '꺼짐'.
         function _adultOn() { try { return localStorage.getItem('adult_optin_v1') === '1'; } catch (e) { return false; } }
         window._adultOn = _adultOn;
+        // 라이트박스가 '지금 생성 중인가'를 물어볼 때 쓰는 신호 — 생성 중엔 좌우 미리 받기를 멈춰
+        //  대기열 전송·다운로드에 대역폭을 양보한다(전송 하나가 밀리면 남은 작업이 전부 밀린다).
+        window._lbBusyHint = function () { try { return _animaRunning(); } catch (e) { return false; } };
 
         // ── 결과 훅 (comfyGenerate 완료 시 finalize가 호출) ──
         window._animaOnResult = function (url, seed) {
@@ -8672,6 +8686,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // ComfyUI /view 결과 이미지를 '재인코딩 프리뷰(WebP)'로 요청해 전송량을 크게 줄인다(원본 PNG는 수 MB → WebP 수십~수백 KB).
         //  ComfyUI 프론트도 쓰는 &preview=포맷;품질 파라미터. 서버가 무시하면 원본이 오고, 실패하면 onerror로 원본 폴백.
         //  → 갤러리·비교창은 가벼운 프리뷰로, 크게 보기(라이트박스)만 원본 풀 해상도.
+        // 목록·비교창이 쓰는 미리보기 품질. ★ 한 곳에서만 정한다 —
+        //  숫자가 어긋나면 '같은 그림인데 다른 주소'가 되어 캐시가 안 맞고, 크게 보기가 다시 받느라 느려진다.
+        const _ANIMA_THUMB_Q = 62;
         function _animaPreviewUrl(url, q) {
             try { if (!url || !/\/view\?/.test(url) || /[?&]preview=/.test(url)) return url; return url + '&preview=webp;' + (q || 70); } catch (e) { return url; }
         }
@@ -8684,7 +8701,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // 한 장(썸네일)의 HTML — data-i는 항상 _anima.results 기준 '전역 인덱스'라 전체·그룹 어느 보기에서도 동일하게 동작
         function _animaGalCell(i) {
             const r = _anima.results[i]; if (!r) return '';
-            return `<div class="anima-gitem${i === _animaResSel ? ' sel' : ''}" data-i="${i}"><img src="${_animaPreviewUrl(r.url, 62)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${r.url}'"><button class="anima-gx" data-i="${i}" title="삭제" aria-label="이 이미지 삭제">✕</button></div>`;
+            return `<div class="anima-gitem${i === _animaResSel ? ' sel' : ''}" data-i="${i}"><img src="${_animaPreviewUrl(r.url, _ANIMA_THUMB_Q)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${r.url}'"><button class="anima-gx" data-i="${i}" title="삭제" aria-label="이 이미지 삭제">✕</button></div>`;
         }
         // ── 원본별 = 폴더 ────────────────────────────────────────────────
         //  _animaGalFolder = null 이면 '폴더 목록', 값이 있으면 그 폴더 안(그 원본으로 만든 것만).
@@ -8782,7 +8799,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const gen = cur ? cur.url : null;
             let html = '<div class="anima-cmp">';
             if (src) html += `<figure><div class="anima-lbl">원본</div><div class="anima-frame" data-lb="0"><img src="${src}"></div></figure>`;
-            html += `<figure><div class="anima-lbl">결과${_anima.results.length ? ` · ${_animaResSel + 1}/${_anima.results.length}` : ''}</div><div class="anima-frame ${gen ? '' : 'nores'}" data-lb="1">${gen ? `<img src="${_animaPreviewUrl(gen, 82)}" decoding="async" onerror="this.onerror=null;this.src='${gen}'">` : (_animaBusy ? '<span class="anima-sp big"></span>' : '<span class="anima-nores-t">아직 결과 없음</span>')}</div></figure>`;
+            html += `<figure><div class="anima-lbl">결과${_anima.results.length ? ` · ${_animaResSel + 1}/${_anima.results.length}` : ''}</div><div class="anima-frame ${gen ? '' : 'nores'}" data-lb="1">${gen ? `<img src="${_animaPreviewUrl(gen, _ANIMA_THUMB_Q)}" decoding="async" onerror="this.onerror=null;this.src='${gen}'">` : (_animaBusy ? '<span class="anima-sp big"></span>' : '<span class="anima-nores-t">아직 결과 없음</span>')}</div></figure>`;
             html += '</div>';
             // 이 테마 전용 이미지 갤러리 (Anima에서 뽑은 것만 · 새로고침 유지)
             if (_anima.results.length) {
@@ -8836,8 +8853,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         const s0 = _animaHasImage() ? _anima.img.dataURL : null;
                         const r0 = _anima.results[_animaResSel];
                         const g0 = r0 ? r0.url : null;
-                        return { urls: [s0, g0].filter(Boolean), caps: [s0 ? '' : null, g0 ? (r0.opt || '') : null].filter(x => x !== null) };
+                        const us = [s0, g0].filter(Boolean);
+                        // 원본(s0)은 dataURL이라 이미 손안에 있고, 결과(g0)는 비교창에 떠 있는 주소를 그대로 넘긴다
+                        return { urls: us, caps: [s0 ? '' : null, g0 ? (r0.opt || '') : null].filter(x => x !== null),
+                                 thumbs: us.map(u => (u === g0 ? _animaPreviewUrl(u, _ANIMA_THUMB_Q) : u)) };
                     };
+                    window._lbThumbsPending = urls.map(u => (u === gen ? _animaPreviewUrl(u, _ANIMA_THUMB_Q) : u));
                     window._lbCapPending = [src ? '' : null, gen ? ((_anima.results[_animaResSel] || {}).opt || '') : null].filter(x => x !== null);
                     window.openLightbox(urls[idx] || urls[0], urls, idx);
                 } catch (e) {}
@@ -8868,10 +8889,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         const pos = Math.max(0, idxs.indexOf(i));
                         const urls = idxs.map(n => _anima.results[n].url);
                         window._lbCapPending = idxs.map(n => _anima.results[n].opt || '');
+                        // 갤러리에 이미 떠 있는 바로 그 주소(품질 62)를 함께 넘긴다 → 크게 보기가 캐시에서 즉시 뜬다
+                        window._lbThumbsPending = urls.map(u => _animaPreviewUrl(u, _ANIMA_THUMB_Q));
                         // 생성이 끝나 목록이 늘어나도 보던 이미지를 계속 보면서 번호·총장수만 갱신되게 한다
                         window._lbLivePending = () => {
                             const L = _animaGalIdxList();
-                            return { urls: L.map(n => _anima.results[n].url), caps: L.map(n => _anima.results[n].opt || '') };
+                            const us = L.map(n => _anima.results[n].url);
+                            return { urls: us, caps: L.map(n => _anima.results[n].opt || ''), thumbs: us.map(u => _animaPreviewUrl(u, _ANIMA_THUMB_Q)) };
                         };
                         window.openLightbox(urls[pos], urls, pos);
                     }
@@ -10512,7 +10536,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _zy = py - ratio * (py - _zy);
                 _zoom = nz;
                 if (_zoom <= 1.01) { _zoom = 1; _zx = 0; _zy = 0; } // 최소(원래 크기) 도달 → 줌 해제 판정
-                else _clampPan();
+                else { _clampPan(); _lbLoadFull(); }   // 확대 = '자세히 보겠다' → 이때만 원본(수 MB)을 받는다
                 _applyZoom(animate);
             }
             function _toggleZoomAt(cx, cy) {
@@ -10562,26 +10586,66 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 setTimeout(() => { _busy = false; _center(); if (cb) cb(); }, ANIM_MS + 20);
             }
 
-            // 점진 로딩: 미리보기(webp, 그리드에서 이미 받아둔 것)를 즉시 띄우고 원본은 백그라운드로 교체
-            // → "크게 보기"가 로딩 대기 없이 바로 뜬다
-            function _setSlot(img, fullUrl) {
-                if (!fullUrl) { img.src = ''; img.dataset.full = ''; return; }
+            // ── 화질 3단계 사다리 ────────────────────────────────────────────
+            //  ① 썸네일: 목록에서 이미 받아 둔 바로 그 주소 → 브라우저 캐시에 있으므로 '클릭 즉시' 뜬다(네트워크 0).
+            //     ★ 목록과 '똑같은' 주소여야 한다. 화질 숫자만 달라도 다른 주소라 캐시가 안 맞아 다시 받는다(예전 문제).
+            //  ② 중간 화질: 한 장에 머문 뒤에야 받는다. 훅훅 넘길 땐 요청이 아예 안 나가 넘김이 네트워크에 안 묶인다.
+            //  ③ 원본: 확대했을 때만. 수 MB짜리를 볼 때마다 받으면 폰에선 감당이 안 된다.
+            const LB_MID_Q = 90;          // 중간 화질(webp) — 원본의 1/10 안팎인데 눈으로는 거의 구분이 안 됨
+            const LB_SETTLE_MS = 320;     // 이만큼 한 장에 머물면 '보고 있다'고 판단해 화질을 올린다
+            let _lbThumbs = null;         // 호출부가 준 '이미 받아 둔' 주소 목록(캐시 적중용)
+            let _lbUpT = null;            // 화질 올리기 예약 타이머
+            let _lbUpFor = null;          // 그 예약이 '어느 장'에 대한 것인지(같은 장이면 타이머를 리셋하지 않는다)
+            function _lbMidUrl(url) {
+                try {
+                    if (!url || url.indexOf('/view?') === -1) return url;         // ComfyUI 결과가 아니면 그대로
+                    return url.replace(/&preview=[^&]*/, '') + '&preview=webp;' + LB_MID_Q;
+                } catch (e) { return url; }
+            }
+            // 이 슬롯을 목표 주소로 올린다. 다 받은 뒤에 바꿔치기해서 '깜빡임 없이' 선명해진다.
+            function _lbRaise(img, target, tag) {
+                const full = img.dataset.full;
+                if (!full || !target || img.dataset.q === tag || img.src === target) return;
+                const hi = new Image();
+                hi.onload = () => { if (img.dataset.full === full) { img.src = target; img.dataset.q = tag; } };
+                hi.src = target;
+            }
+            function _setSlot(img, fullUrl, thumbUrl) {
+                if (!fullUrl) { img.src = ''; img.dataset.full = ''; img.dataset.q = ''; return; }
                 if (img.dataset.full === fullUrl) return; // 같은 이미지면 재로딩 안 함(넘겼다 돌아와도 유지)
                 img.dataset.full = fullUrl;
-                const preview = (typeof _comfyPreviewUrl === 'function') ? _comfyPreviewUrl(fullUrl) : fullUrl;
-                img.src = preview; // 1) 즉시 표시
-                if (preview !== fullUrl) { // 2) 원본 백그라운드 로드 후 교체(줌 화질용)
-                    const hi = new Image();
-                    hi.onload = () => { if (img.dataset.full === fullUrl) img.src = fullUrl; };
-                    hi.src = fullUrl;
-                }
+                img.dataset.q = '';
+                // ① — 호출부가 준 썸네일 주소가 최우선(그게 캐시에 있는 바로 그 주소다)
+                img.src = thumbUrl || ((typeof _comfyPreviewUrl === 'function') ? _comfyPreviewUrl(fullUrl) : fullUrl);
             }
+            // ② — 머물러 있을 때만. 넘기는 중이면 예약이 계속 취소되어 요청이 나가지 않는다.
+            //  ★ '같은 장'에 대해 이미 예약돼 있으면 타이머를 건드리지 않는다.
+            //    생성 중엔 결과가 도착할 때마다 목록이 갱신되며 여기를 다시 부르는데,
+            //    그때마다 리셋하면 보고 있는 장이 영영 선명해지지 않는다.
+            function _lbScheduleUpgrade() {
+                const cur = SLOTS[1].dataset.full || '';
+                if (_lbUpT !== null && _lbUpFor === cur) return;   // 핸들 값 자체를 참/거짓으로 쓰지 않는다
+                clearTimeout(_lbUpT);
+                _lbUpFor = cur;
+                _lbUpT = setTimeout(() => {
+                    _lbUpT = null;
+                    _lbRaise(SLOTS[1], _lbMidUrl(SLOTS[1].dataset.full), 'mid');
+                    // 좌우 미리 받기는 '생성이 안 돌 때'만 — 대기열이 도는 중엔 그쪽 대역폭이 우선이다
+                    //  (전송 하나가 밀리면 남은 작업이 전부 밀리므로, 미리 받기가 생성을 방해하면 손해가 크다)
+                    const busy = (typeof window._lbBusyHint === 'function') && window._lbBusyHint();
+                    if (!busy) { _lbRaise(SLOTS[0], _lbMidUrl(SLOTS[0].dataset.full), 'mid'); _lbRaise(SLOTS[2], _lbMidUrl(SLOTS[2].dataset.full), 'mid'); }
+                }, LB_SETTLE_MS);
+            }
+            // ③ — 확대하면 그때 원본. '자세히 보려는' 의도가 분명할 때만 수 MB를 받는다.
+            function _lbLoadFull() { _lbRaise(SLOTS[1], SLOTS[1].dataset.full, 'full'); }
             function _loadSlots() {
                 const n = _lbUrls.length;
-                _setSlot(SLOTS[1], _lbUrls[_lbIdx] || '');
-                _setSlot(SLOTS[0], _lbIdx > 0     ? _lbUrls[_lbIdx - 1] : '');
-                _setSlot(SLOTS[2], _lbIdx < n - 1 ? _lbUrls[_lbIdx + 1] : '');
+                const th = (i) => (_lbThumbs && _lbThumbs[i]) || '';
+                _setSlot(SLOTS[1], _lbUrls[_lbIdx] || '', th(_lbIdx));
+                _setSlot(SLOTS[0], _lbIdx > 0     ? _lbUrls[_lbIdx - 1] : '', th(_lbIdx - 1));
+                _setSlot(SLOTS[2], _lbIdx < n - 1 ? _lbUrls[_lbIdx + 1] : '', th(_lbIdx + 1));
                 _resetZoom(false); // 다른 이미지로 넘어가면 줌 초기화
+                _lbScheduleUpgrade();
             }
 
             // ── 숫자 오도미터 ──────────────────────────────────────────────
@@ -10630,9 +10694,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //    - 결과 비교창: 목록이 [원본, 현재결과]라 새 결과가 오면 그 자리가 새 이미지로 바뀐다
             function _lbRefresh() {
                 if (box.style.display === 'none') return;
-                let imgs = null, caps = null;
+                let imgs = null, caps = null, thumbs = null;
                 if (typeof _lbLive === 'function') {           // 앱이 넘겨준 실시간 목록이 우선
-                    try { const r = _lbLive(); if (r && Array.isArray(r.urls) && r.urls.length) { imgs = r.urls; caps = Array.isArray(r.caps) ? r.caps : null; } } catch (e) {}
+                    try { const r = _lbLive(); if (r && Array.isArray(r.urls) && r.urls.length) { imgs = r.urls; caps = Array.isArray(r.caps) ? r.caps : null; thumbs = Array.isArray(r.thumbs) ? r.thumbs : null; } } catch (e) {}
                 }
                 if (!imgs && _lbParent) {                      // 예전 방식(컨테이너에서 재조회) 폴백
                     const q = Array.from(_lbParent.querySelectorAll('img[src]')).map(i => i.src).filter(Boolean);
@@ -10643,6 +10707,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const lenChanged = imgs.length !== _lbUrls.length;
                 _lbUrls = imgs;
                 _lbCaps = (caps && caps.length === imgs.length) ? caps : null;
+                _lbThumbs = (thumbs && thumbs.length === imgs.length) ? thumbs : null;
                 // 보던 이미지가 목록에 그대로 있으면 그 위치로 따라간다(앞에 새 이미지가 끼어들어도 같은 그림을 계속 봄).
                 // 없으면(결과창처럼 그 자리가 교체된 경우) 같은 인덱스를 유지 → 새 이미지가 보인다.
                 let ni = prevUrl ? imgs.indexOf(prevUrl) : -1;
@@ -10820,6 +10885,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 //  한 번 쓰고 비워서 다른 경로에서 남은 값이 새지 않게 한다.
                 _lbCaps = (Array.isArray(window._lbCapPending) && window._lbCapPending.length === _lbUrls.length) ? window._lbCapPending : null;
                 window._lbCapPending = null;
+                // 목록에서 이미 받아 둔 주소(캐시 적중용). 없으면 _setSlot이 알아서 미리보기 주소를 만든다. 1회 소비.
+                _lbThumbs = (Array.isArray(window._lbThumbsPending) && window._lbThumbsPending.length === _lbUrls.length) ? window._lbThumbsPending : null;
+                window._lbThumbsPending = null;
                 // 열려 있는 동안 목록을 다시 물어볼 함수(생성이 끝나 결과가 늘면 실시간 반영). 1회 소비.
                 _lbLive = (typeof window._lbLivePending === 'function') ? window._lbLivePending : null;
                 window._lbLivePending = null;
@@ -10861,9 +10929,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             window.closeLightbox = function () {
                 if (box.style.display === 'none') return;
                 _cancelClose(); _resetZoom(false);
+                clearTimeout(_lbUpT); _lbUpT = null; _lbUpFor = null;   // 닫은 뒤에 화질 올리기가 시작되지 않게
                 box.style.display = 'none';
-                SLOTS.forEach(img => { img.src = ''; img.dataset.full = ''; });
-                _lbUrls = []; _lbIdx = 0;
+                SLOTS.forEach(img => { img.src = ''; img.dataset.full = ''; img.dataset.q = ''; });
+                _lbUrls = []; _lbIdx = 0; _lbThumbs = null;
                 window._lbActive = false;
                 // pushState로 쌓은 히스토리 항목 제거 (패널 이동 없이).
                 // 이때 발생하는 popstate는 라이트박스 몫이므로 하위 모달(비교 오버레이 등)이 닫히지 않게 표시.
@@ -10890,6 +10959,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const siblings = parent ? Array.from(parent.querySelectorAll('img[src]')).filter(i => i.src) : [];
                 const urls = siblings.length > 1 ? siblings.map(i => i.dataset.full || i.src) : [url];
                 const idx  = siblings.length > 1 ? Math.max(0, siblings.indexOf(el)) : 0;
+                // 목록에 이미 떠 있는 그림의 주소를 그대로 넘긴다 — 브라우저 캐시에 있으니 크게 보기가 즉시 뜬다
+                window._lbThumbsPending = siblings.length > 1 ? siblings.map(i => i.src) : [el.src || url];
                 openLightbox(url, urls, idx);
                 _lbParent = parent; // 생성 중 새 미리보기 실시간 반영용 (openLightbox가 null로 초기화한 뒤 설정)
             };
