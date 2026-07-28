@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.75.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.76.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.75.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.76.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2043,7 +2043,16 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.75.0', date: '2026-07-28', time: '최신',
+                version: 'v9.76.0', date: '2026-07-28', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] <b>반발기·무발기가 잘 안 먹던 문제</b>를 고쳤습니다 — 포피 때와 <b>똑같은 원인</b>이었습니다. 거근·초거근에 들어 있는 <b>'혈관이 불거진 모양'</b> 표현은 사실상 <b>'발기했다'</b>는 뜻이라, <b>'힘을 빼라'와 정면으로 모순</b>되고 힘까지 더 셌습니다. 이제 <b>발기 상태를 고르면 그 표현이 자동으로 빠집니다.</b>",
+                    "[Anima 편집] 반발기·무발기 표현의 <b>힘도 크기 표현보다 위로</b> 올리고, 어떤 모습인지 <b>더 구체적으로</b> 적었습니다(반쯤 선 상태 · 축 늘어진 상태). 이제 <b>거근·초거근에서도 반영</b>됩니다.",
+                    "[Anima 편집] 크기 자체는 <b>그대로 유지</b>됩니다 — 초거근을 고르고 무발기를 골라도 <b>크되 축 처진</b> 모습이 나옵니다.",
+                ]
+            },
+            {
+                version: 'v9.75.0', date: '2026-07-28', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] <b>거근·초거근에서 포피 표현이 전혀 안 먹던 문제</b>를 고쳤습니다 — 원인은 <b>프롬프트끼리 서로 싸우고 있었기 때문</b>입니다. 거근·초거근에는 <b>'혈관이 도드라진 드러난 모양'</b>을 요구하는 표현이 들어 있는데, 이게 <b>'포피로 덮어라'와 정면으로 모순</b>됐고 힘까지 더 셌습니다. 이제 <b>포피를 고르면 그 표현이 자동으로 빠집니다.</b>",
@@ -7178,8 +7187,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  발기: 고르지 않으면 프리셋의 'erection'(기본 발기). 반/무발기를 고르면 조합 시 erection을 빼서 모순 방지.
             //  포피: glans(귀두 노출)와 foreskin(포경 덮임)은 상호배타 → 한 그룹으로. 고르지 않으면 모델 자연 판단.
             //  사정: 프리셋에서 분리 — 고르지 않으면 사정 없음(기본).
-            { id: 'futa_erect_half', name: '반발기', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: 'half-erect' },
-            { id: 'futa_erect_flaccid', name: '무발기(축 처짐)', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: 'flaccid' },
+            { id: 'futa_erect_half', name: '반발기', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: '(half-erect:1.5), partially erect, drooping' },
+            { id: 'futa_erect_flaccid', name: '무발기(축 처짐)', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: '(flaccid:1.6), limp, hanging down, not erect' },
             // 포피 — 젖혀진 정도를 3단계로. 위에서 아래로 '많이 드러남 → 적게 드러남' 순서.
             //  ★ phimosis의 뜻이 핵심이다. 단부루 위키는 "발기 중에 포피가 완전히 젖혀지지 않은 상태"를 전부
             //    phimosis로 태그한다고 명시한다 — 즉 '완전히 덮임'이 아니라 '덜 젖혀진 상태 전체'이고,
@@ -7401,25 +7410,27 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         const lg = _anima.snippets.find(x => x.id === 'futa_large'), lgDef = ANIMA_DEFAULT_SNIPPETS.find(d => d.id === 'futa_large');
                         if (lg && lgDef && (lg.text || '').trim() === PREV_LARGE) lg.text = lgDef.text;
                     }
-                    // ══ 마이그레이션: 포피 3단계 재정의 ═══════════════════════════════
-                    //  phimosis를 '완전히 덮임'으로 잘못 알고 라벨을 붙였던 것을 바로잡는다.
-                    //  단부루 위키 정의는 "발기 중에 포피가 완전히 젖혀지지 않은 상태" 전부 — 즉 귀두만
-                    //  빼꼼 나온 모습이 여기 해당한다. 그래서 그 자리를 비워 두는 바람에(옛 '귀두 노출'을
-                    //  빈 텍스트로) 정작 원하던 선택지가 사라져 '아무 반응 없음'이 됐다.
+                    // ══ 마이그레이션: 후타 상세(발기·포피)의 옛 값 → 새 값 ═══════════════
+                    //  포피: phimosis를 '완전히 덮임'으로 잘못 알고 라벨을 붙였던 것을 바로잡는다. 단부루 위키
+                    //   정의는 "발기 중에 포피가 완전히 젖혀지지 않은 상태" 전부 — 귀두만 빼꼼 나온 모습이
+                    //   여기 해당한다. 그 자리를 비워 두는 바람에 정작 원하던 선택지가 사라졌었다.
+                    //  발기: 맨 태그 하나로는 크기 프리셋의 (…:1.3~1.4)에 밀려 잘 안 먹혔다 → 가중치를 얹는다.
                     //  아래 표는 '지금까지 거쳐 온 모든 옛 값'을 담는다 — 어느 버전에서 올라와도 새 값으로 모인다.
                     {
-                        const SKIN_OLD = {
+                        const OLD_DETAIL = {
+                            futa_erect_half:    { texts: ['half-erect'], names: ['반발기'] },
+                            futa_erect_flaccid: { texts: ['flaccid'],    names: ['무발기(축 처짐)'] },
                             futa_skin_glans:    { texts: ['glans', ''], names: ['귀두 노출', '귀두 노출(기본)'] },
                             futa_skin_phimosis: { texts: ['phimosis', '(phimosis:1.3), glans, partially retracted foreskin'], names: ['반쯤 까짐', '완전 포경', '귀두 빼꼼'] },
                             futa_skin_foreskin: { texts: ['foreskin', '(foreskin, phimosis:1.4), covered glans'],             names: ['포경(덮임)', '포피 덮임', '완전히 덮임'] },
                         };
-                        Object.keys(SKIN_OLD).forEach(id => {
+                        Object.keys(OLD_DETAIL).forEach(id => {
                             const sn = _anima.snippets.find(x => x.id === id), def = ANIMA_DEFAULT_SNIPPETS.find(d => d.id === id);
                             if (!sn || !def) return;
                             // 텍스트가 옛 기본값 그대로일 때만 손댄다(✏️로 고쳐 쓰던 문구는 보존)
-                            if (SKIN_OLD[id].texts.indexOf((sn.text || '').trim()) < 0) return;
+                            if (OLD_DETAIL[id].texts.indexOf((sn.text || '').trim()) < 0) return;
                             sn.text = def.text;
-                            if (SKIN_OLD[id].names.indexOf(sn.name) >= 0) sn.name = def.name;
+                            if (OLD_DETAIL[id].names.indexOf(sn.name) >= 0) sn.name = def.name;
                         });
                     }
                     // 마이그레이션: 후타 상세(발기·포피·사정) 신규 추가 — 기존 사용자에게도 제공
@@ -7866,11 +7877,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 return s.text.trim();
             }).join(', ');
             if (erectOverride) extras = extras.replace(/\berection\b\s*,\s*/gi, '').replace(/,?\s*\berection\b\s*$/gi, '');
-            // 포피를 덮으라고 했는데 크기 프리셋은 'veiny penis'(혈관이 도드라진 드러난 기둥)를 요구한다 —
-            //  정면으로 모순이고, 그쪽이 (…:1.4) 괄호 안이라 힘까지 세서 포피 지시가 밀린다.
+            // 'veiny penis'(혈관이 불거진 기둥)는 사실상 '발기해서 드러난 상태'를 뜻한다.
+            //  그래서 포피를 덮으라고 할 때도, 반발기·무발기로 힘을 빼라고 할 때도 정면으로 모순된다.
+            //  게다가 크기 프리셋의 (…:1.3~1.4) 괄호 안에 있어 힘까지 세서 이쪽 지시가 밀린다.
             //  (소추·노멀엔 veiny penis가 없어서 그쪽만 잘 먹혔던 것과도 앞뒤가 맞는다)
-            //  → 포피를 고르면 이 태그를 빼서 싸움을 없앤다. 발기 상세의 erection 제거와 같은 원리.
-            if (ons.some(s => s.group === 'futaSkin')) {
+            //  → 포피나 발기 상태를 고르면 이 태그를 뺀다. erection 제거와 같은 원리.
+            if (erectOverride || ons.some(s => s.group === 'futaSkin')) {
                 extras = extras.replace(/\bveiny penis\b\s*,\s*/gi, '').replace(/,?\s*\bveiny penis\b/gi, '');
             }
             // 끝에 남는 쉼표는 떼고 보낸다(옵션을 아무것도 안 켰을 때 기본 프롬프트가 ', '로 끝나 토큰을 헛되이 씀)
