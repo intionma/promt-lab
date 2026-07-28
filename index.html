@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.77.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.78.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.77.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.78.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2043,7 +2043,17 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.77.0', date: '2026-07-28', time: '최신',
+                version: 'v9.78.0', date: '2026-07-28', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] 최근 며칠 사이 <b>계속 세지기만 하던 강조를 원래대로</b> 되돌렸습니다 — 포피·발기 옵션은 원래 강조가 없던 항목인데 제가 <b>세 번에 걸쳐 올려</b>, 급기야 <b>'무발기'가 '초거근'보다 더 세지는</b> 상태가 됐습니다. 크기가 주인공이어야 하는데 순서가 뒤집혔던 거예요.",
+                    "[Anima 편집] <b>어떤 모습인지 설명하는 표현은 그대로 둡니다</b> — 강조만 뺐습니다. '반쯤 선 상태' '축 늘어진' '귀두가 살짝 드러난' 같은 서술은 <b>모델에게 정보를 주는 것</b>이지 소리를 키우는 게 아니라서요.",
+                    "[Anima 편집] 무발기에서 <b>'not erect'</b>라는 표현도 뺐습니다 — 긍정 프롬프트에 부정문을 넣으면 <b>오히려 그 단어(erect)에 반응하는</b> 역효과가 납니다.",
+                    "[Anima 편집] 직접 강조를 넣어 쓰시던 분의 문구는 <b>건드리지 않습니다</b>.",
+                ]
+            },
+            {
+                version: 'v9.77.0', date: '2026-07-28', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] <b>너무 매끈해지던 문제</b>를 고쳤습니다 — 직전 업데이트에서 <b>핏줄 질감을 지나치게 많이 빼버렸습니다</b>. 포피나 반발기를 고르기만 해도 질감이 통째로 사라져 밋밋해졌어요.",
@@ -7196,8 +7206,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  발기: 고르지 않으면 프리셋의 'erection'(기본 발기). 반/무발기를 고르면 조합 시 erection을 빼서 모순 방지.
             //  포피: glans(귀두 노출)와 foreskin(포경 덮임)은 상호배타 → 한 그룹으로. 고르지 않으면 모델 자연 판단.
             //  사정: 프리셋에서 분리 — 고르지 않으면 사정 없음(기본).
-            { id: 'futa_erect_half', name: '반발기', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: '(half-erect:1.5), partially erect, drooping' },
-            { id: 'futa_erect_flaccid', name: '무발기(축 처짐)', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: '(flaccid:1.6), limp, hanging down, not erect' },
+            { id: 'futa_erect_half', name: '반발기', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: 'half-erect, partially erect, drooping' },
+            { id: 'futa_erect_flaccid', name: '무발기(축 처짐)', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: 'flaccid, limp, hanging down' },
             // 포피 — 젖혀진 정도를 3단계로. 위에서 아래로 '많이 드러남 → 적게 드러남' 순서.
             //  ★ phimosis의 뜻이 핵심이다. 단부루 위키는 "발기 중에 포피가 완전히 젖혀지지 않은 상태"를 전부
             //    phimosis로 태그한다고 명시한다 — 즉 '완전히 덮임'이 아니라 '덜 젖혀진 상태 전체'이고,
@@ -7205,10 +7215,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  ★ '완전 노출'에는 넣을 태그가 없다(비워 둔 것이 정상).
             //    위키: 일본 관행상 "대부분의 음경은 포피가 젖혀진 상태로 그려진다" → 이게 기본값이라
             //    그것을 가리키는 태그 자체가 존재하지 않는다(retracted foreskin 계열 전부 0건).
-            //  ★ 가중치를 주는 이유: 크기 프리셋이 (…:1.3~1.4)로 강하게 밀고 있어서, 맨몸 태그 하나로는 밀린다.
+            //  ★ 가중치는 일부러 주지 않는다. 한때 1.5~1.6을 넣었다가 되돌렸다 —
+            //    효과를 확인한 적이 없고(항상 다른 변경과 묶여 들어갔다), 상세가 크기(1.4)보다 세지면
+            //    '크기가 주인공'이라는 설계가 뒤집힌다. 안 먹히면 가중치가 아니라 '왜 안 먹히는지'를 본다.
             { id: 'futa_skin_glans', name: '완전 노출(기본)', kind: 'append', on: false, group: 'futaSkin', detail: 'futa', text: '' },
-            { id: 'futa_skin_phimosis', name: '귀두 빼꼼', kind: 'append', on: false, group: 'futaSkin', detail: 'futa', text: '(phimosis:1.5), glans, partially retracted foreskin' },
-            { id: 'futa_skin_foreskin', name: '완전히 덮임', kind: 'append', on: false, group: 'futaSkin', detail: 'futa', text: '(foreskin, phimosis:1.5), covered glans' },
+            { id: 'futa_skin_phimosis', name: '귀두 빼꼼', kind: 'append', on: false, group: 'futaSkin', detail: 'futa', text: 'phimosis, glans, partially retracted foreskin' },
+            { id: 'futa_skin_foreskin', name: '완전히 덮임', kind: 'append', on: false, group: 'futaSkin', detail: 'futa', text: 'foreskin, phimosis, covered glans' },
             { id: 'futa_cum_normal', name: '사정', kind: 'append', on: false, group: 'futaCum', detail: 'futa', text: 'ejaculation, cum' },
             { id: 'futa_cum_excessive', name: '과다 사정', kind: 'append', on: false, group: 'futaCum', detail: 'futa', text: 'ejaculation, excessive cum, projectile cum' },
             // 표정 프리셋 (group 'expr' — 하나 켜면 나머지 자동 꺼짐). 핵심 태그만 간결하게.
@@ -7423,15 +7435,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     //  포피: phimosis를 '완전히 덮임'으로 잘못 알고 라벨을 붙였던 것을 바로잡는다. 단부루 위키
                     //   정의는 "발기 중에 포피가 완전히 젖혀지지 않은 상태" 전부 — 귀두만 빼꼼 나온 모습이
                     //   여기 해당한다. 그 자리를 비워 두는 바람에 정작 원하던 선택지가 사라졌었다.
-                    //  발기: 맨 태그 하나로는 크기 프리셋의 (…:1.3~1.4)에 밀려 잘 안 먹혔다 → 가중치를 얹는다.
+                    //  발기·포피: 한때 가중치(1.5~1.6)를 얹었다가 전부 되돌렸다 — 아래 표에 그 값들도 담아
+                    //   그 버전을 쓰던 분도 무가중치 버전으로 돌아오게 한다.
                     //  아래 표는 '지금까지 거쳐 온 모든 옛 값'을 담는다 — 어느 버전에서 올라와도 새 값으로 모인다.
                     {
                         const OLD_DETAIL = {
-                            futa_erect_half:    { texts: ['half-erect'], names: ['반발기'] },
-                            futa_erect_flaccid: { texts: ['flaccid'],    names: ['무발기(축 처짐)'] },
+                            futa_erect_half:    { texts: ['half-erect', '(half-erect:1.5), partially erect, drooping'], names: ['반발기'] },
+                            futa_erect_flaccid: { texts: ['flaccid', '(flaccid:1.6), limp, hanging down, not erect'],    names: ['무발기(축 처짐)'] },
                             futa_skin_glans:    { texts: ['glans', ''], names: ['귀두 노출', '귀두 노출(기본)'] },
-                            futa_skin_phimosis: { texts: ['phimosis', '(phimosis:1.3), glans, partially retracted foreskin'], names: ['반쯤 까짐', '완전 포경', '귀두 빼꼼'] },
-                            futa_skin_foreskin: { texts: ['foreskin', '(foreskin, phimosis:1.4), covered glans'],             names: ['포경(덮임)', '포피 덮임', '완전히 덮임'] },
+                            futa_skin_phimosis: { texts: ['phimosis', '(phimosis:1.3), glans, partially retracted foreskin', '(phimosis:1.5), glans, partially retracted foreskin'], names: ['반쯤 까짐', '완전 포경', '귀두 빼꼼'] },
+                            futa_skin_foreskin: { texts: ['foreskin', '(foreskin, phimosis:1.4), covered glans', '(foreskin, phimosis:1.5), covered glans'], names: ['포경(덮임)', '포피 덮임', '완전히 덮임'] },
                         };
                         Object.keys(OLD_DETAIL).forEach(id => {
                             const sn = _anima.snippets.find(x => x.id === id), def = ANIMA_DEFAULT_SNIPPETS.find(d => d.id === id);
