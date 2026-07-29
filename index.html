@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.92.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.93.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.92.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.93.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2043,7 +2043,17 @@
         const CHANGELOG = [
             // ── 2026-07-29 ──────────────────────────────────────────────────
             {
-                version: 'v9.92.0', date: '2026-07-29', time: '최신',
+                version: 'v9.93.0', date: '2026-07-29', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] <b>표정 순서가 안 바뀌던 문제를 고쳤습니다</b> — 지난 버전에서 순서를 바꿨는데도 그대로였죠. 예전에 넣어둔 <b>옛 순서 코드가 뒤에서 계속 되돌리고</b> 있었습니다. 이제 순서는 <b>화면을 그릴 때마다</b> 정해져서 다시는 어긋나지 않습니다.",
+                    "[Anima 편집] <b>가슴·포즈를 한 번에 뺄 수 있습니다</b> — 고른 게 있으면 버튼 오른쪽에 <b>✕</b>가 생깁니다. 창을 열 필요 없이 ✕만 누르면 바로 <b>아무것도 안 고른 상태</b>로 돌아갑니다. ✕ 말고 다른 곳을 누르면 예전처럼 선택 창이 열립니다.",
+                    "[Anima 편집] <b>연속 생성 화면을 알아보기 쉽게</b> 했습니다 — 글자만 잔뜩 있어서 뭐가 뭔지 구분이 안 됐죠. 이제 항목마다 <b>아이콘과 색</b>이 붙습니다. 하단 바에서 쓰던 것과 <b>같은 아이콘·같은 색</b>이라 눈에 바로 들어옵니다.",
+                    "[전체] <b>버튼을 누르면 눌린 게 보입니다</b> — 살짝 들어갔다 부드럽게 돌아옵니다. 특히 가슴·포즈의 ✕는 <b>✕만 따로</b> 눌려서, 지웠는지 창을 연 건지 헷갈리지 않습니다.",
+                ]
+            },
+            {
+                version: 'v9.92.0', date: '2026-07-29', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] <b>표정 순서를 다시 짰습니다</b> — <b>자주 쓰거나 공들여 만든 것</b>(원본과 확 달라지는 것)을 앞으로, <b>잘 안 쓰거나 티가 잘 안 나는 것</b>을 뒤로 보냈습니다.",
@@ -7678,24 +7688,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             sn.name = def.name;   // 얀데레 → 얀데레(광기)
                         });
                     }
-                    // 마이그레이션(v9.92.0): 표정 순서를 기본값 순서에 맞춘다.
-                    //  ★ 저장된 목록은 '예전 순서' 그대로라, ANIMA_DEFAULT_SNIPPETS만 바꾸면
-                    //    기존 사용자에겐 아무 일도 안 일어난다. 여기서 실제로 다시 정렬해야 한다.
-                    //  순서가 바꾸는 것: 연속 생성(스윕)에 나오는 순서 + '표정 더보기' 패널 순서.
-                    //   (하단 바는 exprRecent로 따로 굴러가므로 영향 없음)
-                    //  ★ 직접 만든 표정(기본값에 없는 것)은 맨 뒤로 밀되 서로의 순서는 그대로 둔다.
-                    {
-                        const ord = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === 'expr').map(d => d.id);
-                        const slots = [];
-                        _anima.snippets.forEach((s, i) => { if (s && s.group === 'expr') slots.push(i); });
-                        if (slots.length > 1) {
-                            const rank = s => { const i = ord.indexOf(s.id); return i < 0 ? 9999 : i; };
-                            const sorted = slots.map((i, k) => ({ s: _anima.snippets[i], k }))
-                                .sort((a, b) => (rank(a.s) - rank(b.s)) || (a.k - b.k))   // 동순위는 기존 순서 유지
-                                .map(x => x.s);
-                            slots.forEach((pos, k) => { _anima.snippets[pos] = sorted[k]; });
-                        }
-                    }
+                    // (v9.92.0의 '표정 순서 정렬' 마이그레이션은 v9.93.0에서 제거)
+                    //  저장분을 한 번 정렬해 두는 방식이라, 뒤에서 옛 EXPR_ORDER가 덮어쓰는 걸 못 막았고
+                    //  try{}catch{} 안이라 앞줄이 터지면 통째로 건너뛰기도 했다.
+                    //  이제 순서는 그릴 때마다 _animaSortByDefault()가 정한다 — 저장분 순서는 아예 안 본다.
                     // 마이그레이션: 포즈 프리셋(group 'pose') 신규 추가
                     const addPose = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === 'pose' && !_anima.snippets.some(x => x.id === d.id));
                     if (addPose.length) _anima.snippets = _anima.snippets.concat(JSON.parse(JSON.stringify(addPose)));
@@ -7743,15 +7739,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const bt = _anima.snippets.find(x => x.id === 'base_bottom');
                     if (bt && (bt.text || '') === OLD_BOTTOM_TEXT) bt.text = ANIMA_DEFAULT_SNIPPETS.find(d => d.id === 'base_bottom').text;
                 }
-                // 표정 정렬을 자주 쓰는 순서로 재배치(유혹·절정·무표정·아헤가오 먼저). 기존 저장분·신규 공통, 반복 실행해도 안전.
-                //  expr 칩이 있던 '자리'는 그대로 두고 그 안에서 내용만 우선순위대로 재배열(사용자가 추가한 커스텀 expr은 뒤로).
-                const EXPR_ORDER = ['expr_seductive', 'expr_orgasm', 'expr_neutral', 'expr_ahegao', 'expr_tongue', 'expr_blush', 'expr_smile', 'expr_wink', 'expr_cry'];
-                const _exIdx = [], _exArr = [];
-                (_anima.snippets || []).forEach((x, i) => { if (x && x.group === 'expr') { _exIdx.push(i); _exArr.push(x); } });
-                if (_exArr.length > 1) {
-                    _exArr.sort((a, b) => { let ia = EXPR_ORDER.indexOf(a.id), ib = EXPR_ORDER.indexOf(b.id); if (ia < 0) ia = 999; if (ib < 0) ib = 999; return ia - ib; });
-                    _exIdx.forEach((pos, k) => { _anima.snippets[pos] = _exArr[k]; });
-                }
+                // (v9.93.0에서 제거) 예전 'EXPR_ORDER' 하드코딩 재배치가 여기 있었다.
+                //  9개짜리 옛 순서를 저장분에 강제로 덮어써서, v9.92.0에서 바꾼 순서를 매번 되돌리고 있었다.
+                //  이제 순서는 저장분이 아니라 '그릴 때' _animaSortByDefault()로 정한다 — 아래 참조.
             } catch (e) {}
         }
         _animaRestore();
@@ -8529,13 +8519,31 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!ic) return '';   // 아이콘이 없는(사용자가 새로 만든) 항목은 아이콘 줄에 넣지 않음
             return `<button class="anima-ico ${kind}${active ? ' on' : ''}" data-${kind === 'pk' ? 'base' : 'futa'}="${s.id}" title="${_animaEsc(s.name)}" aria-label="${_animaEsc(s.name)}" aria-pressed="${active ? 'true' : 'false'}"><svg viewBox="0 0 24 24"><use href="#ai-${ic}"/></svg></button>`;
         }
+        // ── 프리셋 표시 순서 ─────────────────────────────────────────────────
+        //  ★ 저장된 배열 순서를 믿지 않는다. 그릴 때마다 기본값(ANIMA_DEFAULT_SNIPPETS) 순서로 맞춘다.
+        //    예전엔 마이그레이션으로 저장분을 '한 번' 정렬했는데, 그 코드가 _animaRestore의
+        //    try{}catch{} 안이라 앞줄이 한 번이라도 터지면 통째로 건너뛰고 영영 어긋난 채 남았다.
+        //    (실제로 그렇게 어긋났다.) 매번 정렬하면 어긋날 수가 없고, 다음에 순서를 또 바꿔도
+        //    저장분을 건드릴 필요 없이 그냥 반영된다 — 마이그레이션 자체가 필요 없어진다.
+        //  ★ 직접 만든 항목(기본값에 없는 것)은 뒤로 밀되 서로의 순서는 그대로 둔다.
+        const _ANIMA_DEF_ORDER = (() => { const m = {}; ANIMA_DEFAULT_SNIPPETS.forEach((d, i) => { m[d.id] = i; }); return m; })();
+        function _animaDefRank(s) { const i = _ANIMA_DEF_ORDER[s && s.id]; return i === undefined ? 1e9 : i; }
+        function _animaSortByDefault(list) {
+            return list.map((s, i) => ({ s, i }))
+                .sort((a, b) => (_animaDefRank(a.s) - _animaDefRank(b.s)) || (a.i - b.i))   // 동순위는 기존 순서 유지
+                .map(x => x.s);
+        }
+        // 그룹 하나를 '성인 표시 반영 + 기본값 순서'로 뽑는다 — 표정·포즈·가슴이 전부 이걸 쓴다.
+        function _animaGroupList(group) {
+            return _animaSortByDefault((_anima.snippets || []).filter(s => s.group === group && (_adultOn() || !s.nsfw)));
+        }
         // ── 표정·포즈 '최근 사용' 목록 (공용 규칙) ───────────────────────────
         //  하단 바엔 최근 쓴 것만 몇 개 보인다. 이미 목록에 있는 칩을 눌러도 순서를 바꾸지 않는다
         //  (누를 때마다 자리가 움직이면 손가락이 헷갈림). 목록에 없던 '신규' 항목을 골랐을 때만 맨 앞에 넣는다.
         const _ANIMA_EXPR_RECENT_MAX = 6;   // 최근 목록 보관 개수(하단 바엔 이 중 '한 줄에 들어가는 만큼'만 보인다)
         function _animaRecentList(group, storeKey) {
             // 포즈는 19+ 항목이 섞여 있어 성인 표시가 꺼지면 여기서도 걸러진다(표정은 전부 일반이라 영향 없음)
-            const all = (_anima.snippets || []).filter(s => s.group === group && (_adultOn() || !s.nsfw));
+            const all = _animaGroupList(group);
             let ids = (_anima[storeKey] || []).filter(id => all.some(s => s.id === id));
             if (!ids.length) ids = all.slice(0, _ANIMA_EXPR_RECENT_MAX).map(s => s.id);   // 최초엔 앞쪽 기본값
             return ids.slice(0, _ANIMA_EXPR_RECENT_MAX).map(id => all.find(s => s.id === id)).filter(Boolean);
@@ -8578,7 +8586,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const futaS = adult ? all.filter(s => s.group === 'futa').sort((a, b) => {
                 const x = _fo.indexOf(a.id), y = _fo.indexOf(b.id); return (x < 0 ? 999 : x) - (y < 0 ? 999 : y);
             }) : [];
-            const exprAll = all.filter(s => s.group === 'expr' && (adult || !s.nsfw));
+            const exprAll = _animaGroupList('expr');
             const futaOn = futaS.some(s => s.on);
             let h = '';
             // 노출 — 아이콘 4개 + (사용자가 추가한 프리셋은 글자 칩으로)
@@ -8603,12 +8611,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     + `<button class="anima-chip ex tg" data-act="exprOpen">${_animaExprOpen ? '접기 ▴' : '더보기 ▾'}</button>`);
             }
             // 가슴 — 6단계 전부 한 줄에 (개수가 적고 이름이 짧아 접을 필요가 없다)
-            const bustAll = all.filter(s => s.group === 'bust' && (adult || !s.nsfw));
+            const bustAll = _animaGroupList('bust');
             if (bustAll.length) {
                 h += row('가슴', bustAll.map(s => `<button class="anima-chip ex g-bust${s.on ? ' on' : ''}" data-id="${s.id}">${_animaEsc(s.name)}</button>`).join(''));
             }
             // 포즈 — 표정과 같은 규칙. 19+ 포즈는 성인 표시가 꺼지면 목록에서 빠진다.
-            const poseAll = all.filter(s => s.group === 'pose' && (adult || !s.nsfw));
+            const poseAll = _animaGroupList('pose');
             if (poseAll.length) {
                 const shownP = _animaPoseOpen ? poseAll : _animaPoseRecentList();
                 h += row('포즈', shownP.map(s => `<button class="anima-chip ex g-pose${s.on ? ' on' : ''}" data-id="${s.id}">${_animaEsc(s.name)}</button>`).join('')
@@ -8628,20 +8636,24 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         //  예) 노출 스윕 = 후타·표정은 그대로 두고 노출만 4종을 차례로 적용해 4장.
         //  시드는 세트 전체가 같아야 '무엇 때문에 달라졌는지'를 비교할 수 있으므로 한 번 뽑아 고정한다.
         const _ANIMA_SWEEP_AXES = [
-            { key: 'base', name: '노출', pick: () => (_anima.snippets || []).filter(s => s.kind === 'base') },
-            { key: 'futa', name: '후타 크기', pick: () => { const o = ['futa_small', 'futa_normal', 'futa_large', 'futa_huge']; const f = (x) => { const i = o.indexOf(x.id); return i < 0 ? 999 : i; }; return (_anima.snippets || []).filter(s => s.group === 'futa').sort((a, b) => f(a) - f(b)); } },
-            { key: 'expr', name: '표정', pick: () => (_anima.snippets || []).filter(s => s.group === 'expr' && (_adultOn() || !s.nsfw)) },
+            // ico/emo — 축을 한눈에 구분하는 표식. 글자만 있으면 어느 축인지 안 읽힌다.
+            //  ico는 이미 하단 바에서 쓰는 SVG 아이콘을 그대로 재사용한다(색·모양이 같아야 통일감이 난다).
+            //  아이콘은 축마다 '대표 1개'만 쓴다 — 전부 늘어놓으면 오히려 시끄럽다.
+            //  SVG가 없는 축은 이모지로 대신한다.
+            { key: 'base', name: '노출', ico: 'nude', pick: () => (_anima.snippets || []).filter(s => s.kind === 'base') },
+            { key: 'futa', name: '후타 크기', ico: 'f-s', pick: () => { const o = ['futa_small', 'futa_normal', 'futa_large', 'futa_huge']; const f = (x) => { const i = o.indexOf(x.id); return i < 0 ? 999 : i; }; return (_anima.snippets || []).filter(s => s.group === 'futa').sort((a, b) => f(a) - f(b)); } },
+            { key: 'expr', name: '표정', emo: '😀', pick: () => _animaGroupList('expr') },
             // 포즈 — 19+ 포즈는 성인 표시가 꺼지면 돌리기 목록에서도 빠진다
-            { key: 'pose', name: '포즈', pick: () => (_anima.snippets || []).filter(s => s.group === 'pose' && (_adultOn() || !s.nsfw)) },
-            { key: 'bust', name: '가슴', pick: () => (_anima.snippets || []).filter(s => s.group === 'bust' && (_adultOn() || !s.nsfw)) },
+            { key: 'pose', name: '포즈', emo: '🧍', pick: () => _animaGroupList('pose') },
+            { key: 'bust', name: '가슴', emo: '🍒', pick: () => _animaGroupList('bust') },
             // 유일하게 '설정'을 바꾸는 축(settings:true) — 나머지는 프롬프트 옵션을 켰다 껐다 한다.
             //  스텝을 올리는 게 정말 값어치를 하는지 눈으로 확인하라고 넣은 축이다(같은 시드·같은 옵션 3장).
-            { key: 'quality', name: '품질', settings: true, pick: () => _ANIMA_PRESETS.map(p => ({ id: p.id, name: p.name })) },
+            { key: 'quality', name: '품질', emo: '✨', settings: true, pick: () => _ANIMA_PRESETS.map(p => ({ id: p.id, name: p.name })) },
             // ▼▼▼ [진단] 포즈가 왜 안 먹는지 판정용 임시 축 — 판정 끝나면 '[진단]' 표시된 곳만 지우면 됩니다 ▼▼▼
             //  참조가 원본을 붙잡는 '방식'(temporal_mask/kv_gating)과 '세기'를 한 번에 비교한다.
             //  방식은 강도 다이얼과 성격이 달라, 캐릭터를 지키면서 포즈만 풀릴 여지가 있는지 보는 게 목적.
             {
-                key: 'refmode', name: '참조 설정 (진단)', settings: true,
+                key: 'refmode', name: '참조 설정 (진단)', emo: '🎛️', settings: true,   // [진단]
                 pick: () => [
                     { id: 'temporal_mask|1', name: 'temporal 1.0 (현재)' },
                     { id: 'temporal_mask|0.7', name: 'temporal 0.7' },
@@ -8654,6 +8666,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             },
             // ▲▲▲ [진단] 여기까지 ▲▲▲
         ];
+        // 축 표식 — 글자만 있으면 어느 축인지 안 읽혀서, 아이콘/이모지를 앞에 붙인다.
+        //  SVG가 있는 축(노출·후타)은 하단 바에서 쓰는 것과 '같은' 아이콘을 쓴다 — 그래야 통일감이 난다.
+        //  대표 1개만 쓴다(전부 늘어놓으면 시끄럽다). 나머지 축은 이모지.
+        function _animaAxMark(a) {
+            if (a.ico) return `<span class="anima-ax-ico"><svg viewBox="0 0 24 24"><use href="#ai-${a.ico}"/></svg></span>`;
+            return `<span class="anima-ax-emo">${a.emo || '•'}</span>`;
+        }
         // 연속 생성에서 '선택한 그림'의 시드를 이어받을 수 있는가 → 가능하면 그 시드, 아니면 null.
         //  조건 ① 이어받기가 켜져 있고 ② 시드가 -1(랜덤)이고 ③ 선택된 결과에 시드가 있고
         //       ④ 그 결과가 '지금 넣어둔 원본'으로 만든 것일 때.
@@ -8752,7 +8771,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             wrap.className = 'anima-sweep-back';
             const rows = _axes.map(a => {
                 const cnt = _animaSweepSel(a).length;
-                return `<button class="anima-sweep-row" data-ax="${a.key}"><span class="anima-sweep-nm">${a.name} 전부 돌리기</span><span class="anima-sweep-cnt">${cnt}장</span></button>`;
+                return `<button class="anima-sweep-row ax-${a.key}" data-ax="${a.key}">${_animaAxMark(a)}`
+                    + `<span class="anima-sweep-nm">${a.name} 전부 돌리기</span><span class="anima-sweep-cnt">${cnt}장</span></button>`;
             }).join('');
             // 시드 선택 — 탐색 중엔 '새로 뽑기', 마음에 드는 걸 찾으면 '선택한 그림'.
             //  모드가 자주 바뀌므로 선택은 유지하되, 스윕을 고르기 직전에 반드시 눈에 들어오도록 맨 위에 둔다.
@@ -8793,7 +8813,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             let h = '';
             _ANIMA_SWEEP_AXES.filter(a => (a.settings || a.pick().length) && (_adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality' || a.key === 'refmode' /*[진단]*/)).forEach(a => {
                 const sel = _animaSweepSel(a), items = a.pick();
-                h += `<div class="anima-sweep-sec">${a.name}</div><div class="anima-sweep-chips">`;
+                h += `<div class="anima-sweep-sec ax-${a.key}">${_animaAxMark(a)}<span>${a.name}</span></div><div class="anima-sweep-chips">`;
                 if (a.key === 'base') h += `<button class="anima-chip sw${sel.includes(_ANIMA_SWEEP_NONE) ? ' on' : ''}" data-ax="base" data-id="${_ANIMA_SWEEP_NONE}">노출 없음</button>`;
                 items.forEach(s => { h += `<button class="anima-chip sw${sel.includes(s.id) ? ' on' : ''}" data-ax="${a.key}" data-id="${s.id}">${_animaEsc(s.name)}</button>`; });
                 h += '</div>';
@@ -8942,8 +8962,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         //  후타 팝오버와 달리 '어느 그룹인지'만 기억하면 되므로 상태는 문자열 하나('bust'|'pose'|null).
         let _animaGrpPop = null;
         const _ANIMA_GRP = {
-            bust: { label: '가슴', pick: () => (_anima.snippets || []).filter(s => s.group === 'bust' && (_adultOn() || !s.nsfw)) },
-            pose: { label: '포즈', pick: () => (_anima.snippets || []).filter(s => s.group === 'pose' && (_adultOn() || !s.nsfw)) },
+            bust: { label: '가슴', pick: () => _animaGroupList('bust') },
+            pose: { label: '포즈', pick: () => _animaGroupList('pose') },
         };
         function _animaGrpPopHtml() {
             const g = _ANIMA_GRP[_animaGrpPop]; if (!g) return '';
@@ -9017,7 +9037,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const _futaOrder = ['futa_small', 'futa_normal', 'futa_large', 'futa_huge'];
                 const _fo = (s) => { const i = _futaOrder.indexOf(s.id); return i < 0 ? 999 : i; };   // 사용자가 추가한 항목은 뒤로
                 const futaS = adult ? all.filter(s => s.group === 'futa').sort((a, b) => _fo(a) - _fo(b)) : [];
-                const exprAll = all.filter(s => s.group === 'expr' && (adult || !s.nsfw));
+                const exprAll = _animaGroupList('expr');
                 const recent = _animaExprRecentList();
                 const shown = _animaExprOpen ? exprAll : recent;
                 const icoRow = baseS.map(s => _animaIcoBtn(s, 'pk', curP === (s.text || '').trim())).join('')
@@ -9029,13 +9049,19 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 // 가슴·포즈 — 자주 만지는 축이 아니라 줄을 통째로 내주지 않고 '버튼 → 팝오버'로 뺀다.
                 //  버튼에는 지금 고른 값을 함께 보여준다(팝오버가 닫혀 있으면 상태가 안 보이므로).
                 //  이름이 길어 넘치면 자르되, 딱 끊기지 않게 오른쪽 끝을 페이드아웃 처리한다(CSS mask).
-                const poseAll = all.filter(s => s.group === 'pose' && (adult || !s.nsfw));
-                const bustAll = all.filter(s => s.group === 'bust' && (adult || !s.nsfw));
+                const poseAll = _animaGroupList('pose');
+                const bustAll = _animaGroupList('bust');
+                //  ★ 고른 게 있으면 오른쪽 끝에 ✕ — 팝오버를 열지 않고 한 번에 '표준(아무것도 안 고름)'으로 되돌린다.
+                //    넣는 건 어차피 팝오버를 여는 김에 하지만, 빼는 건 훨씬 자주 하는데 비용이 같았다.
+                //    ✕는 같은 상자 안(absolute)에 있고, 상자는 ✕ 폭만큼 padding-right를 미리 비워 둔다.
+                //    → 고른 이름이 아무리 길어도 ✕ 자리를 침범할 수 없다(잘리면서 페이드아웃).
+                //    ✕는 button 안에 못 넣으므로(중첩 불가) span으로 두고 클릭 위치로 갈라 받는다.
                 const grpBtn = (key, lab, list) => {
                     const on = list.find(x => x.on);
                     return `<button class="anima-gbtn g-${key}${on ? ' on' : ''}" data-grp="${key}">`
                         + `<span class="anima-gbtn-k">${lab}</span>`
                         + (on ? `<span class="anima-gbtn-v">${_animaEsc(on.name)}</span>` : '')
+                        + (on ? `<span class="anima-gbtn-x" data-grpx="${key}" role="button" aria-label="${lab} 선택 해제" title="${lab} 선택 해제">✕</span>` : '')
                         + `</button>`;
                 };
                 const grpRow = (bustAll.length ? grpBtn('bust', '가슴', bustAll) : '')
@@ -9073,9 +9099,23 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 });
                 const eo = mact.querySelector('.anima-chip[data-act="exprOpen"]');
                 if (eo) eo.onclick = () => { _animaExprOpen = !_animaExprOpen; _animaRenderSnippets(); };
-                // 가슴·포즈 버튼 → 팝오버 열기/닫기(같은 버튼을 다시 누르면 닫힘)
+                // 가슴·포즈 버튼 — ✕를 눌렀으면 '해제', 그 밖을 눌렀으면 팝오버 열기/닫기(같은 버튼 재클릭 시 닫힘)
+                //  누른 자리에 따라 하는 일이 다르므로, 어느 쪽을 눌렀는지 눈으로 알 수 있어야 한다.
+                //  → ✕는 자기 혼자 눌리고(.hit), 상자는 상자대로 눌린다(:active). CSS에서 각각 다른 모션.
                 mact.querySelectorAll('.anima-gbtn[data-grp]').forEach(b => b.onclick = (e) => {
                     e.stopPropagation();
+                    const x = e.target.closest && e.target.closest('.anima-gbtn-x');
+                    if (x) {   // ✕ — 팝오버를 열지 않고 그 자리에서 해제
+                        const k = x.dataset.grpx;
+                        const hit = _animaGroupList(k).find(s => s.on);
+                        if (!hit) return;
+                        x.classList.add('hit');   // 눌렸다는 표시(모션) — 다시 그리기 전에 잠깐 보여준다
+                        hit.on = false;
+                        _animaGrpPop = null;
+                        _animaSave();
+                        setTimeout(() => _animaRenderSnippets(), 130);
+                        return;
+                    }
                     const k = b.dataset.grp;
                     _animaGrpPop = (_animaGrpPop === k) ? null : k;
                     _animaRenderSnippets();
@@ -10076,8 +10116,30 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-sweep-row.cfg { border-style:dashed; font-size:12.5px; color:var(--text-dim); }
           .anima-sweep-cfg { display:none; padding:4px 2px 2px; }
           .anima-sweep-cfg.open { display:block; }
-          .anima-sweep-sec { font-size:10.5px; font-weight:800; color:var(--text-dim); margin:11px 0 6px; }
+          .anima-sweep-sec { font-size:10.5px; font-weight:800; color:var(--text-dim); margin:11px 0 6px;
+            display:flex; align-items:center; gap:6px; }
           .anima-sweep-chips { display:flex; flex-wrap:wrap; gap:6px; }
+          /* ── 축 표식 ────────────────────────────────────────────────────────
+             글자만 늘어놓으면 어느 축인지 안 읽힌다. 앞에 아이콘/이모지를 붙이고,
+             축마다 고유 색을 준다. 색·아이콘은 전부 하단 바에서 쓰던 것 그대로 —
+             거기서 본 색이 여기서도 같아야 '같은 것'으로 읽힌다. */
+          .anima-ax-ico, .anima-ax-emo { flex:0 0 auto; width:22px; height:22px; display:flex;
+            align-items:center; justify-content:center; border-radius:7px; font-size:12.5px; line-height:1;
+            background:color-mix(in srgb,var(--ax-c,var(--text-dim)) 15%,transparent); }
+          .anima-ax-ico svg { width:16px; height:16px; }
+          .anima-sweep-sec .anima-ax-ico, .anima-sweep-sec .anima-ax-emo { width:18px; height:18px; font-size:10.5px; }
+          .anima-sweep-sec .anima-ax-ico svg { width:13px; height:13px; }
+          /* 축별 색 — 노출/후타는 아이콘 자체 색(--ai-*)도 같이 맞춘다 */
+          .ax-base  { --ax-c:#f43f5e; --ai-gm:#f43f5e; --ai-cut:var(--bg-panel); --ai-slash:#ff5c72; }
+          .ax-futa  { --ax-c:#a855f7; --ai-st:#a855f7; }
+          .ax-expr  { --ax-c:#f59e0b; }
+          .ax-pose  { --ax-c:#14b8a6; }
+          .ax-bust  { --ax-c:#84cc16; }
+          .ax-quality { --ax-c:#3b82f6; }
+          .ax-refmode { --ax-c:#8b5cf6; }
+          .anima-sweep-row[class*="ax-"] .anima-sweep-nm { color:var(--text-main); }
+          .anima-sweep-row[class*="ax-"]:hover { border-color:var(--ax-c,var(--accent-blue,#3b82f6)); }
+          .anima-sweep-sec[class*="ax-"] { color:var(--ax-c,var(--text-dim)); }
           .anima-chip.sw { opacity:.5; }
           .anima-chip.sw.on { opacity:1; background:color-mix(in srgb,var(--accent-blue,#3b82f6) 16%,transparent);
             border-color:var(--accent-blue,#3b82f6); color:var(--accent-blue,#3b82f6); }
@@ -10122,6 +10184,37 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-gbtn.g-bust.on .anima-gbtn-v { color:#65a30d; }
           .anima-gbtn.g-pose.on { border-color:#14b8a6; background:color-mix(in srgb,#14b8a6 14%,transparent); }
           .anima-gbtn.g-pose.on .anima-gbtn-v { color:#0d9488; }
+          /* ✕ — 같은 상자 '안' 오른쪽 끝. absolute라 글자 흐름 밖에 있고,
+             상자는 고른 게 있을 때만 padding-right로 ✕ 자리를 미리 비워 둔다.
+             → 고른 이름이 아무리 길어도 ✕를 침범할 수 없다(넘치면 페이드아웃되며 잘림). */
+          .anima-gbtn { position:relative; }
+          .anima-gbtn.on { padding-right:28px; }
+          .anima-gbtn-x { position:absolute; right:4px; top:50%; margin-top:-9px; width:18px; height:18px;
+            display:flex; align-items:center; justify-content:center; border-radius:6px;
+            font-size:10px; font-weight:900; line-height:1; color:var(--text-dim);
+            background:color-mix(in srgb,var(--text-dim) 15%,transparent);
+            transition:transform .24s cubic-bezier(.22,1,.36,1), background-color .16s, color .16s; }
+          /* ✕를 눌렀을 때 — ✕만 쏙 들어간다(상자는 가만히). .hit은 다시 그리기 전 잠깐 주는 표시. */
+          .anima-gbtn-x:active, .anima-gbtn-x.hit { transform:scale(.78); transition-duration:.07s; }
+          .anima-gbtn.g-bust .anima-gbtn-x:active, .anima-gbtn.g-bust .anima-gbtn-x.hit { background:#84cc16; color:#fff; }
+          .anima-gbtn.g-pose .anima-gbtn-x:active, .anima-gbtn.g-pose .anima-gbtn-x.hit { background:#14b8a6; color:#fff; }
+          /* 상자(✕ 밖)를 눌렀을 때 — 상자 전체가 눌린다. ✕를 누른 경우엔 상자가 따라 눌리지 않게 뺀다
+             (:has 미지원 브라우저에선 위 규칙만 적용돼 상자도 같이 눌린다 — 동작에는 지장 없음) */
+          .anima-gbtn:has(.anima-gbtn-x:active) { transform:none; }
+          /* ── 눌림 반응 (공통) ───────────────────────────────────────────────
+             화려한 것 말고 '눌렸다'만 알려준다. 내려갈 땐 빠르게(70ms), 올라올 땐
+             천천히 튕기듯(240ms, easeOutQuint). 같은 속도로 오가면 딱딱하게 읽힌다. */
+          .anima-chip, .anima-ico, .anima-btn, .anima-run, .anima-gbtn, .anima-fp-x {
+            -webkit-tap-highlight-color:transparent;
+            transition:transform .24s cubic-bezier(.22,1,.36,1), background-color .16s, border-color .16s, color .16s, opacity .16s; }
+          .anima-chip:active, .anima-ico:active, .anima-btn:active, .anima-gbtn:active, .anima-fp-x:active {
+            transform:scale(.955); transition-duration:.07s; }
+          .anima-run:active { transform:scale(.985); transition-duration:.07s; }   /* 큰 버튼은 덜 줄여야 자연스럽다 */
+          @media (prefers-reduced-motion:reduce) {
+            .anima-chip, .anima-ico, .anima-btn, .anima-run, .anima-gbtn, .anima-fp-x, .anima-gbtn-x { transition-duration:.01ms; }
+            .anima-chip:active, .anima-ico:active, .anima-btn:active, .anima-gbtn:active, .anima-run:active,
+            .anima-fp-x:active, .anima-gbtn-x:active, .anima-gbtn-x.hit { transform:none; }
+          }
           /* 팝오버는 후타 것과 같은 상자를 쓰되, 항목이 많아 줄바꿈되게 */
           .anima-grppop .anima-fp-body { display:flex; flex-wrap:wrap; gap:5px; }
           .anima-mact-bar { display:flex; gap:8px; align-items:stretch; width:100%; max-width:1000px; }
