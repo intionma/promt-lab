@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.100.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.101.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1255,7 +1255,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.100.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.101.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2049,7 +2049,17 @@
         const CHANGELOG = [
             // ── 2026-07-29 ──────────────────────────────────────────────────
             {
-                version: 'v9.100.0', date: '2026-07-29', time: '최신',
+                version: 'v9.101.0', date: '2026-07-29', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] 포즈 몇 개에 <b>주황색 점</b>이 붙었습니다 — <b>원본이 이미 비슷한 자세일 때만 먹혀요 (원본 자세를 바꾸진 못해요)</b>. 정면 직립·게다리+더블피스·손으로 벌려 보이기·엉덩이 내밀기·네발 기기·쪼그려 벌리기 여섯 개입니다.",
+                    "[Anima 편집] 그 포즈를 고르면 <b>실행 버튼 위에 한 줄 안내</b>가 같이 뜹니다. 서 있는 원본에 누운 포즈를 넣으면 자세가 바뀌는 게 아니라 <b>다리가 덧그려져</b> 버려서요 — 뽑기 전에 알 수 있게 했습니다.",
+                    "[Anima 편집] 지난번 <b>게다리+더블피스</b>에 넣었던 문구는 <b>되돌렸습니다</b>. 직접 뽑아 보니 효과가 없었고, 오히려 원본과 부딪히기만 했습니다.",
+                    "[Anima 편집] 표정·후타·가슴처럼 <b>겉모습만 바꾸는 건 원래대로 잘 먹습니다</b> — 이번 표시는 <b>몸 배치를 바꾸라는 포즈</b>에만 붙었습니다.",
+                ]
+            },
+            {
+                version: 'v9.100.0', date: '2026-07-29', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] <b>게다리+더블피스</b>가 다리를 두 벌 그리며 무너지던 문제를 고쳤습니다 — 문구에 <b>몸의 방향(눕기)</b>이 빠져 있어서, '누워야 성립하는 다리'와 '정면을 보는 상반신'이 서로 부딪히고 있었어요. 같은 포즈의 <b>이미지 변환</b> 프리셋에는 원래부터 들어 있던 부분이라 그쪽에 맞췄습니다.",
@@ -7586,18 +7596,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 포즈 프리셋 (group 'pose' — 하나 켜면 나머지 자동 꺼짐). 표정과 같은 규칙: 배열 순서가 '더보기' 패널 순서.
             //  ★ 원본에 없는 인물(남성 등)을 새로 만들어야 성립하는 포즈는 넣지 않는다 — 2인 포즈는 원본에 이미 2명일 때 쓰는 용도.
             //  nsfw:true 항목은 성인 표시(19+)가 꺼져 있으면 숨겨지고 프롬프트에도 안 들어간다.
-            { id: 'pose_stand_front', name: '정면 직립', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(standing, facing viewer, straight-on:1.2), arms at sides, full body' },
+            { id: 'pose_stand_front', name: '정면 직립', kind: 'append', on: false, group: 'pose', nsfw: true, repose: true, text: '(standing, facing viewer, straight-on:1.2), arms at sides, full body' },
             { id: 'pose_mlegs', name: '다리 벌리기', kind: 'append', on: false, group: 'pose', nsfw: true, text: 'spread legs' },
             { id: 'pose_masturbation', name: '자위', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(masturbation, fingering:1.2), hand between own legs, spread legs' },
             { id: 'pose_double_v', name: '더블피스', kind: 'append', on: false, group: 'pose', nsfw: true, text: 'double v, looking at viewer' },
-            // ★ 'm legs'는 누운 자세를 전제로 하는 태그다. 몸의 방향(lying, on back)을 빼면
-            //   'looking at viewer'(정면 상반신)와 서로 모순돼 다리가 두 벌 그려지는 붕괴가 난다.
-            //   같은 포즈의 이미지 변환 프리셋은 원래부터 이 방향 태그를 갖고 있었다 — 그쪽에 맞춘다.
-            { id: 'pose_mlegs_vsign', name: '게다리+더블피스', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(m legs, spread legs:1.3), lying, on back, double v, looking at viewer' },
-            { id: 'pose_spread_pussy', name: '손으로 벌려 보이기', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(spread pussy:1.3), spread legs, presenting own body' },
-            { id: 'pose_bent_over', name: '엉덩이 내밀기', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(bent over, ass focus:1.2), from behind, looking back, presenting own body' },
-            { id: 'pose_allfours', name: '네발 기기', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(all fours:1.2), top-down bottom-up, looking at viewer' },
-            { id: 'pose_squat', name: '쪼그려 벌리기', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(squatting, spread legs:1.3), tiptoes' },
+            //  (v9.100.0에서 'lying, on back'을 넣었다가 되돌림 — '몸 방향 태그 누락' 가설이었는데
+            //   실측에서 다리가 4개로 나왔다. 원본의 선 자세가 그대로 남고 M자 다리가 '덧그려진' 것.
+            //   자세를 바꾸는 게 아니라 더하는 것이므로, 방향 태그는 원본 배치와 정면으로 싸우기만 한다.)
+            { id: 'pose_mlegs_vsign', name: '게다리+더블피스', kind: 'append', on: false, group: 'pose', nsfw: true, repose: true, text: '(m legs, spread legs:1.3), double v, looking at viewer' },
+            { id: 'pose_spread_pussy', name: '손으로 벌려 보이기', kind: 'append', on: false, group: 'pose', nsfw: true, repose: true, text: '(spread pussy:1.3), spread legs, presenting own body' },
+            { id: 'pose_bent_over', name: '엉덩이 내밀기', kind: 'append', on: false, group: 'pose', nsfw: true, repose: true, text: '(bent over, ass focus:1.2), from behind, looking back, presenting own body' },
+            { id: 'pose_allfours', name: '네발 기기', kind: 'append', on: false, group: 'pose', nsfw: true, repose: true, text: '(all fours:1.2), top-down bottom-up, looking at viewer' },
+            { id: 'pose_squat', name: '쪼그려 벌리기', kind: 'append', on: false, group: 'pose', nsfw: true, repose: true, text: '(squatting, spread legs:1.3), tiptoes' },
             // 2인 포즈 — 원본 이미지에 여캐가 2명일 때만 의도대로 나온다(1명이면 없던 인물이 생길 수 있음 → 이름에 명시)
             { id: 'pose_2g_kiss', name: '딥키스 (원본 2인)', kind: 'append', on: false, group: 'pose', nsfw: true, text: '2girls, yuri, (french kiss:1.3), kiss, tongue, saliva, eye contact, hug' },
             { id: 'pose_2g_futasex', name: '후타 섹스 (2인·한 명 후타)', kind: 'append', on: false, group: 'pose', nsfw: true, text: '2girls, (futa with female:1.3), futanari, sex, vaginal, penis' },
@@ -8684,7 +8694,26 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (listChanged) { _animaRenderSnippets(); return; }
             _animaSyncChipStates();      // 칩·아이콘 선택 표시만 갱신 (DOM 유지 → 눌림 모션이 끝까지 재생됨)
             _animaSyncGrpBtns();         // 하단 바 '가슴·포즈' 버튼의 값·✕ 갱신
+            _animaSyncReposeWarn();      // '원본 자세를 바꾸는' 포즈 안내 줄 (이 경로는 패널을 다시 안 그린다)
             try { _animaRenderPromptFold(); } catch (e) {}   // ② 프롬프트 접힘 요약줄
+        }
+        // '원본 자세를 바꾸는' 포즈 안내 줄을 제자리에서 넣고/빼고/고친다.
+        //  _animaToggleSnip은 눌림 모션을 지키려고 패널을 다시 그리지 않는 경로가 있는데,
+        //  하필 그 경로가 '포즈를 고르는 순간'이라 안내가 안 뜨던 문제. 높이가 변하므로 스크롤은 고정한다.
+        function _animaSyncReposeWarn() {
+            const box = _animaEl('#anima-snips'); if (!box) return;
+            const rp = _animaReposeOn(), cur = box.querySelector('.anima-repose-warn');
+            if (!rp) { if (cur) _animaAnchorScroll(() => cur.remove()); return; }
+            const html = `⚠ <b>${_animaEsc(rp.name)}</b> — ${_animaEsc(_ANIMA_REPOSE_NOTE)}`;
+            if (cur) { cur.innerHTML = html; return; }   // 이미 있으면 문구만 교체(높이 그대로)
+            _animaAnchorScroll(() => {
+                const el = document.createElement('div');
+                el.className = 'anima-repose-warn'; el.innerHTML = html;
+                const chip = box.querySelector('.anima-chip.g-pose');
+                const poseRow = chip && chip.closest('.anima-orow');
+                if (poseRow && poseRow.parentNode) poseRow.parentNode.insertBefore(el, poseRow.nextSibling);
+                else box.appendChild(el);
+            });
         }
         // 팝오버(후타 상세 / 가슴·포즈)만 제자리에서 갈아 끼운다 — 하단 바 전체를 다시 그리지 않으려고.
         //  전체를 다시 그리면 방금 누른 아이콘·버튼이 사라져 눌림 모션이 끊긴다(_animaToggleSnip 주석 참고).
@@ -8703,6 +8732,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const key = b.dataset.grp, lab = key === 'bust' ? '가슴' : '포즈';
                 const on = _animaGroupList(key).find(s => s.on);
                 b.classList.toggle('on', !!on);
+                // 하단 바에서도 '원본 자세를 바꾸는' 포즈면 점을 붙인다 — 여기가 실행 버튼 바로 옆이라 마지막 신호다.
+                b.classList.toggle('rp', !!(on && _animaIsRepose(on)));
                 let v = b.querySelector('.anima-gbtn-v'), x = b.querySelector('.anima-gbtn-x');
                 if (on) {
                     if (!v) { v = document.createElement('span'); v.className = 'anima-gbtn-v'; b.appendChild(v); }
@@ -8773,6 +8804,20 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 .sort((a, b) => (_animaDefRank(a.s) - _animaDefRank(b.s)) || (a.i - b.i))   // 동순위는 기존 순서 유지
                 .map(x => x.s);
         }
+        // ── '원본 자세를 바꿔야 성립하는' 포즈 ────────────────────────────────
+        //  Cosmos Reference는 원본의 몸 배치를 조건에 박아 넣는다. 그래서 표정·후타·가슴처럼
+        //  겉모습만 바꾸는 건 잘 먹지만, 몸통·다리 배치를 바꾸라는 요구는 원본과 싸운다.
+        //  실측(v9.100.0): 선 자세 원본에 '게다리'를 넣었더니 선 다리 2개가 그대로 남고
+        //  M자 다리가 옆에 덧그려져 다리가 4개가 됐다. 참조 강도를 0.5까지 낮춰도 동일.
+        //  → 문구로는 못 이긴다. 사용자가 헛장을 뽑지 않게 '고를 때' 알려준다.
+        //  ★ id로 판정한다 — 저장된 스니펫에는 이 플래그가 없어서(예전 저장분) 데이터만 믿으면 새어 나간다.
+        const _ANIMA_REPOSE_IDS = new Set(['pose_stand_front', 'pose_mlegs_vsign', 'pose_spread_pussy',
+            'pose_bent_over', 'pose_allfours', 'pose_squat']);
+        const _ANIMA_REPOSE_NOTE = '원본이 이미 비슷한 자세일 때만 먹혀요 (원본 자세를 바꾸진 못해요)';
+        function _animaIsRepose(s) { return !!(s && (s.repose || _ANIMA_REPOSE_IDS.has(s.id))); }
+        // 지금 켜져 있는 포즈 중 '자세를 바꾸라는' 것이 있으면 그 항목을 돌려준다(없으면 null).
+        function _animaReposeOn() { return _animaGroupList('pose').find(s => s.on && _animaIsRepose(s)) || null; }
+
         // 그룹 하나를 '성인 표시 반영 + 기본값 순서'로 뽑는다 — 표정·포즈·가슴이 전부 이걸 쓴다.
         function _animaGroupList(group) {
             return _animaSortByDefault((_anima.snippets || []).filter(s => s.group === group && (_adultOn() || !s.nsfw)));
@@ -8859,8 +8904,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const poseAll = _animaGroupList('pose');
             if (poseAll.length) {
                 const shownP = _animaPoseOpen ? poseAll : _animaPoseRecentList();
-                h += row('포즈', shownP.map(s => `<button class="anima-chip ex g-pose${s.on ? ' on' : ''}" data-id="${s.id}">${_animaEsc(s.name)}</button>`).join('')
+                h += row('포즈', shownP.map(s => `<button class="anima-chip ex g-pose${s.on ? ' on' : ''}${_animaIsRepose(s) ? ' rp' : ''}" data-id="${s.id}" title="${_animaIsRepose(s) ? _ANIMA_REPOSE_NOTE.replace(/"/g, '&quot;') : ''}">${_animaEsc(s.name)}</button>`).join('')
                     + `<button class="anima-chip ex tg" data-act="poseOpen">${_animaPoseOpen ? '접기 ▴' : '더보기 ▾'}</button>`);
+                // 고른 포즈가 '원본 자세를 바꾸라는' 것이면 실행 직전에 한 줄로 알려준다 — 헛장 방지가 목적이라
+                //  '쓰지 마세요'가 아니라 '언제 먹히는지'를 쓴다.
+                const rp = _animaReposeOn();
+                if (rp) h += `<div class="anima-repose-warn">⚠ <b>${_animaEsc(rp.name)}</b> — ${_animaEsc(_ANIMA_REPOSE_NOTE)}</div>`;
             }
             // 사용자가 직접 추가한 기타 옵션
             //  ★ '이미 다뤄진 항목'은 성인 표시 여부와 무관하게 원본 목록(all)에서 판정한다.
@@ -9227,8 +9276,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return `<div class="anima-futapop anima-grppop" id="anima-grppop">
                 <div class="anima-fp-head"><span>${g.label}</span>
                     <button class="anima-fp-x" id="anima-gp-x" title="닫기" aria-label="닫기">✕</button></div>
-                <div class="anima-fp-body">${list.map(s =>
-                    `<button class="anima-chip lil g-${_animaGrpPop}${s.on ? ' on' : ''}" data-gd="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${_animaEsc(s.name)}</button>`).join('')}</div>
+                <div class="anima-fp-body">${list.map(s => {
+                    const rp = _animaIsRepose(s);
+                    const tip = (rp ? _ANIMA_REPOSE_NOTE + ' — ' : '') + (s.text || '');
+                    return `<button class="anima-chip lil g-${_animaGrpPop}${s.on ? ' on' : ''}${rp ? ' rp' : ''}" data-gd="${s.id}" title="${tip.replace(/"/g, '&quot;')}">${_animaEsc(s.name)}</button>`;
+                }).join('')}</div>
+                ${(_animaGrpPop === 'pose' && list.some(_animaIsRepose))
+                    ? `<div class="anima-fp-note"><i class="rpdot"></i> 표시 = ${_animaEsc(_ANIMA_REPOSE_NOTE)}</div>` : ''}
             </div>`;
         }
         function _animaBindGrpPop(root) {
@@ -9311,7 +9365,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 //    ✕는 button 안에 못 넣으므로(중첩 불가) span으로 두고 클릭 위치로 갈라 받는다.
                 const grpBtn = (key, lab, list) => {
                     const on = list.find(x => x.on);
-                    return `<button class="anima-gbtn g-${key}${on ? ' on' : ''}" data-grp="${key}">`
+                    return `<button class="anima-gbtn g-${key}${on ? ' on' : ''}${(on && _animaIsRepose(on)) ? ' rp' : ''}" data-grp="${key}">`
                         + `<span class="anima-gbtn-k">${lab}</span>`
                         + (on ? `<span class="anima-gbtn-v">${_animaEsc(on.name)}</span>` : '')
                         + (on ? `<span class="anima-gbtn-x" data-grpx="${key}" role="button" aria-label="${lab} 선택 해제" title="${lab} 선택 해제"><i>✕</i></span>` : '')
@@ -10691,6 +10745,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-fp-lab { flex-basis:100%; width:100%; font-size:9.5px; font-weight:800; color:var(--text-dim); margin:5px 0 -1px; }
           .anima-chip.lil { border-color:color-mix(in srgb,#c084fc 45%,var(--border-dim)); color:color-mix(in srgb,#c084fc 78%,var(--text-dim)); }
           .anima-chip.lil.on { background:color-mix(in srgb,#c084fc 18%,transparent); border-color:#c084fc; color:#c084fc; }
+          /* '원본 자세를 바꿔야 성립하는' 포즈 — 겁주지 않게 점 하나만. 켜지면 아래 한 줄 안내가 따로 뜬다. */
+          .anima-chip.rp::after, .anima-gbtn.rp .anima-gbtn-v::after { content:''; display:inline-block; width:5px; height:5px; border-radius:50%;
+            background:#f59e0b; margin-left:5px; vertical-align:middle; opacity:.9; }
+          .anima-fp-note { flex-basis:100%; width:100%; margin-top:6px; font-size:10px; line-height:1.45;
+            color:var(--text-dim); display:flex; align-items:center; gap:5px; }
+          .anima-fp-note .rpdot { width:5px; height:5px; border-radius:50%; background:#f59e0b; flex:0 0 auto; }
+          .anima-repose-warn { margin:6px 0 0; padding:6px 9px; border-radius:8px; font-size:10.5px; line-height:1.5;
+            color:color-mix(in srgb,#f59e0b 82%,var(--text-dim));
+            background:color-mix(in srgb,#f59e0b 11%,transparent);
+            border:1px solid color-mix(in srgb,#f59e0b 34%,transparent); }
+          .anima-repose-warn b { color:#f59e0b; }
           /* 바 높이만큼 콘텐츠 하단 여백 확보(가림 방지) — 실제 높이는 JS가 --anima-mact-h로 넣어줌 */
           #anima-root .anima-wrap { padding-bottom: calc(var(--anima-mact-h, 128px) + 16px); }`;
 
