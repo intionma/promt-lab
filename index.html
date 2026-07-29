@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.101.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.102.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1255,7 +1255,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.101.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.102.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2049,7 +2049,17 @@
         const CHANGELOG = [
             // ── 2026-07-29 ──────────────────────────────────────────────────
             {
-                version: 'v9.101.0', date: '2026-07-29', time: '최신',
+                version: 'v9.102.0', date: '2026-07-29', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] <b>포즈 고정(ControlNet)</b>이 들어갔습니다 — 고급 설정에 새 칸이 생겼어요. <b>원하는 자세가 담긴 그림</b>을 넣으면 거기서 <b>골격만</b> 뽑아 씁니다 (그림 속 인물·화풍은 안 따라옵니다).",
+                    "[Anima 편집] 먼저 <b>[준비물 확인]</b>을 눌러 주세요. 앱이 ComfyUI를 직접 들여다보고 <b>없는 것이 있으면 무엇이 없는지·어디에 넣으면 되는지</b>를 화면에 그대로 알려줍니다. 다 갖춰져야 켜기 스위치가 생깁니다.",
+                    "[Anima 편집] 포즈 고정을 켜면 <b>참조 강도를 자동으로 낮춰서</b> 보냅니다(기본 0.5). 안 낮추면 <b>원본 자세가 이겨서</b> 골격을 붙여도 지금처럼 다리가 덧그려집니다 — 이게 핵심입니다.",
+                    "[Anima 편집] 그 경계는 그림마다 다르니 <b>[포즈 강도 전부 돌리기]</b>를 넣었습니다. 실행 버튼을 길게 눌러 고르면 참조 강도 0.8~0.2를 <b>같은 시드로 5장</b> 뽑아 줍니다 — <b>얼굴·체형이 무너지기 직전</b>이 그 그림의 최적값이에요.",
+                ]
+            },
+            {
+                version: 'v9.101.0', date: '2026-07-29', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] 포즈 몇 개에 <b>주황색 점</b>이 붙었습니다 — <b>원본이 이미 비슷한 자세일 때만 먹혀요 (원본 자세를 바꾸진 못해요)</b>. 정면 직립·게다리+더블피스·손으로 벌려 보이기·엉덩이 내밀기·네발 기기·쪼그려 벌리기 여섯 개입니다.",
@@ -7480,6 +7490,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             prompt: 'masterpiece, best quality, score_7, (nude, completely nude, uncensored, :2), ',
             steps: 3, cfg: 1, denoise: 1, sampler: 'euler_ancestral', scheduler: 'simple', seed: -1,
             megapixels: 1, upscaleMethod: 'lanczos', refWeight: 1, refMode: 'temporal_mask',
+            // 포즈 고정(ControlNet) — Qwen-Image Union DiffSynth LoRA 방식. 준비물이 없으면 켜지지 않는다.
+            cnPose: false, cnLoraName: '', cnLora: 1, cnRefWeight: 0.5,
             unetName: 'Anima-Comradeship-v1T19H.safetensors', clipName: 'qwen_3_06b_base.safetensors', clipType: 'stable_diffusion',
             vaeName: 'qwen_image_vae.safetensors',
             lora1Name: 'AnimaEditV1.safetensors', lora1: 1,
@@ -7502,7 +7514,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             srcHistory: [],             // 이전에 넣은 원본 이미지들 [{thumb,name,ts}] — 다시 불러오기용(영속, 최근 8장)
             imgThumb: null,             // 영속(축소본)
             // 세션 전용(비영속): img{dataURL,name}, uploadedName, results[]
-            img: null, uploadedName: null, results: []
+            img: null, uploadedName: null, results: [],
+            // 세션 전용: 포즈 참조 이미지(원본과 별개) — 영속화하지 않는다(원본 이미지와 같은 규칙)
+            poseImg: null, poseUploadedName: null
         };
         // 기본 제공 옵션
         //  kind:'base'  = 노출 프리셋 — 누르면 기본 프롬프트를 이걸로 교체 (전신/하의만 등, 상호배타)
@@ -7709,6 +7723,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try {
                 const p = {};
                 ['prompt', 'steps', 'cfg', 'denoise', 'sampler', 'scheduler', 'seed', 'megapixels', 'upscaleMethod', 'refWeight', 'refMode',
+                    'cnPose', 'cnLoraName', 'cnLora', 'cnRefWeight',
                     'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb', 'exprMore', 'exprRecent', 'sweep', 'sweepSeedInherit', 'galGroup', 'srcKey', 'myPreset', 'promptOpen'].forEach(k => p[k] = _anima[k]);
                 // 결과 이미지 목록은 여기 없다 — IndexedDB(_animaIdb*)로 옮겼다. 장수가 늘어도 이 저장이 무거워지지 않는다.
                 p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null, detail: s.detail || null }));
@@ -7913,7 +7928,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } catch (e) {}
         }
         _animaRestore();
-        const ANIMA_DEFAULTS = JSON.parse(JSON.stringify((() => { const d = { prompt: 'masterpiece, best quality, score_7, (nude, completely nude, uncensored, :2), ', steps: 3, cfg: 1, denoise: 1, sampler: 'euler_ancestral', scheduler: 'simple', megapixels: 1, upscaleMethod: 'lanczos', refWeight: 1, refMode: 'temporal_mask', unetName: 'Anima-Comradeship-v1T19H.safetensors', clipName: 'qwen_3_06b_base.safetensors', clipType: 'stable_diffusion', vaeName: 'qwen_image_vae.safetensors', lora1Name: 'AnimaEditV1.safetensors', lora1: 1, lora2Name: '', lora2: 1 }; return d; })()));
+        const ANIMA_DEFAULTS = JSON.parse(JSON.stringify((() => { const d = { prompt: 'masterpiece, best quality, score_7, (nude, completely nude, uncensored, :2), ', steps: 3, cfg: 1, denoise: 1, sampler: 'euler_ancestral', scheduler: 'simple', megapixels: 1, upscaleMethod: 'lanczos', refWeight: 1, refMode: 'temporal_mask', cnPose: false, cnLoraName: '', cnLora: 1, cnRefWeight: 0.5, unetName: 'Anima-Comradeship-v1T19H.safetensors', clipName: 'qwen_3_06b_base.safetensors', clipType: 'stable_diffusion', vaeName: 'qwen_image_vae.safetensors', lora1Name: 'AnimaEditV1.safetensors', lora1: 1, lora2Name: '', lora2: 1 }; return d; })()));
         // 기존 사용자(V8F 기본값 저장본)를 V8FT로 자동 이전 — 사용자가 직접 바꾼 값은 존중.
         (function _animaMigrateV8FT() {
             try {
@@ -7981,13 +7996,26 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _anima.uploadedName = await _comfyUploadImage(blob, uniq); // 기존 업로더 재사용(_comfyBase 서버)
             return _anima.uploadedName;
         }
+        // 포즈 참조 그림 업로드 — 원본 이미지와 완전히 같은 규칙(캐시 후 재사용)
+        async function _animaEnsurePoseUploaded() {
+            if (_anima.poseUploadedName) return _anima.poseUploadedName;
+            if (!(_anima.poseImg && _anima.poseImg.dataURL)) return null;
+            const blob = _dataURLtoBlob(_anima.poseImg.dataURL);
+            const ext = (_anima.poseImg.dataURL.match(/^data:image\/(\w+)/) || [, 'png'])[1];
+            const uniq = 'promptlab_anima_pose_' + Date.now() + '_' + Math.floor(Math.random() * 1e9) + '.' + (ext === 'jpeg' ? 'jpg' : ext);
+            _anima.poseUploadedName = await _comfyUploadImage(blob, uniq);
+            return _anima.poseUploadedName;
+        }
 
         // ── V8F → API 형식 노드 변환 (설치본 object_info로 위젯 이름을 정확히 매핑, 오프라인/목업 폴백) ──
         const _ANIMA_FALLBACK_NAMES = {
             CLIPLoader: ['clip_name', 'type', 'device'], VAELoader: ['vae_name'], UNETLoader: ['unet_name', 'weight_dtype'],
             LoraLoaderModelOnly: ['lora_name', 'strength_model'], ApplyCosmosReferenceModelPatch: [], CLIPTextEncode: ['text'],
             ConditioningZeroOut: [], LoadImage: ['image'], ImageScaleToTotalPixels: ['upscale_method', 'megapixels'], VAEEncode: [],
-            CosmosReferenceConditioning: ['reference_weight', 'gating'], KSampler: ['seed', 'steps', 'cfg', 'sampler_name', 'scheduler', 'denoise'],
+            CosmosReferenceConditioning: ['reference_weight', 'gating'],
+            DWPreprocessor: ['detect_hand', 'detect_body', 'detect_face', 'resolution'],
+            OpenposePreprocessor: ['detect_hand', 'detect_body', 'detect_face', 'resolution'],
+            ReferenceLatent: [], KSampler: ['seed', 'steps', 'cfg', 'sampler_name', 'scheduler', 'denoise'],
             VAEDecode: [], SaveImage: ['filename_prefix']
         };
         const _animaObjCache = {};   // cls -> { names:[widget이름 순서], defaults:{name:기본값} }
@@ -8040,6 +8068,44 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (fetchedOk) _animaObjCache[cls] = result;
             return result;
         }
+        // ══ 포즈 고정(ControlNet) 준비물 점검 ═══════════════════════════════
+        //  ★ 사용자에게 "이거 받으세요"라고 먼저 말하지 않는다. 설치본에 실제로 뭐가 있는지
+        //    /object_info로 확인한 뒤, 없는 것만 '무엇이 / 어디에'로 알려준다.
+        //  ★ 이미지 변환 테마의 ControlNetLoader + ControlNetApplyAdvanced 배선은 못 가져온다.
+        //    거기 쓰는 OpenPoseXL2는 SDXL 전용이고, Qwen 계열은 Union DiffSynth "LoRA" 방식이라
+        //    LoraLoaderModelOnly로 모델에 붙이고 골격은 ReferenceLatent로 조건에 넣는다(배선이 다름).
+        const _ANIMA_CN_LORA_RE = /(union.*diffsynth|diffsynth.*union)/i;
+        const _ANIMA_CN_PREPROCS = ['DWPreprocessor', 'OpenposePreprocessor'];   // 앞엣것 우선(더 정확)
+        const _ANIMA_CN_LORA_URL = 'https://huggingface.co/Comfy-Org/Qwen-Image-DiffSynth-ControlNets/resolve/main/split_files/loras/qwen_image_union_diffsynth_lora.safetensors';
+        let _animaCnInfo = null;   // { conn, preproc, lora, loras } — 마지막 점검 결과 캐시
+        // 노드 클래스가 설치돼 있는지. true=있음 / false=없음 / null=서버에 못 붙음(구분해야 안내가 안 엉킨다)
+        async function _animaNodeExists(cls) {
+            if (_animaMock()) return true;
+            try {
+                const res = await fetch(_comfyBase() + '/object_info/' + encodeURIComponent(cls), { signal: _animaTimeoutSignal(8000) });
+                if (!res.ok) return false;
+                const d = await res.json();
+                return !!(d && d[cls]);
+            } catch (e) { return null; }
+        }
+        async function _animaCnDetect(force) {
+            if (_animaCnInfo && !force) return _animaCnInfo;
+            // LoraLoaderModelOnly는 ComfyUI 기본 노드다 — 이게 안 잡히면 노드가 없는 게 아니라 연결이 안 된 것.
+            const loras = await _comfyNodeEnum('LoraLoaderModelOnly', 'lora_name');
+            if (!loras) { _animaCnInfo = { conn: false, preproc: null, lora: null, loras: [] }; return _animaCnInfo; }
+            let preproc = null;
+            for (const c of _ANIMA_CN_PREPROCS) { if (await _animaNodeExists(c)) { preproc = c; break; } }
+            const lora = loras.find(n => _ANIMA_CN_LORA_RE.test(String(n))) || null;
+            _animaCnInfo = { conn: true, preproc, lora, loras };
+            // 찾았으면 설정에 박아 둔다(파일명이 설치본마다 조금씩 다를 수 있어 하드코딩하지 않는다)
+            if (lora && _anima.cnLoraName !== lora) { _anima.cnLoraName = lora; try { _animaSave(); } catch (e) {} }
+            if (!lora && _anima.cnLoraName) { _anima.cnLoraName = ''; try { _animaSave(); } catch (e) {} }
+            return _animaCnInfo;
+        }
+        function _animaCnReady() { return !!(_animaCnInfo && _animaCnInfo.conn && _animaCnInfo.preproc && _animaCnInfo.lora); }
+        // 포즈 고정이 '실제로 적용되는' 조건 — 설정이 켜져 있고, 준비물이 있고, 포즈 참조 그림이 올라와 있어야 한다.
+        function _animaCnActive(S) { return !!(S && S.cnPose && S.cnLoraName && _anima.poseImg && _anima.poseImg.dataURL); }
+
         function _animaNode(cls, widgetVals, links) {
             const info = _animaObjCache[cls] || { names: (_ANIMA_FALLBACK_NAMES[cls] || []), defaults: {} };
             // 설치본의 모든 필수 위젯을 기본값으로 먼저 채운 뒤(누락 방지), 내가 아는 값으로 순서대로 덮어씀
@@ -8060,11 +8126,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
             return wf;
         }
-        async function _animaBuildWorkflow(pos, imageName, seedArg, settingsOverride) {
+        async function _animaBuildWorkflow(pos, imageName, seedArg, settingsOverride, poseName) {
             const S = settingsOverride || _anima;   // 대기열 작업은 스냅샷된 설정을 사용(실행 시점 값에 오염되지 않게)
             const seed = (seedArg != null) ? seedArg : _animaSeedVal();
+            // 포즈 고정은 '설정이 켜짐 + union LoRA 이름 확보 + 포즈 그림 업로드됨' 셋이 다 맞을 때만 배선한다.
+            const cn = !!(S.cnPose && S.cnLoraName && poseName);
+            const cnPre = (_animaCnInfo && _animaCnInfo.preproc) || 'DWPreprocessor';
             // 위젯 이름이 특이한 커스텀/일부 노드는 설치본 기준으로 보정(누락 방지)
-            try { await Promise.all(['ImageScaleToTotalPixels', 'CosmosReferenceConditioning'].map(_animaLoadNodeInfo)); } catch (e) {}
+            const _pre = ['ImageScaleToTotalPixels', 'CosmosReferenceConditioning'].concat(cn ? [cnPre] : []);
+            try { await Promise.all(_pre.map(_animaLoadNodeInfo)); } catch (e) {}
             const wf = {};
             // ── 로더 ──
             wf['61'] = { class_type: 'CLIPLoader', inputs: { clip_name: S.clipName, type: S.clipType, device: 'default' } };
@@ -8074,6 +8144,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             let _mref = ['68', 0];
             if (S.lora1Name && S.lora1Name.trim()) { wf['84'] = { class_type: 'LoraLoaderModelOnly', inputs: { model: _mref, lora_name: S.lora1Name.trim(), strength_model: S.lora1 } }; _mref = ['84', 0]; }
             if (S.lora2Name && S.lora2Name.trim()) { wf['87'] = { class_type: 'LoraLoaderModelOnly', inputs: { model: _mref, lora_name: S.lora2Name.trim(), strength_model: S.lora2 } }; _mref = ['87', 0]; }
+            // 포즈 고정 — Union DiffSynth는 ControlNet 노드가 아니라 '모델에 붙이는 LoRA'다(공식 워크플로우와 동일).
+            if (cn) { wf['92'] = { class_type: 'LoraLoaderModelOnly', inputs: { model: _mref, lora_name: S.cnLoraName, strength_model: S.cnLora } }; _mref = ['92', 0]; }
             wf['69'] = { class_type: 'ApplyCosmosReferenceModelPatch', inputs: { model: _mref } };
             // ── 프롬프트 ──
             wf['67'] = { class_type: 'CLIPTextEncode', inputs: { clip: ['61', 0], text: pos } };
@@ -8092,9 +8164,28 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             wf['82'] = _animaNode('ImageScaleToTotalPixels', [S.upscaleMethod, S.megapixels, 64], { image: ['73', 0] });
             wf['76'] = { class_type: 'VAEEncode', inputs: { pixels: ['82', 0], vae: ['62', 0] } };
             // ── Cosmos 레퍼런스 조건화: 원본 latent을 조건에 주입 (연결 이름은 원본과 정확히 동일) ──
-            wf['71'] = _animaNode('CosmosReferenceConditioning', [S.refWeight, S.refMode], { positive: ['67', 0], negative: _negRef, reference_latent: ['76', 0] });
+            //  ★ 포즈 고정 중에는 참조 강도를 따로 쓴다. Cosmos는 '원본의 몸 배치'를, ControlNet은
+            //    '골격'을 같은 조건에 밀어 넣어 서로 싸운다 — 참조를 그대로 1.0으로 두면 골격을 붙여도
+            //    원본 자세가 이겨서 증상이 그대로다(다리가 덧그려짐). 그래서 켜지면 낮춘 값을 쓴다.
+            const _refW = cn ? S.cnRefWeight : S.refWeight;
+            wf['71'] = _animaNode('CosmosReferenceConditioning', [_refW, S.refMode], { positive: ['67', 0], negative: _negRef, reference_latent: ['76', 0] });
+            // ── 포즈 골격 주입 ── 공식 Qwen Union 워크플로우와 같은 순서:
+            //    포즈 그림 → 전처리(스켈레톤) → 축소 → VAE 인코딩 → ReferenceLatent로 조건에 얹기.
+            //    Cosmos 조건화(71) '뒤에' 체인해서 캐릭터(원본)와 골격(포즈)이 둘 다 조건에 들어가게 한다.
+            let _pos = ['71', 0], _neg = ['71', 1];
+            if (cn) {
+                wf['93'] = { class_type: 'LoadImage', inputs: { image: poseName } };
+                wf['94'] = _animaNode(cnPre, ['enable', 'enable', 'enable', 1024], { image: ['93', 0] });
+                wf['95'] = _animaNode('ImageScaleToTotalPixels', [S.upscaleMethod, S.megapixels, 64], { image: ['94', 0] });
+                wf['96'] = { class_type: 'VAEEncode', inputs: { pixels: ['95', 0], vae: ['62', 0] } };
+                wf['97'] = { class_type: 'ReferenceLatent', inputs: { conditioning: ['71', 0], latent: ['96', 0] } };
+                wf['98'] = { class_type: 'ReferenceLatent', inputs: { conditioning: ['71', 1], latent: ['96', 0] } };
+                _pos = ['97', 0]; _neg = ['98', 0];
+            }
             // ── 샘플링 (원본과 동일: 입력 latent에서 denoise=1) ──
-            wf['66'] = { class_type: 'KSampler', inputs: { seed: seed, steps: S.steps, cfg: _cfg, sampler_name: S.sampler, scheduler: S.scheduler, denoise: S.denoise, model: ['69', 0], positive: ['71', 0], negative: ['71', 1], latent_image: ['76', 0] } };
+            //  latent_image는 원본(76) 그대로 둔다 — denoise=1이면 이 latent는 완전히 노이즈로 덮여
+            //  '출력 크기 틀' 역할만 하므로, 결과 비율을 원본에 맞추는 쪽이 낫다.
+            wf['66'] = { class_type: 'KSampler', inputs: { seed: seed, steps: S.steps, cfg: _cfg, sampler_name: S.sampler, scheduler: S.scheduler, denoise: S.denoise, model: ['69', 0], positive: _pos, negative: _neg, latent_image: ['76', 0] } };
             wf['63'] = { class_type: 'VAEDecode', inputs: { samples: ['66', 0], vae: ['62', 0] } };
             wf['9'] = { class_type: 'SaveImage', inputs: { filename_prefix: 'PromptLab_anima', images: ['63', 0] } };
             return wf;
@@ -8284,7 +8375,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         // 생성에 영향 주는 모든 설정을 이 순간 값으로 복사 — 대기열 항목이 실행될 때까지 설정을 바꿔도 섞이지 않게.
         const _ANIMA_SNAP_KEYS = ['clipName', 'clipType', 'vaeName', 'unetName', 'lora1Name', 'lora1', 'lora2Name', 'lora2',
-            'suppressWm', 'cfg', 'upscaleMethod', 'megapixels', 'refWeight', 'refMode', 'steps', 'sampler', 'scheduler', 'denoise', 'customWf'];
+            'suppressWm', 'cfg', 'upscaleMethod', 'megapixels', 'refWeight', 'refMode', 'steps', 'sampler', 'scheduler', 'denoise', 'customWf',
+            'cnPose', 'cnLoraName', 'cnLora', 'cnRefWeight'];
         function _animaSnapshotSettings() { const s = {}; _ANIMA_SNAP_KEYS.forEach(k => s[k] = _anima[k]); return s; }
         // 실행 버튼 = 현재 상태를 대기열에 추가 (idle이면 바로 시작)
         async function _animaGenerate(quiet) {
@@ -8338,6 +8430,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 클릭 순간의 값들을 먼저 확정(썸네일 생성 await 사이에 설정이 바뀌어도 안 섞이게)
             const seed = _animaSeedVal();   // -1이면 지금 랜덤 확정 → 대기열 항목마다 다른 시드
             const snap = { dataURL: _anima.img.dataURL, uploadedName: _anima.uploadedName };
+            // 포즈 고정이 켜져 있으면 그 순간의 포즈 그림도 같이 고정 — 대기 중에 바꿔도 안 섞이게(원본과 같은 규칙)
+            if (_animaCnActive(_anima)) { snap.poseDataURL = _anima.poseImg.dataURL; snap.poseUploadedName = _anima.poseUploadedName; }
             const settings = _animaSnapshotSettings();   // 고급 설정도 이 순간 값으로 고정 → 대기 중 바꿔도 안 섞임
             // 대기열 '표시용' 작은 썸네일(≈128px). 원본 768 dataURL을 목록에 박으면 30개일 때 HTML이 수백 KB라 렌더가 느려짐 → 작게.
             let qthumb = _anima.imgThumb || snap.dataURL || '';
@@ -8422,14 +8516,27 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     name = await _animaRetry(() => _comfyUploadImage(blob, uniq, _animaTimeoutSignal(_ANIMA_SUBMIT_TIMEOUT)), 2);
                     job.snap.uploadedName = name;
                 }
+                // 포즈 참조 그림도 같은 규칙으로 올린다(한 번 올리면 이후 작업은 재사용).
+                //  ★ 전처리기가 골격을 뽑아야 하므로 원본만큼 줄이지 않는다 — 너무 작으면 관절을 놓친다.
+                let poseName = job.snap.poseUploadedName || null;
+                if (!poseName && job.snap.poseDataURL) {
+                    let pblob = null, pjpg = false;
+                    try { const d = await _animaDownscaledBlob(job.snap.poseDataURL, 1024); if (d) { pblob = d; pjpg = true; } } catch (e) {}
+                    if (!pblob) pblob = _dataURLtoBlob(job.snap.poseDataURL);
+                    const pext0 = (job.snap.poseDataURL.match(/^data:image\/(\w+)/) || [, 'png'])[1];
+                    const pext = pjpg ? 'jpg' : (pext0 === 'jpeg' ? 'jpg' : pext0);
+                    const puniq = 'promptlab_anima_pose_' + Date.now() + '_' + Math.floor(Math.random() * 1e9) + '.' + pext;
+                    poseName = await _animaRetry(() => _comfyUploadImage(pblob, puniq, _animaTimeoutSignal(_ANIMA_SUBMIT_TIMEOUT)), 2);
+                    job.snap.poseUploadedName = poseName;
+                }
                 let wf;
                 if (st.customWf && st.customWf.trim()) {
                     try {
                         const c = JSON.parse(st.customWf);
                         if (c && c.nodes && c.links) { showToast('붙여넣은 JSON이 에디터 형식이에요. ComfyUI에서 Save (API Format)으로 받아 붙여넣으세요.', 'error', 7000); job.status = 'error'; job.err = 'JSON 형식(에디터)'; _animaSyncBusy(); _animaPump(); return; }
                         wf = _animaInjectInto(c, job.prompt, name, job.seed);
-                    } catch (e) { wf = await _animaBuildWorkflow(job.prompt, name, job.seed, st); }
-                } else { wf = await _animaBuildWorkflow(job.prompt, name, job.seed, st); }
+                    } catch (e) { wf = await _animaBuildWorkflow(job.prompt, name, job.seed, st, poseName); }
+                } else { wf = await _animaBuildWorkflow(job.prompt, name, job.seed, st, poseName); }
                 const cid = (typeof _comfyClientId !== 'undefined' && _comfyClientId) ? _comfyClientId : (typeof _comfyUUID === 'function' ? _comfyUUID() : String(Math.random()));
                 const data = await _animaRetry(() => _animaPostPrompt(base, wf, cid), 2);   // 전송 네트워크 실패 재시도(노드 오류는 즉시 실패)
                 job.pid = data.prompt_id; job.status = 'running';   // uploading→running: 이제 _animaSubmittingNow()=거짓 → 다음 작업 전송 가능
@@ -8939,7 +9046,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  스텝을 올리는 게 정말 값어치를 하는지 눈으로 확인하라고 넣은 축이다(같은 시드·같은 옵션 3장).
             { key: 'quality', name: '품질', emo: '✨', settings: true, pick: () => _ANIMA_PRESETS.map(p => ({ id: p.id, name: p.name })) },
             // (참조 설정 진단 축은 판정이 끝나 제거했다 — temporal/kv 2가지 × 세기 3단계 6장이 전부 같은 정도로
-            //  무너져, 참조 다이얼로는 포즈를 살릴 수 없다는 결론. 원인은 포즈 문구 쪽이었다.)
+            //  무너져, 참조 다이얼로는 포즈를 살릴 수 없다는 결론. 원인은 원본 배치가 이기는 구조 자체였다.)
+            // 포즈 강도 — 포즈 고정을 켰을 때만 보인다. Cosmos 참조(원본 배치)와 ControlNet 골격이
+            //  같은 조건을 두고 싸우므로, '얼굴·체형이 무너지기 시작하는 지점'은 직접 봐야 안다.
+            //  높을수록 원본에 가깝고(대신 포즈가 안 먹음), 낮을수록 포즈는 따라오지만 캐릭터가 멀어진다.
+            {
+                key: 'cnref', name: '포즈 강도', emo: '🦴', settings: true,
+                only: () => _animaCnActive(_anima),
+                pick: () => [0.8, 0.65, 0.5, 0.35, 0.2].map(v => ({ id: String(v), name: '참조 ' + v.toFixed(2) })),
+                apply: (id) => { _anima.cnRefWeight = parseFloat(id); },
+                restore: (before) => { _anima.cnRefWeight = before; },
+                grab: () => _anima.cnRefWeight,
+            },
         ];
         // ── 눌림 반응 (Anima에서 누르는 모든 것) ─────────────────────────────
         //  ★ CSS :active만으로는 절대 안 된다. 칩을 누르면 핸들러가 곧바로 innerHTML을
@@ -9030,6 +9148,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 되돌리기용 현재 상태 백업
             const beforePrompt = _anima.prompt, beforeSeed = _anima.seed;
             const beforeSteps = _anima.steps, beforeMp = _anima.megapixels;   // 품질 축은 이 둘을 건드린다
+            const beforeAxis = axis.grab ? axis.grab() : null;   // 축이 스스로 건드리는 값(포즈 강도 등)
             const beforeOn = {}; (_anima.snippets || []).forEach(s => beforeOn[s.id] = !!s.on);
             // 세트 전체가 같은 시드를 쓰도록 지금 확정.
             //  시드가 -1(랜덤)이면 기본은 새 랜덤이지만, '선택한 그림 이어받기'가 켜져 있으면
@@ -9042,7 +9161,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (inherit != null) { try { showToast(`선택한 그림의 시드(${inherit})로 ${axis.name} ${sel.length}장`, 'info', 2600); } catch (e) {} }
             let made = 0;
             for (const id of sel) {
-                if (axis.settings) {
+                if (axis.apply) { axis.apply(id); }        // 축이 스스로 설정을 갈아끼우는 경우(포즈 강도 등)
+                else if (axis.settings) {
                     // 품질 축 — 프롬프트·옵션은 그대로 두고 스텝·메가픽셀만 갈아끼운다
                     const q = _ANIMA_PRESETS.find(x => x.id === id); if (!q) continue;
                     _anima.steps = q.steps; _anima.megapixels = q.megapixels;
@@ -9060,6 +9180,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 원래 상태 복원 — 스윕은 '돌려보기'일 뿐 내 설정을 바꾸지 않는다
             _anima.prompt = beforePrompt; _anima.seed = beforeSeed;
             _anima.steps = beforeSteps; _anima.megapixels = beforeMp;
+            if (axis.restore) axis.restore(beforeAxis);
             (_anima.snippets || []).forEach(s => { if (s.id in beforeOn) s.on = beforeOn[s.id]; });
             const pt = _animaEl('#anima-prompt'); if (pt) pt.value = _anima.prompt;
             _animaSave(); _animaRenderSnippets(); _animaRenderAdv();
@@ -9070,7 +9191,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _animaCloseSweepMenu() { if (_animaSweepMenuEl) { try { _animaSweepMenuEl.remove(); } catch (e) {} _animaSweepMenuEl = null; } }
         function _animaOpenSweepMenu() {
             _animaCloseSweepMenu();
-            const _axes = _ANIMA_SWEEP_AXES.filter(a => (a.settings || a.pick().length) && (_adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality'));   // 성인 꺼짐 → 남아 있는 항목이 있는 축만 (전부 숨겨진 축은 '0장'으로 남지 않게)
+            const _axes = _ANIMA_SWEEP_AXES.filter(a => (!a.only || a.only()) && (a.settings || a.pick().length) && (_adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality' || a.key === 'cnref'));   // 성인 꺼짐 → 남아 있는 항목이 있는 축만 (전부 숨겨진 축은 '0장'으로 남지 않게)
             const wrap = document.createElement('div');
             wrap.className = 'anima-sweep-back';
             const rows = _axes.map(a => {
@@ -9118,7 +9239,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         function _animaRenderSweepCfg(box, wrap) {
             let h = '';
-            _ANIMA_SWEEP_AXES.filter(a => (a.settings || a.pick().length) && (_adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality')).forEach(a => {
+            _ANIMA_SWEEP_AXES.filter(a => (!a.only || a.only()) && (a.settings || a.pick().length) && (_adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality' || a.key === 'cnref')).forEach(a => {
                 const sel = _animaSweepSel(a), items = a.pick();
                 h += `<div class="anima-sweep-sec ax-${a.key}">${_animaAxMark(a)}<span>${a.name}</span></div><div class="anima-sweep-chips">`;
                 if (a.key === 'base') h += `<button class="anima-chip sw${sel.includes(_ANIMA_SWEEP_NONE) ? ' on' : ''}" data-ax="base" data-id="${_ANIMA_SWEEP_NONE}">노출 없음</button>`;
@@ -10134,6 +10255,41 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const cur = _animaPresetMatch();
             box.querySelectorAll('.anima-pbtn[data-preset]').forEach(b => b.classList.toggle('on', b.dataset.preset === cur));
         }
+        // ── 포즈 고정 패널 ────────────────────────────────────────────────────
+        //  준비물이 없으면 '무엇이 / 어디에'만 보여주고 토글은 잠근다. 받으라고 재촉하지 않는다.
+        function _animaCnPanelHtml() {
+            const i = _animaCnInfo;
+            const btn = `<button class="anima-btn ghost anima-cn-chk" id="anima-cn-chk">🔍 준비물 확인</button>`;
+            if (!i) {
+                return `<div class="anima-cn-st wait">아직 확인 안 했어요 — ComfyUI를 켠 상태에서 눌러 주세요.</div>${btn}`;
+            }
+            if (!i.conn) {
+                return `<div class="anima-cn-st bad">ComfyUI에 연결하지 못했어요. 서버 주소·실행 상태를 확인한 뒤 다시 눌러 주세요.</div>${btn}`;
+            }
+            const miss = [];
+            if (!i.preproc) miss.push(`<li><b>포즈 전처리기 노드</b>가 없습니다<br><span>ComfyUI Manager에서 <code>comfyui_controlnet_aux</code> (작성자 Fannovel16) 설치 → ComfyUI 재시작</span></li>`);
+            if (!i.lora) miss.push(`<li><b>qwen_image_union_diffsynth_lora.safetensors</b> 가 없습니다<br><span>받아서 <code>ComfyUI/models/loras/</code> 에 넣고 ComfyUI 재시작<br><a href="${_ANIMA_CN_LORA_URL}" target="_blank" rel="noopener">받는 곳 열기</a></span></li>`);
+            if (miss.length) {
+                return `<div class="anima-cn-st bad">아직 못 씁니다 — 아래 ${miss.length}가지가 없어요.</div>
+                        <ul class="anima-cn-miss">${miss.join('')}</ul>
+                        <div class="anima-cn-hint">둘 다 갖춰지면 이 자리에 켜기 스위치가 생깁니다.</div>${btn}`;
+            }
+            const has = !!(_anima.poseImg && _anima.poseImg.dataURL);
+            return `<div class="anima-cn-st good">준비 완료 — 전처리기 <code>${_animaEsc(i.preproc)}</code> · LoRA <code>${_animaEsc(i.lora)}</code></div>
+                <label class="anima-wmrow"><input type="checkbox" id="anima-cn-on" ${_anima.cnPose ? 'checked' : ''}><span>🦴 포즈 고정 켜기</span></label>
+                <div class="anima-cn-hint">원하는 <b>자세가 담긴 그림</b>을 넣으면 거기서 <b>골격만</b> 뽑아 씁니다 (그림의 인물·화풍은 안 따라옵니다).</div>
+                <div class="anima-cn-pose">
+                    ${has ? `<img class="anima-cn-thumb" src="${_anima.poseImg.dataURL}" alt="포즈 참조">` : `<div class="anima-cn-thumb empty">없음</div>`}
+                    <div class="anima-cn-pbtns">
+                        <button class="anima-btn ghost" id="anima-cn-pick">${has ? '바꾸기' : '포즈 그림 넣기'}</button>
+                        ${has ? `<button class="anima-btn ghost" id="anima-cn-clear">비우기</button>` : ''}
+                    </div>
+                    <input type="file" id="anima-cn-file" accept="image/*" hidden>
+                </div>
+                ${(_anima.cnPose && !has) ? `<div class="anima-cn-st wait">포즈 그림을 넣어야 실제로 적용됩니다 — 지금은 평소대로 생성돼요.</div>` : ''}
+                <div class="anima-arow"><label>골격 강도</label><input type="number" data-k="cnLora" value="${_anima.cnLora}" step="0.05" min="0" max="1.5"><span class="hint">기본 1 · 자세가 덜 따라오면 올리고, 그림이 뻣뻣하면 내리세요</span></div>
+                <div class="anima-arow"><label>참조 강도 (포즈 중)</label><input type="number" data-k="cnRefWeight" value="${_anima.cnRefWeight}" step="0.05" min="0" max="1"><span class="hint">기본 0.5 · <b>올릴수록 원본 자세가 이겨서 포즈가 안 먹습니다</b>. 내릴수록 자세는 잘 따라오지만 얼굴·체형이 원본에서 멀어져요 — [포즈 강도 전부 돌리기]로 경계를 찾으세요</span></div>`;
+        }
         function _animaRenderAdv() {
             const box = _animaEl('#anima-adv'); if (!box) return;
             // 라벨 옆 '?' → 그 항목 설명을 아래에 펼친다(모바일에선 마우스 올리기가 없으니 토글 방식)
@@ -10158,6 +10314,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 row('스케줄러', _animaSelHtml('scheduler', _animaSchedulers()), '기본 simple', 'scheduler') +
                 `<label class="anima-wmrow"><input type="checkbox" id="anima-suppresswm" ${_anima.suppressWm ? 'checked' : ''}><span>🧪 워터마크·글자 억제 <b>(실험)</b></span></label>
                  <div class="anima-wmhelp">소스 이미지의 워터마크·로고·글자를 줄입니다. Anima는 cfg=1이라 부정 프롬프트가 원래 안 먹어서, 켜면 <b>cfg를 올리고</b> 진짜 부정 프롬프트를 넣습니다. 그래서 <b>결과 품질·속도가 달라질 수 있어요</b>(3스텝 distilled). 효과가 애매하면 소스에서 워터마크를 잘라내고 올리는 게 가장 확실합니다.</div>` +
+                `<div class="anima-adv-sec">포즈 고정 (ControlNet)</div>
+                 <div class="anima-cn" id="anima-cn">${_animaCnPanelHtml()}</div>` +
                 `<div class="anima-adv-sec">모델 파일 (설치된 이름과 정확히 일치해야 함)</div>` +
                 row('UNET', txt('unetName')) +
                 row('CLIP', txt('clipName')) +
@@ -10193,6 +10351,46 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _animaHelpCloseAll();
                 if (willOpen) { el.classList.add('open'); q.classList.add('on'); }
             });
+            // ── 포즈 고정 패널 ──
+            const cnRe = () => { const p = box.querySelector('#anima-cn'); if (p) { p.innerHTML = _animaCnPanelHtml(); _animaBindCnPanel(box); } };
+            function _animaBindCnPanel(root) {
+                const chk = root.querySelector('#anima-cn-chk');
+                if (chk) chk.onclick = async () => {
+                    chk.disabled = true; chk.textContent = '확인 중…';
+                    await _animaCnDetect(true);
+                    cnRe();
+                    const i = _animaCnInfo;
+                    if (!i.conn) showToast('ComfyUI에 연결하지 못했어요', 'warning', 2800);
+                    else if (_animaCnReady()) showToast('포즈 고정 준비 완료 — 켜고 포즈 그림을 넣어 보세요', 'success', 3000);
+                    else showToast('아직 준비물이 부족해요 — 화면의 안내를 확인하세요', 'warning', 3000);
+                };
+                const on = root.querySelector('#anima-cn-on');
+                if (on) on.onchange = () => {
+                    _anima.cnPose = on.checked; _animaSave(); cnRe();
+                    showToast(on.checked
+                        ? '포즈 고정 켬 — 참조 강도를 ' + _anima.cnRefWeight + '로 낮춰서 보냅니다 (원본 자세에 지지 않게)'
+                        : '포즈 고정 끔', 'info', 3000);
+                };
+                const pick = root.querySelector('#anima-cn-pick'), file = root.querySelector('#anima-cn-file');
+                if (pick && file) {
+                    pick.onclick = () => file.click();
+                    file.onchange = () => {
+                        const f = file.files && file.files[0]; if (!f) return;
+                        const rd = new FileReader();
+                        rd.onload = () => {
+                            _anima.poseImg = { dataURL: rd.result, name: f.name || 'pose.png' };
+                            _anima.poseUploadedName = null;   // 새 그림 → 다시 업로드해야 함
+                            cnRe();
+                            showToast('포즈 그림을 넣었어요 — 골격만 뽑아 씁니다', 'success', 2400);
+                        };
+                        rd.readAsDataURL(f);
+                    };
+                }
+                const clr = root.querySelector('#anima-cn-clear');
+                if (clr) clr.onclick = () => { _anima.poseImg = null; _anima.poseUploadedName = null; cnRe(); };
+            }
+            _animaBindCnPanel(box);
+
             const wm = box.querySelector('#anima-suppresswm');
             if (wm) wm.onchange = () => { _anima.suppressWm = wm.checked; _animaSave(); showToast(wm.checked ? '워터마크·글자 억제 켬 (실험 — 품질이 달라질 수 있어요)' : '워터마크·글자 억제 끔', 'info', 2200); };
             const rb = box.querySelector('#anima-reset');
@@ -10202,7 +10400,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const cpb = box.querySelector('#anima-copywf');
             if (cpb) cpb.onclick = async () => {
                 try {
-                    const wf = await _animaBuildWorkflow((_anima.prompt || '').trim(), (_anima.img && _anima.img.name || 'input.png'));
+                    // 포즈 고정이 켜져 있으면 복사본에도 그 배선이 들어가야 '전송되는 JSON'이라는 말이 참이 된다
+                    const _pn = _animaCnActive(_anima) ? (_anima.poseUploadedName || 'pose.png') : null;
+                    const wf = await _animaBuildWorkflow((_anima.prompt || '').trim(), (_anima.img && _anima.img.name || 'input.png'), null, null, _pn);
                     const s = JSON.stringify(wf, null, 2);
                     if (navigator.clipboard) await navigator.clipboard.writeText(s);
                     showToast('전송되는 워크플로우 JSON을 복사했어요. ComfyUI에 붙여 확인해보세요.', 'success', 3000);
@@ -10756,6 +10956,23 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             background:color-mix(in srgb,#f59e0b 11%,transparent);
             border:1px solid color-mix(in srgb,#f59e0b 34%,transparent); }
           .anima-repose-warn b { color:#f59e0b; }
+          /* 포즈 고정(ControlNet) 패널 */
+          .anima-cn { display:flex; flex-direction:column; gap:7px; }
+          .anima-cn-st { padding:6px 9px; border-radius:8px; font-size:10.5px; line-height:1.5; border:1px solid transparent; }
+          .anima-cn-st.good { color:#22c55e; background:color-mix(in srgb,#22c55e 11%,transparent); border-color:color-mix(in srgb,#22c55e 32%,transparent); }
+          .anima-cn-st.bad  { color:#f43f5e; background:color-mix(in srgb,#f43f5e 10%,transparent); border-color:color-mix(in srgb,#f43f5e 30%,transparent); }
+          .anima-cn-st.wait { color:var(--text-dim); background:color-mix(in srgb,var(--text-dim) 8%,transparent); border-color:var(--border-dim); }
+          .anima-cn-st code, .anima-cn-miss code { font-family:var(--font-code); font-size:10px; padding:1px 4px; border-radius:4px; background:color-mix(in srgb,var(--text-dim) 16%,transparent); }
+          .anima-cn-miss { margin:0; padding-left:18px; display:flex; flex-direction:column; gap:7px; font-size:11px; line-height:1.55; }
+          .anima-cn-miss span { display:block; margin-top:2px; font-size:10px; color:var(--text-dim); }
+          .anima-cn-miss a { color:#60a5fa; }
+          .anima-cn-hint { font-size:10px; line-height:1.55; color:var(--text-dim); }
+          .anima-cn-chk { align-self:flex-start; }
+          .anima-cn-pose { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+          .anima-cn-thumb { width:62px; height:62px; flex:0 0 auto; object-fit:cover; border-radius:8px; border:1px solid var(--border-dim); }
+          .anima-cn-thumb.empty { display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--text-dim);
+            background:color-mix(in srgb,var(--text-dim) 8%,transparent); }
+          .anima-cn-pbtns { display:flex; gap:6px; flex-wrap:wrap; }
           /* 바 높이만큼 콘텐츠 하단 여백 확보(가림 방지) — 실제 높이는 JS가 --anima-mact-h로 넣어줌 */
           #anima-root .anima-wrap { padding-bottom: calc(var(--anima-mact-h, 128px) + 16px); }`;
 
@@ -10950,7 +11167,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         return _animaInjectInto(custom, pos, name, _animaSeedVal());
                     } catch (e) { showToast('붙여넣은 워크플로우 JSON 파싱 실패 — 내장 워크플로우로 진행합니다.', 'warning', 4500); }
                 }
-                return await _animaBuildWorkflow(pos, name);
+                return await _animaBuildWorkflow(pos, name, null, null,
+                    _animaCnActive(_anima) ? await _animaEnsurePoseUploaded() : null);
             }
             // ★ 이미지 테마(변환/인페인트)는 항상 최우선 — 커스텀 워크플로우 모드여도 반드시 원본 이미지를 쓰는
             //    img2img/인페인트 워크플로우로 빌드한다. (원본을 안 따라가거나 text2img로 새던 문제의 근본 해결)

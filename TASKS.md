@@ -67,8 +67,26 @@
   - `m legs`는 **누운 자세 전제** 태그인데 방향이 없어 `looking at viewer`(정면 상반신)와 충돌 → 다리 두 벌.
   - **같은 포즈의 이미지 변환 프리셋은 원래부터 `lying, on back`을 갖고 있었다**(코드 내 불일치).
   - 수정: `(m legs, spread legs:1.3), lying, on back, double v, looking at viewer`
-- **다음(사용자 재테스트)**: 이 문구로 다시 뽑아 보고 —
-  ①좋아지면 다른 포즈도 같은 기준으로 방향 태그 점검 ②그래도 무너지면 **ControlNet으로 간다**.
+- **문구 수정은 실패 → 되돌림(v9.101.0)**. 재테스트에서 **다리가 4개**로 나왔다:
+  선 자세 다리 2개가 그대로 남고 M자 다리가 옆에 덧그려짐. `lying, on back`은 통째로 무시됐다.
+  → **자세를 바꾸는 게 아니라 더한다.** Cosmos Reference가 원본 배치를 조건에 박아 넣기 때문.
+  표정·후타·가슴이 잘 먹는 이유도 같다(겉모습만 바꿔서 배치와 안 싸움).
+- **B 완료(v9.101.0)**: 배치를 바꿔야 성립하는 포즈 6종(`_ANIMA_REPOSE_IDS`)에 주황 점 + 고르면 한 줄 안내.
+  판정은 **id 기준**(`_animaIsRepose`) — 저장된 스니펫엔 플래그가 없어 데이터만 믿으면 샌다.
+- **A 완료(v9.102.0) — 사용자 PC 검증 대기**:
+  - 준비물 점검 `_animaCnDetect()` — `/object_info`로 전처리기(DW>Openpose)와 union LoRA를 직접 확인.
+    연결 실패와 노드 없음을 구분해서 안내. 없으면 '무엇이/어디에'만 보여주고 토글을 잠근다.
+  - 배선은 **공식 워크플로우 JSON에서 링크를 직접 추적해 확인함**(axiomgraph/ComfyUIWorkflow,
+    `Qwen Image Union Diffsynth Lora OpenPose.json`):
+    `LoraLoaderModelOnly(union)` → 모델 체인 / `LoadImage→DWPreprocessor→ImageScaleToTotalPixels→
+    VAEEncode→ReferenceLatent(pos·neg)` → 조건. **ControlNetLoader/ApplyAdvanced를 안 쓴다.**
+  - Cosmos 조건화(71) **뒤에** ReferenceLatent를 체인 — 캐릭터와 골격이 둘 다 조건에 들어가게.
+  - `latent_image`는 원본(76) 유지. denoise=1이면 이 latent는 '출력 크기 틀'일 뿐이라 비율을 원본에 맞춘다.
+  - ★ **참조 강도 자동 하향**(`cnRefWeight`, 기본 0.5). 이걸 빼면 모델을 받아도 증상이 그대로다.
+    경계는 그림마다 다르므로 **[포즈 강도 전부 돌리기]** 축(0.8~0.2, 5장)으로 실측.
+- **다음(사용자)**: 준비물 확인 → 없는 것 설치 → 포즈 그림 넣고 한 장 → [포즈 강도 전부 돌리기]로 경계 찾기.
+  그래도 안 되면 남은 의심은 **Cosmos Reference와 ReferenceLatent가 같은 조건 슬롯을 두고 싸우는 것** —
+  그 경우 Cosmos 조건화를 건너뛰고 골격만 쓰는 모드(캐릭터 유지는 포기)를 시험한다.
 - **ControlNet 조사 완료**: Qwen-Image용 존재. openpose는 **Union DiffSynth LoRA** 방식
   (`qwen_image_union_diffsynth_lora.safetensors` → `ComfyUI/models/loras/`, `LoraLoaderModelOnly`).
   전처리기는 **이미지 변환 테마에 이미 구현돼 작동 중**(`OpenposePreprocessor` +
