@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.80.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.81.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.80.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.81.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2043,7 +2043,18 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.80.0', date: '2026-07-29', time: '최신',
+                version: 'v9.81.0', date: '2026-07-29', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] <b>가슴 크기</b>를 고를 수 있습니다 — <b>절벽 · 빈유 · 평유 · 거유 · 폭유 · 초폭유</b> 6단계. 다른 옵션과 마찬가지로 <b>안 고르면 원본 그대로</b>이고, 켠 걸 다시 누르면 해제됩니다.",
+                    "[Anima 편집] 하단 바를 정리했습니다 — 자주 쓰는 <b>노출·후타·표정</b>은 위에 그대로 두고, 가끔 쓰는 <b>가슴·포즈</b>는 <b>버튼 두 개</b>로 옮겼습니다. 누르면 목록이 위로 펼쳐져요. 예전에 포즈가 한 줄을 통째로 차지하던 자리가 사라져 <b>바가 한결 깔끔</b>해집니다.",
+                    "[Anima 편집] 그 버튼에는 <b>지금 고른 값이 함께 표시</b>됩니다 — 펼치지 않아도 무엇이 켜져 있는지 바로 보여요. 이름이 길어 넘치면 <b>오른쪽 끝이 자연스럽게 흐려지며</b> 잘려서, 버튼 크기는 항상 그대로 유지됩니다.",
+                    "[Anima 편집] 본문 옵션 순서도 <b>노출 → 후타 → 표정 → 가슴 → 포즈</b>로 정리해, 하단 바와 같은 흐름으로 맞췄습니다.",
+                    "[Anima 편집] 연속 생성에 <b>'가슴 전부 돌리기'</b>가 추가됐습니다 — 같은 시드로 6단계를 한 번에 비교할 수 있어요. 크게 보기 캡션에도 <b>어떤 가슴 크기로 만들었는지</b> 표시됩니다.",
+                ]
+            },
+            {
+                version: 'v9.80.0', date: '2026-07-29', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 포피에서 <b>'완전 노출(기본)' 버튼을 없앴습니다</b> — 눌러도 아무 일이 없던 버튼이라 오히려 헷갈렸어요. 이제 <b>발기·사정과 똑같이</b>, <b>아무것도 안 고르면 그게 완전 노출</b>입니다. (켜둔 걸 다시 누르면 해제됩니다)",
@@ -7228,6 +7239,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  사정: 프리셋에서 분리 — 고르지 않으면 사정 없음(기본).
             { id: 'futa_erect_half', name: '반발기', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: 'half-erect, partially erect penis, starting to harden, still soft at the tip' },
             { id: 'futa_erect_flaccid', name: '무발기(축 처짐)', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: 'flaccid, completely soft penis, dangling loosely, hanging down between the thighs, drooping under its own weight, soft squishy texture' },
+            // 가슴 크기 (group 'bust' — 하나 켜면 나머지 자동 꺼짐). 안 고르면 원본 그대로.
+            //  단부루 어휘가 두터워(수십만~수백만 건) 태그로 애먹을 일이 없는 축이다. 가중치는 주지 않는다.
+            //  라벨은 국내 통용어(무유의 은어 '절벽' 포함): 절벽 < 빈유 < 평유 < 거유 < 폭유 < 초폭유.
+            { id: 'bust_flat', name: '절벽', kind: 'append', on: false, group: 'bust', text: 'flat chest' },
+            { id: 'bust_small', name: '빈유', kind: 'append', on: false, group: 'bust', text: 'small breasts' },
+            { id: 'bust_medium', name: '평유', kind: 'append', on: false, group: 'bust', text: 'medium breasts' },
+            { id: 'bust_large', name: '거유', kind: 'append', on: false, group: 'bust', text: 'large breasts' },
+            { id: 'bust_huge', name: '폭유', kind: 'append', on: false, group: 'bust', text: 'huge breasts' },
+            { id: 'bust_gigantic', name: '초폭유', kind: 'append', on: false, group: 'bust', text: 'gigantic breasts' },
             // 포피 — 젖혀진 정도를 3단계로. 위에서 아래로 '많이 드러남 → 적게 드러남' 순서.
             //  ★ phimosis의 뜻이 핵심이다. 단부루 위키는 "발기 중에 포피가 완전히 젖혀지지 않은 상태"를 전부
             //    phimosis로 태그한다고 명시한다 — 즉 '완전히 덮임'이 아니라 '덜 젖혀진 상태 전체'이고,
@@ -7495,6 +7515,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     // 마이그레이션: 포즈 프리셋(group 'pose') 신규 추가
                     const addPose = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === 'pose' && !_anima.snippets.some(x => x.id === d.id));
                     if (addPose.length) _anima.snippets = _anima.snippets.concat(JSON.parse(JSON.stringify(addPose)));
+                    // 마이그레이션: 가슴 프리셋(group 'bust') 신규 추가
+                    const addBust = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === 'bust' && !_anima.snippets.some(x => x.id === d.id));
+                    if (addBust.length) _anima.snippets = _anima.snippets.concat(JSON.parse(JSON.stringify(addBust)));
                     // ══ 마이그레이션: 단부루에 없는 '유령 태그' 일괄 교정 ═══════════════════
                     //  실제 태그 사용량(danbooru post 수)으로 전수 검사한 결과, 아래 태그들은 0건이라
                     //  그림에 아무 영향도 주지 못하고 프롬프트 자리만 차지하고 있었다.
@@ -8380,6 +8403,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 h += row('표정', shown.map(s => `<button class="anima-chip ex g-expr${s.on ? ' on' : ''}" data-id="${s.id}">${_animaEsc(s.name)}</button>`).join('')
                     + `<button class="anima-chip ex tg" data-act="exprOpen">${_animaExprOpen ? '접기 ▴' : '더보기 ▾'}</button>`);
             }
+            // 가슴 — 6단계 전부 한 줄에 (개수가 적고 이름이 짧아 접을 필요가 없다)
+            const bustAll = all.filter(s => s.group === 'bust');
+            if (bustAll.length) {
+                h += row('가슴', bustAll.map(s => `<button class="anima-chip ex g-bust${s.on ? ' on' : ''}" data-id="${s.id}">${_animaEsc(s.name)}</button>`).join(''));
+            }
             // 포즈 — 표정과 같은 규칙. 19+ 포즈는 성인 표시가 꺼지면 목록에서 빠진다.
             const poseAll = all.filter(s => s.group === 'pose' && (adult || !s.nsfw));
             if (poseAll.length) {
@@ -8391,7 +8419,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  ★ '이미 다뤄진 항목'은 성인 표시 여부와 무관하게 원본 목록(all)에서 판정한다.
             //    baseS·futaS로 판정하면 성인이 꺼졌을 때 그 배열이 비어 후타 프리셋이 '기타'로 새어 나왔다.
             const known = new Set(all.filter(s =>
-                s.kind === 'base' || s.group === 'futa' || s.detail === 'futa' || s.group === 'expr' || s.group === 'pose').map(s => s.id));
+                s.kind === 'base' || s.group === 'futa' || s.detail === 'futa' || s.group === 'expr' || s.group === 'pose' || s.group === 'bust').map(s => s.id));
             const etc = all.filter(s => s.kind !== 'base' && !known.has(s.id));
             if (etc.length) h += row('기타', etc.map(s => `<button class="anima-chip${s.on ? ' on' : ''}" data-id="${s.id}">${_animaEsc(s.name)}</button>`).join(''));
             return h;
@@ -8406,6 +8434,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { key: 'expr', name: '표정', pick: () => (_anima.snippets || []).filter(s => s.group === 'expr') },
             // 포즈 — 19+ 포즈는 성인 표시가 꺼지면 돌리기 목록에서도 빠진다
             { key: 'pose', name: '포즈', pick: () => (_anima.snippets || []).filter(s => s.group === 'pose' && (_adultOn() || !s.nsfw)) },
+            { key: 'bust', name: '가슴', pick: () => (_anima.snippets || []).filter(s => s.group === 'bust') },
             // 유일하게 '설정'을 바꾸는 축(settings:true) — 나머지는 프롬프트 옵션을 켰다 껐다 한다.
             //  스텝을 올리는 게 정말 값어치를 하는지 눈으로 확인하라고 넣은 축이다(같은 시드·같은 옵션 3장).
             { key: 'quality', name: '품질', settings: true, pick: () => _ANIMA_PRESETS.map(p => ({ id: p.id, name: p.name })) },
@@ -8471,7 +8500,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _animaCloseSweepMenu() { if (_animaSweepMenuEl) { try { _animaSweepMenuEl.remove(); } catch (e) {} _animaSweepMenuEl = null; } }
         function _animaOpenSweepMenu() {
             _animaCloseSweepMenu();
-            const _axes = _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'quality');   // 성인 꺼짐 → 표정·포즈(일반)·품질만
+            const _axes = _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality');   // 성인 꺼짐 → 표정·포즈(일반)·가슴·품질만
             const wrap = document.createElement('div');
             wrap.className = 'anima-sweep-back';
             const rows = _axes.map(a => {
@@ -8498,7 +8527,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         function _animaRenderSweepCfg(box, wrap) {
             let h = '';
-            _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'quality').forEach(a => {
+            _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality').forEach(a => {
                 const sel = _animaSweepSel(a), items = a.pick();
                 h += `<div class="anima-sweep-sec">${a.name}</div><div class="anima-sweep-chips">`;
                 if (a.key === 'base') h += `<button class="anima-chip sw${sel.includes(_ANIMA_SWEEP_NONE) ? ' on' : ''}" data-ax="base" data-id="${_ANIMA_SWEEP_NONE}">노출 없음</button>`;
@@ -8549,6 +8578,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }
                 const expr = all.find(s => s.group === 'expr' && s.on);
                 if (expr) parts.push(expr.name);
+                const bust = all.find(s => s.group === 'bust' && s.on);
+                if (bust) parts.push(bust.name);
                 const pose = all.find(s => s.group === 'pose' && s.on);
                 if (pose) parts.push(pose.name);
                 // 품질 — '품질 전부 돌리기'로 뽑은 세트는 옵션이 전부 같아서, 이게 없으면 어느 게 어느 건지 구분이 안 된다.
@@ -8642,6 +8673,45 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (Math.abs(d) > 1) root.scrollTop += d;
             } catch (e) {}
         }
+        // ── 가슴·포즈 팝오버 ───────────────────────────────────────────────
+        //  하단 바에서 줄을 차지할 만큼 자주 쓰지 않는 축을 버튼 뒤로 숨긴다.
+        //  후타 팝오버와 달리 '어느 그룹인지'만 기억하면 되므로 상태는 문자열 하나('bust'|'pose'|null).
+        let _animaGrpPop = null;
+        const _ANIMA_GRP = {
+            bust: { label: '가슴', pick: () => (_anima.snippets || []).filter(s => s.group === 'bust') },
+            pose: { label: '포즈', pick: () => (_anima.snippets || []).filter(s => s.group === 'pose' && (_adultOn() || !s.nsfw)) },
+        };
+        function _animaGrpPopHtml() {
+            const g = _ANIMA_GRP[_animaGrpPop]; if (!g) return '';
+            const list = g.pick(); if (!list.length) return '';
+            return `<div class="anima-futapop anima-grppop" id="anima-grppop">
+                <div class="anima-fp-head"><span>${g.label}</span>
+                    <button class="anima-fp-x" id="anima-gp-x" title="닫기" aria-label="닫기">✕</button></div>
+                <div class="anima-fp-body">${list.map(s =>
+                    `<button class="anima-chip lil g-${_animaGrpPop}${s.on ? ' on' : ''}" data-gd="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${_animaEsc(s.name)}</button>`).join('')}</div>
+            </div>`;
+        }
+        function _animaBindGrpPop(root) {
+            const pop = root.querySelector('#anima-grppop'); if (!pop) return;
+            pop.addEventListener('click', (e) => e.stopPropagation());
+            pop.querySelectorAll('.anima-chip[data-gd]').forEach(c => c.onclick = () => {
+                const sn = _anima.snippets.find(x => x.id === c.dataset.gd); if (!sn) return;
+                sn.on = !sn.on;
+                // 같은 그룹은 하나만 (켜진 걸 다시 누르면 해제 → 원본 그대로)
+                if (sn.on) _anima.snippets.forEach(x => { if (x !== sn && x.group === sn.group) x.on = false; });
+                if (sn.on && sn.group === 'pose') _animaPoseTouch(sn.id);
+                _animaSave(); _animaRenderSnippets();   // 팝오버는 열린 채 유지 → 연달아 고를 수 있게
+            });
+            const x = pop.querySelector('#anima-gp-x');
+            if (x) x.onclick = () => { _animaGrpPop = null; _animaRenderSnippets(); };
+        }
+        // 팝오버 바깥을 누르면 닫는다(그 버튼의 원래 동작은 그대로 수행). 후타 팝오버와 같은 규칙.
+        function _animaGrpPopOutside(e) {
+            if (!_animaGrpPop) return;
+            if (e.target.closest && (e.target.closest('#anima-grppop') || e.target.closest('.anima-gbtn'))) return;
+            _animaGrpPop = null;
+            try { _animaRenderSnippets(); } catch (_) {}
+        }
         function _animaRenderSnippets() {
             return _animaAnchorScroll(_animaRenderSnippetsInner);
         }
@@ -8692,15 +8762,24 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const exprRow = `<button class="anima-chip ex tg" data-act="exprOpen">표정 ${_animaExprOpen ? '▴' : '▾'}</button>`
                     + shown.map(s => `<button class="anima-chip ex g-expr${s.on ? ' on' : ''}" data-id="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${_animaEsc(s.name)}</button>`).join('')
                     + (_animaExprOpen ? `<button class="anima-chip edit" id="anima-mact-editbtn">✏️ 편집</button>` : '');
-                // 포즈 줄 — 표정과 같은 '최근 + 펼치기' 규칙. 19+ 포즈는 성인 표시가 꺼지면 빠진다.
+                // 가슴·포즈 — 자주 만지는 축이 아니라 줄을 통째로 내주지 않고 '버튼 → 팝오버'로 뺀다.
+                //  버튼에는 지금 고른 값을 함께 보여준다(팝오버가 닫혀 있으면 상태가 안 보이므로).
+                //  이름이 길어 넘치면 자르되, 딱 끊기지 않게 오른쪽 끝을 페이드아웃 처리한다(CSS mask).
                 const poseAll = all.filter(s => s.group === 'pose' && (adult || !s.nsfw));
-                const shownP = _animaPoseOpen ? poseAll : _animaPoseRecentList();
-                const poseRow = `<button class="anima-chip ex tg" data-act="poseOpen">포즈 ${_animaPoseOpen ? '▴' : '▾'}</button>`
-                    + shownP.map(s => `<button class="anima-chip ex g-pose${s.on ? ' on' : ''}" data-id="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${_animaEsc(s.name)}</button>`).join('');
-                mact.innerHTML = _animaFutaPopHtml()
+                const bustAll = all.filter(s => s.group === 'bust');
+                const grpBtn = (key, lab, list) => {
+                    const on = list.find(x => x.on);
+                    return `<button class="anima-gbtn g-${key}${on ? ' on' : ''}" data-grp="${key}">`
+                        + `<span class="anima-gbtn-k">${lab}</span>`
+                        + (on ? `<span class="anima-gbtn-v">${_animaEsc(on.name)}</span>` : '')
+                        + `</button>`;
+                };
+                const grpRow = (bustAll.length ? grpBtn('bust', '가슴', bustAll) : '')
+                    + (poseAll.length ? grpBtn('pose', '포즈', poseAll) : '');
+                mact.innerHTML = _animaFutaPopHtml() + _animaGrpPopHtml()
                     + `<div class="anima-mact-icos">${icoRow}</div>
-                       ${poseAll.length ? `<div class="anima-mact-pose${_animaPoseOpen ? ' open' : ''}">${poseRow}</div>` : ''}
                        <div class="anima-mact-expr${_animaExprOpen ? ' open' : ''}">${exprRow}</div>
+                       ${grpRow ? `<div class="anima-mact-grp">${grpRow}</div>` : ''}
                        <div class="anima-mact-bar">
                            <button id="anima-mact-clip" class="anima-btn ghost anima-mact-clip" title="클립보드 이미지 붙여넣기">📋</button>
                            <button id="anima-mact-run" class="anima-run anima-mact-run"></button>
@@ -8730,13 +8809,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 });
                 const eo = mact.querySelector('.anima-chip[data-act="exprOpen"]');
                 if (eo) eo.onclick = () => { _animaExprOpen = !_animaExprOpen; _animaRenderSnippets(); };
-                const po = mact.querySelector('.anima-chip[data-act="poseOpen"]');
-                if (po) po.onclick = () => { _animaPoseOpen = !_animaPoseOpen; _animaRenderSnippets(); };
+                // 가슴·포즈 버튼 → 팝오버 열기/닫기(같은 버튼을 다시 누르면 닫힘)
+                mact.querySelectorAll('.anima-gbtn[data-grp]').forEach(b => b.onclick = (e) => {
+                    e.stopPropagation();
+                    const k = b.dataset.grp;
+                    _animaGrpPop = (_animaGrpPop === k) ? null : k;
+                    _animaRenderSnippets();
+                });
                 const meb = mact.querySelector('#anima-mact-editbtn');
                 if (meb) meb.onclick = () => { _animaSnipEditOpen = true; _animaRenderSnipEdit(); try { _animaEl('#anima-snip-edit').scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {} };
                 _animaFitChipRow(mact.querySelector('.anima-mact-expr'), _animaExprOpen);   // 줄바꿈 방지: 들어가는 만큼만 표시
-                _animaFitChipRow(mact.querySelector('.anima-mact-pose'), _animaPoseOpen);
                 _animaBindFutaPop(mact);
+                _animaBindGrpPop(mact);
                 _animaSyncMactInput(); // 좌측 버튼을 마지막 입력 방식(클립보드/파일)에 맞춤 — 넣고 바로 실행하기 좋게
                 const mr = mact.querySelector('#anima-mact-run'); if (mr) { mr.onclick = _animaGenerate; _animaBindRunLongPress(mr); }
             }
@@ -9437,8 +9521,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const onPaste = (e) => { if (_plCurrent !== 'anima') return; const items = e.clipboardData && e.clipboardData.items; if (!items) return; for (const it of items) { if (it.type && it.type.startsWith('image/')) { const f = it.getAsFile(); if (f) { _animaFileToDataURL(f).then(du => _animaSetImage(du, 'pasted')); e.preventDefault(); break; } } } };
             document.addEventListener('paste', onPaste);
             document.addEventListener('click', _animaFutaPopOutside, true);   // 후타 상세: 바깥을 누르면 닫기(캡처 단계)
+            document.addEventListener('click', _animaGrpPopOutside, true);    // 가슴·포즈 팝오버도 동일 규칙
             document.addEventListener('click', _animaHelpOutside, true);      // 고급 설정 '?' 설명도 바깥을 누르면 닫기
-            const onResize = () => { _animaFitChipRow(_animaEl('#anima-mact .anima-mact-expr'), _animaExprOpen); _animaFitChipRow(_animaEl('#anima-mact .anima-mact-pose'), _animaPoseOpen); _animaSyncMactHeight(); };   // 폭이 바뀌면 표시 개수·바 높이 재계산
+            const onResize = () => { _animaFitChipRow(_animaEl('#anima-mact .anima-mact-expr'), _animaExprOpen); _animaSyncMactHeight(); };   // 폭이 바뀌면 표시 개수·바 높이 재계산
             window.addEventListener('resize', onResize);
             _animaSyncMactHeight();
             // (마운트 시 노드 스키마 프리페치는 제거 — 연결 전에 실패 요청이 나가 오류처럼 보이고 캐시를 오염시킬 수 있어,
@@ -9517,6 +9602,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-chip.g-futaErect.on, .anima-chip.g-futaSkin.on { background:color-mix(in srgb,#c084fc 16%,transparent); border-color:#c084fc; color:#a855f7; }
           .anima-chip.g-expr { border-color:color-mix(in srgb,#f59e0b 60%,var(--border-dim)); color:color-mix(in srgb,#f59e0b 78%,var(--text-dim)); }  /* 표정 */
           .anima-chip.g-expr.on { background:color-mix(in srgb,#f59e0b 20%,transparent); border-color:#f59e0b; color:#d97706; }
+          .anima-chip.g-bust { border-color:color-mix(in srgb,#84cc16 60%,var(--border-dim)); color:color-mix(in srgb,#84cc16 78%,var(--text-dim)); }  /* 가슴 */
+          .anima-chip.g-bust.on { background:color-mix(in srgb,#84cc16 20%,transparent); border-color:#84cc16; color:#65a30d; }
           .anima-chip.g-pose { border-color:color-mix(in srgb,#14b8a6 60%,var(--border-dim)); color:color-mix(in srgb,#14b8a6 78%,var(--text-dim)); }  /* 포즈 */
           .anima-chip.g-pose.on { background:color-mix(in srgb,#14b8a6 20%,transparent); border-color:#14b8a6; color:#0d9488; }
           .anima-chip.more-toggle { border-style:dashed; color:var(--text-dim); }
@@ -9740,10 +9827,26 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-ico.pu.on { background:color-mix(in srgb,#a855f7 22%,transparent); border-color:#a855f7; --ai-st:#a855f7; }
           .anima-ico-sep { width:1px; height:24px; background:var(--border-dim); margin:0 3px; flex:0 0 auto; }
           /* 표정 줄 — 기본은 최근 쓴 것만 한 줄(줄바꿈 없음), 펼치면 전체가 줄바꿈되어 보임 */
-          .anima-mact-expr, .anima-mact-pose { display:flex; align-items:center; gap:5px; width:100%; max-width:1000px; overflow:hidden; }
-          .anima-mact-expr.open, .anima-mact-pose.open { flex-wrap:wrap; overflow:visible; }
-          .anima-mact-expr .anima-chip, .anima-mact-pose .anima-chip { flex:0 0 auto; padding:5px 8px; font-size:11px; }
-          .anima-mact-expr .anima-chip.tg, .anima-mact-pose .anima-chip.tg { border-style:dashed; color:var(--text-dim); }
+          .anima-mact-expr { display:flex; align-items:center; gap:5px; width:100%; max-width:1000px; overflow:hidden; }
+          .anima-mact-expr.open { flex-wrap:wrap; overflow:visible; }
+          .anima-mact-expr .anima-chip { flex:0 0 auto; padding:5px 8px; font-size:11px; }
+          .anima-mact-expr .anima-chip.tg { border-style:dashed; color:var(--text-dim); }
+          /* 가슴·포즈 — 줄을 통째로 쓰지 않고 버튼 두 개로. 고른 값을 버튼에 함께 보여준다. */
+          .anima-mact-grp { display:flex; align-items:center; gap:6px; width:100%; max-width:1000px; }
+          .anima-gbtn { flex:1 1 0; min-width:0; display:flex; align-items:baseline; gap:5px; padding:7px 10px;
+            border-radius:9px; border:1px solid var(--border-dim); background:var(--bg-base); color:var(--text-main);
+            font-family:inherit; font-size:11.5px; cursor:pointer; text-align:left; transition:.13s; }
+          .anima-gbtn-k { flex:0 0 auto; font-weight:800; color:var(--text-dim); }
+          /* 고른 이름이 길면 잘리되 딱 끊기지 않게 오른쪽 끝을 서서히 투명하게 (레이아웃은 그대로) */
+          .anima-gbtn-v { flex:1 1 auto; min-width:0; overflow:hidden; white-space:nowrap; font-weight:700;
+            -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 14px),transparent 100%);
+                    mask-image:linear-gradient(90deg,#000 calc(100% - 14px),transparent 100%); }
+          .anima-gbtn.g-bust.on { border-color:#84cc16; background:color-mix(in srgb,#84cc16 14%,transparent); }
+          .anima-gbtn.g-bust.on .anima-gbtn-v { color:#65a30d; }
+          .anima-gbtn.g-pose.on { border-color:#14b8a6; background:color-mix(in srgb,#14b8a6 14%,transparent); }
+          .anima-gbtn.g-pose.on .anima-gbtn-v { color:#0d9488; }
+          /* 팝오버는 후타 것과 같은 상자를 쓰되, 항목이 많아 줄바꿈되게 */
+          .anima-grppop .anima-fp-body { display:flex; flex-wrap:wrap; gap:5px; }
           .anima-mact-bar { display:flex; gap:8px; align-items:stretch; width:100%; max-width:1000px; }
           .anima-mact-clip { flex:0 0 auto; width:52px; font-size:17px; padding:0; display:flex; align-items:center; justify-content:center; }
           .anima-mact-run { flex:1 1 auto; }
