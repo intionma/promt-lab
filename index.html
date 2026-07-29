@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.79.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.80.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.79.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.80.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2043,7 +2043,17 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.79.0', date: '2026-07-29', time: '최신',
+                version: 'v9.80.0', date: '2026-07-29', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] 포피에서 <b>'완전 노출(기본)' 버튼을 없앴습니다</b> — 눌러도 아무 일이 없던 버튼이라 오히려 헷갈렸어요. 이제 <b>발기·사정과 똑같이</b>, <b>아무것도 안 고르면 그게 완전 노출</b>입니다. (켜둔 걸 다시 누르면 해제됩니다)",
+                    "[Anima 편집] 포피 이름을 <b>[귀두 빼꼼] · [귀두 가림]</b>으로 바꿨습니다 — 둘 다 <b>귀두가 얼마나 보이나</b>로 기준을 통일해서, 어느 쪽이 더 덮인 건지 헷갈리지 않습니다.",
+                    "[Anima 편집] <b>[게다리 벌리기] → [다리 벌리기]</b>로 바꾸고 내용도 <b>훨씬 가볍게</b> 만들었습니다 — 예전엔 다리 모양뿐 아니라 <b>'눕고, 등을 대고, 내밀어라'</b>까지 한꺼번에 요구해서 원본 자세와 정면으로 부딪혔습니다. 이제 <b>원본 자세는 그대로 두고 다리만</b> 벌리므로 훨씬 잘 먹힙니다.",
+                    "[Anima 편집] <b>[더블피스]</b>를 따로 추가했습니다 — 예전엔 게다리와 묶여 있어서 <b>손만 바꾸고 싶어도 다리까지</b> 딸려 왔어요. 이제 <b>손동작만</b> 바꿀 수 있습니다. (다리까지 함께 바꾸고 싶으면 <b>[게다리+더블피스]</b>가 그대로 있습니다)",
+                ]
+            },
+            {
+                version: 'v9.79.0', date: '2026-07-29', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] <b>무발기가 반발기처럼 보이던 문제</b>를 손봤습니다 — 두 상태가 제대로 구분되도록 <b>무발기 쪽을 훨씬 구체적으로</b> 다시 썼습니다. <b>중력에 축 늘어져 덜렁거리고 말랑한</b> 느낌을 직접 서술합니다.",
@@ -7222,15 +7232,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  ★ phimosis의 뜻이 핵심이다. 단부루 위키는 "발기 중에 포피가 완전히 젖혀지지 않은 상태"를 전부
             //    phimosis로 태그한다고 명시한다 — 즉 '완전히 덮임'이 아니라 '덜 젖혀진 상태 전체'이고,
             //    귀두만 빼꼼 나온 모습이 바로 여기에 해당한다. (그래서 빼꼼 쪽에 phimosis를 쓴다)
-            //  ★ '완전 노출'에는 넣을 태그가 없다(비워 둔 것이 정상).
-            //    위키: 일본 관행상 "대부분의 음경은 포피가 젖혀진 상태로 그려진다" → 이게 기본값이라
-            //    그것을 가리키는 태그 자체가 존재하지 않는다(retracted foreskin 계열 전부 0건).
+            //  ★ '완전 노출'은 칩을 두지 않는다 — 발기·사정과 같은 규칙으로, 아무것도 안 고르면 그 상태다.
+            //    애초에 넣을 태그도 없다. 위키: 일본 관행상 "대부분의 음경은 포피가 젖혀진 상태로 그려진다"
+            //    → 이게 기본값이라 그것을 가리키는 태그 자체가 존재하지 않는다(retracted foreskin 계열 전부 0건).
+            //    예전엔 빈 텍스트 칩을 뒀는데, 눌러도 아무 일이 없어 오히려 헷갈렸다.
             //  ★ 가중치는 일부러 주지 않는다. 한때 1.5~1.6을 넣었다가 되돌렸다 —
             //    효과를 확인한 적이 없고(항상 다른 변경과 묶여 들어갔다), 상세가 크기(1.4)보다 세지면
             //    '크기가 주인공'이라는 설계가 뒤집힌다. 안 먹히면 가중치가 아니라 '왜 안 먹히는지'를 본다.
-            { id: 'futa_skin_glans', name: '완전 노출(기본)', kind: 'append', on: false, group: 'futaSkin', detail: 'futa', text: '' },
             { id: 'futa_skin_phimosis', name: '귀두 빼꼼', kind: 'append', on: false, group: 'futaSkin', detail: 'futa', text: 'phimosis, glans, partially retracted foreskin' },
-            { id: 'futa_skin_foreskin', name: '완전히 덮임', kind: 'append', on: false, group: 'futaSkin', detail: 'futa', text: 'foreskin, phimosis, covered glans' },
+            { id: 'futa_skin_foreskin', name: '귀두 가림', kind: 'append', on: false, group: 'futaSkin', detail: 'futa', text: 'foreskin, phimosis, covered glans' },
             { id: 'futa_cum_normal', name: '사정', kind: 'append', on: false, group: 'futaCum', detail: 'futa', text: 'ejaculation, cum' },
             { id: 'futa_cum_excessive', name: '과다 사정', kind: 'append', on: false, group: 'futaCum', detail: 'futa', text: 'ejaculation, excessive cum, projectile cum' },
             // 표정 프리셋 (group 'expr' — 하나 켜면 나머지 자동 꺼짐). 핵심 태그만 간결하게.
@@ -7254,8 +7264,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  ★ 원본에 없는 인물(남성 등)을 새로 만들어야 성립하는 포즈는 넣지 않는다 — 2인 포즈는 원본에 이미 2명일 때 쓰는 용도.
             //  nsfw:true 항목은 성인 표시(19+)가 꺼져 있으면 숨겨지고 프롬프트에도 안 들어간다.
             { id: 'pose_stand_front', name: '정면 직립', kind: 'append', on: false, group: 'pose', text: '(standing, facing viewer, straight-on:1.2), arms at sides, full body' },
-            { id: 'pose_mlegs', name: '게다리 벌리기', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(m legs, spread legs:1.3), lying, on back, presenting own body' },
+            { id: 'pose_mlegs', name: '다리 벌리기', kind: 'append', on: false, group: 'pose', nsfw: true, text: 'spread legs' },
             { id: 'pose_masturbation', name: '자위', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(masturbation, fingering:1.2), hand between own legs, spread legs' },
+            { id: 'pose_double_v', name: '더블피스', kind: 'append', on: false, group: 'pose', text: 'double v, looking at viewer' },
             { id: 'pose_mlegs_vsign', name: '게다리+더블피스', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(m legs, spread legs:1.3), double v, looking at viewer' },
             { id: 'pose_spread_pussy', name: '손으로 벌려 보이기', kind: 'append', on: false, group: 'pose', nsfw: true, more: true, text: '(spread pussy:1.3), spread legs, presenting own body' },
             { id: 'pose_bent_over', name: '엉덩이 내밀기', kind: 'append', on: false, group: 'pose', nsfw: true, more: true, text: '(bent over, ass focus:1.2), from behind, looking back, presenting own body' },
@@ -7452,10 +7463,20 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         const OLD_DETAIL = {
                             futa_erect_half:    { texts: ['half-erect', '(half-erect:1.5), partially erect, drooping', 'half-erect, partially erect, drooping'], names: ['반발기'] },
                             futa_erect_flaccid: { texts: ['flaccid', '(flaccid:1.6), limp, hanging down, not erect', 'flaccid, limp, hanging down'],    names: ['무발기(축 처짐)'] },
-                            futa_skin_glans:    { texts: ['glans', ''], names: ['귀두 노출', '귀두 노출(기본)'] },
                             futa_skin_phimosis: { texts: ['phimosis', '(phimosis:1.3), glans, partially retracted foreskin', '(phimosis:1.5), glans, partially retracted foreskin'], names: ['반쯤 까짐', '완전 포경', '귀두 빼꼼'] },
-                            futa_skin_foreskin: { texts: ['foreskin', '(foreskin, phimosis:1.4), covered glans', '(foreskin, phimosis:1.5), covered glans'], names: ['포경(덮임)', '포피 덮임', '완전히 덮임'] },
+                            // 이름만 바뀌는 경우도 '지금 기본값'을 texts에 넣어야 판정을 통과한다
+                            futa_skin_foreskin: { texts: ['foreskin', '(foreskin, phimosis:1.4), covered glans', '(foreskin, phimosis:1.5), covered glans', 'foreskin, phimosis, covered glans'], names: ['포경(덮임)', '포피 덮임', '완전히 덮임'] },
+                            // 포즈: '게다리 벌리기'는 다리 M자에 더해 눕기·등대기·내밀기까지 요구해 원본 구도와 정면충돌했다.
+                            //  이름과 함께 'spread legs' 하나로 줄여, 원본 자세를 유지한 채 다리만 벌리는 작은 변경으로 만든다.
+                            pose_mlegs: { texts: ['(m legs, spread legs:1.3), lying, on back, presenting', '(m legs, spread legs:1.3), lying, on back, presenting own body'], names: ['게다리 벌리기'] },
                         };
+                        // '완전 노출' 칩 제거 — 발기·사정과 같은 규칙(안 고르면 기본)으로 통일한다.
+                        //  빈 텍스트라 눌러도 아무 일이 없어 오히려 헷갈리던 칩이다.
+                        //  ★ ✏️로 내용을 채워 쓰던 분의 것은 남긴다(그건 그 사람이 만든 옵션이다).
+                        {
+                            const gl = _anima.snippets.find(x => x.id === 'futa_skin_glans');
+                            if (gl && ['', 'glans'].indexOf((gl.text || '').trim()) >= 0) _anima.snippets = _anima.snippets.filter(x => x.id !== 'futa_skin_glans');
+                        }
                         Object.keys(OLD_DETAIL).forEach(id => {
                             const sn = _anima.snippets.find(x => x.id === id), def = ANIMA_DEFAULT_SNIPPETS.find(d => d.id === id);
                             if (!sn || !def) return;
