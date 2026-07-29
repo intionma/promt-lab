@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.91.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.92.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.91.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.92.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2043,7 +2043,16 @@
         const CHANGELOG = [
             // ── 2026-07-29 ──────────────────────────────────────────────────
             {
-                version: 'v9.91.0', date: '2026-07-29', time: '최신',
+                version: 'v9.92.0', date: '2026-07-29', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] <b>표정 순서를 다시 짰습니다</b> — <b>자주 쓰거나 공들여 만든 것</b>(원본과 확 달라지는 것)을 앞으로, <b>잘 안 쓰거나 티가 잘 안 나는 것</b>을 뒤로 보냈습니다.",
+                    "[Anima 편집] 덕분에 <b>표정 전부 돌리기</b>를 하면 <b>볼 만한 것부터 먼저</b> 나옵니다. 마음에 드는 게 나오면 뒤쪽은 안 기다려도 됩니다.",
+                    "[Anima 편집] '표정 더보기'를 펼쳤을 때 보이는 순서도 같이 바뀝니다. <b>하단 바는 그대로</b>입니다 — 거긴 원래 <b>최근에 쓴 것</b> 기준이라 순서와 무관합니다.",
+                ]
+            },
+            {
+                version: 'v9.91.0', date: '2026-07-29', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] <b>유혹을 강화했습니다</b> — 메스가키에서 빼낸 표현이 알고 보니 <b>유혹의 제자리</b>였습니다. 이제 <b>'이거 네 취향인 거 다 알아'</b> 하는 얼굴이 확실하게 실립니다.",
@@ -7365,29 +7374,23 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { id: 'futa_cum_normal', name: '사정', kind: 'append', on: false, group: 'futaCum', detail: 'futa', text: 'ejaculation, cum' },
             { id: 'futa_cum_excessive', name: '과다 사정', kind: 'append', on: false, group: 'futaCum', detail: 'futa', text: 'ejaculation, excessive cum, projectile cum' },
             // 표정 프리셋 (group 'expr' — 하나 켜면 나머지 자동 꺼짐). 핵심 태그만 간결하게.
-            //  자주 쓰는 4종(유혹·절정·아헤가오·미소)은 항상 바에 보이고, 나머지는 '표정 더보기'로 접힘(more:true).
+            //  ★ 배열 순서 = 연속 생성(스윕)에 나오는 순서 + '표정 더보기' 패널 순서.
+            //    앞: 자주 쓰거나 공들여 만든 것(원본과 낙차가 큰 것) / 뒤: 잘 안 쓰거나 변화가 작은 것.
+            //    하단 바는 이 순서가 아니라 '최근 쓴 것'(exprRecent)으로 따로 굴러간다.
+            //  ── 1군: 자주 쓰는 것 + 이번에 공들인 것 ──────────────────────
+            { id: 'expr_ahegao', name: '아헤가오', kind: 'append', on: false, group: 'expr', nsfw: true, text: '(ahegao:1.2), rolling eyes, tongue out, drooling' },
+            { id: 'expr_orgasm', name: '절정', kind: 'append', on: false, group: 'expr', nsfw: true, text: '(orgasm:1.2), torogao, half-closed eyes, nose blush, trembling, saliva, sweat' },
             //  유혹(v9.91.0): 메스가키에서 뺀 naughty face를 여기로 옮겼다. danbooru 위키가
             //   naughty face를 "이거 네 취향인 거 알아" 쪽 얼굴로 정의하고 형제 태그로 seductive smile을
             //   걸어둔다 — 원래 자리가 유혹이다. 모든 페어가 탄탄: seductive smile 1,510 /
             //   half-closed eyes 3,685 / looking at viewer 20,053.
             { id: 'expr_seductive', name: '유혹', kind: 'append', on: false, group: 'expr', nsfw: true, text: 'seductive smile, naughty face, half-closed eyes, looking at viewer' },
-            { id: 'expr_orgasm', name: '절정', kind: 'append', on: false, group: 'expr', nsfw: true, text: '(orgasm:1.2), torogao, half-closed eyes, nose blush, trembling, saliva, sweat' },
-            { id: 'expr_ahegao', name: '아헤가오', kind: 'append', on: false, group: 'expr', nsfw: true, text: '(ahegao:1.2), rolling eyes, tongue out, drooling' },
-            { id: 'expr_smile', name: '미소', kind: 'append', on: false, group: 'expr', text: 'smile, happy' },
-            { id: 'expr_neutral', name: '무표정', kind: 'append', on: false, group: 'expr', more: true, text: 'expressionless, closed mouth' },
-            { id: 'expr_shy', name: '수줍음', kind: 'append', on: false, group: 'expr', more: true, text: 'shy, blush, embarrassed' },
-            { id: 'expr_tongue', name: '혀 내밀기', kind: 'append', on: false, group: 'expr', nsfw: true, more: true, text: 'tongue out, saliva' },
-            { id: 'expr_smug', name: '능글(도발)', kind: 'append', on: false, group: 'expr', more: true, text: 'smug, grin' },
-            { id: 'expr_angry', name: '화남', kind: 'append', on: false, group: 'expr', more: true, text: 'angry, frown' },
-            { id: 'expr_surprised', name: '놀람', kind: 'append', on: false, group: 'expr', more: true, text: 'surprised, open mouth' },
-            { id: 'expr_heart', name: '하트눈', kind: 'append', on: false, group: 'expr', nsfw: true, more: true, text: 'heart-shaped pupils' },
-            { id: 'expr_pout', name: '삐침', kind: 'append', on: false, group: 'expr', more: true, text: 'pout' },
-            { id: 'expr_wink', name: '윙크', kind: 'append', on: false, group: 'expr', more: true, text: 'one eye closed, smile' },
-            { id: 'expr_cry', name: '우는', kind: 'append', on: false, group: 'expr', more: true, text: 'crying, tears' },
-            // 신규(v9.88.0) — 표정을 batch로 돌리는 사용 패턴이라 '확실히 다른 그림이 나올 것'만 골랐다.
-            //  기존이 평범(미소·무표정) ↔ 격정(절정·아헤가오) 양 극단이라 그 사이와 악역 결이 비어 있었다.
-            { id: 'expr_endure', name: '참는 표정', kind: 'append', on: false, group: 'expr', nsfw: true, more: true, text: 'clenched teeth, furrowed brow' },
-            { id: 'expr_panting', name: '가쁜 숨', kind: 'append', on: false, group: 'expr', nsfw: true, more: true, text: 'heavy breathing, open mouth, sweat' },
+            //  메스가키(v9.90.0): danbooru 위키가 mesugaki의 전형으로 'a single fang / skin fang'을
+            //   직접 명시한다. 실제로 mesugaki와 가장 많이 붙는 얼굴 요소도 fang(1,499 / 36.3%)이고
+            //   smug+fang은 전체 4,094건이라 서로 잘 밀어준다.
+            //   반대로 naughty face는 mesugaki와 256건(6.2%)뿐이고 위키 정의가 유혹 쪽이라 유혹으로 넘겼다.
+            //   ※ fang은 표정이 아니라 치아라 캐릭터 외형이 변한다 — 갭모에가 목적이라 의도된 것(J5).
+            { id: 'expr_mesugaki', name: '메스가키', kind: 'append', on: false, group: 'expr', nsfw: true, text: 'mesugaki, smug, fang, looking at viewer' },
             //  경멸/얀데레 교정(v9.89.0) — 실제 태그 사용량으로 다시 짰다.
             //   · 경멸: 'contempt'·'condescending'·'looking down at viewer'는 danbooru 0건(없는 태그),
             //     'disdain' 392 / 'sneer' 371도 유령. 실제로 쓰이는 건 jitome(ジト目, 48,825).
@@ -7396,18 +7399,26 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //   · 얀데레: 'yandere'(9,339)는 표정이 아니라 캐릭터 성격 태그라 얼굴을 못 지시한다.
             //     얼굴을 만드는 건 crazy eyes(8,570)+crazy smile(5,552) 페어(동시 2,526).
             //     'yandere'를 빼야 조합이 오히려 강해진다(yandere+crazy smile은 364로 떨어짐).
-            { id: 'expr_contempt', name: '차가운 경멸', kind: 'append', on: false, group: 'expr', more: true, text: 'jitome, half-closed eyes, shaded face, looking at viewer' },
-            //   · 메스가키(v9.90.0): danbooru 위키가 mesugaki의 전형으로 'a single fang / skin fang'을
-            //     직접 명시한다. 실제로 mesugaki와 가장 많이 붙는 얼굴 요소도 fang(1,499 / 36.3%)이고
-            //     smug+fang은 전체 4,094건이라 서로 잘 밀어준다.
-            //     반대로 naughty face는 mesugaki와 256건(6.2%)뿐이고, 위키 정의가
-            //     "이거 네 취향인 거 알아" 쪽 유혹 얼굴(형제 태그가 seductive smile)이라
-            //     '유혹' 프리셋과 겹쳐서 뺐다. mesugaki+smug+naughty face 3개 동시는 56건.
-            //     ※ fang은 표정이 아니라 치아라 캐릭터 외형이 변한다 — 갭모에가 목적이라 의도된 것(J5).
-            { id: 'expr_mesugaki', name: '메스가키', kind: 'append', on: false, group: 'expr', nsfw: true, more: true, text: 'mesugaki, smug, fang, looking at viewer' },
-            { id: 'expr_yandere', name: '얀데레(광기)', kind: 'append', on: false, group: 'expr', more: true, text: 'crazy eyes, crazy smile, shaded face, looking at viewer' },
-            { id: 'expr_yandere_calm', name: '얀데레(정적)', kind: 'append', on: false, group: 'expr', more: true, text: 'empty eyes, smile, shaded face' },
-            // 포즈 프리셋 (group 'pose' — 하나 켜면 나머지 자동 꺼짐). 표정과 같은 '자주 쓰는 것 + 더보기(more)' 규칙.
+            { id: 'expr_contempt', name: '차가운 경멸', kind: 'append', on: false, group: 'expr', text: 'jitome, half-closed eyes, shaded face, looking at viewer' },
+            { id: 'expr_yandere', name: '얀데레(광기)', kind: 'append', on: false, group: 'expr', text: 'crazy eyes, crazy smile, shaded face, looking at viewer' },
+            { id: 'expr_yandere_calm', name: '얀데레(정적)', kind: 'append', on: false, group: 'expr', text: 'empty eyes, smile, shaded face' },
+            //  ── 2군: 절정 계열의 격한 반응(신규 v9.88.0) — 성격상 위 1군과 한 묶음이라 바로 아래 ──
+            { id: 'expr_endure', name: '참는 표정', kind: 'append', on: false, group: 'expr', nsfw: true, text: 'clenched teeth, furrowed brow' },
+            { id: 'expr_panting', name: '가쁜 숨', kind: 'append', on: false, group: 'expr', nsfw: true, text: 'heavy breathing, open mouth, sweat' },
+            //  ── 3군: 자주 쓰지만 태그가 단순한 것 ──────────────────────
+            { id: 'expr_tongue', name: '혀 내밀기', kind: 'append', on: false, group: 'expr', nsfw: true, text: 'tongue out, saliva' },
+            { id: 'expr_smug', name: '능글(도발)', kind: 'append', on: false, group: 'expr', text: 'smug, grin' },
+            { id: 'expr_heart', name: '하트눈', kind: 'append', on: false, group: 'expr', nsfw: true, text: 'heart-shaped pupils' },
+            { id: 'expr_surprised', name: '놀람', kind: 'append', on: false, group: 'expr', text: 'surprised, open mouth' },
+            { id: 'expr_neutral', name: '무표정', kind: 'append', on: false, group: 'expr', text: 'expressionless, closed mouth' },
+            { id: 'expr_cry', name: '우는', kind: 'append', on: false, group: 'expr', text: 'crying, tears' },
+            //  ── 4군: 잘 안 쓰고 원본과 낙차도 작은 것 ─────────────────
+            { id: 'expr_smile', name: '미소', kind: 'append', on: false, group: 'expr', text: 'smile, happy' },
+            { id: 'expr_shy', name: '수줍음', kind: 'append', on: false, group: 'expr', text: 'shy, blush, embarrassed' },
+            { id: 'expr_angry', name: '화남', kind: 'append', on: false, group: 'expr', text: 'angry, frown' },
+            { id: 'expr_wink', name: '윙크', kind: 'append', on: false, group: 'expr', text: 'one eye closed, smile' },
+            { id: 'expr_pout', name: '삐침', kind: 'append', on: false, group: 'expr', text: 'pout' },
+            // 포즈 프리셋 (group 'pose' — 하나 켜면 나머지 자동 꺼짐). 표정과 같은 규칙: 배열 순서가 '더보기' 패널 순서.
             //  ★ 원본에 없는 인물(남성 등)을 새로 만들어야 성립하는 포즈는 넣지 않는다 — 2인 포즈는 원본에 이미 2명일 때 쓰는 용도.
             //  nsfw:true 항목은 성인 표시(19+)가 꺼져 있으면 숨겨지고 프롬프트에도 안 들어간다.
             { id: 'pose_stand_front', name: '정면 직립', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(standing, facing viewer, straight-on:1.2), arms at sides, full body' },
@@ -7415,14 +7426,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { id: 'pose_masturbation', name: '자위', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(masturbation, fingering:1.2), hand between own legs, spread legs' },
             { id: 'pose_double_v', name: '더블피스', kind: 'append', on: false, group: 'pose', nsfw: true, text: 'double v, looking at viewer' },
             { id: 'pose_mlegs_vsign', name: '게다리+더블피스', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(m legs, spread legs:1.3), double v, looking at viewer' },
-            { id: 'pose_spread_pussy', name: '손으로 벌려 보이기', kind: 'append', on: false, group: 'pose', nsfw: true, more: true, text: '(spread pussy:1.3), spread legs, presenting own body' },
-            { id: 'pose_bent_over', name: '엉덩이 내밀기', kind: 'append', on: false, group: 'pose', nsfw: true, more: true, text: '(bent over, ass focus:1.2), from behind, looking back, presenting own body' },
-            { id: 'pose_allfours', name: '네발 기기', kind: 'append', on: false, group: 'pose', nsfw: true, more: true, text: '(all fours:1.2), top-down bottom-up, looking at viewer' },
-            { id: 'pose_squat', name: '쪼그려 벌리기', kind: 'append', on: false, group: 'pose', nsfw: true, more: true, text: '(squatting, spread legs:1.3), tiptoes' },
+            { id: 'pose_spread_pussy', name: '손으로 벌려 보이기', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(spread pussy:1.3), spread legs, presenting own body' },
+            { id: 'pose_bent_over', name: '엉덩이 내밀기', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(bent over, ass focus:1.2), from behind, looking back, presenting own body' },
+            { id: 'pose_allfours', name: '네발 기기', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(all fours:1.2), top-down bottom-up, looking at viewer' },
+            { id: 'pose_squat', name: '쪼그려 벌리기', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(squatting, spread legs:1.3), tiptoes' },
             // 2인 포즈 — 원본 이미지에 여캐가 2명일 때만 의도대로 나온다(1명이면 없던 인물이 생길 수 있음 → 이름에 명시)
-            { id: 'pose_2g_kiss', name: '딥키스 (원본 2인)', kind: 'append', on: false, group: 'pose', nsfw: true, more: true, text: '2girls, yuri, (french kiss:1.3), kiss, tongue, saliva, eye contact, hug' },
-            { id: 'pose_2g_futasex', name: '후타 섹스 (2인·한 명 후타)', kind: 'append', on: false, group: 'pose', nsfw: true, more: true, text: '2girls, (futa with female:1.3), futanari, sex, vaginal, penis' },
-            { id: 'pose_2g_futafuta', name: '후타 섹스 (2인·둘 다 후타)', kind: 'append', on: false, group: 'pose', nsfw: true, more: true, text: '2girls, (futa with futa:1.3), futanari, sex, penis' }
+            { id: 'pose_2g_kiss', name: '딥키스 (원본 2인)', kind: 'append', on: false, group: 'pose', nsfw: true, text: '2girls, yuri, (french kiss:1.3), kiss, tongue, saliva, eye contact, hug' },
+            { id: 'pose_2g_futasex', name: '후타 섹스 (2인·한 명 후타)', kind: 'append', on: false, group: 'pose', nsfw: true, text: '2girls, (futa with female:1.3), futanari, sex, vaginal, penis' },
+            { id: 'pose_2g_futafuta', name: '후타 섹스 (2인·둘 다 후타)', kind: 'append', on: false, group: 'pose', nsfw: true, text: '2girls, (futa with futa:1.3), futanari, sex, penis' }
         ];
         // '자위' 포즈는 후타 여부에 따라 손동작이 달라야 한다 — 후타 프리셋이 켜져 있으면 생성 시 이 문구로 자동 교체.
         const _ANIMA_POSE_MAST_FUTA = '(futanari masturbation, hand on own penis:1.2), masturbation, spread legs';
@@ -7522,7 +7533,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 ['prompt', 'steps', 'cfg', 'denoise', 'sampler', 'scheduler', 'seed', 'megapixels', 'upscaleMethod', 'refWeight', 'refMode',
                     'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb', 'exprMore', 'exprRecent', 'sweep', 'sweepSeedInherit', 'galGroup', 'srcKey', 'myPreset', 'promptOpen'].forEach(k => p[k] = _anima[k]);
                 // 결과 이미지 목록은 여기 없다 — IndexedDB(_animaIdb*)로 옮겼다. 장수가 늘어도 이 저장이 무거워지지 않는다.
-                p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null, detail: s.detail || null, more: !!s.more }));
+                p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null, detail: s.detail || null }));
                 // 이전에 넣은 원본 이미지(축소본)들 — 다시 불러오기용. 여기 남은 것 중엔 이게 제일 크다(그림 데이터).
                 const hist = (_anima.srcHistory || []).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0, key: h.key || null }));
                 // 용량 초과 시 무거운 것부터 단계적으로 줄여 재시도 — 설정(프롬프트·모델·서버 주소)만은 반드시 살린다.
@@ -7559,7 +7570,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     Object.keys(s).forEach(k => { if (k === 'results' || k === 'snippets' || k === 'srcHistory') return; if (k in _anima && s[k] != null) _anima[k] = s[k]; });
                     // s.results = 구버전(localStorage) 저장분. 여기서는 임시로만 담아 두고, 아래 _animaLoadResults()가 IndexedDB로 옮긴다.
                     if (Array.isArray(s.results)) _animaLegacyResults = s.results.filter(r => r && r.url).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed, src: r.src || null, opt: r.opt || '' }));
-                    if (Array.isArray(s.snippets)) _anima.snippets = s.snippets.filter(x => x && x.id).map(x => ({ id: x.id, name: x.name || '옵션', text: x.text || '', on: !!x.on, kind: x.kind || 'append', group: x.group || null, detail: x.detail || null, more: !!x.more, nsfw: !!x.nsfw }));
+                    if (Array.isArray(s.snippets)) _anima.snippets = s.snippets.filter(x => x && x.id).map(x => ({ id: x.id, name: x.name || '옵션', text: x.text || '', on: !!x.on, kind: x.kind || 'append', group: x.group || null, detail: x.detail || null, nsfw: !!x.nsfw }));
                     if (Array.isArray(s.srcHistory)) _anima.srcHistory = s.srcHistory.filter(h => h && h.thumb).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0, key: h.key || null }));
                     if (_anima.imgThumb) { _anima.img = { dataURL: _anima.imgThumb, name: 'image' }; _anima.uploadedName = null; }
                     // srcKey 복구 — 예전 버전은 srcKey를 저장하지 않아 새로고침 후 '원본 정보 없음'으로 묶였다.
@@ -7666,6 +7677,24 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             if ((sn.text || '').trim() === oldText) sn.text = def.text;
                             sn.name = def.name;   // 얀데레 → 얀데레(광기)
                         });
+                    }
+                    // 마이그레이션(v9.92.0): 표정 순서를 기본값 순서에 맞춘다.
+                    //  ★ 저장된 목록은 '예전 순서' 그대로라, ANIMA_DEFAULT_SNIPPETS만 바꾸면
+                    //    기존 사용자에겐 아무 일도 안 일어난다. 여기서 실제로 다시 정렬해야 한다.
+                    //  순서가 바꾸는 것: 연속 생성(스윕)에 나오는 순서 + '표정 더보기' 패널 순서.
+                    //   (하단 바는 exprRecent로 따로 굴러가므로 영향 없음)
+                    //  ★ 직접 만든 표정(기본값에 없는 것)은 맨 뒤로 밀되 서로의 순서는 그대로 둔다.
+                    {
+                        const ord = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === 'expr').map(d => d.id);
+                        const slots = [];
+                        _anima.snippets.forEach((s, i) => { if (s && s.group === 'expr') slots.push(i); });
+                        if (slots.length > 1) {
+                            const rank = s => { const i = ord.indexOf(s.id); return i < 0 ? 9999 : i; };
+                            const sorted = slots.map((i, k) => ({ s: _anima.snippets[i], k }))
+                                .sort((a, b) => (rank(a.s) - rank(b.s)) || (a.k - b.k))   // 동순위는 기존 순서 유지
+                                .map(x => x.s);
+                            slots.forEach((pos, k) => { _anima.snippets[pos] = sorted[k]; });
+                        }
                     }
                     // 마이그레이션: 포즈 프리셋(group 'pose') 신규 추가
                     const addPose = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === 'pose' && !_anima.snippets.some(x => x.id === d.id));
