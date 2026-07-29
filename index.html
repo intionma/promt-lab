@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.104.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.104.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1255,7 +1255,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.104.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.104.1 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -6596,7 +6596,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             fd.append('image', fileOrBlob, fname);
             fd.append('overwrite', 'true');
             // signal(선택): 넘기면 그 타임아웃/중단 신호로 요청을 끊을 수 있음(끊긴 연결로 영영 안 끝나는 것 방지). 기존 호출은 그대로.
-            const res = await fetch(_comfyBase() + '/upload/image', { method: 'POST', body: fd, signal: signal || undefined });
+            const res = await fetch(_comfyBase() + '/upload/image', { method: 'POST', body: fd, signal: signal || undefined, priority: 'high' });
             if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error('이미지 업로드 실패 (HTTP ' + res.status + ') ' + t.slice(0, 160)); }
             const d = await res.json();
             return d.subfolder ? (d.subfolder + '/' + d.name) : d.name;
@@ -8603,7 +8603,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         async function _animaPostPrompt(base, wf, cid) {
             // text/plain = preflight 없는 단순 요청(크로스오리진에서 POST가 막히던 문제 회피). ComfyUI는 content-type 무관하게 JSON 파싱.
             //  타임아웃: 연결이 끊겨 응답이 영영 안 오면(끊긴 WiFi 등) 자동 중단 → 재시도/실패로 처리(큐가 멈추지 않게).
-            const res = await fetch(base + '/prompt', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ prompt: wf, client_id: cid }), signal: _animaTimeoutSignal(_ANIMA_SUBMIT_TIMEOUT) });
+            const res = await fetch(base + '/prompt', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ prompt: wf, client_id: cid }), signal: _animaTimeoutSignal(_ANIMA_SUBMIT_TIMEOUT), priority: 'high' });
             if (!res.ok) {   // 응답이 왔으니 네트워크는 정상 — 노드 오류 등은 재시도해도 소용없음
                 const t = await res.text().catch(() => '');
                 let detail = '';
@@ -8696,7 +8696,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (tries > 400) { job.status = 'error'; job.err = '대기 시간 초과'; showToast('결과 대기 시간 초과 — ComfyUI 콘솔에서 진행 상태를 확인하세요.', 'warning', 5000); _animaSyncBusy(); _animaPump(); return; }
             let netErr = false;
             try {
-                const res = await fetch(base + '/history/' + job.pid, { signal: _animaTimeoutSignal(15000) });
+                const res = await fetch(base + '/history/' + job.pid, { signal: _animaTimeoutSignal(15000), priority: 'high' });
                 if (res.ok) {
                     const h = await res.json();
                     if (h[job.pid] && h[job.pid].outputs && Object.keys(h[job.pid].outputs).length) {
@@ -9842,12 +9842,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         const _ANIMA_GAL_PAGE = 100;
         let _animaGalShown = _ANIMA_GAL_PAGE;
         let _animaGalIO = null;              // 바닥 감지용 IntersectionObserver
+        // ── 썸네일 로딩 부하 (측정해 둔 사실 — 아직 안 고침) ──────────────
+        //  실측(갤러리 300장에서 아래로 한 번 훑기): /view 요청이 200건 동시에 터지고,
+        //  그 사이에 낀 업로드·전송 요청이 각각 썸네일 100·99건과 겹쳤다.
+        //  썸네일 주소엔 preview=webp가 붙어 있어 ComfyUI가 매번 서버에서 다시 굽는다
+        //  — 그림을 만드는 그 PC의 CPU이고, 폰 원격(Tailscale)이면 회선까지 같이 먹는다.
+        //  동시 로드를 4건으로 제한하면 겹침이 100→1건, 생성 왕복 265ms→171ms까지 줄었다(측정 완료).
+        //  ★ 다만 그 방식은 src를 늦게 넣어야 해서 로딩 전 칸 높이가 0이 된다.
+        //    → 목록이 자라면서 밀리는(예전에 고쳤던 '튀는') 문제가 되살아난다.
+        //    제대로 하려면 결과에 이미지 크기를 저장해 칸 높이를 미리 잡아 둬야 한다. 그때 다시 붙인다.
         // 한 장(썸네일)의 HTML — data-i는 항상 _anima.results 기준 '전역 인덱스'라 전체·그룹 어느 보기에서도 동일하게 동작
         function _animaGalCell(i) {
             const r = _anima.results[i]; if (!r) return '';
             // draggable=false — 켜져 있으면 PC에서 썸네일을 끌 때 브라우저 기본 이미지 드래그가 시작돼
             //  이후 pointermove가 끊기고, 폴더 밀기가 아예 안 먹는다.
-            return `<div class="anima-gitem${i === _animaResSel ? ' sel' : ''}" data-i="${i}"><img src="${_animaPreviewUrl(r.url, _ANIMA_THUMB_Q)}" loading="lazy" decoding="async" draggable="false" onerror="this.onerror=null;this.src='${r.url}'"><button class="anima-gx" data-i="${i}" title="삭제" aria-label="이 이미지 삭제">✕</button></div>`;
+            return `<div class="anima-gitem${i === _animaResSel ? ' sel' : ''}" data-i="${i}"><img src="${_animaPreviewUrl(r.url, _ANIMA_THUMB_Q)}" loading="lazy" decoding="async" fetchpriority="low" draggable="false" onerror="this.onerror=null;this.src='${r.url}'"><button class="anima-gx" data-i="${i}" title="삭제" aria-label="이 이미지 삭제">✕</button></div>`;
         }
         // ── 원본별 = 폴더 ────────────────────────────────────────────────
         //  _animaGalFolder = null 이면 '폴더 목록', 값이 있으면 그 폴더 안(그 원본으로 만든 것만).
