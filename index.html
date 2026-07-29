@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.88.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.89.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.88.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.89.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2041,9 +2041,20 @@
         // 토스트 알림
         // ── 업데이트 내역 ────────────────────────────────────────────────────
         const CHANGELOG = [
+            // ── 2026-07-29 ──────────────────────────────────────────────────
+            {
+                version: 'v9.89.0', date: '2026-07-29', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] <b>차가운 경멸을 제대로 고쳤습니다</b> — 예전 문구는 <b>'바닥을 내려다본다'</b>는 뜻이라 남을 깔보는 게 아니라 그냥 <b>시무룩한 얼굴</b>이 나왔습니다. 이제 <b>눈꺼풀 반쯤 내린 채 그늘 진 눈으로 보는 사람을 쓰레기 보듯</b> 쳐다보는, 그 유명한 표정으로 바뀝니다.",
+                    "[Anima 편집] <b>얀데레도 고쳤습니다</b> — 예전 문구는 얼굴이 아니라 <b>캐릭터 성격</b>을 가리키는 말이라, 켜도 <b>그늘만 지고 표정은 그대로</b>였습니다.",
+                    "[Anima 편집] 얀데레가 <b>두 종류로 나뉩니다</b> — <b>얀데레(광기)</b>는 눈이 돌아간 채 히죽 웃는 얼굴, <b>얀데레(정적)</b>는 <b>눈에 빛이 사라진 채 조용히 미소</b> 짓는 소름 끼치는 얼굴입니다.",
+                    "[Anima 편집] 총 <b>19종 → 20종</b>이 됐습니다. ✏️ 편집으로 문구를 고쳐 쓰시던 분의 내용은 <b>그대로 유지</b>됩니다.",
+                ]
+            },
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.88.0', date: '2026-07-29', time: '최신',
+                version: 'v9.88.0', date: '2026-07-29', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] <b>절정을 대폭 강화</b>했습니다 — 예전엔 쓰던 표현 하나가 <b>거의 안 쓰이는 말</b>이라 힘을 못 썼고, 눈 표현이 <b>아헤가오와 겹쳐</b> 두 표정이 흐릿했습니다. 이제 <b>녹아내린 얼굴 · 풀린 눈 · 붉어진 코 · 떨림 · 침 · 땀</b>으로 확실하게 표현합니다.",
@@ -7358,9 +7369,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  기존이 평범(미소·무표정) ↔ 격정(절정·아헤가오) 양 극단이라 그 사이와 악역 결이 비어 있었다.
             { id: 'expr_endure', name: '참는 표정', kind: 'append', on: false, group: 'expr', nsfw: true, more: true, text: 'clenched teeth, furrowed brow' },
             { id: 'expr_panting', name: '가쁜 숨', kind: 'append', on: false, group: 'expr', nsfw: true, more: true, text: 'heavy breathing, open mouth, sweat' },
-            { id: 'expr_contempt', name: '차가운 경멸', kind: 'append', on: false, group: 'expr', more: true, text: 'narrowed eyes, looking down, scowl' },
+            //  경멸/얀데레 교정(v9.89.0) — 실제 태그 사용량으로 다시 짰다.
+            //   · 경멸: 'contempt'·'condescending'·'looking down at viewer'는 danbooru 0건(없는 태그),
+            //     'disdain' 392 / 'sneer' 371도 유령. 실제로 쓰이는 건 jitome(ジト目, 48,825).
+            //     예전 조합 narrowed eyes+scowl은 동시 등장 41건이라 서로 안 밀어줬고,
+            //     'looking down'은 '깔봄'이 아니라 '바닥을 봄'(시선 방향)이라 의미가 어긋났다.
+            //   · 얀데레: 'yandere'(9,339)는 표정이 아니라 캐릭터 성격 태그라 얼굴을 못 지시한다.
+            //     얼굴을 만드는 건 crazy eyes(8,570)+crazy smile(5,552) 페어(동시 2,526).
+            //     'yandere'를 빼야 조합이 오히려 강해진다(yandere+crazy smile은 364로 떨어짐).
+            { id: 'expr_contempt', name: '차가운 경멸', kind: 'append', on: false, group: 'expr', more: true, text: 'jitome, half-closed eyes, shaded face, looking at viewer' },
             { id: 'expr_mesugaki', name: '메스가키', kind: 'append', on: false, group: 'expr', nsfw: true, more: true, text: 'mesugaki, smug, naughty face' },
-            { id: 'expr_yandere', name: '얀데레', kind: 'append', on: false, group: 'expr', more: true, text: 'yandere, shaded face' },
+            { id: 'expr_yandere', name: '얀데레(광기)', kind: 'append', on: false, group: 'expr', more: true, text: 'crazy eyes, crazy smile, shaded face, looking at viewer' },
+            { id: 'expr_yandere_calm', name: '얀데레(정적)', kind: 'append', on: false, group: 'expr', more: true, text: 'empty eyes, smile, shaded face' },
             // 포즈 프리셋 (group 'pose' — 하나 켜면 나머지 자동 꺼짐). 표정과 같은 '자주 쓰는 것 + 더보기(more)' 규칙.
             //  ★ 원본에 없는 인물(남성 등)을 새로 만들어야 성립하는 포즈는 넣지 않는다 — 2인 포즈는 원본에 이미 2명일 때 쓰는 용도.
             //  nsfw:true 항목은 성인 표시(19+)가 꺼져 있으면 숨겨지고 프롬프트에도 안 들어간다.
@@ -7604,6 +7624,20 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         if (bl && (bl.text || '').trim() === 'blush') _anima.snippets = _anima.snippets.filter(x => x.id !== 'expr_blush');
                         const og = _anima.snippets.find(x => x.id === 'expr_orgasm'), ogDef = ANIMA_DEFAULT_SNIPPETS.find(d => d.id === 'expr_orgasm');
                         if (og && ogDef && (og.text || '').trim() === '(orgasm:1.1), ecstasy, rolling eyes') og.text = ogDef.text;
+                    }
+                    // 마이그레이션(v9.89.0): 경멸·얀데레 태그 교정 — 위 프리셋 주석에 근거를 적어 뒀다.
+                    //  ★ 기본값 그대로일 때만 손댄다(✏️ 편집분 보존). 이름은 텍스트와 무관하게 최신으로 맞춘다.
+                    {
+                        const fixes = [
+                            ['expr_contempt', 'narrowed eyes, looking down, scowl'],
+                            ['expr_yandere', 'yandere, shaded face'],
+                        ];
+                        fixes.forEach(([id, oldText]) => {
+                            const sn = _anima.snippets.find(x => x.id === id), def = ANIMA_DEFAULT_SNIPPETS.find(d => d.id === id);
+                            if (!sn || !def) return;
+                            if ((sn.text || '').trim() === oldText) sn.text = def.text;
+                            sn.name = def.name;   // 얀데레 → 얀데레(광기)
+                        });
                     }
                     // 마이그레이션: 포즈 프리셋(group 'pose') 신규 추가
                     const addPose = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === 'pose' && !_anima.snippets.some(x => x.id === d.id));

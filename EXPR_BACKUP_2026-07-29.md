@@ -47,3 +47,24 @@
 
 아헤가오 > 절정 > 무표정 > 유혹 > 혀 내밀기 > 능글 > 놀람 > 하트눈 > 우는  
 (안 쓰던 것: 미소·수줍음·홍조·화남·삐침·윙크)
+
+---
+
+## v9.88.0 → v9.89.0 롤백용 (경멸·얀데레)
+
+v9.89.0에서 이 두 개를 갈아엎었다. 되돌리려면 아래로 교체하고 `expr_yandere_calm` 줄을 지운다.
+
+```js
+{ id: 'expr_contempt', name: '차가운 경멸', kind: 'append', on: false, group: 'expr', more: true, text: 'narrowed eyes, looking down, scowl' },
+{ id: 'expr_yandere', name: '얀데레', kind: 'append', on: false, group: 'expr', more: true, text: 'yandere, shaded face' },
+```
+
+**단, 되돌리길 권하지 않는다** — 위 두 줄은 의도한 얼굴이 안 나오는 게 실측으로 확인됐다:
+
+| 문제 | 근거 |
+|---|---|
+| `looking down` = '깔봄'이 아니라 '바닥을 봄' | 시선 방향 태그(136,020) |
+| `narrowed eyes` + `scowl` | 동시 등장 **41건** — 서로 안 밀어줌 |
+| `contempt`·`condescending`·`looking down at viewer`·`forehead shadow` | **전부 0건**(없는 태그) |
+| `yandere` | 표정이 아니라 **캐릭터 성격** 태그(9,339) |
+| `yandere` + `crazy smile` | 364 — `yandere` 빼면 2,526으로 **7배** |
