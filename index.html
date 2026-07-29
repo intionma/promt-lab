@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.82.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.83.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.82.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.83.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2043,7 +2043,16 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.82.0', date: '2026-07-29', time: '최신',
+                version: 'v9.83.0', date: '2026-07-29', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] 연속 생성에 <b>[참조 설정 (진단)]</b>을 임시로 넣었습니다 — <b>포즈가 왜 잘 안 먹는지</b> 알아내기 위한 것입니다. 실행 버튼을 <b>길게 눌러</b> 고르면, 원본을 붙잡는 <b>방식 2가지 × 세기 3단계 = 6장</b>이 같은 시드로 한 번에 나옵니다.",
+                    "[Anima 편집] 쓰는 법 — <b>포즈를 하나 켜 두고</b> 이걸 돌린 뒤, <b>포즈가 바뀌면서도 캐릭터가 유지되는 칸</b>이 있는지 보시면 됩니다. 설정을 직접 만질 필요가 없고, <b>끝나면 원래 설정으로 자동 복구</b>됩니다.",
+                    "[Anima 편집] 이 항목은 <b>판정이 끝나면 없앨 임시 기능</b>입니다. 다른 화면·버튼은 <b>전혀 달라지지 않았습니다</b>.",
+                ]
+            },
+            {
+                version: 'v9.82.0', date: '2026-07-29', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] 프롬프트에 들어가는 <b>순서를 정리</b>했습니다 — <b>가슴이 후타 설명 한가운데를 가르고</b> 있었습니다(크기 · 발기 <b>· 가슴 ·</b> 포피 · 사정). 같은 부위를 설명하는 말들이 떨어져 있으면 <b>어느 말이 어디에 붙는지</b> 흐려질 수 있어, 가슴을 후타 앞으로 옮겨 <b>후타 설명이 한 덩어리</b>가 되게 했습니다.",
@@ -8447,6 +8456,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 유일하게 '설정'을 바꾸는 축(settings:true) — 나머지는 프롬프트 옵션을 켰다 껐다 한다.
             //  스텝을 올리는 게 정말 값어치를 하는지 눈으로 확인하라고 넣은 축이다(같은 시드·같은 옵션 3장).
             { key: 'quality', name: '품질', settings: true, pick: () => _ANIMA_PRESETS.map(p => ({ id: p.id, name: p.name })) },
+            // ▼▼▼ [진단] 포즈가 왜 안 먹는지 판정용 임시 축 — 판정 끝나면 '[진단]' 표시된 곳만 지우면 됩니다 ▼▼▼
+            //  참조가 원본을 붙잡는 '방식'(temporal_mask/kv_gating)과 '세기'를 한 번에 비교한다.
+            //  방식은 강도 다이얼과 성격이 달라, 캐릭터를 지키면서 포즈만 풀릴 여지가 있는지 보는 게 목적.
+            {
+                key: 'refmode', name: '참조 설정 (진단)', settings: true,
+                pick: () => [
+                    { id: 'temporal_mask|1', name: 'temporal 1.0 (현재)' },
+                    { id: 'temporal_mask|0.7', name: 'temporal 0.7' },
+                    { id: 'temporal_mask|0.5', name: 'temporal 0.5' },
+                    { id: 'kv_gating|1', name: 'kv 1.0' },
+                    { id: 'kv_gating|0.7', name: 'kv 0.7' },
+                    { id: 'kv_gating|0.5', name: 'kv 0.5' },
+                ],
+                apply: (id) => { const [m, w] = id.split('|'); _anima.refMode = m; _anima.refWeight = parseFloat(w); },
+            },
+            // ▲▲▲ [진단] 여기까지 ▲▲▲
         ];
         const _ANIMA_SWEEP_NONE = '__none__';   // '노출 없음'(해제 상태)도 한 칸으로 돌릴 수 있게
         // 어떤 항목을 돌릴지 — 저장된 설정이 없으면 기본값(노출 4종·후타 3종·표정은 최근 4개)
@@ -8475,13 +8500,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 되돌리기용 현재 상태 백업
             const beforePrompt = _anima.prompt, beforeSeed = _anima.seed;
             const beforeSteps = _anima.steps, beforeMp = _anima.megapixels;   // 품질 축은 이 둘을 건드린다
+            const beforeRefM = _anima.refMode, beforeRefW = _anima.refWeight;   // [진단] 참조 축이 이 둘을 건드린다
             const beforeOn = {}; (_anima.snippets || []).forEach(s => beforeOn[s.id] = !!s.on);
             // 세트 전체가 같은 시드를 쓰도록 지금 확정(-1이면 랜덤 하나를 뽑아 고정)
             const fixed = _animaSeedVal();
             _anima.seed = fixed;
             let made = 0;
             for (const id of sel) {
-                if (axis.settings) {
+                if (axis.apply) { axis.apply(id); }        // [진단] 축이 스스로 설정을 바꾸는 경우
+                else if (axis.settings) {
                     // 품질 축 — 프롬프트·옵션은 그대로 두고 스텝·메가픽셀만 갈아끼운다
                     const q = _ANIMA_PRESETS.find(x => x.id === id); if (!q) continue;
                     _anima.steps = q.steps; _anima.megapixels = q.megapixels;
@@ -8499,6 +8526,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 원래 상태 복원 — 스윕은 '돌려보기'일 뿐 내 설정을 바꾸지 않는다
             _anima.prompt = beforePrompt; _anima.seed = beforeSeed;
             _anima.steps = beforeSteps; _anima.megapixels = beforeMp;
+            _anima.refMode = beforeRefM; _anima.refWeight = beforeRefW;   // [진단]
             (_anima.snippets || []).forEach(s => { if (s.id in beforeOn) s.on = beforeOn[s.id]; });
             const pt = _animaEl('#anima-prompt'); if (pt) pt.value = _anima.prompt;
             _animaSave(); _animaRenderSnippets(); _animaRenderAdv();
@@ -8509,7 +8537,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _animaCloseSweepMenu() { if (_animaSweepMenuEl) { try { _animaSweepMenuEl.remove(); } catch (e) {} _animaSweepMenuEl = null; } }
         function _animaOpenSweepMenu() {
             _animaCloseSweepMenu();
-            const _axes = _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality');   // 성인 꺼짐 → 표정·포즈(일반)·가슴·품질만
+            const _axes = _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality' || a.key === 'refmode' /*[진단]*/);   // 성인 꺼짐 → 표정·포즈(일반)·가슴·품질만
             const wrap = document.createElement('div');
             wrap.className = 'anima-sweep-back';
             const rows = _axes.map(a => {
@@ -8536,7 +8564,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         function _animaRenderSweepCfg(box, wrap) {
             let h = '';
-            _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality').forEach(a => {
+            _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality' || a.key === 'refmode' /*[진단]*/).forEach(a => {
                 const sel = _animaSweepSel(a), items = a.pick();
                 h += `<div class="anima-sweep-sec">${a.name}</div><div class="anima-sweep-chips">`;
                 if (a.key === 'base') h += `<button class="anima-chip sw${sel.includes(_ANIMA_SWEEP_NONE) ? ' on' : ''}" data-ax="base" data-id="${_ANIMA_SWEEP_NONE}">노출 없음</button>`;
