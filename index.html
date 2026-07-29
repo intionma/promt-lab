@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.87.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.88.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.87.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.88.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2043,7 +2043,18 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.87.0', date: '2026-07-29', time: '최신',
+                version: 'v9.88.0', date: '2026-07-29', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] <b>절정을 대폭 강화</b>했습니다 — 예전엔 쓰던 표현 하나가 <b>거의 안 쓰이는 말</b>이라 힘을 못 썼고, 눈 표현이 <b>아헤가오와 겹쳐</b> 두 표정이 흐릿했습니다. 이제 <b>녹아내린 얼굴 · 풀린 눈 · 붉어진 코 · 떨림 · 침 · 땀</b>으로 확실하게 표현합니다.",
+                    "[Anima 편집] 덕분에 <b>절정과 아헤가오가 완전히 갈립니다</b> — 겹치는 표현이 <b>하나도 없어졌어요</b>. 절정은 '지금 절정 중', 아헤가오는 '완전히 간 상태'로 나뉩니다.",
+                    "[Anima 편집] <b>표정 5종 추가</b> — <b>참는 표정</b>(쾌감을 견디는 얼굴) · <b>가쁜 숨</b>(헐떡임) · <b>메스가키</b>(건방진 도발) · <b>얀데레</b>(그늘 연출 포함) · <b>차가운 경멸</b>(내려다보며 깔봄). 평범한 표정과 격한 표정 사이가 비어 있던 걸 채웠습니다.",
+                    "[Anima 편집] <b>홍조는 뺐습니다</b> — '수줍음'에 이미 들어 있고, 이 표현은 <b>다른 표정에도 자연스럽게 따라오기</b> 때문에 따로 둘 필요가 없었습니다.",
+                    "[Anima 편집] 총 <b>15종 → 19종</b>이 됐습니다. ✏️ 편집으로 문구를 고쳐 쓰시던 분의 내용은 <b>그대로 유지</b>됩니다.",
+                ]
+            },
+            {
+                version: 'v9.87.0', date: '2026-07-29', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] <b>마음에 든 그림에서 표정만 바꿔 뽑기</b>가 제대로 됩니다 — 예전엔 연속 생성을 돌리면 <b>전혀 다른 그림</b>이 나와서 당황스러웠습니다. 시드를 <b>'무작위'</b>로 두면 연속 생성이 <b>새 무작위 값을 뽑아</b> 돌렸기 때문이에요.",
@@ -7330,12 +7341,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 표정 프리셋 (group 'expr' — 하나 켜면 나머지 자동 꺼짐). 핵심 태그만 간결하게.
             //  자주 쓰는 4종(유혹·절정·아헤가오·미소)은 항상 바에 보이고, 나머지는 '표정 더보기'로 접힘(more:true).
             { id: 'expr_seductive', name: '유혹', kind: 'append', on: false, group: 'expr', nsfw: true, text: 'seductive smile, half-closed eyes, looking at viewer' },
-            { id: 'expr_orgasm', name: '절정', kind: 'append', on: false, group: 'expr', nsfw: true, text: '(orgasm:1.1), ecstasy, rolling eyes' },
+            { id: 'expr_orgasm', name: '절정', kind: 'append', on: false, group: 'expr', nsfw: true, text: '(orgasm:1.2), torogao, half-closed eyes, nose blush, trembling, saliva, sweat' },
             { id: 'expr_ahegao', name: '아헤가오', kind: 'append', on: false, group: 'expr', nsfw: true, text: '(ahegao:1.2), rolling eyes, tongue out, drooling' },
             { id: 'expr_smile', name: '미소', kind: 'append', on: false, group: 'expr', text: 'smile, happy' },
             { id: 'expr_neutral', name: '무표정', kind: 'append', on: false, group: 'expr', more: true, text: 'expressionless, closed mouth' },
             { id: 'expr_shy', name: '수줍음', kind: 'append', on: false, group: 'expr', more: true, text: 'shy, blush, embarrassed' },
-            { id: 'expr_blush', name: '홍조', kind: 'append', on: false, group: 'expr', nsfw: true, more: true, text: 'blush' },
             { id: 'expr_tongue', name: '혀 내밀기', kind: 'append', on: false, group: 'expr', nsfw: true, more: true, text: 'tongue out, saliva' },
             { id: 'expr_smug', name: '능글(도발)', kind: 'append', on: false, group: 'expr', more: true, text: 'smug, grin' },
             { id: 'expr_angry', name: '화남', kind: 'append', on: false, group: 'expr', more: true, text: 'angry, frown' },
@@ -7344,6 +7354,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { id: 'expr_pout', name: '삐침', kind: 'append', on: false, group: 'expr', more: true, text: 'pout' },
             { id: 'expr_wink', name: '윙크', kind: 'append', on: false, group: 'expr', more: true, text: 'one eye closed, smile' },
             { id: 'expr_cry', name: '우는', kind: 'append', on: false, group: 'expr', more: true, text: 'crying, tears' },
+            // 신규(v9.88.0) — 표정을 batch로 돌리는 사용 패턴이라 '확실히 다른 그림이 나올 것'만 골랐다.
+            //  기존이 평범(미소·무표정) ↔ 격정(절정·아헤가오) 양 극단이라 그 사이와 악역 결이 비어 있었다.
+            { id: 'expr_endure', name: '참는 표정', kind: 'append', on: false, group: 'expr', nsfw: true, more: true, text: 'clenched teeth, furrowed brow' },
+            { id: 'expr_panting', name: '가쁜 숨', kind: 'append', on: false, group: 'expr', nsfw: true, more: true, text: 'heavy breathing, open mouth, sweat' },
+            { id: 'expr_contempt', name: '차가운 경멸', kind: 'append', on: false, group: 'expr', more: true, text: 'narrowed eyes, looking down, scowl' },
+            { id: 'expr_mesugaki', name: '메스가키', kind: 'append', on: false, group: 'expr', nsfw: true, more: true, text: 'mesugaki, smug, naughty face' },
+            { id: 'expr_yandere', name: '얀데레', kind: 'append', on: false, group: 'expr', more: true, text: 'yandere, shaded face' },
             // 포즈 프리셋 (group 'pose' — 하나 켜면 나머지 자동 꺼짐). 표정과 같은 '자주 쓰는 것 + 더보기(more)' 규칙.
             //  ★ 원본에 없는 인물(남성 등)을 새로 만들어야 성립하는 포즈는 넣지 않는다 — 2인 포즈는 원본에 이미 2명일 때 쓰는 용도.
             //  nsfw:true 항목은 성인 표시(19+)가 꺼져 있으면 숨겨지고 프롬프트에도 안 들어간다.
@@ -7576,6 +7593,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     // 마이그레이션: 표정 프리셋(group 'expr') 신규 추가
                     const addExpr = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === 'expr' && !_anima.snippets.some(x => x.id === d.id));
                     if (addExpr.length) _anima.snippets = _anima.snippets.concat(JSON.parse(JSON.stringify(addExpr)));
+                    // 마이그레이션(v9.88.0): 표정 대개편
+                    //  · 홍조 제거 — 수줍음(shy, blush, embarrassed)에 이미 blush가 있고, blush는 400만 건이라
+                    //    다른 표정에도 자연히 딸려 온다. 사용자도 안 쓰던 항목.
+                    //  · 절정 강화 — ecstasy가 danbooru 159건짜리 유령이었고, rolling eyes는 아헤가오와 겹쳐
+                    //    두 표정이 흐릿했다. rolling eyes를 아헤가오에 넘기고 절정은 독자 표현으로 다시 씀.
+                    //  ★ 기본값 그대로일 때만 손댄다(✏️ 편집분 보존).
+                    {
+                        const bl = _anima.snippets.find(x => x.id === 'expr_blush');
+                        if (bl && (bl.text || '').trim() === 'blush') _anima.snippets = _anima.snippets.filter(x => x.id !== 'expr_blush');
+                        const og = _anima.snippets.find(x => x.id === 'expr_orgasm'), ogDef = ANIMA_DEFAULT_SNIPPETS.find(d => d.id === 'expr_orgasm');
+                        if (og && ogDef && (og.text || '').trim() === '(orgasm:1.1), ecstasy, rolling eyes') og.text = ogDef.text;
+                    }
                     // 마이그레이션: 포즈 프리셋(group 'pose') 신규 추가
                     const addPose = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === 'pose' && !_anima.snippets.some(x => x.id === d.id));
                     if (addPose.length) _anima.snippets = _anima.snippets.concat(JSON.parse(JSON.stringify(addPose)));
