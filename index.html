@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.98.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.98.1 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1255,7 +1255,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.98.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.98.1 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2049,7 +2049,14 @@
         const CHANGELOG = [
             // ── 2026-07-29 ──────────────────────────────────────────────────
             {
-                version: 'v9.98.0', date: '2026-07-29', time: '최신',
+                version: 'v9.98.1', date: '2026-07-29', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] 앱을 켤 때마다 <b>ComfyUI에 쓸데없이 접속을 시도하던 것</b>을 없앴습니다 — 샘플러 목록을 미리 받으려던 건데, 연결 전에는 실패만 하고 브라우저 기록에 오류로 남았습니다. 이제 <b>고급 설정을 펼칠 때</b>만, 그것도 <b>한 번만</b> 물어봅니다. (목록 기능 자체는 그대로예요)",
+                ]
+            },
+            {
+                version: 'v9.98.0', date: '2026-07-29', time: '',
                 tag: 'feat',
                 items: [
                     "[PC 종료] 예약한 종료가 <b>5분 안으로 들어오면 알려줍니다</b> — 작업 중에 갑자기 PC가 꺼져 버리는 일을 막아요. 알림과 함께 <b>진동</b>도 울리고, <b>1분 전에 한 번 더</b> 알려줍니다. 상단 타이머는 <b>빨갛게 깜빡여</b> 알림을 놓쳐도 계속 눈에 띄고, 눌러서 바로 취소·연장할 수 있어요.",
@@ -9853,10 +9860,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (_animaEnumTried && !force) return false;
             _animaEnumTried = true;
             try {
-                const [sm, sc] = await Promise.all([
-                    _comfyNodeEnum('KSampler', 'sampler_name').catch(() => null),
-                    _comfyNodeEnum('KSampler', 'scheduler').catch(() => null),
-                ]);
+                // /object_info/KSampler 를 한 번만 받아 두 목록을 함께 뽑는다(같은 주소로 두 번 나가지 않게)
+                const res = await fetch(_comfyBase() + '/object_info/KSampler', { signal: AbortSignal.timeout(8000) });
+                if (!res.ok) return false;
+                const data = await res.json();
+                const req = ((data || {}).KSampler || {}).input && data.KSampler.input.required || {};
+                const pick = (f) => { const m = req[f]; const l = Array.isArray(m) ? m[0] : null; return (Array.isArray(l) && l.length) ? l : null; };
+                const sm = pick('sampler_name'), sc = pick('scheduler');
                 let ch = false;
                 if (Array.isArray(sm) && sm.length) { _animaSamplerOpts = sm; ch = true; }
                 if (Array.isArray(sc) && sc.length) { _animaSchedulerOpts = sc; ch = true; }
@@ -9900,9 +9910,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 + (hk ? `<div class="anima-help" data-for="${hk}">${_ANIMA_HELP[hk] || ''}</div>` : '');
             const num = (k, step, min, max) => `<input type="number" data-k="${k}" value="${_anima[k]}" step="${step}" ${min != null ? `min="${min}"` : ''} ${max != null ? `max="${max}"` : ''}>`;
             const txt = (k) => `<input type="text" data-k="${k}" value="${_anima[k]}">`;
-            // 고급 설정을 여는 이 시점에 설치본 목록을 한 번 가져온다. 도착하면 목록만 갱신해 다시 그린다.
-            //  (이미 시도했으면 즉시 false로 돌아와 재귀하지 않는다)
-            _animaLoadSamplerEnums().then(ok => { if (ok) _animaRenderAdv(); }).catch(() => {});
             box.innerHTML =
                 row('스텝(steps)', num('steps', 1, 1, 60), '기본 3', 'steps') +
                 row('CFG', num('cfg', 0.1, 0), '기본 1 · 바꾸지 마세요', 'cfg') +
@@ -10008,7 +10015,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (mini) { mini.textContent = ok ? '✅ 연결됨' : '❌ 연결 안 됨'; mini.className = 'anima-conn ' + (ok ? 'ok' : 'bad'); }
                 if (!ok) showToast('ComfyUI에 연결 안 됨 — 주소를 확인하세요. (앱이 https면 http 로컬 주소는 차단될 수 있어요)', 'error', 6000);
             };
-            const advT = _animaEl('#anima-adv-toggle'); advT.onclick = () => { const b = _animaEl('#anima-adv'); const on = b.style.display === 'none'; b.style.display = on ? 'flex' : 'none'; advT.textContent = (on ? '▲' : '▼') + ' 고급 설정 (모델·스텝·강도)'; };
+            const advT = _animaEl('#anima-adv-toggle'); advT.onclick = () => {
+                const b = _animaEl('#anima-adv'); const on = b.style.display === 'none';
+                b.style.display = on ? 'flex' : 'none';
+                advT.textContent = (on ? '▲' : '▼') + ' 고급 설정 (모델·스텝·강도)';
+                // 설치본 샘플러·스케줄러 목록은 '펼칠 때' 한 번만 물어본다.
+                //  마운트 때 물어보면 연결도 하기 전에 실패 요청이 나가 오류처럼 보인다(예전에 같은 이유로 뺐던 프리페치).
+                if (on) _animaLoadSamplerEnums().then(ok => { if (ok) _animaRenderAdv(); }).catch(() => {});
+            };
             // 드래그&드롭 + 붙여넣기
             const inbox = _animaEl('#anima-input');
             inbox.addEventListener('dragover', e => { e.preventDefault(); inbox.classList.add('drag'); });
