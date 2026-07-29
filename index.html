@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.94.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.95.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.94.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.95.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2043,7 +2043,16 @@
         const CHANGELOG = [
             // ── 2026-07-29 ──────────────────────────────────────────────────
             {
-                version: 'v9.94.0', date: '2026-07-29', time: '최신',
+                version: 'v9.95.0', date: '2026-07-29', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] <b>버튼 눌림 반응이 드디어 제대로 보입니다</b> — 지금까지는 <b>들어가기만 하고 돌아오는 모션이 없어서</b> 뚝 끊겼습니다. 누르는 순간 화면을 다시 그리는 바람에 <b>방금 누른 버튼이 통째로 사라지고</b> 있었거든요. 이제 <b>부드럽게 눌렸다가 부드럽게 돌아옵니다</b>.",
+                    "[Anima 편집] 그래서 <b>노출 아이콘만 유독 느낌이 좋았던</b> 겁니다 — 그것만 다시 그리지 않는 방식이었어요. 이제 <b>표정 · 포즈 · 가슴 · 후타 전부</b> 그 방식으로 통일했습니다.",
+                    "[Anima 편집] 덤으로 <b>하단 바를 옆으로 밀어둔 위치가 유지</b>됩니다 — 예전엔 칩 하나 누를 때마다 맨 앞으로 튕겨 돌아갔습니다.",
+                ]
+            },
+            {
+                version: 'v9.94.0', date: '2026-07-29', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] <b>버튼 눌림 반응이 이제 진짜로 보입니다</b> — 지난 버전에 넣었지만 <b>실제로는 전혀 안 보이고</b> 있었습니다. 누르는 순간 화면을 다시 그려서 <b>누른 버튼 자체가 사라지는</b> 바람에 모션이 나올 틈이 없었어요. 이제 <b>손이 닿는 즉시</b> 반응합니다.",
@@ -8472,6 +8481,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const s = _anima.snippets.find(x => x.id === c.dataset.id); if (!s) return;
                     c.classList.toggle('on', !!s.on);   // 선택 표시는 색(.on)으로만 — 지금 칩 서식엔 '✓' 접두어가 없다
                 });
+                // 가슴·포즈 팝오버 안의 칩(data-gd)도 같이 — 얘도 다시 그리지 않고 상태만 갱신한다
+                box.querySelectorAll('.anima-chip[data-gd]').forEach(c => {
+                    const s = _anima.snippets.find(x => x.id === c.dataset.gd); if (!s) return;
+                    c.classList.toggle('on', !!s.on);
+                });
             });
             // ★ 아이콘(의상·후타)도 함께 갱신 — 예전엔 글자 칩만 갱신해서, 아이콘을 눌러도 선택 표시가
             //   안 바뀌어 '눌러도 아무 반응 없다'로 보이던 버그가 있었다.
@@ -8487,6 +8501,61 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const on = !!(s && s.on);
                     b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
                 });
+            });
+        }
+        // ── 칩 토글 (표정·포즈·가슴) ─────────────────────────────────────────
+        //  ★ 예전엔 무조건 _animaRenderSnippets()로 통째로 다시 그렸다. 그러면 '방금 누른 그 요소'가
+        //    손을 떼는 순간 사라져서, 눌림 모션의 '부드럽게 돌아오는 0.24초'가 아예 재생되지 않는다.
+        //    쑥 들어갔다가 딱 하고 끊기니 "빠르고 안 보인다"로 느껴진다.
+        //    노출 아이콘만 유독 잘 보였던 이유가 이것 — 걔만 _animaSyncChipStates()로
+        //    다시 그리지 않고 상태만 갱신하고 있었다(같은 모양·같은 크기인 후타 아이콘과도 달랐다).
+        //  → 여기서도 '보이는 목록이 그대로면' 다시 그리지 않고 상태만 갱신한다.
+        //    덤으로 하단 바 좌우 스크롤 위치도 안 튄다(_animaSyncChipStates가 원래 그래서 생긴 함수).
+        //  ★ 목록 자체가 바뀔 때(최근 목록에 새 항목이 앞으로 들어올 때)만 다시 그린다.
+        function _animaToggleSnip(id) {
+            const s = (_anima.snippets || []).find(x => x.id === id); if (!s) return;
+            s.on = !s.on;
+            if (s.on && s.group) _anima.snippets.forEach(x => { if (x !== s && x.group === s.group) x.on = false; });
+            // 최근 목록이 바뀌면(=바에 없던 걸 골랐으면) 칩 구성이 달라지므로 다시 그려야 한다
+            let listChanged = false;
+            if (s.on && s.group === 'expr') listChanged = _animaExprTouch(s.id);
+            if (s.on && s.group === 'pose') listChanged = _animaPoseTouch(s.id);
+            _animaSave();
+            if (listChanged) { _animaRenderSnippets(); return; }
+            _animaSyncChipStates();      // 칩·아이콘 선택 표시만 갱신 (DOM 유지 → 눌림 모션이 끝까지 재생됨)
+            _animaSyncGrpBtns();         // 하단 바 '가슴·포즈' 버튼의 값·✕ 갱신
+            try { _animaRenderPromptFold(); } catch (e) {}   // ② 프롬프트 접힘 요약줄
+        }
+        // 팝오버(후타 상세 / 가슴·포즈)만 제자리에서 갈아 끼운다 — 하단 바 전체를 다시 그리지 않으려고.
+        //  전체를 다시 그리면 방금 누른 아이콘·버튼이 사라져 눌림 모션이 끊긴다(_animaToggleSnip 주석 참고).
+        function _animaSyncPops() {
+            const mact = _animaEl('#anima-mact'); if (!mact) return;
+            ['#anima-futapop', '#anima-grppop'].forEach(sel => { const el = mact.querySelector(sel); if (el) el.remove(); });
+            const html = _animaFutaPopHtml() + _animaGrpPopHtml();
+            if (html) mact.insertAdjacentHTML('afterbegin', html);
+            _animaBindFutaPop(mact); _animaBindGrpPop(mact);
+            try { _animaSyncMactHeight(); } catch (e) {}
+        }
+        // 하단 바 '가슴 / 포즈' 버튼 — 다시 그리지 않고 안의 값과 ✕만 갈아 끼운다.
+        function _animaSyncGrpBtns() {
+            const mact = _animaEl('#anima-mact'); if (!mact) return;
+            mact.querySelectorAll('.anima-gbtn[data-grp]').forEach(b => {
+                const key = b.dataset.grp, lab = key === 'bust' ? '가슴' : '포즈';
+                const on = _animaGroupList(key).find(s => s.on);
+                b.classList.toggle('on', !!on);
+                let v = b.querySelector('.anima-gbtn-v'), x = b.querySelector('.anima-gbtn-x');
+                if (on) {
+                    if (!v) { v = document.createElement('span'); v.className = 'anima-gbtn-v'; b.appendChild(v); }
+                    v.textContent = on.name;
+                    if (!x) {
+                        x = document.createElement('span');
+                        x.className = 'anima-gbtn-x'; x.dataset.grpx = key;
+                        x.setAttribute('role', 'button');
+                        x.setAttribute('aria-label', lab + ' 선택 해제'); x.title = lab + ' 선택 해제';
+                        x.innerHTML = '<i>✕</i>';
+                        b.appendChild(x);
+                    }
+                } else { if (v) v.remove(); if (x) x.remove(); }
             });
         }
         // ── 하단 바 아이콘(인라인 SVG) ──────────────────────────────────────
@@ -9016,14 +9085,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _animaBindGrpPop(root) {
             const pop = root.querySelector('#anima-grppop'); if (!pop) return;
             pop.addEventListener('click', (e) => e.stopPropagation());
-            pop.querySelectorAll('.anima-chip[data-gd]').forEach(c => c.onclick = () => {
-                const sn = _anima.snippets.find(x => x.id === c.dataset.gd); if (!sn) return;
-                sn.on = !sn.on;
-                // 같은 그룹은 하나만 (켜진 걸 다시 누르면 해제 → 원본 그대로)
-                if (sn.on) _anima.snippets.forEach(x => { if (x !== sn && x.group === sn.group) x.on = false; });
-                if (sn.on && sn.group === 'pose') _animaPoseTouch(sn.id);
-                _animaSave(); _animaRenderSnippets();   // 팝오버는 열린 채 유지 → 연달아 고를 수 있게
-            });
+            // 팝오버 안의 항목도 다시 그리지 않는다 — 팝오버는 어차피 열린 채 유지되고,
+            //  다시 그리면 방금 누른 칩이 사라져 눌림 모션이 끊긴다(_animaToggleSnip 주석 참고).
+            pop.querySelectorAll('.anima-chip[data-gd]').forEach(c => c.onclick = () => _animaToggleSnip(c.dataset.gd));
             const x = pop.querySelector('#anima-gp-x');
             if (x) x.onclick = () => { _animaGrpPop = null; _animaRenderSnippets(); };
         }
@@ -9050,14 +9114,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (s.on) _anima.snippets.forEach(x => { if (x !== s && x.group === 'futa') x.on = false; });
                 _animaSave(); _animaRenderSnippets();   // 상세 행이 생겼다 사라지므로 전체 재그리기
             });
-            box.querySelectorAll('.anima-chip[data-id]').forEach(c => c.onclick = () => {
-                const s = _anima.snippets.find(x => x.id === c.dataset.id); if (!s) return;
-                s.on = !s.on;
-                if (s.on && s.group) _anima.snippets.forEach(x => { if (x !== s && x.group === s.group) x.on = false; });
-                if (s.on && s.group === 'expr') _animaExprTouch(s.id);
-                if (s.on && s.group === 'pose') _animaPoseTouch(s.id);
-                _animaSave(); _animaRenderSnippets();
-            });
+            box.querySelectorAll('.anima-chip[data-id]').forEach(c => c.onclick = () => _animaToggleSnip(c.dataset.id));
             const pe = box.querySelector('.anima-chip[data-act="exprOpen"]');
             if (pe) pe.onclick = () => { _animaExprOpen = !_animaExprOpen; _animaRenderSnippets(); };
             const pp = box.querySelector('.anima-chip[data-act="poseOpen"]');
@@ -9119,22 +9176,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const id = b.dataset.futa, s = _anima.snippets.find(x => x.id === id); if (!s) return;
                     // 켜져 있는데 상세가 닫혀 있으면(바깥을 눌러 닫은 뒤) 끄지 말고 '상세를 다시 연다'.
                     //  안 그러면 상세를 다시 보려고 눌렀다가 후타가 꺼져 두 번 눌러야 한다.
-                    if (s.on && _animaFutaPop !== id) { _animaFutaPop = id; _animaRenderSnippets(); return; }
+                    if (s.on && _animaFutaPop !== id) { _animaFutaPop = id; _animaSyncPops(); return; }
                     s.on = !s.on;
                     if (s.on) _anima.snippets.forEach(x => { if (x !== s && x.group === 'futa') x.on = false; });
                     _animaFutaPop = s.on ? id : null;   // 상세가 열린 상태에서 같은 크기를 누르면 끄고 닫는다
-                    _animaSave(); _animaRenderSnippets();
+                    _animaSave();
+                    // 팝오버만 갈아 끼우고 아이콘 선택 표시는 제자리 갱신 → 누른 아이콘이 살아남는다
+                    _animaSyncPops(); _animaSyncChipStates();
+                    try { _animaRenderPromptFold(); } catch (e2) {}
                 });
                 // 표정·포즈 — 목록에 이미 있으면 순서 유지, 펼침에서 고른 '신규'만 각자의 최근 목록 맨 앞으로
                 //  ★ 최근 목록은 그룹별로 따로 관리 — 포즈 칩이 표정 최근 목록의 자리를 잡아먹지 않게 그룹을 보고 넣는다.
-                mact.querySelectorAll('.anima-chip[data-id]').forEach(c => c.onclick = () => {
-                    const id = c.dataset.id, s = _anima.snippets.find(x => x.id === id); if (!s) return;
-                    s.on = !s.on;
-                    if (s.on) _anima.snippets.forEach(x => { if (x !== s && x.group === s.group) x.on = false; });
-                    if (s.on && s.group === 'expr') _animaExprTouch(id);
-                    if (s.on && s.group === 'pose') _animaPoseTouch(id);
-                    _animaSave(); _animaRenderSnippets();
-                });
+                mact.querySelectorAll('.anima-chip[data-id]').forEach(c => c.onclick = () => _animaToggleSnip(c.dataset.id));
                 const eo = mact.querySelector('.anima-chip[data-act="exprOpen"]');
                 if (eo) eo.onclick = () => { _animaExprOpen = !_animaExprOpen; _animaRenderSnippets(); };
                 // 가슴·포즈 버튼 — ✕를 눌렀으면 '해제', 그 밖을 눌렀으면 팝오버 열기/닫기(같은 버튼 재클릭 시 닫힘)
@@ -9147,15 +9200,20 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         const k = x.dataset.grpx;
                         const hit = _animaGroupList(k).find(s => s.on);
                         if (!hit) return;
-                        hit.on = false;
-                        _animaGrpPop = null;
-                        _animaSave();
-                        _animaRenderSnippets();   // 눌린 반응은 pointerdown이 이미 줬으므로 지연시키지 않는다
+                        // 다시 그리지 않고 그 자리에서 지운다 — 다시 그리면 방금 누른 ✕가 사라져
+                        //  눌림 모션이 끊긴다(_animaToggleSnip 주석 참고).
+                        //  팝오버가 열려 있었다면 예전처럼 닫아 준다(요소만 걷어내고 다시 그리진 않는다).
+                        if (_animaGrpPop) {
+                            _animaGrpPop = null;
+                            const pop = mact.querySelector('#anima-grppop'); if (pop) pop.remove();
+                            try { _animaSyncMactHeight(); } catch (e2) {}
+                        }
+                        _animaToggleSnip(hit.id);
                         return;
                     }
                     const k = b.dataset.grp;
                     _animaGrpPop = (_animaGrpPop === k) ? null : k;
-                    _animaRenderSnippets();
+                    _animaSyncPops();   // 팝오버만 갈아 끼운다 → 누른 버튼이 살아남아 눌림 모션이 끝까지 재생됨
                 });
                 const meb = mact.querySelector('#anima-mact-editbtn');
                 if (meb) meb.onclick = () => { _animaSnipEditOpen = true; _animaRenderSnipEdit(); try { _animaEl('#anima-snip-edit').scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {} };
