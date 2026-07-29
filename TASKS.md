@@ -84,9 +84,26 @@
   - `latent_image`는 원본(76) 유지. denoise=1이면 이 latent는 '출력 크기 틀'일 뿐이라 비율을 원본에 맞춘다.
   - ★ **참조 강도 자동 하향**(`cnRefWeight`, 기본 0.5). 이걸 빼면 모델을 받아도 증상이 그대로다.
     경계는 그림마다 다르므로 **[포즈 강도 전부 돌리기]** 축(0.8~0.2, 5장)으로 실측.
-- **다음(사용자)**: 준비물 확인 → 없는 것 설치 → 포즈 그림 넣고 한 장 → [포즈 강도 전부 돌리기]로 경계 찾기.
-  그래도 안 되면 남은 의심은 **Cosmos Reference와 ReferenceLatent가 같은 조건 슬롯을 두고 싸우는 것** —
-  그 경우 Cosmos 조건화를 건너뛰고 골격만 쓰는 모드(캐릭터 유지는 포기)를 시험한다.
+- **★ A는 폐기(v9.103.0에서 차단) — 아키텍처 불일치. 다시 시도하기 전에 반드시 읽을 것:**
+  - **Anima의 백본은 NVIDIA Cosmos Predict 2.5다. Qwen-Image가 아니다.**
+    근거는 워크플로우 자체 — `ApplyCosmosReferenceModelPatch` / `CosmosReferenceConditioning`을 쓰고,
+    예전 기본값 `lora2Name`이 `Cosmos-Predict2.5-2B-base-distilled-LoRA.safetensors`였다.
+    `qwen_image_vae`·`qwen_3_06b_base`는 **VAE와 텍스트 인코더일 뿐** 디퓨전 백본이 아니다.
+    → TASKS.md에 "Qwen-Image용 ControlNet 존재"라고 적혀 있던 것을 그대로 믿고 진행한 게 실수였다.
+      **다음에 모델 관련 작업을 할 땐 백본부터 확인한다.**
+  - `qwen_image_union_diffsynth_lora`는 Qwen-Image DiT용이라 레이어가 대응되지 않는다.
+    `ReferenceLatent`도 Qwen/Flux 계열 조건화 노드다.
+  - **실측 증상(사용자 검증)**: 포즈 그림을 넣으니 **결과 배경이 새까매지고 인물이 세로로 뭉개짐**.
+    골격 그림(검은 배경)이 '구조 안내'가 아니라 **두 번째 참조 이미지**로 들어간 것. 배선은 맞았고 메커니즘이 틀렸다.
+  - 차단 방식: `_ANIMA_CN_SUPPORTED = false` 한 곳. 탐지·배선·골격 그리기 코드는 남겨 뒀다
+    (Cosmos용 포즈 제어 수단이 생기면 이 플래그만 열면 된다).
+  - **전송 워크플로우가 v9.101.0과 완전히 동일함을 테스트로 증명**(`vcnoff.js` 23종).
+    노드 구성·참조 강도(1)·gating·KSampler 연결 전부 기준선과 일치.
+- **내장 포즈 골격 그리기 코드는 만들어 뒀다**(`_ANIMA_POSE_SKEL` 6종 + `_animaDrawSkel`).
+  사용자가 원한 건 '포즈 그림 업로드'가 아니라 **고른 칩이 그대로 먹히는 것**이었고, 그 답은
+  앱이 골격을 직접 그리는 것이다(전처리기 의존도 사라진다). 메커니즘만 맞으면 바로 쓸 수 있다.
+- **다음(재시도 시)**: ①Cosmos Predict 2.5용 포즈/구조 제어 수단이 있는지부터 조사
+  ②없으면 포즈는 프롬프트 한계로 인정하고 B(경고 표시)로 유지
 - **ControlNet 조사 완료**: Qwen-Image용 존재. openpose는 **Union DiffSynth LoRA** 방식
   (`qwen_image_union_diffsynth_lora.safetensors` → `ComfyUI/models/loras/`, `LoraLoaderModelOnly`).
   전처리기는 **이미지 변환 테마에 이미 구현돼 작동 중**(`OpenposePreprocessor` +

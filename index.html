@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.102.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.103.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1255,7 +1255,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.102.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.103.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2049,7 +2049,17 @@
         const CHANGELOG = [
             // ── 2026-07-29 ──────────────────────────────────────────────────
             {
-                version: 'v9.102.0', date: '2026-07-29', time: '최신',
+                version: 'v9.103.0', date: '2026-07-29', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] 바로 전에 넣은 <b>포즈 고정(ControlNet)</b>을 <b>껐습니다</b> — 이 모델에서는 안 되는 방식이었습니다. 켜고 뽑으면 <b>배경이 새까매지고 인물이 무너지던</b> 그 증상의 원인입니다.",
+                    "[Anima 편집] 이유는 <b>바탕 모델이 달라서</b>입니다. Anima는 <b>Cosmos</b> 계열인데 포즈용 ControlNet은 <b>Qwen-Image</b>용으로 만들어진 것이라, 골격 그림이 '자세 안내'가 아니라 <b>두 번째 참조 그림</b>으로 들어가 버립니다.",
+                    "[Anima 편집] <b>포즈 말고는 아무것도 달라지지 않았습니다</b> — 표정·후타·가슴·품질·갤러리는 전부 그대로입니다. 보내는 내용도 포즈 고정을 넣기 전과 <b>완전히 동일</b>합니다.",
+                    "[Anima 편집] 포즈에 붙은 <b>주황색 점 안내는 그대로 둡니다</b> — 원본 자세를 바꾸는 포즈가 잘 안 먹는 건 여전히 사실이라, 뽑기 전에 아는 편이 낫습니다.",
+                ]
+            },
+            {
+                version: 'v9.102.0', date: '2026-07-29', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] <b>포즈 고정(ControlNet)</b>이 들어갔습니다 — 고급 설정에 새 칸이 생겼어요. <b>원하는 자세가 담긴 그림</b>을 넣으면 거기서 <b>골격만</b> 뽑아 씁니다 (그림 속 인물·화풍은 안 따라옵니다).",
@@ -8102,9 +8112,114 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!lora && _anima.cnLoraName) { _anima.cnLoraName = ''; try { _animaSave(); } catch (e) {} }
             return _animaCnInfo;
         }
-        function _animaCnReady() { return !!(_animaCnInfo && _animaCnInfo.conn && _animaCnInfo.preproc && _animaCnInfo.lora); }
-        // 포즈 고정이 '실제로 적용되는' 조건 — 설정이 켜져 있고, 준비물이 있고, 포즈 참조 그림이 올라와 있어야 한다.
-        function _animaCnActive(S) { return !!(S && S.cnPose && S.cnLoraName && _anima.poseImg && _anima.poseImg.dataURL); }
+        // 준비 완료 = LoRA만 있으면 된다. 내장 골격은 앱이 직접 그리니 전처리기가 필요 없다.
+        //  (전처리기는 '포즈 그림 직접 넣기'를 쓸 때만 필요 → 그건 _animaCnCanUpload로 따로 판정)
+        function _animaCnReady() { return !!(_animaCnInfo && _animaCnInfo.conn && _animaCnInfo.lora); }
+        function _animaCnCanUpload() { return !!(_animaCnReady() && _animaCnInfo.preproc); }
+        // 포즈 고정이 '실제로 적용되는' 조건 — 켜져 있고, LoRA가 있고, 보낼 골격이 있어야 한다.
+        //  골격은 ①고른 포즈의 내장 골격(기본) ②직접 넣은 포즈 그림(탈출구) 순으로 정한다.
+        function _animaCnSource() {
+            if (!(_anima.cnPose && _anima.cnLoraName)) return null;
+            const p = _animaSkelPose();
+            if (p) return { kind: 'skel', poseId: p.id, name: p.name };
+            if (_animaCnCanUpload() && _anima.poseImg && _anima.poseImg.dataURL) return { kind: 'img', name: _anima.poseImg.name || '넣은 그림' };
+            return null;
+        }
+        // ★★ 현재 비활성 — 아키텍처가 맞지 않는다 (v9.103.0에서 차단) ★★
+        //  Anima의 백본은 NVIDIA Cosmos Predict 2.5다. 근거는 이 워크플로우 자체:
+        //   ApplyCosmosReferenceModelPatch / CosmosReferenceConditioning 노드를 쓰고,
+        //   예전 기본값 lora2Name이 'Cosmos-Predict2.5-2B-base-distilled-LoRA.safetensors'였다.
+        //   (qwen_image_vae·qwen_3_06b는 VAE와 텍스트 인코더일 뿐, 디퓨전 백본이 아니다)
+        //  반면 qwen_image_union_diffsynth_lora는 'Qwen-Image'의 DiT용으로 학습된 LoRA라
+        //  레이어가 대응되지 않는다. ReferenceLatent도 Qwen/Flux 계열 조건화 노드다.
+        //  실측 증상: 골격 그림(검은 배경)이 '구조'가 아니라 '두 번째 참조 이미지'로 들어가
+        //  결과 배경이 새까매지고 인물이 무너졌다. 배선은 맞았지만 메커니즘이 틀렸다.
+        //  → 코드는 남겨 둔다. Cosmos용 포즈 제어 수단이 나오면 여기만 열면 된다.
+        const _ANIMA_CN_SUPPORTED = false;
+        function _animaCnActive(S) { return !!(_ANIMA_CN_SUPPORTED && S && S.cnPose && S.cnLoraName && _animaCnSource()); }
+
+        // ══ 내장 포즈 골격 ═══════════════════════════════════════════════════
+        //  포즈 칩을 고르면 앱이 그 자리에서 OpenPose 골격을 '그려서' 보낸다.
+        //  ★ 그래서 전처리기(comfyui_controlnet_aux)가 필요 없다 — 사진에서 뽑을 게 없으니까.
+        //    (전처리기는 '포즈 그림 직접 넣기'를 쓸 때만 필요하다)
+        //  좌표는 COCO-18 순서, 0~1 정규화. 화면 기준이라 인물의 오른쪽(R)이 왼쪽에 온다.
+        //   0코 1목 2우깨 3우팔꿈 4우손 5좌깨 6좌팔꿈 7좌손 8우골반 9우무릎 10우발
+        //   11좌골반 12좌무릎 13좌발 14우눈 15좌눈 16우귀 17좌귀
+        //  ※ 손으로 짠 근사치다. 미리보기로 보고 어색하면 좌표를 고치면 된다.
+        const _ANIMA_POSE_SKEL = {
+            // 정면 직립 — 팔은 몸 옆, 전신
+            pose_stand_front: [[.50,.10],[.50,.17],[.42,.18],[.39,.30],[.37,.42],[.58,.18],[.61,.30],[.63,.42],
+                [.455,.47],[.45,.66],[.44,.86],[.545,.47],[.55,.66],[.56,.86],[.475,.088],[.525,.088],[.45,.095],[.55,.095]],
+            // 게다리+더블피스 — 누워서 무릎을 넓게 벌려 올리고, 두 손은 얼굴 옆에서 브이
+            pose_mlegs_vsign: [[.50,.13],[.50,.21],[.41,.23],[.33,.20],[.40,.13],[.59,.23],[.67,.20],[.60,.13],
+                [.44,.55],[.22,.60],[.33,.80],[.56,.55],[.78,.60],[.67,.80],[.475,.115],[.525,.115],[.45,.125],[.55,.125]],
+            // 손으로 벌려 보이기 — 다리를 벌리고 두 손을 아래(가랑이)로
+            pose_spread_pussy: [[.50,.11],[.50,.19],[.42,.21],[.38,.34],[.455,.55],[.58,.21],[.62,.34],[.545,.55],
+                [.45,.50],[.32,.66],[.28,.85],[.55,.50],[.68,.66],[.72,.85],[.475,.095],[.525,.095],[.45,.105],[.55,.105]],
+            // 엉덩이 내밀기 — 상체를 앞으로 숙여 짧아지고(원근), 골반이 넓고 높다
+            pose_bent_over: [[.48,.24],[.50,.30],[.42,.32],[.38,.46],[.36,.60],[.58,.32],[.62,.46],[.64,.60],
+                [.44,.52],[.42,.71],[.41,.90],[.58,.52],[.60,.71],[.61,.90],[.455,.225],[.505,.225],[.435,.235],[.535,.235]],
+            // 네발 기기 — 머리가 앞(아래)으로 낮고 팔은 바닥, 엉덩이가 높다
+            pose_allfours: [[.50,.20],[.50,.30],[.40,.32],[.37,.48],[.35,.66],[.60,.32],[.63,.48],[.65,.66],
+                [.43,.50],[.38,.70],[.36,.86],[.57,.50],[.62,.70],[.64,.86],[.475,.185],[.525,.185],[.45,.195],[.55,.195]],
+            // 쪼그려 벌리기 — 무릎이 높고 넓게, 발은 그 아래 안쪽
+            pose_squat: [[.50,.14],[.50,.22],[.42,.24],[.36,.36],[.34,.48],[.58,.24],[.64,.36],[.66,.48],
+                [.45,.56],[.28,.60],[.34,.84],[.55,.56],[.72,.60],[.66,.84],[.475,.125],[.525,.125],[.45,.135],[.55,.135]],
+        };
+        // OpenPose 표준 연결·색 (controlnet_aux의 draw_bodypose와 동일해야 모델이 알아본다)
+        const _ANIMA_SKEL_LIMBS = [[1,2],[1,5],[2,3],[3,4],[5,6],[6,7],[1,8],[8,9],[9,10],[1,11],[11,12],[12,13],[1,0],[0,14],[14,16],[0,15],[15,17]];
+        const _ANIMA_SKEL_COLORS = [[255,0,0],[255,85,0],[255,170,0],[255,255,0],[170,255,0],[85,255,0],[0,255,0],[0,255,85],[0,255,170],
+            [0,255,255],[0,170,255],[0,85,255],[0,0,255],[85,0,255],[170,0,255],[255,0,255],[255,0,170],[255,0,85]];
+        function _animaHasSkel(id) { return !!_ANIMA_POSE_SKEL[id]; }
+        // 지금 켜져 있는 포즈 중 내장 골격이 있는 것
+        function _animaSkelPose() { return (_anima.snippets || []).find(s => s.on && s.group === 'pose' && _animaHasSkel(s.id)) || null; }
+        // 골격을 캔버스에 그려 dataURL로. 검은 배경 + 표준 색 팔다리 + 관절 원.
+        function _animaDrawSkel(kps, w, h) {
+            const c = document.createElement('canvas'); c.width = w; c.height = h;
+            const g = c.getContext('2d');
+            g.fillStyle = '#000'; g.fillRect(0, 0, w, h);
+            const P = kps.map(p => p && [p[0] * w, p[1] * h]);
+            // 팔다리 — 두 관절을 잇는 납작한 타원(원본 구현과 같은 모양). 반투명으로 겹침을 살린다.
+            const sw = Math.max(3, Math.round(Math.min(w, h) / 160));
+            g.globalAlpha = 0.6;
+            _ANIMA_SKEL_LIMBS.forEach((lk, i) => {
+                const a = P[lk[0]], b = P[lk[1]]; if (!a || !b) return;
+                const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+                const len = Math.hypot(a[0] - b[0], a[1] - b[1]);
+                const ang = Math.atan2(a[1] - b[1], a[0] - b[0]);
+                const col = _ANIMA_SKEL_COLORS[i % _ANIMA_SKEL_COLORS.length];
+                g.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
+                g.beginPath(); g.ellipse(mx, my, len / 2, sw, ang, 0, Math.PI * 2); g.fill();
+            });
+            // 관절 — 불투명 원
+            g.globalAlpha = 1;
+            P.forEach((p, i) => {
+                if (!p) return;
+                const col = _ANIMA_SKEL_COLORS[i % _ANIMA_SKEL_COLORS.length];
+                g.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
+                g.beginPath(); g.arc(p[0], p[1], sw, 0, Math.PI * 2); g.fill();
+            });
+            return c.toDataURL('image/png');
+        }
+        // 원본 이미지의 가로세로 비를 따라 그린다 — 비가 다르면 골격이 늘어나 자세가 어긋난다.
+        function _animaSrcAspect() {
+            return new Promise(res => {
+                const d = _anima.img && _anima.img.dataURL;
+                if (!d) return res([768, 1152]);
+                const im = new Image();
+                im.onload = () => {
+                    const long = 1024, r = im.naturalWidth / im.naturalHeight;
+                    res(r >= 1 ? [long, Math.round(long / r)] : [Math.round(long * r), long]);
+                };
+                im.onerror = () => res([768, 1152]);
+                im.src = d;
+            });
+        }
+        async function _animaSkelDataURL(poseId) {
+            const kps = _ANIMA_POSE_SKEL[poseId]; if (!kps) return null;
+            const [w, h] = await _animaSrcAspect();
+            return _animaDrawSkel(kps, w, h);
+        }
 
         function _animaNode(cls, widgetVals, links) {
             const info = _animaObjCache[cls] || { names: (_ANIMA_FALLBACK_NAMES[cls] || []), defaults: {} };
@@ -8126,14 +8241,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
             return wf;
         }
-        async function _animaBuildWorkflow(pos, imageName, seedArg, settingsOverride, poseName) {
+        async function _animaBuildWorkflow(pos, imageName, seedArg, settingsOverride, poseName, poseIsSkel) {
             const S = settingsOverride || _anima;   // 대기열 작업은 스냅샷된 설정을 사용(실행 시점 값에 오염되지 않게)
             const seed = (seedArg != null) ? seedArg : _animaSeedVal();
             // 포즈 고정은 '설정이 켜짐 + union LoRA 이름 확보 + 포즈 그림 업로드됨' 셋이 다 맞을 때만 배선한다.
             const cn = !!(S.cnPose && S.cnLoraName && poseName);
             const cnPre = (_animaCnInfo && _animaCnInfo.preproc) || 'DWPreprocessor';
             // 위젯 이름이 특이한 커스텀/일부 노드는 설치본 기준으로 보정(누락 방지)
-            const _pre = ['ImageScaleToTotalPixels', 'CosmosReferenceConditioning'].concat(cn ? [cnPre] : []);
+            const _pre = ['ImageScaleToTotalPixels', 'CosmosReferenceConditioning'].concat((cn && !poseIsSkel) ? [cnPre] : []);
             try { await Promise.all(_pre.map(_animaLoadNodeInfo)); } catch (e) {}
             const wf = {};
             // ── 로더 ──
@@ -8175,8 +8290,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             let _pos = ['71', 0], _neg = ['71', 1];
             if (cn) {
                 wf['93'] = { class_type: 'LoadImage', inputs: { image: poseName } };
-                wf['94'] = _animaNode(cnPre, ['enable', 'enable', 'enable', 1024], { image: ['93', 0] });
-                wf['95'] = _animaNode('ImageScaleToTotalPixels', [S.upscaleMethod, S.megapixels, 64], { image: ['94', 0] });
+                // 앱이 그린 골격이면 이미 스켈레톤이라 전처리를 건너뛴다(사진일 때만 관절을 뽑는다)
+                let _skelRef = ['93', 0];
+                if (!poseIsSkel) { wf['94'] = _animaNode(cnPre, ['enable', 'enable', 'enable', 1024], { image: ['93', 0] }); _skelRef = ['94', 0]; }
+                wf['95'] = _animaNode('ImageScaleToTotalPixels', [S.upscaleMethod, S.megapixels, 64], { image: _skelRef });
                 wf['96'] = { class_type: 'VAEEncode', inputs: { pixels: ['95', 0], vae: ['62', 0] } };
                 wf['97'] = { class_type: 'ReferenceLatent', inputs: { conditioning: ['71', 0], latent: ['96', 0] } };
                 wf['98'] = { class_type: 'ReferenceLatent', inputs: { conditioning: ['71', 1], latent: ['96', 0] } };
@@ -8430,8 +8547,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 클릭 순간의 값들을 먼저 확정(썸네일 생성 await 사이에 설정이 바뀌어도 안 섞이게)
             const seed = _animaSeedVal();   // -1이면 지금 랜덤 확정 → 대기열 항목마다 다른 시드
             const snap = { dataURL: _anima.img.dataURL, uploadedName: _anima.uploadedName };
-            // 포즈 고정이 켜져 있으면 그 순간의 포즈 그림도 같이 고정 — 대기 중에 바꿔도 안 섞이게(원본과 같은 규칙)
-            if (_animaCnActive(_anima)) { snap.poseDataURL = _anima.poseImg.dataURL; snap.poseUploadedName = _anima.poseUploadedName; }
+            // 포즈 고정이 켜져 있으면 그 순간의 골격도 같이 고정 — 대기 중에 포즈를 바꿔도 안 섞이게
+            const _cs = _animaCnActive(_anima) ? _animaCnSource() : null;
+            if (_cs && _cs.kind === 'skel') {
+                // 고른 포즈의 내장 골격을 지금 그린다(원본 비율에 맞춰). 매번 새로 그리므로 업로드도 매번.
+                snap.poseDataURL = await _animaSkelDataURL(_cs.poseId);
+                snap.poseUploadedName = null; snap.poseIsSkel = true;
+            } else if (_cs) {
+                snap.poseDataURL = _anima.poseImg.dataURL; snap.poseUploadedName = _anima.poseUploadedName;
+            }
             const settings = _animaSnapshotSettings();   // 고급 설정도 이 순간 값으로 고정 → 대기 중 바꿔도 안 섞임
             // 대기열 '표시용' 작은 썸네일(≈128px). 원본 768 dataURL을 목록에 박으면 30개일 때 HTML이 수백 KB라 렌더가 느려짐 → 작게.
             let qthumb = _anima.imgThumb || snap.dataURL || '';
@@ -8521,7 +8645,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 let poseName = job.snap.poseUploadedName || null;
                 if (!poseName && job.snap.poseDataURL) {
                     let pblob = null, pjpg = false;
-                    try { const d = await _animaDownscaledBlob(job.snap.poseDataURL, 1024); if (d) { pblob = d; pjpg = true; } } catch (e) {}
+                    // ★ 앱이 그린 골격은 절대 JPEG로 다시 굽지 않는다 — OpenPose는 '색'이 관절 정보라
+                    //   압축으로 색이 번지면 모델이 팔다리를 잘못 읽는다. 사진일 때만 줄여서 올린다.
+                    if (!job.snap.poseIsSkel) {
+                        try { const d = await _animaDownscaledBlob(job.snap.poseDataURL, 1024); if (d) { pblob = d; pjpg = true; } } catch (e) {}
+                    }
                     if (!pblob) pblob = _dataURLtoBlob(job.snap.poseDataURL);
                     const pext0 = (job.snap.poseDataURL.match(/^data:image\/(\w+)/) || [, 'png'])[1];
                     const pext = pjpg ? 'jpg' : (pext0 === 'jpeg' ? 'jpg' : pext0);
@@ -8535,8 +8663,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         const c = JSON.parse(st.customWf);
                         if (c && c.nodes && c.links) { showToast('붙여넣은 JSON이 에디터 형식이에요. ComfyUI에서 Save (API Format)으로 받아 붙여넣으세요.', 'error', 7000); job.status = 'error'; job.err = 'JSON 형식(에디터)'; _animaSyncBusy(); _animaPump(); return; }
                         wf = _animaInjectInto(c, job.prompt, name, job.seed);
-                    } catch (e) { wf = await _animaBuildWorkflow(job.prompt, name, job.seed, st, poseName); }
-                } else { wf = await _animaBuildWorkflow(job.prompt, name, job.seed, st, poseName); }
+                    } catch (e) { wf = await _animaBuildWorkflow(job.prompt, name, job.seed, st, poseName, job.snap.poseIsSkel); }
+                } else { wf = await _animaBuildWorkflow(job.prompt, name, job.seed, st, poseName, job.snap.poseIsSkel); }
                 const cid = (typeof _comfyClientId !== 'undefined' && _comfyClientId) ? _comfyClientId : (typeof _comfyUUID === 'function' ? _comfyUUID() : String(Math.random()));
                 const data = await _animaRetry(() => _animaPostPrompt(base, wf, cid), 2);   // 전송 네트워크 실패 재시도(노드 오류는 즉시 실패)
                 job.pid = data.prompt_id; job.status = 'running';   // uploading→running: 이제 _animaSubmittingNow()=거짓 → 다음 작업 전송 가능
@@ -10258,6 +10386,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         // ── 포즈 고정 패널 ────────────────────────────────────────────────────
         //  준비물이 없으면 '무엇이 / 어디에'만 보여주고 토글은 잠근다. 받으라고 재촉하지 않는다.
         function _animaCnPanelHtml() {
+            // 이 모델에선 쓸 수 없다는 걸 숨기지 않고 그대로 말한다 — 스위치를 주면 눌러 보고 망친다.
+            if (!_ANIMA_CN_SUPPORTED) {
+                return `<div class="anima-cn-st bad">이 모델에서는 <b>쓸 수 없습니다</b> — 껐습니다.</div>
+                    <div class="anima-cn-hint">Anima의 바탕 모델은 <b>Cosmos</b> 계열인데, 포즈용 ControlNet은 <b>Qwen-Image</b>용으로 만들어진 것이라 서로 맞지 않습니다.
+                    억지로 붙이면 골격 그림이 '자세 안내'가 아니라 <b>두 번째 참조 그림</b>으로 들어가서, 배경이 새까매지고 인물이 무너집니다 (실제로 그렇게 나왔습니다).<br>
+                    <b>포즈 말고 다른 기능은 전혀 달라지지 않았습니다</b> — 표정·후타·가슴·품질은 그대로입니다.<br>
+                    Cosmos에 맞는 포즈 제어 수단을 찾으면 이 자리에 다시 켜집니다.</div>`;
+            }
             const i = _animaCnInfo;
             const btn = `<button class="anima-btn ghost anima-cn-chk" id="anima-cn-chk">🔍 준비물 확인</button>`;
             if (!i) {
@@ -10401,8 +10537,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (cpb) cpb.onclick = async () => {
                 try {
                     // 포즈 고정이 켜져 있으면 복사본에도 그 배선이 들어가야 '전송되는 JSON'이라는 말이 참이 된다
-                    const _pn = _animaCnActive(_anima) ? (_anima.poseUploadedName || 'pose.png') : null;
-                    const wf = await _animaBuildWorkflow((_anima.prompt || '').trim(), (_anima.img && _anima.img.name || 'input.png'), null, null, _pn);
+                    const _cs2 = _animaCnActive(_anima) ? _animaCnSource() : null;
+                    const _pn = _cs2 ? (_cs2.kind === 'skel' ? 'pose_skeleton.png' : (_anima.poseUploadedName || 'pose.png')) : null;
+                    const wf = await _animaBuildWorkflow((_anima.prompt || '').trim(), (_anima.img && _anima.img.name || 'input.png'), null, null, _pn, !!(_cs2 && _cs2.kind === 'skel'));
                     const s = JSON.stringify(wf, null, 2);
                     if (navigator.clipboard) await navigator.clipboard.writeText(s);
                     showToast('전송되는 워크플로우 JSON을 복사했어요. ComfyUI에 붙여 확인해보세요.', 'success', 3000);
@@ -11167,8 +11304,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         return _animaInjectInto(custom, pos, name, _animaSeedVal());
                     } catch (e) { showToast('붙여넣은 워크플로우 JSON 파싱 실패 — 내장 워크플로우로 진행합니다.', 'warning', 4500); }
                 }
+                const _cs3 = _animaCnActive(_anima) ? _animaCnSource() : null;
+                if (_cs3 && _cs3.kind === 'skel') {
+                    const d = await _animaSkelDataURL(_cs3.poseId);
+                    const nm = await _comfyUploadImage(_dataURLtoBlob(d), 'promptlab_anima_skel_' + Date.now() + '.png');
+                    return await _animaBuildWorkflow(pos, name, null, null, nm, true);
+                }
                 return await _animaBuildWorkflow(pos, name, null, null,
-                    _animaCnActive(_anima) ? await _animaEnsurePoseUploaded() : null);
+                    _cs3 ? await _animaEnsurePoseUploaded() : null, false);
             }
             // ★ 이미지 테마(변환/인페인트)는 항상 최우선 — 커스텀 워크플로우 모드여도 반드시 원본 이미지를 쓰는
             //    img2img/인페인트 워크플로우로 빌드한다. (원본을 안 따라가거나 text2img로 새던 문제의 근본 해결)
