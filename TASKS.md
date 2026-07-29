@@ -54,17 +54,65 @@
   `arrogant` `smug face` `half-lidded eyes` `cat smile` `open mouth smile` `orgasm face` `gasping`
 
 ### 🧪 [Anima] 포즈 타율 — 진단 대기 (사용자 실행 필요)
-- v9.83.0에 **[참조 설정 (진단)]** 스윕 축을 임시로 넣어둠. 포즈 하나 켜고 돌리면
-  `temporal_mask`/`kv_gating` × 강도 1.0/0.7/0.5 = 6장이 같은 시드로 나온다.
-- **판정 후 이 축은 제거한다.** 코드에 `[진단]` 주석 7곳 + `▼▼▼~▲▲▲` 16줄 블록으로 표시해 둠.
-- 결과에 따라: ①kv_gating이 나으면 기본값 교체 ②강도만 낮추면 되면 포즈 켤 때 자동 조정
-  ③둘 다 아니면 ControlNet.
-- **ControlNet 조사 완료**: Qwen-Image용 존재. openpose는 **Union DiffSynth LoRA** 방식
-  (`qwen_image_union_diffsynth_lora.safetensors` → `ComfyUI/models/loras/`, `LoraLoaderModelOnly`).
-  전처리기는 **이미지 변환 테마에 이미 구현돼 작동 중**(`OpenposePreprocessor` +
-  `ControlNetLoader` + `ControlNetApplyAdvanced`, 단 모델이 `OpenPoseXL2`= SDXL용이라 Anima엔 못 씀).
-  앱이 `_comfyNodeEnum()`으로 `/object_info`를 조회하므로 **설치 여부는 앱이 자동 확인 가능**.
-  포즈 지정은 스켈레톤 내장보다 **포즈 참조 이미지 업로드**(기존 업로드 기능 재사용) 방식을 추천.
+> ⚠️ 다른 세션이 이 항목을 집었다가 정보가 부족해 헤맴 → **아래에 전부 적어둠. 코드를 뒤질 필요 없음.**
+
+#### 배경 — 왜 포즈가 잘 안 먹나
+- 워크플로우가 `denoise=1`이라 **입력 latent은 크기만 정하고, 구조는 전부 `CosmosReferenceConditioning`이 준다.**
+- 그 노드가 `refWeight=1`(최대)로 원본의 공간 배치를 붙잡고 있어서, 모델이 팔다리를 **옮기는 대신 덧붙인다.**
+  (실제 증상: 더블피스 시켰더니 **팔이 4개**)
+- 즉 포즈 프롬프트를 아무리 다듬어도, 붙잡는 힘을 안 풀면 한계가 있다.
+
+#### 무엇을 판정하려는가
+`refMode`(붙잡는 **방식**)와 `refWeight`(붙잡는 **세기**)를 한 번에 비교한다.
+방식은 세기 다이얼과 성격이 달라서, **캐릭터는 지키면서 포즈만 풀릴 여지**가 있는지 보는 게 목적.
+
+#### 사용자가 할 일 (집에서, ComfyUI 켜고)
+1. Anima 편집에서 **포즈 하나를 켠다** (예: 다리 벌리기 / 더블피스처럼 원본과 확 다른 것)
+2. **실행 버튼을 길게 눌러** 연속 생성 메뉴를 연다
+3. **`🎛️ 참조 설정 (진단) 전부 돌리기`** 선택 → 같은 시드로 **6장**이 나온다
+   `temporal_mask` 1.0 / 0.7 / 0.5 · `kv_gating` 1.0 / 0.7 / 0.5
+4. 볼 것: **포즈가 바뀌는가** vs **얼굴·체형이 원본에서 얼마나 무너지는가**. 그 둘의 균형점이 답.
+
+#### 판정 후 할 일
+| 결과 | 조치 |
+|---|---|
+| `kv_gating`이 확실히 낫다 | `ANIMA_DEFAULTS`의 `refMode` 기본값을 교체 |
+| 세기만 낮추면 된다 | **포즈를 켤 때만** `refWeight`를 자동으로 낮추기(포즈 해제 시 원복) |
+| 둘 다 아니다 | ControlNet 경로 (아래 참고) |
+
+#### 진단 축 제거 방법 — 코드에 `[진단]` 으로 전부 표시해 둠
+`grep -n "\[진단\]" index.html` → **8줄**이 잡히고, 실제 편집은 **5군데**다
+(앞 3줄은 한 블록이라 통째로 지우면 끝):
+
+| # | 검색어 | 무엇 | 지우면 |
+|---|---|---|---|
+| 1 | `▼▼▼ [진단]` ~ `▲▲▲ [진단]` (16줄, `emo: '🎛️'` 줄 포함) | `_ANIMA_SWEEP_AXES` 안의 축 객체 | **이것만 지워도 기능은 사라짐** |
+| 2 | `const beforeRefM = _anima.refMode` | 스윕 전 원래 값 백업 (`_animaRunSweep`) | 정리용 |
+| 3 | `_anima.refMode = beforeRefM;` | 스윕 후 원복 | 정리용 |
+| 4 | `a.key === 'refmode' /*[진단]*/` — **2곳** (메뉴 필터 / ⚙ 설정 필터) | 성인 꺼짐일 때 축을 남기는 조건 | 정리용 |
+| 5 | `if (axis.apply) { axis.apply(id); }` | 축이 스스로 설정을 바꾸는 경로 | ⚠️ **지금은 이 축만 씀.** 나중에 다른 축이 쓸 수도 있으니 **남겨도 무방** |
+
+부수적으로 같이 지워도 되는 것(안 지워도 무해): `.ax-refmode { --ax-c:#8b5cf6; }` CSS 1줄,
+CHANGELOG v9.83.0 항목(과거 기록이라 **남겨두는 게 맞음**).
+
+#### 관련 코드 위치 (줄번호는 변하므로 이름으로 찾을 것)
+- 축 정의: `_ANIMA_SWEEP_AXES` 배열의 마지막 원소(`key: 'refmode'`)
+- 실제 적용되는 노드: `wf['71'] = _animaNode('CosmosReferenceConditioning', [S.refWeight, S.refMode], ...)`
+- 기본값: `ANIMA_DEFAULTS` 안의 `refWeight: 1, refMode: 'temporal_mask'`
+- 고급 설정 UI: `row('참조 강도', num('refWeight', ...))` + 도움말 `refWeight:` 항목
+- ⚠️ **과거 기본값이 `kv_gating`이었고, 지금은 `temporal_mask`로 강제 이전하는 마이그레이션이 있다.**
+  `const OLD = { ... refMode: 'kv_gating' ... }` 아래
+  `if (_anima.refMode === OLD.refMode) _anima.refMode = 'temporal_mask';`
+  → 판정 결과 `kv_gating`으로 되돌릴 거라면 **이 줄을 반드시 같이 손봐야 한다.**
+  안 그러면 사용자가 켤 때마다 다시 `temporal_mask`로 덮어써진다.
+
+#### ControlNet 경로 (③ 선택 시)
+- Qwen-Image용 ControlNet 존재. openpose는 **Union DiffSynth LoRA** 방식
+  (`qwen_image_union_diffsynth_lora.safetensors` → `ComfyUI/models/loras/`, `LoraLoaderModelOnly`)
+- 전처리기는 **이미지 변환 테마에 이미 구현돼 작동 중**(`OpenposePreprocessor` + `ControlNetLoader` +
+  `ControlNetApplyAdvanced`). 단 그 모델이 `OpenPoseXL2`(SDXL 전용)라 **Anima엔 못 씀** — 모델만 새로 받아야 한다.
+- 앱이 `_comfyNodeEnum()`으로 `/object_info`를 조회하므로 **설치 여부는 앱이 자동 확인 가능**.
+- 포즈 지정 방식은 스켈레톤 내장보다 **포즈 참조 이미지 업로드**(기존 업로드 기능 재사용)를 추천.
 
 ### 🐌 [Anima] 로딩 느림 — 정보 대기
 - 크게 보기는 v9.71.0에서 해결(캐시 미스 + 원본 3장 동시 로드가 원인).
