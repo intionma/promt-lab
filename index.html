@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.78.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.79.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.78.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.79.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2043,7 +2043,17 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.78.0', date: '2026-07-28', time: '최신',
+                version: 'v9.79.0', date: '2026-07-29', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] <b>무발기가 반발기처럼 보이던 문제</b>를 손봤습니다 — 두 상태가 제대로 구분되도록 <b>무발기 쪽을 훨씬 구체적으로</b> 다시 썼습니다. <b>중력에 축 늘어져 덜렁거리고 말랑한</b> 느낌을 직접 서술합니다.",
+                    "[Anima 편집] 반발기도 <b>'반쯤 서기 시작한'</b> 상태로 다시 적었습니다. 예전에 들어 있던 표현 하나는 <b>거의 쓰이지 않는 말</b>이라 빼고, 실제로 통하는 서술로 바꿨습니다.",
+                    "[Anima 편집] 핏줄은 <b>반발기엔 남기고 무발기엔 뺍니다</b> — 핏줄이 도드라지려면 피가 차 있어야 하는데 그건 곧 발기 상태라서요. 반쯤 선 상태에선 핏줄이 보이는 게 자연스럽습니다.",
+                    "[Anima 편집] 참고로 <b>초거근 + 무발기</b>는 원본 그림 자체가 매우 드문 조합이라 한계가 있습니다 — <b>거근이나 노멀</b>에서 훨씬 확실하게 나옵니다.",
+                ]
+            },
+            {
+                version: 'v9.78.0', date: '2026-07-28', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] 최근 며칠 사이 <b>계속 세지기만 하던 강조를 원래대로</b> 되돌렸습니다 — 포피·발기 옵션은 원래 강조가 없던 항목인데 제가 <b>세 번에 걸쳐 올려</b>, 급기야 <b>'무발기'가 '초거근'보다 더 세지는</b> 상태가 됐습니다. 크기가 주인공이어야 하는데 순서가 뒤집혔던 거예요.",
@@ -7206,8 +7216,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  발기: 고르지 않으면 프리셋의 'erection'(기본 발기). 반/무발기를 고르면 조합 시 erection을 빼서 모순 방지.
             //  포피: glans(귀두 노출)와 foreskin(포경 덮임)은 상호배타 → 한 그룹으로. 고르지 않으면 모델 자연 판단.
             //  사정: 프리셋에서 분리 — 고르지 않으면 사정 없음(기본).
-            { id: 'futa_erect_half', name: '반발기', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: 'half-erect, partially erect, drooping' },
-            { id: 'futa_erect_flaccid', name: '무발기(축 처짐)', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: 'flaccid, limp, hanging down' },
+            { id: 'futa_erect_half', name: '반발기', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: 'half-erect, partially erect penis, starting to harden, still soft at the tip' },
+            { id: 'futa_erect_flaccid', name: '무발기(축 처짐)', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: 'flaccid, completely soft penis, dangling loosely, hanging down between the thighs, drooping under its own weight, soft squishy texture' },
             // 포피 — 젖혀진 정도를 3단계로. 위에서 아래로 '많이 드러남 → 적게 드러남' 순서.
             //  ★ phimosis의 뜻이 핵심이다. 단부루 위키는 "발기 중에 포피가 완전히 젖혀지지 않은 상태"를 전부
             //    phimosis로 태그한다고 명시한다 — 즉 '완전히 덮임'이 아니라 '덜 젖혀진 상태 전체'이고,
@@ -7440,8 +7450,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     //  아래 표는 '지금까지 거쳐 온 모든 옛 값'을 담는다 — 어느 버전에서 올라와도 새 값으로 모인다.
                     {
                         const OLD_DETAIL = {
-                            futa_erect_half:    { texts: ['half-erect', '(half-erect:1.5), partially erect, drooping'], names: ['반발기'] },
-                            futa_erect_flaccid: { texts: ['flaccid', '(flaccid:1.6), limp, hanging down, not erect'],    names: ['무발기(축 처짐)'] },
+                            futa_erect_half:    { texts: ['half-erect', '(half-erect:1.5), partially erect, drooping', 'half-erect, partially erect, drooping'], names: ['반발기'] },
+                            futa_erect_flaccid: { texts: ['flaccid', '(flaccid:1.6), limp, hanging down, not erect', 'flaccid, limp, hanging down'],    names: ['무발기(축 처짐)'] },
                             futa_skin_glans:    { texts: ['glans', ''], names: ['귀두 노출', '귀두 노출(기본)'] },
                             futa_skin_phimosis: { texts: ['phimosis', '(phimosis:1.3), glans, partially retracted foreskin', '(phimosis:1.5), glans, partially retracted foreskin'], names: ['반쯤 까짐', '완전 포경', '귀두 빼꼼'] },
                             futa_skin_foreskin: { texts: ['foreskin', '(foreskin, phimosis:1.4), covered glans', '(foreskin, phimosis:1.5), covered glans'], names: ['포경(덮임)', '포피 덮임', '완전히 덮임'] },
