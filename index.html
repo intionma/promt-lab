@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.95.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.96.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.95.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.96.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2043,7 +2043,16 @@
         const CHANGELOG = [
             // ── 2026-07-29 ──────────────────────────────────────────────────
             {
-                version: 'v9.95.0', date: '2026-07-29', time: '최신',
+                version: 'v9.96.0', date: '2026-07-29', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] <b>후타 상세(발기·포피·사정) 칩과 팝오버 닫기 ✕</b>에도 눌림 반응이 제대로 들어갔습니다 — 지난 버전에서 <b>이 세 곳만 빠져</b> 있었습니다.",
+                    "[Anima 편집] 후타를 켜고 끌 때 <b>화면 전체가 아니라 필요한 부분만</b> 다시 그리도록 정리했습니다. 눌림 반응이 끊기지 않으면서 <b>상세 항목은 정확히 나타났다 사라집니다</b>.",
+                    "[Anima 편집] <b>밝은 테마에서 '몇 장' 배지가 잘 안 보이던 것</b>을 고쳤습니다. 어두운 테마에서도 표정·가슴처럼 밝은 색 항목의 배지가 흐릿했는데 같이 진하게 했습니다.",
+                ]
+            },
+            {
+                version: 'v9.95.0', date: '2026-07-29', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] <b>버튼 눌림 반응이 드디어 제대로 보입니다</b> — 지금까지는 <b>들어가기만 하고 돌아오는 모션이 없어서</b> 뚝 끊겼습니다. 누르는 순간 화면을 다시 그리는 바람에 <b>방금 누른 버튼이 통째로 사라지고</b> 있었거든요. 이제 <b>부드럽게 눌렸다가 부드럽게 돌아옵니다</b>.",
@@ -8486,6 +8495,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const s = _anima.snippets.find(x => x.id === c.dataset.gd); if (!s) return;
                     c.classList.toggle('on', !!s.on);
                 });
+                // 후타 상세 팝오버 안의 칩(data-fd)도 같이
+                box.querySelectorAll('.anima-chip[data-fd]').forEach(c => {
+                    const s = _anima.snippets.find(x => x.id === c.dataset.fd); if (!s) return;
+                    c.classList.toggle('on', !!s.on);
+                });
             });
             // ★ 아이콘(의상·후타)도 함께 갱신 — 예전엔 글자 칩만 갱신해서, 아이콘을 눌러도 선택 표시가
             //   안 바뀌어 '눌러도 아무 반응 없다'로 보이던 버그가 있었다.
@@ -9029,14 +9043,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const pop = root.querySelector('#anima-futapop'); if (!pop) return;
             // 팝오버 내부 클릭이 바깥(문서) 핸들러로 새어나가 다른 UI를 건드리지 않게
             pop.addEventListener('click', (e) => e.stopPropagation());
-            pop.querySelectorAll('.anima-chip[data-fd]').forEach(c => c.onclick = () => {
-                const s = _anima.snippets.find(x => x.id === c.dataset.fd); if (!s) return;
-                s.on = !s.on;
-                if (s.on && s.group) _anima.snippets.forEach(x => { if (x !== s && x.group === s.group) x.on = false; });
-                _animaSave(); _animaRenderSnippets();   // 팝오버는 열린 채로 유지 → 연속 선택 가능
-            });
+            // 상세 칩(발기·포피·사정)도 다시 그리지 않는다 — 팝오버는 어차피 열린 채 유지되고,
+            //  다시 그리면 방금 누른 칩이 사라져 눌림 모션이 끊긴다(_animaToggleSnip 주석 참고).
+            pop.querySelectorAll('.anima-chip[data-fd]').forEach(c => c.onclick = () => _animaToggleSnip(c.dataset.fd));
             const x = pop.querySelector('#anima-fp-x');
-            if (x) x.onclick = () => { _animaFutaPop = null; _animaRenderSnippets(); };
+            if (x) x.onclick = () => { _animaFutaPop = null; _animaSyncPops(); };
         }
         // 팝오버 바깥을 누르면 닫는다. 캡처 단계에서 '열림 상태'만 먼저 끄고, 다시 그리는 건 다음 차례로 미룬다
         //  → 누른 버튼의 원래 동작이 정상적으로 먼저 실행되고, 그 버튼이 어차피 다시 그리면 렌더가 한 번으로 끝난다.
@@ -9047,7 +9058,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (t.closest('#anima-futapop')) return;              // 팝오버 안(발기·포피·사정) → 연속 선택 유지
             if (t.closest('.anima-ico[data-futa]')) return;       // 후타 크기 전환 → 그 크기의 상세로 갈아끼움(자체 처리)
             _animaFutaPop = null;
-            setTimeout(() => { try { if (_animaEl('#anima-futapop')) _animaRenderSnippets(); } catch (err) {} }, 0);
+            //  팝오버만 걷어낸다 — 통째로 다시 그리면 방금 누른 버튼이 사라져 눌림 모션이 끊긴다.
+            setTimeout(() => { try { if (_animaEl('#anima-futapop')) _animaSyncPops(); } catch (err) {} }, 0);
         }
         // 다시 그리는 동안 '보고 있던 위치'를 붙잡아 둔다.
         //  왜 필요한가: ②옵션 영역은 갤러리보다 위에 있어서, 후타 상세 줄이 생기거나 사라지면
@@ -9089,7 +9101,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  다시 그리면 방금 누른 칩이 사라져 눌림 모션이 끊긴다(_animaToggleSnip 주석 참고).
             pop.querySelectorAll('.anima-chip[data-gd]').forEach(c => c.onclick = () => _animaToggleSnip(c.dataset.gd));
             const x = pop.querySelector('#anima-gp-x');
-            if (x) x.onclick = () => { _animaGrpPop = null; _animaRenderSnippets(); };
+            if (x) x.onclick = () => { _animaGrpPop = null; _animaSyncPops(); };
         }
         // 팝오버 바깥을 누르면 닫는다(그 버튼의 원래 동작은 그대로 수행). 후타 팝오버와 같은 규칙.
         function _animaGrpPopOutside(e) {
@@ -9102,6 +9114,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return _animaAnchorScroll(_animaRenderSnippetsInner);
         }
         function _animaRenderSnippetsInner() {
+            _animaRenderPanelOnly();
+            _animaRenderMactOnly();
+        }
+        // ② 옵션 패널만 다시 그린다. 후타를 켜고 끄면 상세 줄(발기·포피·사정)이 생겼다 사라지므로
+        //  이 패널은 실제로 다시 그려야 한다. 하지만 하단 바까지 같이 갈아엎을 이유는 없다
+        //  — 하단 바의 누른 버튼이 사라지면 눌림 모션이 끊긴다(_animaToggleSnip 주석 참고).
+        function _animaRenderPanelOnly() {
             const box = _animaEl('#anima-snips'); if (!box) return;
             // 아이콘 심볼은 문서에 한 번만 주입(본문·하단 바가 공유)
             try { if (_animaDom && !_animaDom.querySelector('.anima-icodefs')) _animaDom.insertAdjacentHTML('afterbegin', _ANIMA_ICON_DEFS); } catch (e) {}
@@ -9120,8 +9139,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const pp = box.querySelector('.anima-chip[data-act="poseOpen"]');
             if (pp) pp.onclick = () => { _animaPoseOpen = !_animaPoseOpen; _animaRenderSnippets(); };
             const eb = box.querySelector('#anima-snip-editbtn'); if (eb) eb.onclick = () => { _animaSnipEditOpen = !_animaSnipEditOpen; _animaRenderSnipEdit(); };
-            // 하단 고정 바 — 의상 4 · 후타 3은 아이콘으로 '바로 탭', 표정은 최근 쓴 것만 한 줄.
-            //  후타 크기를 누르면 그 위로 상세 팝오버(발기·포피·사정)가 뜨고, ✕로만 닫힌다.
+        }
+        // 하단 고정 바 — 의상 4 · 후타 3은 아이콘으로 '바로 탭', 표정은 최근 쓴 것만 한 줄.
+        //  후타 크기를 누르면 그 위로 상세 팝오버(발기·포피·사정)가 뜨고, ✕로만 닫힌다.
+        function _animaRenderMactOnly() {
             const mact = _animaEl('#anima-mact');
             if (mact) {
                 const all = _anima.snippets || [];
@@ -9181,7 +9202,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     if (s.on) _anima.snippets.forEach(x => { if (x !== s && x.group === 'futa') x.on = false; });
                     _animaFutaPop = s.on ? id : null;   // 상세가 열린 상태에서 같은 크기를 누르면 끄고 닫는다
                     _animaSave();
-                    // 팝오버만 갈아 끼우고 아이콘 선택 표시는 제자리 갱신 → 누른 아이콘이 살아남는다
+                    // ② 패널은 상세 줄이 생겼다 사라지므로 다시 그리고, 하단 바는 제자리 갱신만 한다
+                    //  → 방금 누른 아이콘(하단 바)이 살아남아 눌림 모션이 끝까지 재생된다.
+                    _animaAnchorScroll(_animaRenderPanelOnly);
                     _animaSyncPops(); _animaSyncChipStates();
                     try { _animaRenderPromptFold(); } catch (e2) {}
                 });
@@ -10237,8 +10260,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-sweep-row[class*="ax-"] { border-color:var(--ax-c);
             background:color-mix(in srgb,var(--ax-c) 20%,var(--bg-base)); }
           .anima-sweep-row[class*="ax-"] .anima-sweep-nm { color:#fff; font-weight:800; }
+          /* 배지 배경은 transparent로 섞지 않는다 — 그러면 칸 배경(이미 축 색 20%)에 겹쳐
+             밝은 축(표정 주황·가슴 연두)에서 흰 글자 대비가 4:1 아래로 떨어진다.
+             바탕색과 직접 섞어 어둡게 눌러 준다. */
           .anima-sweep-row[class*="ax-"] .anima-sweep-cnt { color:#fff;
-            background:color-mix(in srgb,var(--ax-c) 60%,transparent); }
+            background:color-mix(in srgb,var(--ax-c) 38%,var(--bg-base)); }
           .anima-sweep-row[class*="ax-"] .anima-ax-emo,
           .anima-sweep-row[class*="ax-"] .anima-ax-ico { background:color-mix(in srgb,var(--ax-c) 38%,transparent); }
           .anima-sweep-row[class*="ax-"]:hover { border-color:var(--ax-c,var(--accent-blue,#3b82f6)); }
@@ -10247,8 +10273,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           [data-theme="light"] .anima-sweep-row[class*="ax-"] {
             background:color-mix(in srgb,var(--ax-c) 13%,var(--bg-panel)); }
           [data-theme="light"] .anima-sweep-row[class*="ax-"] .anima-sweep-nm { color:var(--text-main); }
+          /* 배지는 11px짜리 작은 글자라 대비가 4.5:1 이상이어야 읽힌다.
+             72%로는 2.4~4.0에 그쳐(밝은 축일수록 낮음) 더 어둡게 섞는다. */
           [data-theme="light"] .anima-sweep-row[class*="ax-"] .anima-sweep-cnt {
-            color:color-mix(in srgb,var(--ax-c) 72%,#000); background:color-mix(in srgb,var(--ax-c) 22%,transparent); }
+            color:color-mix(in srgb,var(--ax-c) 32%,#000); background:color-mix(in srgb,var(--ax-c) 24%,transparent); }
           .anima-chip.sw { opacity:.5; }
           .anima-chip.sw.on { opacity:1; background:color-mix(in srgb,var(--accent-blue,#3b82f6) 16%,transparent);
             border-color:var(--accent-blue,#3b82f6); color:var(--accent-blue,#3b82f6); }
