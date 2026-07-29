@@ -5,24 +5,20 @@
 
 ## 🔴 진행/대기 (Open)
 
-### 😀 [Anima] 표정 개편 — 일부 확정, 신규 선정 대기
-- **확정**: `홍조`(`blush`) 제거 — `수줍음`(`shy, blush, embarrassed`)에 포함되고 `blush`는 400만 건이라
-  다른 표정에도 자연히 딸려 온다. 사용자도 안 씀.
-- **확정**: `절정`의 `ecstasy` 제거 — danbooru 159건짜리 사실상 유령. `orgasm`(24,936)만 남김.
-  `rolling eyes`도 빼면 `아헤가오`와 구분이 선명해짐(현재 둘이 공유 중).
-- **자주 쓰는 순서**: 아헤가오 > 절정 > 무표정 > 유혹 > 혀 내밀기 > 능글 > 놀람 > 하트눈 > 우는
-  (안 쓰는 것: 미소·수줍음·홍조·화남·삐침·윙크 — 유지하기로 함)
-- **목표 20~25종.** ★ 표정은 **batch로 돌리므로** 추가 1개 = 스윕 1장. 비슷해 보이는 건 넣으면 손해.
-  (단, ⚙ 무엇을 돌릴지 설정에서 스윕 대상은 따로 고를 수 있어 개수 부담은 완화 가능)
-- **batch 관점 추천 4~5개**: 참는 표정 `clenched teeth`(103,299) · 가쁜 숨 `heavy breathing`(50,555) ·
-  메스가키 `mesugaki, smug, naughty face`(4,135) · 얀데레 `yandere, shaded face`(9,339) ·
-  차가운 경멸 `narrowed eyes, looking down, scowl`(136,015)
-- **겹칠 위험이 있어 뺀 것**: 몽롱한 눈(`half-closed eyes` — 유혹에 이미 있음) ·
-  침 흘림(`drooling` — 아헤가오에 있음) · 녹은 얼굴(`torogao` — 절정~아헤가오 사이) ·
-  덧니(`fang` — 표정이 아니라 이빨)
-- 조사해 둔 전체 후보(성인 11 / 귀여움 9 / 경멸 7 / 일반 11)는 세션 기록 참고.
-  0건이라 제외: `bedroom eyes` `trance` `pleasure` `biting lip` `contempt` `condescending` `arrogant`
-  `smug face` `half-lidded eyes` `cat smile` `open mouth smile`
+### 😀 [Anima] 표정 — v9.88.0 대개편 완료, 추가 여지 있음
+- **완료(v9.88.0)**: 15종 → **19종**. 백업은 `EXPR_BACKUP_2026-07-29.md` (마음에 안 들면 그 문서로 롤백).
+  - 홍조 제거 / 절정 강화(`ecstasy` 유령 제거 + `rolling eyes`를 아헤가오에 넘김)
+  - 신규 5종: 참는 표정 · 가쁜 숨 · 메스가키 · 얀데레 · 차가운 경멸
+  - 절정↔아헤가오 **공유 태그 0개**로 분리됨
+- **아직 안 넣은 후보** (목표 20~25종이므로 1~6개 더 여지 있음):
+  - 귀여움: 덧니 `fang`(443,677) · 고양이 입 `:3`(178,066) · 별눈 `star-shaped pupils`(32,381)
+  - 일반: 눈 감음 `closed eyes`(1,031,840) · 살짝 벌린 입 `parted lips`(725,225)
+  - 성인: 넋 나감 `empty eyes`(48,960) · 침 자국 `saliva trail`(27,529) · 신음 `moaning`(17,363)
+- ★ 표정은 **batch로 돌리므로** 추가 1개 = 스윕 1장. 비슷해 보이는 건 넣으면 손해.
+  (겹칠 위험으로 뺐던 것: 몽롱한 눈 — 유혹·절정에 이미 `half-closed eyes` 있음 /
+   침 흘림 — 아헤가오에 `drooling` 있음 / 녹은 얼굴 — 절정에 `torogao`로 흡수됨)
+- 0건이라 제외: `bedroom eyes` `trance` `pleasure` `biting lip` `contempt` `condescending`
+  `arrogant` `smug face` `half-lidded eyes` `cat smile` `open mouth smile` `orgasm face` `gasping`
 
 ### 🧪 [Anima] 포즈 타율 — 진단 대기 (사용자 실행 필요)
 - v9.83.0에 **[참조 설정 (진단)]** 스윕 축을 임시로 넣어둠. 포즈 하나 켜고 돌리면
