@@ -21,6 +21,18 @@
     - 얼굴을 만드는 건 `crazy eyes`(8,570)+`crazy smile`(5,552), 동시 **2,526**
     - `yandere`를 붙이면 조합이 **약해짐**(yandere+crazy smile = 364)
     - 광기 `crazy eyes, crazy smile, shaded face, looking at viewer` / 정적 `empty eyes, smile, shaded face`(1,726)
+- **완료(v9.90.0)**: 메스가키 교정 — `mesugaki, smug, naughty face` → `mesugaki, smug, fang, looking at viewer`
+  - danbooru 위키가 mesugaki 전형으로 **`a single fang / skin fang`** 을 직접 명시
+  - mesugaki와 가장 많이 붙는 얼굴 요소가 `fang`(1,499 / **36.3%**), `smug`+`fang`은 전체 4,094
+  - `naughty face`는 mesugaki와 **256건(6.2%)** 뿐이고, 위키 정의가 *"이거 네 취향인 거 알아"* 쪽
+    **유혹 얼굴**(형제 태그 `seductive smile`) → **'유혹' 프리셋과 겹쳐서** 제거
+    (`naughty face`+`seductive smile` = 1,510 / mesugaki+smug+naughty face 3개 동시 = **56**)
+  - `fang`은 외형이 변하지만 **의도된 것** → J5 참조
+- **완료(v9.91.0)**: `naughty face`(35,396)를 메스가키에서 **'유혹'으로 이설**.
+  위키가 `seductive smile`의 형제로 걸어둔 태그라 유혹이 제자리.
+  `seductive smile, naughty face, half-closed eyes, looking at viewer`
+  (페어 전부 탄탄: seductive smile 1,510 / half-closed eyes 3,685 / looking at viewer 20,053)
+  v9.88.0에서 `rolling eyes`를 절정→아헤가오로 넘긴 것과 같은 정리.
 - **아직 안 넣은 후보** (목표 20~25종이므로 0~5개 더 여지 있음):
   - 귀여움: 덧니 `fang`(443,677) · 고양이 입 `:3`(178,066) · 별눈 `star-shaped pupils`(32,381)
   - 일반: 눈 감음 `closed eyes`(1,031,840) · 살짝 벌린 입 `parted lips`(725,225)
@@ -209,6 +221,20 @@
   사용자가 재발 보고 시 정확한 재현 조건(PC/모바일, 테마, 순서) 받아 재조사.
 - [ ] **[anima-preview2 CLIP 없음]** — 이 체크포인트는 CLIP 미탑재로 인페인팅/변환 시 CLIPSetLastLayer 오류.
   Pony 등 CLIP 내장 모델 쓰면 됨(앱이 오류 안내함). 별도 조치 불필요.
+
+### J5. ★ 표정은 '외형이 변해도' 괜찮다 — 오히려 목적에 가깝다
+- 사용자 원문: *"어차피 이왕 달라지는거 확 달라지는것도 꼴림 포인트가 될수있음
+  (무표정인 캐릭터가 이런 표정을 짓는다고 생각해보셈)"*
+- **표정 기능의 목적 자체가 갭모에**다. "이 캐릭터가 이런 표정을?" + "이런 표정을 짓게 하고 싶다".
+  즉 원본과의 **낙차가 클수록 좋다**.
+- 따라서 `fang`(덧니)처럼 **표정이 아니라 외형을 바꾸는 태그도 허용**한다.
+  v9.90.0 메스가키에 `fang`을 넣은 근거가 이것.
+- ⚠️ 단, **무엇이든 다 되는 건 아니다.** 아래는 여전히 금지:
+  - `loli` / `flat chest` — **체형**을 바꿔서 가슴 선택(group 'bust')과 정면 충돌
+  - `twintails` 등 **머리 모양** — 캐릭터를 아예 다른 사람으로 만듦
+  - 기준: **얼굴 주변에서 끝나면 OK, 몸/머리로 번지면 NG.**
+    다른 선택지(가슴·포즈)를 덮어쓰는지가 실질적인 선이다.
+- 이전에 내가 "외형 변하니까 빼자"고 판단하던 건 **방향이 틀렸다.** 다시 그러지 말 것.
 
 ## ✅ 사용자 환경 (ComfyUI 설치 현황, 확인됨)
 

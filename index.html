@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.89.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.91.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.89.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.91.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2043,7 +2043,22 @@
         const CHANGELOG = [
             // ── 2026-07-29 ──────────────────────────────────────────────────
             {
-                version: 'v9.89.0', date: '2026-07-29', time: '최신',
+                version: 'v9.91.0', date: '2026-07-29', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] <b>유혹을 강화했습니다</b> — 메스가키에서 빼낸 표현이 알고 보니 <b>유혹의 제자리</b>였습니다. 이제 <b>'이거 네 취향인 거 다 알아'</b> 하는 얼굴이 확실하게 실립니다.",
+                ]
+            },
+            {
+                version: 'v9.90.0', date: '2026-07-29', time: '',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] <b>메스가키에 덧니를 넣었습니다</b> — 메스가키 얼굴의 상징인데 빠져 있었습니다. 이제 <b>건방진 웃음 + 덧니</b>로 확실하게 나옵니다. 원래 캐릭터에 없던 덧니가 생기지만, <b>'이 캐릭터가 이런 얼굴을?'</b> 하는 맛이 이 표정의 핵심이라 일부러 그렇게 뒀습니다.",
+                    "[Anima 편집] 대신 <b>메스가키에서 겹치던 표현을 뺐습니다</b> — 알고 보니 그 표현이 건방진 게 아니라 <b>'유혹'에 가까운 뜻</b>이라, 메스가키를 켜도 유혹과 비슷한 얼굴로 끌려가고 있었습니다.",
+                ]
+            },
+            {
+                version: 'v9.89.0', date: '2026-07-29', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] <b>차가운 경멸을 제대로 고쳤습니다</b> — 예전 문구는 <b>'바닥을 내려다본다'</b>는 뜻이라 남을 깔보는 게 아니라 그냥 <b>시무룩한 얼굴</b>이 나왔습니다. 이제 <b>눈꺼풀 반쯤 내린 채 그늘 진 눈으로 보는 사람을 쓰레기 보듯</b> 쳐다보는, 그 유명한 표정으로 바뀝니다.",
@@ -7351,7 +7366,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { id: 'futa_cum_excessive', name: '과다 사정', kind: 'append', on: false, group: 'futaCum', detail: 'futa', text: 'ejaculation, excessive cum, projectile cum' },
             // 표정 프리셋 (group 'expr' — 하나 켜면 나머지 자동 꺼짐). 핵심 태그만 간결하게.
             //  자주 쓰는 4종(유혹·절정·아헤가오·미소)은 항상 바에 보이고, 나머지는 '표정 더보기'로 접힘(more:true).
-            { id: 'expr_seductive', name: '유혹', kind: 'append', on: false, group: 'expr', nsfw: true, text: 'seductive smile, half-closed eyes, looking at viewer' },
+            //  유혹(v9.91.0): 메스가키에서 뺀 naughty face를 여기로 옮겼다. danbooru 위키가
+            //   naughty face를 "이거 네 취향인 거 알아" 쪽 얼굴로 정의하고 형제 태그로 seductive smile을
+            //   걸어둔다 — 원래 자리가 유혹이다. 모든 페어가 탄탄: seductive smile 1,510 /
+            //   half-closed eyes 3,685 / looking at viewer 20,053.
+            { id: 'expr_seductive', name: '유혹', kind: 'append', on: false, group: 'expr', nsfw: true, text: 'seductive smile, naughty face, half-closed eyes, looking at viewer' },
             { id: 'expr_orgasm', name: '절정', kind: 'append', on: false, group: 'expr', nsfw: true, text: '(orgasm:1.2), torogao, half-closed eyes, nose blush, trembling, saliva, sweat' },
             { id: 'expr_ahegao', name: '아헤가오', kind: 'append', on: false, group: 'expr', nsfw: true, text: '(ahegao:1.2), rolling eyes, tongue out, drooling' },
             { id: 'expr_smile', name: '미소', kind: 'append', on: false, group: 'expr', text: 'smile, happy' },
@@ -7378,7 +7397,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //     얼굴을 만드는 건 crazy eyes(8,570)+crazy smile(5,552) 페어(동시 2,526).
             //     'yandere'를 빼야 조합이 오히려 강해진다(yandere+crazy smile은 364로 떨어짐).
             { id: 'expr_contempt', name: '차가운 경멸', kind: 'append', on: false, group: 'expr', more: true, text: 'jitome, half-closed eyes, shaded face, looking at viewer' },
-            { id: 'expr_mesugaki', name: '메스가키', kind: 'append', on: false, group: 'expr', nsfw: true, more: true, text: 'mesugaki, smug, naughty face' },
+            //   · 메스가키(v9.90.0): danbooru 위키가 mesugaki의 전형으로 'a single fang / skin fang'을
+            //     직접 명시한다. 실제로 mesugaki와 가장 많이 붙는 얼굴 요소도 fang(1,499 / 36.3%)이고
+            //     smug+fang은 전체 4,094건이라 서로 잘 밀어준다.
+            //     반대로 naughty face는 mesugaki와 256건(6.2%)뿐이고, 위키 정의가
+            //     "이거 네 취향인 거 알아" 쪽 유혹 얼굴(형제 태그가 seductive smile)이라
+            //     '유혹' 프리셋과 겹쳐서 뺐다. mesugaki+smug+naughty face 3개 동시는 56건.
+            //     ※ fang은 표정이 아니라 치아라 캐릭터 외형이 변한다 — 갭모에가 목적이라 의도된 것(J5).
+            { id: 'expr_mesugaki', name: '메스가키', kind: 'append', on: false, group: 'expr', nsfw: true, more: true, text: 'mesugaki, smug, fang, looking at viewer' },
             { id: 'expr_yandere', name: '얀데레(광기)', kind: 'append', on: false, group: 'expr', more: true, text: 'crazy eyes, crazy smile, shaded face, looking at viewer' },
             { id: 'expr_yandere_calm', name: '얀데레(정적)', kind: 'append', on: false, group: 'expr', more: true, text: 'empty eyes, smile, shaded face' },
             // 포즈 프리셋 (group 'pose' — 하나 켜면 나머지 자동 꺼짐). 표정과 같은 '자주 쓰는 것 + 더보기(more)' 규칙.
@@ -7631,6 +7657,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         const fixes = [
                             ['expr_contempt', 'narrowed eyes, looking down, scowl'],
                             ['expr_yandere', 'yandere, shaded face'],
+                            ['expr_mesugaki', 'mesugaki, smug, naughty face'],   // v9.90.0
+                            ['expr_seductive', 'seductive smile, half-closed eyes, looking at viewer'],   // v9.91.0
                         ];
                         fixes.forEach(([id, oldText]) => {
                             const sn = _anima.snippets.find(x => x.id === id), def = ANIMA_DEFAULT_SNIPPETS.find(d => d.id === id);
