@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.99.3 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.100.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1255,7 +1255,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.99.3 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.100.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2049,7 +2049,15 @@
         const CHANGELOG = [
             // ── 2026-07-29 ──────────────────────────────────────────────────
             {
-                version: 'v9.99.3', date: '2026-07-29', time: '최신',
+                version: 'v9.100.0', date: '2026-07-29', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] <b>게다리+더블피스</b>가 다리를 두 벌 그리며 무너지던 문제를 고쳤습니다 — 문구에 <b>몸의 방향(눕기)</b>이 빠져 있어서, '누워야 성립하는 다리'와 '정면을 보는 상반신'이 서로 부딪히고 있었어요. 같은 포즈의 <b>이미지 변환</b> 프리셋에는 원래부터 들어 있던 부분이라 그쪽에 맞췄습니다.",
+                    "[Anima 편집] <b>[참조 설정 (진단)]</b>을 <b>없앴습니다</b> — 판정이 끝났습니다. 6가지를 다 돌려도 <b>전부 똑같이 무너져서</b>, 참조 세기·방식으로는 포즈를 살릴 수 없다는 게 확인됐고 원인은 위의 문구 쪽이었습니다. 연속 생성 메뉴가 다시 <b>표정·포즈·가슴·품질</b>로 깔끔해집니다.",
+                ]
+            },
+            {
+                version: 'v9.99.3', date: '2026-07-29', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 품질에 <b>울트라(12스텝)</b>를 <b>추가</b>했습니다 — 직접 비교해 보니 12가 가장 좋았거든요. <b>기본·고품질·최고 품질은 쓰던 값 그대로</b>(3 · 6 · 8) 두었습니다. 잘 쓰고 계시던 걸 굳이 바꾸는 것보다 위에 한 칸을 얹는 쪽이 안전해서요.",
@@ -7582,7 +7590,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { id: 'pose_mlegs', name: '다리 벌리기', kind: 'append', on: false, group: 'pose', nsfw: true, text: 'spread legs' },
             { id: 'pose_masturbation', name: '자위', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(masturbation, fingering:1.2), hand between own legs, spread legs' },
             { id: 'pose_double_v', name: '더블피스', kind: 'append', on: false, group: 'pose', nsfw: true, text: 'double v, looking at viewer' },
-            { id: 'pose_mlegs_vsign', name: '게다리+더블피스', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(m legs, spread legs:1.3), double v, looking at viewer' },
+            // ★ 'm legs'는 누운 자세를 전제로 하는 태그다. 몸의 방향(lying, on back)을 빼면
+            //   'looking at viewer'(정면 상반신)와 서로 모순돼 다리가 두 벌 그려지는 붕괴가 난다.
+            //   같은 포즈의 이미지 변환 프리셋은 원래부터 이 방향 태그를 갖고 있었다 — 그쪽에 맞춘다.
+            { id: 'pose_mlegs_vsign', name: '게다리+더블피스', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(m legs, spread legs:1.3), lying, on back, double v, looking at viewer' },
             { id: 'pose_spread_pussy', name: '손으로 벌려 보이기', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(spread pussy:1.3), spread legs, presenting own body' },
             { id: 'pose_bent_over', name: '엉덩이 내밀기', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(bent over, ass focus:1.2), from behind, looking back, presenting own body' },
             { id: 'pose_allfours', name: '네발 기기', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(all fours:1.2), top-down bottom-up, looking at viewer' },
@@ -8878,22 +8889,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 유일하게 '설정'을 바꾸는 축(settings:true) — 나머지는 프롬프트 옵션을 켰다 껐다 한다.
             //  스텝을 올리는 게 정말 값어치를 하는지 눈으로 확인하라고 넣은 축이다(같은 시드·같은 옵션 3장).
             { key: 'quality', name: '품질', emo: '✨', settings: true, pick: () => _ANIMA_PRESETS.map(p => ({ id: p.id, name: p.name })) },
-            // ▼▼▼ [진단] 포즈가 왜 안 먹는지 판정용 임시 축 — 판정 끝나면 '[진단]' 표시된 곳만 지우면 됩니다 ▼▼▼
-            //  참조가 원본을 붙잡는 '방식'(temporal_mask/kv_gating)과 '세기'를 한 번에 비교한다.
-            //  방식은 강도 다이얼과 성격이 달라, 캐릭터를 지키면서 포즈만 풀릴 여지가 있는지 보는 게 목적.
-            {
-                key: 'refmode', name: '참조 설정 (진단)', emo: '🎛️', settings: true,   // [진단]
-                pick: () => [
-                    { id: 'temporal_mask|1', name: 'temporal 1.0 (현재)' },
-                    { id: 'temporal_mask|0.7', name: 'temporal 0.7' },
-                    { id: 'temporal_mask|0.5', name: 'temporal 0.5' },
-                    { id: 'kv_gating|1', name: 'kv 1.0' },
-                    { id: 'kv_gating|0.7', name: 'kv 0.7' },
-                    { id: 'kv_gating|0.5', name: 'kv 0.5' },
-                ],
-                apply: (id) => { const [m, w] = id.split('|'); _anima.refMode = m; _anima.refWeight = parseFloat(w); },
-            },
-            // ▲▲▲ [진단] 여기까지 ▲▲▲
+            // (참조 설정 진단 축은 판정이 끝나 제거했다 — temporal/kv 2가지 × 세기 3단계 6장이 전부 같은 정도로
+            //  무너져, 참조 다이얼로는 포즈를 살릴 수 없다는 결론. 원인은 포즈 문구 쪽이었다.)
         ];
         // ── 눌림 반응 (Anima에서 누르는 모든 것) ─────────────────────────────
         //  ★ CSS :active만으로는 절대 안 된다. 칩을 누르면 핸들러가 곧바로 innerHTML을
@@ -8984,7 +8981,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 되돌리기용 현재 상태 백업
             const beforePrompt = _anima.prompt, beforeSeed = _anima.seed;
             const beforeSteps = _anima.steps, beforeMp = _anima.megapixels;   // 품질 축은 이 둘을 건드린다
-            const beforeRefM = _anima.refMode, beforeRefW = _anima.refWeight;   // [진단] 참조 축이 이 둘을 건드린다
             const beforeOn = {}; (_anima.snippets || []).forEach(s => beforeOn[s.id] = !!s.on);
             // 세트 전체가 같은 시드를 쓰도록 지금 확정.
             //  시드가 -1(랜덤)이면 기본은 새 랜덤이지만, '선택한 그림 이어받기'가 켜져 있으면
@@ -8997,8 +8993,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (inherit != null) { try { showToast(`선택한 그림의 시드(${inherit})로 ${axis.name} ${sel.length}장`, 'info', 2600); } catch (e) {} }
             let made = 0;
             for (const id of sel) {
-                if (axis.apply) { axis.apply(id); }        // [진단] 축이 스스로 설정을 바꾸는 경우
-                else if (axis.settings) {
+                if (axis.settings) {
                     // 품질 축 — 프롬프트·옵션은 그대로 두고 스텝·메가픽셀만 갈아끼운다
                     const q = _ANIMA_PRESETS.find(x => x.id === id); if (!q) continue;
                     _anima.steps = q.steps; _anima.megapixels = q.megapixels;
@@ -9016,7 +9011,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 원래 상태 복원 — 스윕은 '돌려보기'일 뿐 내 설정을 바꾸지 않는다
             _anima.prompt = beforePrompt; _anima.seed = beforeSeed;
             _anima.steps = beforeSteps; _anima.megapixels = beforeMp;
-            _anima.refMode = beforeRefM; _anima.refWeight = beforeRefW;   // [진단]
             (_anima.snippets || []).forEach(s => { if (s.id in beforeOn) s.on = beforeOn[s.id]; });
             const pt = _animaEl('#anima-prompt'); if (pt) pt.value = _anima.prompt;
             _animaSave(); _animaRenderSnippets(); _animaRenderAdv();
@@ -9027,7 +9021,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _animaCloseSweepMenu() { if (_animaSweepMenuEl) { try { _animaSweepMenuEl.remove(); } catch (e) {} _animaSweepMenuEl = null; } }
         function _animaOpenSweepMenu() {
             _animaCloseSweepMenu();
-            const _axes = _ANIMA_SWEEP_AXES.filter(a => (a.settings || a.pick().length) && (_adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality' || a.key === 'refmode' /*[진단]*/));   // 성인 꺼짐 → 남아 있는 항목이 있는 축만 (전부 숨겨진 축은 '0장'으로 남지 않게)
+            const _axes = _ANIMA_SWEEP_AXES.filter(a => (a.settings || a.pick().length) && (_adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality'));   // 성인 꺼짐 → 남아 있는 항목이 있는 축만 (전부 숨겨진 축은 '0장'으로 남지 않게)
             const wrap = document.createElement('div');
             wrap.className = 'anima-sweep-back';
             const rows = _axes.map(a => {
@@ -9075,7 +9069,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         function _animaRenderSweepCfg(box, wrap) {
             let h = '';
-            _ANIMA_SWEEP_AXES.filter(a => (a.settings || a.pick().length) && (_adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality' || a.key === 'refmode' /*[진단]*/)).forEach(a => {
+            _ANIMA_SWEEP_AXES.filter(a => (a.settings || a.pick().length) && (_adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality')).forEach(a => {
                 const sel = _animaSweepSel(a), items = a.pick();
                 h += `<div class="anima-sweep-sec ax-${a.key}">${_animaAxMark(a)}<span>${a.name}</span></div><div class="anima-sweep-chips">`;
                 if (a.key === 'base') h += `<button class="anima-chip sw${sel.includes(_ANIMA_SWEEP_NONE) ? ' on' : ''}" data-ax="base" data-id="${_ANIMA_SWEEP_NONE}">노출 없음</button>`;
@@ -10561,7 +10555,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .ax-pose  { --ax-c:#14b8a6; }
           .ax-bust  { --ax-c:#84cc16; }
           .ax-quality { --ax-c:#3b82f6; }
-          .ax-refmode { --ax-c:#8b5cf6; }
           /* 칸 자체를 축 색으로 칠한다 — 아이콘 배지만 색이면 회색 벽처럼 보여 구분이 안 된다.
              배경 20%가 '확 눈에 띄되 글자가 안 묻히는' 지점(14%는 얌전하고 28%는 밝은 색에서 대비가 깎인다). */
           .anima-sweep-row[class*="ax-"] { border-color:var(--ax-c);

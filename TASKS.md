@@ -53,12 +53,22 @@
 - 0건이라 제외: `bedroom eyes` `trance` `pleasure` `biting lip` `contempt` `condescending`
   `arrogant` `smug face` `half-lidded eyes` `cat smile` `open mouth smile` `orgasm face` `gasping`
 
-### 🧪 [Anima] 포즈 타율 — 진단 대기 (사용자 실행 필요)
-- v9.83.0에 **[참조 설정 (진단)]** 스윕 축을 임시로 넣어둠. 포즈 하나 켜고 돌리면
-  `temporal_mask`/`kv_gating` × 강도 1.0/0.7/0.5 = 6장이 같은 시드로 나온다.
-- **판정 후 이 축은 제거한다.** 코드에 `[진단]` 주석 7곳 + `▼▼▼~▲▲▲` 16줄 블록으로 표시해 둠.
-- 결과에 따라: ①kv_gating이 나으면 기본값 교체 ②강도만 낮추면 되면 포즈 켤 때 자동 조정
-  ③둘 다 아니면 ControlNet.
+### 🧪 [Anima] 포즈 타율 — 1차 판정 완료 (v9.100.0), 재테스트 대기
+- **진단 결과(사용자 실행, `게다리+더블피스`)**: 6장 **전부 똑같이** 무너짐(색 날아감·다리 두 벌·원본 소실).
+  → ①kv_gating 우위 없음 ②강도 하향도 효과 없음. **참조 다이얼로는 포즈를 못 살린다.**
+- **진단 자체는 유효했음(검증 완료)**: `_animaBuildWorkflow(pos, imageName, seed, snap)`이
+  71번 `CosmosReferenceConditioning`에 `reference_weight`/`gating`을 실제로 다르게 싣는 것을
+  6개 조합 전부 확인(`vpose.js`/`vdiag2.js`). 스냅샷·시드 고정도 정상.
+  - 유일한 무효화 경로는 `customWf`(붙여넣은 JSON) — 그 경우 참조 설정이 통째로 무시된다.
+    다만 사용자의 **스텝 테스트(8/12/16/24)가 눈에 띄게 달랐으므로** customWf는 비어 있음이 증명됨.
+- **진단 축은 제거함(v9.100.0)** — `[진단]` 주석 7곳 + 블록 + `.ax-refmode` CSS + 죽은 `axis.apply` 분기까지.
+- **1차 원인 후보 → 수정함(v9.100.0)**: `pose_mlegs_vsign` 문구에 **몸 방향 태그가 없었다.**
+  - 기존: `(m legs, spread legs:1.3), double v, looking at viewer`
+  - `m legs`는 **누운 자세 전제** 태그인데 방향이 없어 `looking at viewer`(정면 상반신)와 충돌 → 다리 두 벌.
+  - **같은 포즈의 이미지 변환 프리셋은 원래부터 `lying, on back`을 갖고 있었다**(코드 내 불일치).
+  - 수정: `(m legs, spread legs:1.3), lying, on back, double v, looking at viewer`
+- **다음(사용자 재테스트)**: 이 문구로 다시 뽑아 보고 —
+  ①좋아지면 다른 포즈도 같은 기준으로 방향 태그 점검 ②그래도 무너지면 **ControlNet으로 간다**.
 - **ControlNet 조사 완료**: Qwen-Image용 존재. openpose는 **Union DiffSynth LoRA** 방식
   (`qwen_image_union_diffsynth_lora.safetensors` → `ComfyUI/models/loras/`, `LoraLoaderModelOnly`).
   전처리기는 **이미지 변환 테마에 이미 구현돼 작동 중**(`OpenposePreprocessor` +
