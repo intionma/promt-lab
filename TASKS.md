@@ -28,8 +28,11 @@
     **유혹 얼굴**(형제 태그 `seductive smile`) → **'유혹' 프리셋과 겹쳐서** 제거
     (`naughty face`+`seductive smile` = 1,510 / mesugaki+smug+naughty face 3개 동시 = **56**)
   - `fang`은 외형이 변하지만 **의도된 것** → J5 참조
-- **미착수 제안**: `naughty face`(35,396)를 **'유혹'으로 옮기는** 안.
-  위키가 `seductive smile`의 형제로 걸어둔 태그라 유혹의 제자리다. 사용자 승인 안 받음.
+- **완료(v9.91.0)**: `naughty face`(35,396)를 메스가키에서 **'유혹'으로 이설**.
+  위키가 `seductive smile`의 형제로 걸어둔 태그라 유혹이 제자리.
+  `seductive smile, naughty face, half-closed eyes, looking at viewer`
+  (페어 전부 탄탄: seductive smile 1,510 / half-closed eyes 3,685 / looking at viewer 20,053)
+  v9.88.0에서 `rolling eyes`를 절정→아헤가오로 넘긴 것과 같은 정리.
 - **아직 안 넣은 후보** (목표 20~25종이므로 0~5개 더 여지 있음):
   - 귀여움: 덧니 `fang`(443,677) · 고양이 입 `:3`(178,066) · 별눈 `star-shaped pupils`(32,381)
   - 일반: 눈 감음 `closed eyes`(1,031,840) · 살짝 벌린 입 `parted lips`(725,225)
