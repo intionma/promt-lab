@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.103.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.104.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1255,7 +1255,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.103.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.104.0 &nbsp;·&nbsp; 2026-07-29 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2049,7 +2049,15 @@
         const CHANGELOG = [
             // ── 2026-07-29 ──────────────────────────────────────────────────
             {
-                version: 'v9.103.0', date: '2026-07-29', time: '최신',
+                version: 'v9.104.0', date: '2026-07-29', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] <b>표정 더보기</b>로 펼친 목록이 <b>다른 곳을 누르면 바로 접힙니다</b> — '접기'를 다시 찾아 누르지 않아도 돼요. <b>포즈 더보기</b>도 같습니다.",
+                    "[Anima 편집] 단, <b>표정·포즈를 고르는 클릭은 접지 않습니다</b> — 여러 개를 연달아 바꿔 볼 때 목록이 사라지면 불편해서요. 후타 상세와 같은 규칙입니다.",
+                ]
+            },
+            {
+                version: 'v9.103.0', date: '2026-07-29', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] 바로 전에 넣은 <b>포즈 고정(ControlNet)</b>을 <b>껐습니다</b> — 이 모델에서는 안 되는 방식이었습니다. 켜고 뽑으면 <b>배경이 새까매지고 인물이 무너지던</b> 그 증상의 원인입니다.",
@@ -9550,6 +9558,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _animaGrpPop = null;
             try { _animaRenderSnippets(); } catch (_) {}
         }
+        // 표정·포즈 '더보기'로 펼친 목록도 바깥을 누르면 접는다 — 팝오버들과 같은 규칙.
+        //  다시 접으려고 '접기'를 또 찾아 누르는 게 번거로웠다.
+        //  ★ 항목을 고르는 클릭은 유지한다(표정을 연달아 바꿔 보는 흐름이 끊기면 안 됨) — 후타 상세와 같은 판단.
+        //  ★ 하단 바와 옵션 패널 양쪽에 같은 칩이 있으므로 id가 아니라 클래스로 판정한다.
+        function _animaExpandOutside(e) {
+            if (!_animaExprOpen && !_animaPoseOpen) return;
+            const t = e.target;
+            if (!t || !t.closest) return;
+            if (t.closest('.anima-chip[data-act="exprOpen"]') || t.closest('.anima-chip[data-act="poseOpen"]')) return;   // 토글 자신
+            if (t.closest('.anima-chip.g-expr') || t.closest('.anima-chip.g-pose')) return;   // 항목 고르기 → 펼친 채 유지
+            if (t.closest('.anima-chip.edit') || t.closest('#anima-snip-editbtn') || t.closest('#anima-mact-editbtn')) return;   // 펼쳤을 때만 뜨는 편집 버튼
+            _animaExprOpen = false; _animaPoseOpen = false;
+            // 누른 버튼의 원래 동작이 먼저 끝나게 다음 차례로 미룬다(팝오버와 동일한 이유).
+            setTimeout(() => { try { _animaRenderSnippets(); } catch (err) {} }, 0);
+        }
         function _animaRenderSnippets() {
             return _animaAnchorScroll(_animaRenderSnippetsInner);
         }
@@ -10603,6 +10626,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             document.addEventListener('paste', onPaste);
             document.addEventListener('click', _animaFutaPopOutside, true);   // 후타 상세: 바깥을 누르면 닫기(캡처 단계)
             document.addEventListener('click', _animaGrpPopOutside, true);    // 가슴·포즈 팝오버도 동일 규칙
+            document.addEventListener('click', _animaExpandOutside, true);    // 표정·포즈 '더보기' 펼침도 동일 규칙
             document.addEventListener('click', _animaHelpOutside, true);      // 고급 설정 '?' 설명도 바깥을 누르면 닫기
             // PC: ← / → 로 이웃 원본 폴더 이동. 글자 입력 중이거나 크게 보기가 열려 있으면 양보한다.
             document.addEventListener('keydown', (e) => {
