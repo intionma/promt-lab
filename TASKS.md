@@ -5,15 +5,27 @@
 
 ## 🔴 진행/대기 (Open)
 
-### 😀 [Anima] 표정 — v9.88.0 대개편 완료, 추가 여지 있음
+### 😀 [Anima] 표정 — v9.89.0까지 개편 완료, 추가 여지 있음
 - **완료(v9.88.0)**: 15종 → **19종**. 백업은 `EXPR_BACKUP_2026-07-29.md` (마음에 안 들면 그 문서로 롤백).
   - 홍조 제거 / 절정 강화(`ecstasy` 유령 제거 + `rolling eyes`를 아헤가오에 넘김)
   - 신규 5종: 참는 표정 · 가쁜 숨 · 메스가키 · 얀데레 · 차가운 경멸
   - 절정↔아헤가오 **공유 태그 0개**로 분리됨
-- **아직 안 넣은 후보** (목표 20~25종이므로 1~6개 더 여지 있음):
+- **완료(v9.89.0)**: 19종 → **20종**. 경멸·얀데레가 **의도한 얼굴이 아니었던 것**을 교정.
+  - 경멸: `narrowed eyes, looking down, scowl` → `jitome, half-closed eyes, shaded face, looking at viewer`
+    - `looking down`은 '깔봄'이 아니라 **'바닥을 봄'**(시선 방향)이라 의미가 어긋나 있었음
+    - `narrowed eyes`+`scowl` 동시 등장 **41건** — 서로 안 밀어주는 조합이었음
+    - `contempt`·`condescending`·`looking down at viewer`·`forehead shadow` = **전부 0건 유령**
+    - 실제 태그는 **`jitome`(ジト目, 48,825)** ★
+  - 얀데레: `yandere, shaded face` → **광기/정적 2종**으로 분리
+    - `yandere`(9,339)는 **표정이 아니라 캐릭터 성격 태그** — 얼굴을 못 지시했음
+    - 얼굴을 만드는 건 `crazy eyes`(8,570)+`crazy smile`(5,552), 동시 **2,526**
+    - `yandere`를 붙이면 조합이 **약해짐**(yandere+crazy smile = 364)
+    - 광기 `crazy eyes, crazy smile, shaded face, looking at viewer` / 정적 `empty eyes, smile, shaded face`(1,726)
+- **아직 안 넣은 후보** (목표 20~25종이므로 0~5개 더 여지 있음):
   - 귀여움: 덧니 `fang`(443,677) · 고양이 입 `:3`(178,066) · 별눈 `star-shaped pupils`(32,381)
   - 일반: 눈 감음 `closed eyes`(1,031,840) · 살짝 벌린 입 `parted lips`(725,225)
-  - 성인: 넋 나감 `empty eyes`(48,960) · 침 자국 `saliva trail`(27,529) · 신음 `moaning`(17,363)
+  - 성인: 침 자국 `saliva trail`(27,529) · 신음 `moaning`(17,363)
+  - ~~넋 나감 `empty eyes`~~ → v9.89.0 **얀데레(정적)**에 흡수됨
 - ★ 표정은 **batch로 돌리므로** 추가 1개 = 스윕 1장. 비슷해 보이는 건 넣으면 손해.
   (겹칠 위험으로 뺐던 것: 몽롱한 눈 — 유혹·절정에 이미 `half-closed eyes` 있음 /
    침 흘림 — 아헤가오에 `drooling` 있음 / 녹은 얼굴 — 절정에 `torogao`로 흡수됨)
