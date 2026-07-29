@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.84.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.85.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.84.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.85.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2043,7 +2043,16 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.84.0', date: '2026-07-29', time: '최신',
+                version: 'v9.85.0', date: '2026-07-29', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[성인 콘텐츠] <b>포즈도 통째로 숨깁니다</b> — 19+를 끄면 이제 <b>노출 · 후타 · 가슴 · 포즈가 전부 사라지고 표정만</b> 남습니다. 하단 바도 <b>[가슴]·[포즈] 버튼 줄이 통째로 없어져</b> 훨씬 단출해집니다.",
+                    "[성인 콘텐츠] 표정도 더 걸렀습니다 — <b>홍조 · 하트눈</b>까지 19+ 전용으로 옮겨, 꺼진 상태에서는 <b>9종</b>(미소·무표정·수줍음·능글·화남·놀람·삐침·윙크·우는)만 남습니다.",
+                    "[연속 생성] 19+를 껐을 때 <b>'0장'짜리 빈 항목이 메뉴에 남던 것</b>을 고쳤습니다 — 돌릴 게 하나도 없는 항목은 아예 표시되지 않습니다.",
+                ]
+            },
+            {
+                version: 'v9.84.0', date: '2026-07-29', time: '',
                 tag: 'fix',
                 items: [
                     "[성인 콘텐츠] <b>19+를 끄면 훨씬 깨끗해집니다</b> — <b>가슴 고르기는 통째로 사라지고</b>, 표정 중 <b>유혹 · 절정 · 아헤가오 · 혀 내밀기</b>도 숨겨집니다. 예전엔 이것들이 남아 있어서, 다른 사람에게 화면을 보여줄 때 민망할 수 있었습니다.",
@@ -7298,22 +7307,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { id: 'expr_smile', name: '미소', kind: 'append', on: false, group: 'expr', text: 'smile, happy' },
             { id: 'expr_neutral', name: '무표정', kind: 'append', on: false, group: 'expr', more: true, text: 'expressionless, closed mouth' },
             { id: 'expr_shy', name: '수줍음', kind: 'append', on: false, group: 'expr', more: true, text: 'shy, blush, embarrassed' },
-            { id: 'expr_blush', name: '홍조', kind: 'append', on: false, group: 'expr', more: true, text: 'blush' },
+            { id: 'expr_blush', name: '홍조', kind: 'append', on: false, group: 'expr', nsfw: true, more: true, text: 'blush' },
             { id: 'expr_tongue', name: '혀 내밀기', kind: 'append', on: false, group: 'expr', nsfw: true, more: true, text: 'tongue out, saliva' },
             { id: 'expr_smug', name: '능글(도발)', kind: 'append', on: false, group: 'expr', more: true, text: 'smug, grin' },
             { id: 'expr_angry', name: '화남', kind: 'append', on: false, group: 'expr', more: true, text: 'angry, frown' },
             { id: 'expr_surprised', name: '놀람', kind: 'append', on: false, group: 'expr', more: true, text: 'surprised, open mouth' },
-            { id: 'expr_heart', name: '하트눈', kind: 'append', on: false, group: 'expr', more: true, text: 'heart-shaped pupils' },
+            { id: 'expr_heart', name: '하트눈', kind: 'append', on: false, group: 'expr', nsfw: true, more: true, text: 'heart-shaped pupils' },
             { id: 'expr_pout', name: '삐침', kind: 'append', on: false, group: 'expr', more: true, text: 'pout' },
             { id: 'expr_wink', name: '윙크', kind: 'append', on: false, group: 'expr', more: true, text: 'one eye closed, smile' },
             { id: 'expr_cry', name: '우는', kind: 'append', on: false, group: 'expr', more: true, text: 'crying, tears' },
             // 포즈 프리셋 (group 'pose' — 하나 켜면 나머지 자동 꺼짐). 표정과 같은 '자주 쓰는 것 + 더보기(more)' 규칙.
             //  ★ 원본에 없는 인물(남성 등)을 새로 만들어야 성립하는 포즈는 넣지 않는다 — 2인 포즈는 원본에 이미 2명일 때 쓰는 용도.
             //  nsfw:true 항목은 성인 표시(19+)가 꺼져 있으면 숨겨지고 프롬프트에도 안 들어간다.
-            { id: 'pose_stand_front', name: '정면 직립', kind: 'append', on: false, group: 'pose', text: '(standing, facing viewer, straight-on:1.2), arms at sides, full body' },
+            { id: 'pose_stand_front', name: '정면 직립', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(standing, facing viewer, straight-on:1.2), arms at sides, full body' },
             { id: 'pose_mlegs', name: '다리 벌리기', kind: 'append', on: false, group: 'pose', nsfw: true, text: 'spread legs' },
             { id: 'pose_masturbation', name: '자위', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(masturbation, fingering:1.2), hand between own legs, spread legs' },
-            { id: 'pose_double_v', name: '더블피스', kind: 'append', on: false, group: 'pose', text: 'double v, looking at viewer' },
+            { id: 'pose_double_v', name: '더블피스', kind: 'append', on: false, group: 'pose', nsfw: true, text: 'double v, looking at viewer' },
             { id: 'pose_mlegs_vsign', name: '게다리+더블피스', kind: 'append', on: false, group: 'pose', nsfw: true, text: '(m legs, spread legs:1.3), double v, looking at viewer' },
             { id: 'pose_spread_pussy', name: '손으로 벌려 보이기', kind: 'append', on: false, group: 'pose', nsfw: true, more: true, text: '(spread pussy:1.3), spread legs, presenting own body' },
             { id: 'pose_bent_over', name: '엉덩이 내밀기', kind: 'append', on: false, group: 'pose', nsfw: true, more: true, text: '(bent over, ass focus:1.2), from behind, looking back, presenting own body' },
@@ -8546,7 +8555,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _animaCloseSweepMenu() { if (_animaSweepMenuEl) { try { _animaSweepMenuEl.remove(); } catch (e) {} _animaSweepMenuEl = null; } }
         function _animaOpenSweepMenu() {
             _animaCloseSweepMenu();
-            const _axes = _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality' || a.key === 'refmode' /*[진단]*/);   // 성인 꺼짐 → 표정·포즈(일반)·가슴·품질만
+            const _axes = _ANIMA_SWEEP_AXES.filter(a => (a.settings || a.pick().length) && (_adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality' || a.key === 'refmode' /*[진단]*/));   // 성인 꺼짐 → 남아 있는 항목이 있는 축만 (전부 숨겨진 축은 '0장'으로 남지 않게)
             const wrap = document.createElement('div');
             wrap.className = 'anima-sweep-back';
             const rows = _axes.map(a => {
@@ -8573,7 +8582,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         function _animaRenderSweepCfg(box, wrap) {
             let h = '';
-            _ANIMA_SWEEP_AXES.filter(a => _adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality' || a.key === 'refmode' /*[진단]*/).forEach(a => {
+            _ANIMA_SWEEP_AXES.filter(a => (a.settings || a.pick().length) && (_adultOn() || a.key === 'expr' || a.key === 'pose' || a.key === 'bust' || a.key === 'quality' || a.key === 'refmode' /*[진단]*/)).forEach(a => {
                 const sel = _animaSweepSel(a), items = a.pick();
                 h += `<div class="anima-sweep-sec">${a.name}</div><div class="anima-sweep-chips">`;
                 if (a.key === 'base') h += `<button class="anima-chip sw${sel.includes(_ANIMA_SWEEP_NONE) ? ' on' : ''}" data-ax="base" data-id="${_ANIMA_SWEEP_NONE}">노출 없음</button>`;
