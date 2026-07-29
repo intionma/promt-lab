@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.81.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.82.0 (Responsive & Light/Dark Theme)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -1249,7 +1249,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.81.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.82.0 &nbsp;·&nbsp; 2026-07-28 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2043,7 +2043,16 @@
         const CHANGELOG = [
             // ── 2026-07-28 ──────────────────────────────────────────────────
             {
-                version: 'v9.81.0', date: '2026-07-29', time: '최신',
+                version: 'v9.82.0', date: '2026-07-29', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] 프롬프트에 들어가는 <b>순서를 정리</b>했습니다 — <b>가슴이 후타 설명 한가운데를 가르고</b> 있었습니다(크기 · 발기 <b>· 가슴 ·</b> 포피 · 사정). 같은 부위를 설명하는 말들이 떨어져 있으면 <b>어느 말이 어디에 붙는지</b> 흐려질 수 있어, 가슴을 후타 앞으로 옮겨 <b>후타 설명이 한 덩어리</b>가 되게 했습니다.",
+                    "[Anima 편집] 이제 <b>노출 → 가슴 → 후타(크기·발기·포피·사정) → 표정 → 포즈</b> 순으로, <b>몸 전체에서 부위로, 다시 얼굴과 구도로</b> 좁혀지는 흐름이 됩니다.",
+                    "[Anima 편집] 고르는 방법이나 화면은 <b>달라진 것이 없습니다</b> — 프롬프트가 조립되는 순서만 바뀌었습니다.",
+                ]
+            },
+            {
+                version: 'v9.81.0', date: '2026-07-29', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] <b>가슴 크기</b>를 고를 수 있습니다 — <b>절벽 · 빈유 · 평유 · 거유 · 폭유 · 초폭유</b> 6단계. 다른 옵션과 마찬가지로 <b>안 고르면 원본 그대로</b>이고, 켠 걸 다시 누르면 해제됩니다.",
@@ -7228,6 +7237,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             { id: 'base_top', name: '상의만 벗기기', kind: 'base', text: 'masterpiece, best quality, score_7, (topless female, breasts out, nipples, uncensored, :2), ' },
             { id: 'base_bottom', name: '하의만 벗기기', kind: 'base', text: 'masterpiece, best quality, score_7, (bottomless, no panties, pussy, uncensored, :2), ' },
             { id: 'base_topbottom', name: '상의+하의 벗기기', kind: 'base', text: 'masterpiece, best quality, score_7, (topless female, breasts out, nipples, bottomless, no panties, pussy, uncensored, :2), ' },
+            // 가슴 크기 (group 'bust' — 하나 켜면 나머지 자동 꺼짐). 안 고르면 원본 그대로.
+            //  단부루 어휘가 두터워(수십만~수백만 건) 태그로 애먹을 일이 없는 축이다. 가중치는 주지 않는다.
+            //  라벨은 국내 통용어(무유의 은어 '절벽' 포함): 절벽 < 빈유 < 평유 < 거유 < 폭유 < 초폭유.
+            { id: 'bust_flat', name: '절벽', kind: 'append', on: false, group: 'bust', text: 'flat chest' },
+            { id: 'bust_small', name: '빈유', kind: 'append', on: false, group: 'bust', text: 'small breasts' },
+            { id: 'bust_medium', name: '평유', kind: 'append', on: false, group: 'bust', text: 'medium breasts' },
+            { id: 'bust_large', name: '거유', kind: 'append', on: false, group: 'bust', text: 'large breasts' },
+            { id: 'bust_huge', name: '폭유', kind: 'append', on: false, group: 'bust', text: 'huge breasts' },
+            { id: 'bust_gigantic', name: '초폭유', kind: 'append', on: false, group: 'bust', text: 'gigantic breasts' },
             // 후타 프리셋 = '크기'만 담당(간결). 발기·포피·사정은 아래 상세에서 독립적으로 조절 → 조합이 깔끔하고 모순 없음.
             { id: 'futa_large', name: '후타나리(거근)', kind: 'append', on: false, group: 'futa', text: 'futanari, penis, erection, (large penis, veiny penis, large testicles:1.3)' },
             { id: 'futa_huge', name: '후타나리(초거근)', kind: 'append', on: false, group: 'futa', text: 'futanari, penis, erection, (huge penis, veiny penis, huge testicles:1.4)' },
@@ -7239,15 +7257,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  사정: 프리셋에서 분리 — 고르지 않으면 사정 없음(기본).
             { id: 'futa_erect_half', name: '반발기', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: 'half-erect, partially erect penis, starting to harden, still soft at the tip' },
             { id: 'futa_erect_flaccid', name: '무발기(축 처짐)', kind: 'append', on: false, group: 'futaErect', detail: 'futa', text: 'flaccid, completely soft penis, dangling loosely, hanging down between the thighs, drooping under its own weight, soft squishy texture' },
-            // 가슴 크기 (group 'bust' — 하나 켜면 나머지 자동 꺼짐). 안 고르면 원본 그대로.
-            //  단부루 어휘가 두터워(수십만~수백만 건) 태그로 애먹을 일이 없는 축이다. 가중치는 주지 않는다.
-            //  라벨은 국내 통용어(무유의 은어 '절벽' 포함): 절벽 < 빈유 < 평유 < 거유 < 폭유 < 초폭유.
-            { id: 'bust_flat', name: '절벽', kind: 'append', on: false, group: 'bust', text: 'flat chest' },
-            { id: 'bust_small', name: '빈유', kind: 'append', on: false, group: 'bust', text: 'small breasts' },
-            { id: 'bust_medium', name: '평유', kind: 'append', on: false, group: 'bust', text: 'medium breasts' },
-            { id: 'bust_large', name: '거유', kind: 'append', on: false, group: 'bust', text: 'large breasts' },
-            { id: 'bust_huge', name: '폭유', kind: 'append', on: false, group: 'bust', text: 'huge breasts' },
-            { id: 'bust_gigantic', name: '초폭유', kind: 'append', on: false, group: 'bust', text: 'gigantic breasts' },
             // 포피 — 젖혀진 정도를 3단계로. 위에서 아래로 '많이 드러남 → 적게 드러남' 순서.
             //  ★ phimosis의 뜻이 핵심이다. 단부루 위키는 "발기 중에 포피가 완전히 젖혀지지 않은 상태"를 전부
             //    phimosis로 태그한다고 명시한다 — 즉 '완전히 덮임'이 아니라 '덜 젖혀진 상태 전체'이고,
