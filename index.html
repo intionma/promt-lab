@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.106.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.106.1 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.106.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.106.1 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -13720,7 +13720,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {}); } catch (e) {}
             if (!shared) return;
             // 주소창에서 표식을 지운다 — 새로고침할 때마다 '공유 받는 중'이 되면 안 된다
-            try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}
+            //  ★ 통째로 지우면 안 된다 — 다른 쿼리가 붙어 있으면 그것까지 날아간다(실측으로 확인).
+            try {
+                const sp = new URLSearchParams(location.search);
+                sp.delete('shared');
+                const q = sp.toString();
+                history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash);
+            } catch (e) {}
             (async () => {
                 try {
                     const c = await caches.open('pl-share-v1');
@@ -24285,6 +24291,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } catch (e) {}
             // 캐시 스토리지(있으면)
             try { if (window.caches && caches.keys) { const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); if (ks.length) done.push('cache(' + ks.length + ')'); } } catch (e) {}
+            // 서비스워커(공유 받기용)도 해제 — 안 하면 '새 컴퓨터에서 처음 들어온 상태'라는 약속이 깨진다.
+            //  다시 접속하면 알아서 재등록되므로 공유 기능이 영영 사라지지는 않는다.
+            try {
+                if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+                    const rs = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(rs.map(r => r.unregister().catch(() => false)));
+                    if (rs.length) done.push('serviceWorker(' + rs.length + ')');
+                }
+            } catch (e) {}
             return done;
         }
         function hardResetAll() {
