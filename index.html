@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.107.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.108.0 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.107.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.108.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2053,7 +2053,18 @@
         const CHANGELOG = [
             // ── 2026-07-29 ──────────────────────────────────────────────────
             {
-                version: 'v9.107.0', date: '2026-07-30', time: '최신',
+                version: 'v9.108.0', date: '2026-07-30', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] <b>문신</b>과 <b>임신</b>을 고를 수 있습니다 — 하단 바에 버튼이 하나씩 생겼고, 누르면 목록이 떠요. 가슴·포즈와 같은 방식입니다.",
+                    "[Anima 편집] 문신 12종 — <b>온몸 낙서 · 온몸 문양 · 전신 문신 · 창녀 낙인 · 바코드 낙인 · 스페이드 퀸 · 트라이벌 · 팔토시 · 자궁 · 엉덩이 · 노예 낙인 · 바디페인트</b>. 임신 4종 — <b>임신 · 만삭 · 초기 · 임신+낙인</b>.",
+                    "[Anima 편집] <b>연속 생성에 '문신 전부 돌리기'와 '임신 전부 돌리기'</b>를 넣었습니다. 어떤 게 실제로 잘 나오는지 한 번에 뽑아 비교해 보세요.",
+                    "[Anima 편집] ⚠ <b>문신은 원본에 없던 걸 몸에 새기는 거라 잘 안 나올 수 있습니다</b> — 포즈와 같은 이유예요. 직접 뽑아 보고 판단하시라고 넣었습니다.",
+                    "[Anima 편집] 지금은 <b>임시 배치</b>입니다. 버튼 자리와 목록은 나중에 다시 잡을 예정이에요.",
+                ]
+            },
+            {
+                version: 'v9.107.0', date: '2026-07-30', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] <b>공유로 사진을 보내면 그 자리에서 한 장이 바로 나옵니다</b> — 앱이 열리자마자 <b>전신 노출</b>로 한 장을 알아서 뽑습니다. 이제 공유만 하면 끝이에요.",
@@ -7677,7 +7688,34 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 2인 포즈 — 원본 이미지에 여캐가 2명일 때만 의도대로 나온다(1명이면 없던 인물이 생길 수 있음 → 이름에 명시)
             { id: 'pose_2g_kiss', name: '딥키스 (원본 2인)', kind: 'append', on: false, group: 'pose', nsfw: true, text: '2girls, yuri, (french kiss:1.3), kiss, tongue, saliva, eye contact, hug' },
             { id: 'pose_2g_futasex', name: '후타 섹스 (2인·한 명 후타)', kind: 'append', on: false, group: 'pose', nsfw: true, text: '2girls, (futa with female:1.3), futanari, sex, vaginal, penis' },
-            { id: 'pose_2g_futafuta', name: '후타 섹스 (2인·둘 다 후타)', kind: 'append', on: false, group: 'pose', nsfw: true, text: '2girls, (futa with futa:1.3), futanari, sex, penis' }
+            { id: 'pose_2g_futafuta', name: '후타 섹스 (2인·둘 다 후타)', kind: 'append', on: false, group: 'pose', nsfw: true, text: '2girls, (futa with futa:1.3), futanari, sex, penis' },
+            // ── 문신 (group 'tat' — 하나만) ────────────────────────────────
+            //  ★ 임시 배치다. 하단 바 '문신' 버튼 → 팝오버로만 고른다. 나중에 UI를 다시 잡을 예정이라
+            //    여기 배열만 고치면 버튼·팝오버·연속 생성 축이 전부 따라오도록 해 뒀다(별도 코드 수정 불필요).
+            //  태그는 단부루 실사용 건수로 골랐다. 건수가 낮으면 그림에 잘 안 나온다.
+            //   body_writing 15,092 · body_markings 16,007 · pubic_tattoo 19,178 · number_tattoo 14,304
+            //   stomach_tattoo 9,311 · bodypaint 7,164 · barcode_tattoo 4,726 · full-body_tattoo 2,665
+            //   queen_of_spades_symbol 1,919 · tribal_tattoo 1,622 · ass_tattoo 1,326 · tattoo_sleeve 446 · slave_brand 363
+            //  ✗ 넣지 않은 것: text_tattoo(237) 글자가 반드시 깨짐 / womb_tattoo(겔부루 1건) 학습 안 됨
+            //    interracial(34,617)은 상대 남성까지 그려 버려서 문신 축에 섞으면 안 된다.
+            { id: 'tat_writing', name: '온몸 낙서', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(body writing:1.3)' },
+            { id: 'tat_markings', name: '온몸 문양', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(body markings:1.2)' },
+            { id: 'tat_full', name: '전신 문신', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(full-body tattoo:1.2), tattoo' },
+            { id: 'tat_slut', name: '창녀 낙인', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(pubic tattoo, number tattoo:1.2), tattoo' },
+            { id: 'tat_barcode', name: '바코드 낙인', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(barcode tattoo:1.2), stomach tattoo, tattoo' },
+            { id: 'tat_spade', name: '스페이드 퀸', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(queen of spades symbol:1.3), pubic tattoo, tattoo' },
+            { id: 'tat_tribal', name: '트라이벌', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(tribal tattoo:1.2), tattoo' },
+            { id: 'tat_sleeve', name: '팔토시 문신', kind: 'append', on: false, group: 'tat', nsfw: true, text: 'tattoo sleeve, arm tattoo, tattoo' },
+            { id: 'tat_pubic', name: '자궁 문신만', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(pubic tattoo:1.3), tattoo' },
+            { id: 'tat_ass', name: '엉덩이 문신만', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(ass tattoo:1.3), tattoo' },
+            { id: 'tat_brand', name: '노예 낙인', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(slave brand:1.3), tattoo' },
+            { id: 'tat_paint', name: '바디페인트', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(bodypaint:1.2)' },
+            // ── 임신 (group 'preg' — 하나만) ───────────────────────────────
+            //  pregnant 13,490 · big_belly 8,147 · implied_pregnancy 1,095 · pregnancy_mark 162 · veiny_belly 121
+            { id: 'preg_on', name: '임신', kind: 'append', on: false, group: 'preg', nsfw: true, text: 'pregnant' },
+            { id: 'preg_big', name: '만삭', kind: 'append', on: false, group: 'preg', nsfw: true, text: '(pregnant, big belly:1.3)' },
+            { id: 'preg_slight', name: '초기 (살짝)', kind: 'append', on: false, group: 'preg', nsfw: true, text: '(pregnant:0.9), implied pregnancy' },
+            { id: 'preg_mark', name: '임신 + 낙인', kind: 'append', on: false, group: 'preg', nsfw: true, text: '(pregnant, big belly:1.3), pregnancy mark' }
         ];
         // '자위' 포즈는 후타 여부에 따라 손동작이 달라야 한다 — 후타 프리셋이 켜져 있으면 생성 시 이 문구로 자동 교체.
         const _ANIMA_POSE_MAST_FUTA = '(futanari masturbation, hand on own penis:1.2), masturbation, spread legs';
@@ -8057,6 +8095,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     // 마이그레이션: 가슴 프리셋(group 'bust') 신규 추가
                     const addBust = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === 'bust' && !_anima.snippets.some(x => x.id === d.id));
                     if (addBust.length) _anima.snippets = _anima.snippets.concat(JSON.parse(JSON.stringify(addBust)));
+                    // 마이그레이션: 문신·임신 프리셋 신규 추가 — 새 항목만 붙이고 기존 항목엔 손대지 않는다.
+                    //  ★ 여기 한 줄이 '기본값 배열에 새 그룹을 추가하면 기존 사용자에게도 들어간다'를 담당한다.
+                    ['tat', 'preg'].forEach(g => {
+                        const add = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === g && !_anima.snippets.some(x => x.id === d.id));
+                        if (add.length) _anima.snippets = _anima.snippets.concat(JSON.parse(JSON.stringify(add)));
+                    });
                     // ══ 마이그레이션: 단부루에 없는 '유령 태그' 일괄 교정 ═══════════════════
                     //  실제 태그 사용량(danbooru post 수)으로 전수 검사한 결과, 아래 태그들은 0건이라
                     //  그림에 아무 영향도 주지 못하고 프롬프트 자리만 차지하고 있었다.
@@ -9383,11 +9427,19 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const rp = _animaReposeOn();
                 if (rp) h += `<div class="anima-repose-warn">⚠ <b>${_animaEsc(rp.name)}</b> — ${_animaEsc(_ANIMA_REPOSE_NOTE)}</div>`;
             }
+            // 문신·임신 — 임시 배치. 하단 바에선 버튼→팝오버, 옵션 패널에선 한 줄씩 그대로 편다.
+            //  ★ 줄을 늘리거나 빼려면 이 배열만 고치면 된다.
+            [['tat', '문신'], ['preg', '임신']].forEach(([g, lab]) => {
+                const list = _animaGroupList(g);
+                if (list.length) h += row(lab, list.map(s =>
+                    `<button class="anima-chip ex g-${g}${s.on ? ' on' : ''}" data-id="${s.id}" title="${(s.text || '').replace(/"/g, '&quot;')}">${_animaEsc(s.name)}</button>`).join(''));
+            });
             // 사용자가 직접 추가한 기타 옵션
             //  ★ '이미 다뤄진 항목'은 성인 표시 여부와 무관하게 원본 목록(all)에서 판정한다.
             //    baseS·futaS로 판정하면 성인이 꺼졌을 때 그 배열이 비어 후타 프리셋이 '기타'로 새어 나왔다.
             const known = new Set(all.filter(s =>
-                s.kind === 'base' || s.group === 'futa' || s.detail === 'futa' || s.group === 'expr' || s.group === 'pose' || s.group === 'bust').map(s => s.id));
+                s.kind === 'base' || s.group === 'futa' || s.detail === 'futa' || s.group === 'expr' || s.group === 'pose' || s.group === 'bust'
+                || s.group === 'tat' || s.group === 'preg').map(s => s.id));
             const etc = all.filter(s => s.kind !== 'base' && !known.has(s.id));
             if (etc.length) h += row('기타', etc.map(s => `<button class="anima-chip${s.on ? ' on' : ''}" data-id="${s.id}">${_animaEsc(s.name)}</button>`).join(''));
             return h;
@@ -9407,6 +9459,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 포즈 — 19+ 포즈는 성인 표시가 꺼지면 돌리기 목록에서도 빠진다
             { key: 'pose', name: '포즈', emo: '🧍', pick: () => _animaGroupList('pose') },
             { key: 'bust', name: '가슴', emo: '🍒', pick: () => _animaGroupList('bust') },
+            // 문신·임신 — 실제로 그림에 나오는지 직접 봐야 아는 축이라 '전부 돌리기'를 같이 낸다.
+            //  (원본 몸을 그대로 주입하는 구조라, 원본에 없는 문신은 안 새겨질 수 있다 — 포즈와 같은 위험)
+            { key: 'tat', name: '문신', emo: '🖋️', pick: () => _animaGroupList('tat') },
+            { key: 'preg', name: '임신', emo: '🤰', pick: () => _animaGroupList('preg') },
             // 유일하게 '설정'을 바꾸는 축(settings:true) — 나머지는 프롬프트 옵션을 켰다 껐다 한다.
             //  스텝을 올리는 게 정말 값어치를 하는지 눈으로 확인하라고 넣은 축이다(같은 시드·같은 옵션 3장).
             { key: 'quality', name: '품질', emo: '✨', settings: true, pick: () => _ANIMA_PRESETS.map(p => ({ id: p.id, name: p.name })) },
@@ -9752,10 +9808,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         //  하단 바에서 줄을 차지할 만큼 자주 쓰지 않는 축을 버튼 뒤로 숨긴다.
         //  후타 팝오버와 달리 '어느 그룹인지'만 기억하면 되므로 상태는 문자열 하나('bust'|'pose'|null).
         let _animaGrpPop = null;
+        //  ★ 여기에 { key: { label, pick } } 한 줄을 더하면 팝오버가 생긴다. 하단 바 버튼은 _ANIMA_GRPBTNS가 담당.
         const _ANIMA_GRP = {
             bust: { label: '가슴', pick: () => _animaGroupList('bust') },
             pose: { label: '포즈', pick: () => _animaGroupList('pose') },
+            tat: { label: '문신', pick: () => _animaGroupList('tat') },
+            preg: { label: '임신', pick: () => _animaGroupList('preg') },
         };
+        // 하단 바에 버튼으로 낼 그룹과 그 순서 — 임시 배치라 이 배열만 고치면 줄 구성이 바뀐다.
+        const _ANIMA_GRPBTNS = ['bust', 'pose', 'tat', 'preg'];
         function _animaGrpPopHtml() {
             const g = _ANIMA_GRP[_animaGrpPop]; if (!g) return '';
             const list = g.pick(); if (!list.length) return '';
@@ -9857,8 +9918,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 // 가슴·포즈 — 자주 만지는 축이 아니라 줄을 통째로 내주지 않고 '버튼 → 팝오버'로 뺀다.
                 //  버튼에는 지금 고른 값을 함께 보여준다(팝오버가 닫혀 있으면 상태가 안 보이므로).
                 //  이름이 길어 넘치면 자르되, 딱 끊기지 않게 오른쪽 끝을 페이드아웃 처리한다(CSS mask).
-                const poseAll = _animaGroupList('pose');
-                const bustAll = _animaGroupList('bust');
                 //  ★ 고른 게 있으면 오른쪽 끝에 ✕ — 팝오버를 열지 않고 한 번에 '표준(아무것도 안 고름)'으로 되돌린다.
                 //    넣는 건 어차피 팝오버를 여는 김에 하지만, 빼는 건 훨씬 자주 하는데 비용이 같았다.
                 //    ✕는 같은 상자 안(absolute)에 있고, 상자는 ✕ 폭만큼 padding-right를 미리 비워 둔다.
@@ -9872,8 +9931,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         + (on ? `<span class="anima-gbtn-x" data-grpx="${key}" role="button" aria-label="${lab} 선택 해제" title="${lab} 선택 해제"><i>✕</i></span>` : '')
                         + `</button>`;
                 };
-                const grpRow = (bustAll.length ? grpBtn('bust', '가슴', bustAll) : '')
-                    + (poseAll.length ? grpBtn('pose', '포즈', poseAll) : '');
+                //  ★ 어떤 그룹이 버튼으로 나오는지는 _ANIMA_GRPBTNS 배열이 정한다(임시 배치 → 고치기 쉽게).
+                //    한 줄에 4개까지는 들어가고, 넘치면 CSS가 다음 줄로 접는다.
+                const grpRow = _ANIMA_GRPBTNS.map(k => {
+                    const g = _ANIMA_GRP[k]; if (!g) return '';
+                    const list = g.pick();
+                    return list.length ? grpBtn(k, g.label, list) : '';
+                }).join('');
                 mact.innerHTML = _animaFutaPopHtml() + _animaGrpPopHtml()
                     + `<div class="anima-mact-icos">${icoRow}</div>
                        <div class="anima-mact-expr${_animaExprOpen ? ' open' : ''}">${exprRow}</div>
@@ -10982,6 +11046,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-chip.g-bust.on { background:color-mix(in srgb,#84cc16 20%,transparent); border-color:#84cc16; color:#65a30d; }
           .anima-chip.g-pose { border-color:color-mix(in srgb,#14b8a6 60%,var(--border-dim)); color:color-mix(in srgb,#14b8a6 78%,var(--text-dim)); }  /* 포즈 */
           .anima-chip.g-pose.on { background:color-mix(in srgb,#14b8a6 20%,transparent); border-color:#14b8a6; color:#0d9488; }
+          .anima-chip.g-tat { border-color:color-mix(in srgb,#f472b6 60%,var(--border-dim)); color:color-mix(in srgb,#f472b6 78%,var(--text-dim)); }  /* 문신 */
+          .anima-chip.g-tat.on { background:color-mix(in srgb,#f472b6 20%,transparent); border-color:#f472b6; color:#db2777; }
+          .anima-chip.g-preg { border-color:color-mix(in srgb,#fb923c 60%,var(--border-dim)); color:color-mix(in srgb,#fb923c 78%,var(--text-dim)); }  /* 임신 */
+          .anima-chip.g-preg.on { background:color-mix(in srgb,#fb923c 20%,transparent); border-color:#fb923c; color:#ea580c; }
           .anima-chip.more-toggle { border-style:dashed; color:var(--text-dim); }
           .anima-chip.edit { border-style:dashed; }
           .anima-se-kind { background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:8px 6px; color:var(--text-main); font-size:12px; }
@@ -11286,7 +11354,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-mact-expr .anima-chip { flex:0 0 auto; padding:5px 8px; font-size:11px; }
           .anima-mact-expr .anima-chip.tg { border-style:dashed; color:var(--text-dim); }
           /* 가슴·포즈 — 줄을 통째로 쓰지 않고 버튼 두 개로. 고른 값을 버튼에 함께 보여준다. */
-          .anima-mact-grp { display:flex; align-items:center; gap:6px; width:100%; max-width:1000px; }
+          /* 버튼이 4개로 늘어 한 줄에 다 넣으면 폰에서 이름이 뭉개진다 → 좁으면 2개씩 접히게 한다.
+             (min-width는 상자에만 준다. 안쪽 값 글자는 자기 min-width:0으로 계속 잘리며 페이드아웃된다) */
+          .anima-mact-grp { display:flex; flex-wrap:wrap; align-items:center; gap:6px; width:100%; max-width:1000px; }
+          .anima-mact-grp .anima-gbtn { min-width:132px; }
           .anima-gbtn { flex:1 1 0; min-width:0; display:flex; align-items:baseline; gap:5px; padding:7px 10px;
             border-radius:9px; border:1px solid var(--border-dim); background:var(--bg-base); color:var(--text-main);
             font-family:inherit; font-size:11.5px; cursor:pointer; text-align:left; transition:.13s; }
@@ -11299,6 +11370,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-gbtn.g-bust.on .anima-gbtn-v { color:#65a30d; }
           .anima-gbtn.g-pose.on { border-color:#14b8a6; background:color-mix(in srgb,#14b8a6 14%,transparent); }
           .anima-gbtn.g-pose.on .anima-gbtn-v { color:#0d9488; }
+          .anima-gbtn.g-tat.on { border-color:#f472b6; background:color-mix(in srgb,#f472b6 14%,transparent); }
+          .anima-gbtn.g-tat.on .anima-gbtn-v { color:#db2777; }
+          .anima-gbtn.g-preg.on { border-color:#fb923c; background:color-mix(in srgb,#fb923c 14%,transparent); }
+          .anima-gbtn.g-preg.on .anima-gbtn-v { color:#ea580c; }
           /* ✕ — '꼬리표'. 별도 프레임을 가진 작은 단추가 아니라, 상자 오른쪽 끝에
              높이를 꽉 채워 이어붙는다. 상자는 고른 게 있을 때만 padding-right로 자리를
              미리 비워 둔다 → 고른 이름이 아무리 길어도 침범할 수 없다(넘치면 페이드아웃).
@@ -11312,6 +11387,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             transition:background-color .16s, color .16s; }
           .anima-gbtn.g-bust .anima-gbtn-x { background:#84cc16; }
           .anima-gbtn.g-pose .anima-gbtn-x { background:#14b8a6; }
+          .anima-gbtn.g-tat .anima-gbtn-x { background:#f472b6; }
+          .anima-gbtn.g-preg .anima-gbtn-x { background:#fb923c; }
           /* ✕ 글자만 쏙 들어간다 — 색은 그대로 둔다(원색으로 튀면 눈에 거슬린다).
              꼬리표 자체를 줄이면 상자 모서리에서 떨어져 보이므로 글자만 움직인다. */
           .anima-gbtn-x i { display:block; font-style:normal;
