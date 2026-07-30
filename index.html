@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.119.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.120.0 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.119.1 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.120.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1845,7 +1845,11 @@
                                 </div>
                                 <div>
                                     <label style="font-size:10px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:3px;">트리거 워드 (켜면 프롬프트에 자동 추가 — 모델 페이지의 Trigger Words)</label>
-                                    <input id="comfy-lora-trigger" type="text" placeholder="예: womb tattoo" class="comfy-num">
+                                    <div style="display:flex; gap:6px;">
+                                        <input id="comfy-lora-trigger" type="text" placeholder="파일을 고르면 자동으로 찾아 넣습니다" class="comfy-num" style="flex:1 1 auto; min-width:0;">
+                                        <button type="button" class="action-btn" style="flex:0 0 auto; padding:0 10px;" onclick="comfyLoraFindTrigger(true)" title="LoRA 파일 안의 정보에서 트리거 워드 다시 찾기">🔎</button>
+                                    </div>
+                                    <div id="comfy-lora-trigger-note" style="font-size:10.5px; color:var(--text-dim); margin-top:3px;"></div>
                                 </div>
                             </div>
                             <div>
@@ -2134,7 +2138,16 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.119.1', date: '2026-07-30', time: '최신',
+                version: 'v9.120.0', date: '2026-07-30', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[클래식·스튜디오] <b>트리거 워드를 이제 안 적어도 됩니다</b> — LoRA 파일을 고르면 <b>파일 안에 들어 있는 학습 정보를 읽어서</b> 트리거 문구를 자동으로 채웁니다. 모델 페이지를 찾아가 복사해 올 필요가 없어요.",
+                    "[클래식·스튜디오] 제작자가 트리거를 적어 두지 않은 파일은 <b>학습 태그에서 추정</b>해 넣고, 어떻게 찾았는지(적힌 값인지 추정인지) 아래에 표시합니다. 마음에 안 들면 그냥 고쳐 쓰면 되고, 🔎 버튼으로 다시 찾을 수도 있어요.",
+                    "[클래식·스튜디오] 정보가 아예 없는 파일은 안내만 뜨고 빈칸으로 둡니다 — 트리거가 없어도 대부분의 LoRA는 그냥 동작합니다.",
+                ]
+            },
+            {
+                version: 'v9.119.1', date: '2026-07-30', time: '',
                 tag: 'fix',
                 items: [
                     "[클래식·스튜디오] <b>LoRA 칩이 '내 워크플로우' 모드에서 아예 안 보이던 문제</b>를 고쳤습니다 — 칩 영역이 기본 모드 전용 칸 안에 들어가 있어서, 커스텀 워크플로우를 쓰면 통째로 숨겨졌어요. 이제 어느 모드에서든 보입니다.",
@@ -6926,6 +6939,53 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 칩 이름을 아직 안 적었으면 파일명에서 자동으로 채워 준다(그대로 등록해도 알아볼 수 있게)
             const lab = document.getElementById('comfy-lora-label');
             if (lab && !lab.value.trim() && v) lab.value = v.replace(/\.(safetensors|pt|ckpt)$/i, '').slice(0, 18);
+            if (v) { try { comfyLoraFindTrigger(false); } catch (e) {} }   // 트리거 워드도 파일에서 알아서 찾아 넣는다
+        }
+        // ══ 트리거 워드 자동 찾기 ═══════════════════════════════════════════
+        //  LoRA(.safetensors)는 파일 안에 학습 정보를 품고 있고, ComfyUI가 /view_metadata 로 그걸 그대로 내준다.
+        //  거기서 트리거 문구를 꺼내 자동으로 채운다 — 모델 페이지를 찾아가 손으로 옮겨 적을 필요가 없다.
+        //  ① 제작자가 명시한 트리거 필드가 있으면 그대로 ② 없으면 학습 태그 빈도에서 특징적인 것만 추린다.
+        const _COMFY_KNOWN_TRIGGERS = [   // 메타데이터가 비어 있는 파일용 보정표(파일명으로 판정)
+            { re: /womb.?tattoo.*(v6|sdxl)/i, t: 'womb tattoo on stomach' },
+            { re: /womb.?tattoo/i, t: 'womb tattoo' },
+        ];
+        //  거의 모든 LoRA에 흔하게 들어가는 일반 태그 — 트리거 후보에서 뺀다(이걸 넣어봤자 의미가 없다)
+        const _COMFY_TRIG_STOP = new Set(['1girl','solo','breasts','large breasts','huge breasts','nipples','nude','looking at viewer',
+            'simple background','white background','standing','smile','long hair','short hair','blush','open mouth','navel','thighs',
+            'realistic','photorealistic','masterpiece','best quality','highres','absurdres','1boy','multiple girls','completely nude']);
+        async function _comfyLoraMetaTrigger(name) {
+            try {
+                const res = await fetch(_comfyBase() + '/view_metadata/loras?filename=' + encodeURIComponent(name), { signal: AbortSignal.timeout(8000) });
+                if (!res.ok) return null;
+                const m = await res.json(); if (!m || typeof m !== 'object') return null;
+                // ① 제작자가 적어 둔 트리거
+                for (const k of ['modelspec.trigger_phrase', 'ss_trigger_words', 'trigger_phrase', 'ss_output_name']) {
+                    const v = m[k]; if (v && String(v).trim() && k !== 'ss_output_name') return { text: String(v).trim(), how: '파일에 적힌 트리거' };
+                }
+                // ② 학습 태그 빈도 — 흔한 태그를 걷어내고 상위 2개
+                const tf = JSON.parse(m['ss_tag_frequency'] || '{}');
+                const cnt = {};
+                Object.keys(tf).forEach(ds => { const d = tf[ds] || {}; Object.keys(d).forEach(t => { const k2 = t.trim().toLowerCase(); if (k2) cnt[k2] = (cnt[k2] || 0) + d[t]; }); });
+                const top = Object.keys(cnt).filter(t => !_COMFY_TRIG_STOP.has(t) && t.length > 2)
+                    .sort((a, b) => cnt[b] - cnt[a]).slice(0, 2);
+                if (top.length) return { text: top.join(', '), how: '학습 태그에서 추정' };
+            } catch (e) {}
+            return null;
+        }
+        //  force=true면 이미 값이 있어도 덮어쓴다(🔎 버튼)
+        async function comfyLoraFindTrigger(force) {
+            const fileEl = document.getElementById('comfy-lora-file'), trigEl = document.getElementById('comfy-lora-trigger');
+            const note = document.getElementById('comfy-lora-trigger-note');
+            if (!fileEl || !trigEl) return;
+            const name = (fileEl.value || '').trim();
+            if (!name) { if (note) note.textContent = ''; return; }
+            if (!force && trigEl.value.trim()) return;      // 이미 적어 둔 건 건드리지 않는다
+            const known = _COMFY_KNOWN_TRIGGERS.find(k => k.re.test(name));
+            if (known) { trigEl.value = known.t; if (note) note.innerHTML = '✓ <b>알려진 모델</b>이라 트리거를 넣었어요 — 다르면 고쳐 주세요'; return; }
+            if (note) note.textContent = '파일에서 트리거 찾는 중…';
+            const hit = await _comfyLoraMetaTrigger(name);
+            if (hit) { trigEl.value = hit.text; if (note) note.innerHTML = `✓ ${hit.how} — 다르면 고쳐 주세요`; }
+            else if (note) note.innerHTML = '이 파일엔 트리거 정보가 없어요 — 모델 페이지의 <b>Trigger Words</b>를 직접 넣어 주세요 (없어도 대개 동작합니다)';
         }
         function comfyLoraFormClose() { const f = document.getElementById('comfy-lora-form'); if (f) f.style.display = 'none'; }
         function comfyLoraFormSave() {
@@ -6942,6 +7002,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 Object.assign(exist, { label, trigger, strength, auto, watch });
                 _comfyLoraPresetsSave(); _comfyRenderLoraChips(); comfyLoraFormClose();
                 ['comfy-lora-file', 'comfy-lora-label', 'comfy-lora-trigger', 'comfy-lora-watch'].forEach(id => { const e2 = document.getElementById(id); if (e2) e2.value = ''; });
+                { const n2 = document.getElementById('comfy-lora-trigger-note'); if (n2) n2.textContent = ''; }
                 comfyLoraShowManual(false); try { _comfyLoraFillSel(); } catch (e) {}
                 showToast(`LoRA "${label}" 설정을 업데이트했어요`, 'success', 2600);
                 return;
@@ -6949,6 +7010,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _comfyLoraPresets.push({ name, label, trigger, strength, auto, watch, on: false });
             _comfyLoraPresetsSave(); _comfyRenderLoraChips(); comfyLoraFormClose();
             ['comfy-lora-file', 'comfy-lora-label', 'comfy-lora-trigger', 'comfy-lora-watch'].forEach(id => { const el2 = document.getElementById(id); if (el2) el2.value = ''; });
+            { const n3 = document.getElementById('comfy-lora-trigger-note'); if (n3) n3.textContent = ''; }
             comfyLoraShowManual(false); try { _comfyLoraFillSel(); } catch (e) {}   // '✓ 등록됨' 표시 갱신
             showToast(auto && watch ? `LoRA "${label}" 등록됨 — ⚡ 관련 태그를 넣으면 자동으로 적용됩니다`
                                     : `LoRA "${label}" 등록됨 — 칩을 눌러 켜면 적용됩니다`, 'success', 3200);
