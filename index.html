@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.117.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.117.1 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.117.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.117.1 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2095,7 +2095,19 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.117.0', date: '2026-07-30', time: '최신',
+                version: 'v9.117.1', date: '2026-07-30', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[전체] 코드 전수 조사로 잡은 버그 20여 건을 한 번에 고쳤습니다. 아래는 체감될 만한 것들이에요.",
+                    "[성인 콘텐츠] <b>19+를 꺼도 성인 항목이 남아 있던 오래된 버그</b>를 고쳤습니다 — 저장할 때 19+ 표시가 떨어져 나가서, 한 번 저장된 뒤로는 성인 표시를 꺼도 문신·임신·19+ 포즈가 보이고 프롬프트에도 들어갔어요. 이제 표시가 유지되고, 이미 망가진 저장분도 접속하면 자동으로 복구됩니다.",
+                    "[Anima 편집] <b>랜덤 시드인데 같은 그림만 반복되던 문제</b> — 연속 생성용 '선택한 그림 이어받기'가 일반 실행에까지 적용돼 시드가 고착됐어요. 이제 일반 실행은 🔒 시드 고정만 따릅니다. <b>최근 포즈 목록이 새로고침마다 초기화되던 것</b>도 고쳤어요.",
+                    "[Anima 편집] 연속 생성이 중간에 실패해도 <b>설정(시드·옵션·검증 모드)이 원래대로 확실히 복구</b>되게 했고, 프롬프트가 비면 미리 알려주며, 실패한 장수를 성공으로 세지 않습니다.",
+                    "[클래식·스튜디오] <b>Pony용 LoRA인데 이름에 'xl'이 있다고 잘못 경고하던 것</b> 제거 · 삭제한 LoRA 칩이 되살아나던 것 수정 · '긍정만' 전송인데 부정이 몰래 채워지던 것 수정 · 이미지 테마에서 모델을 바꾸면 클래식 세팅이 덮이던 것 분리.",
+                    "[Anima 편집] 폰 가로 화면에서 <b>비교 그림이 좁게 쪼그라들던 것</b>을 고쳐 칸을 제대로 채우고, 넓은 화면 2단 모드에서 갤러리를 내릴 때 <b>다음 장을 미리 불러오게</b> 했습니다. 우클릭으로 시드 고정한 직후 정리 모드 첫 삭제가 씹히던 것도 고쳤어요.",
+                ]
+            },
+            {
+                version: 'v9.117.0', date: '2026-07-30', time: '',
                 tag: 'feat',
                 items: [
                     "[클래식·스튜디오] <b>LoRA가 칩이 됐습니다</b> — 한 번 등록해두면(파일·이름·트리거 워드·강도) 칩을 <b>누르기만 하면 켜지고</b>, <b>트리거 워드는 프롬프트에 자동으로 들어갑니다</b>. 이제 트리거를 기억하거나 타이핑할 필요가 없어요. 칩을 길게 누르면 삭제됩니다.",
@@ -6049,13 +6061,22 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (s.sampler) document.getElementById('comfy-sampler').value = s.sampler;
                 if (s.scheduler) document.getElementById('comfy-scheduler').value = s.scheduler;
                 if (s.familyAuto !== undefined && document.getElementById('comfy-family-auto')) document.getElementById('comfy-family-auto').checked = !!s.familyAuto;
-                // 마이그레이션(v9.117.0): v9.116.0의 LoRA 입력칸 값이 남아 있으면 칩 프리셋으로 이관(1회)
-                [[s.lora1, s.lora1s], [s.lora2, s.lora2s]].forEach(([nm, st]) => {
-                    if (nm && !_comfyLoraPresets.some(p => p.name === nm)) {
-                        _comfyLoraPresets.push({ name: nm, label: nm.replace(/\.(safetensors|pt|ckpt)$/i, '').slice(0, 18), trigger: '', strength: parseFloat(st) || 0.8, on: false });
-                        _comfyLoraPresetsSave();
+                // 마이그레이션(v9.117.0→9.117.1): v9.116.0의 LoRA 입력칸 값이 남아 있으면 칩 프리셋으로 이관.
+                //  ★ 자체 try — 여기가 던지면 아래 커스텀 워크플로우(wfJson) 복원까지 건너뛰게 되므로 격리한다.
+                //  ★ 이관 후 옛 키를 저장소에서 바로 지운다 — 안 지우면 칩을 삭제해도 복원 때마다 되살아난다.
+                try {
+                    if (s.lora1 || s.lora2) {
+                        [[s.lora1, s.lora1s], [s.lora2, s.lora2s]].forEach(([nm, st]) => {
+                            if (nm && Array.isArray(_comfyLoraPresets) && !_comfyLoraPresets.some(p => p.name === nm)) {
+                                const sv = parseFloat(st);   // ||0.8 금지 — 강도 0도 유효한 값
+                                _comfyLoraPresets.push({ name: nm, label: nm.replace(/\.(safetensors|pt|ckpt)$/i, '').slice(0, 18), trigger: '', strength: isNaN(sv) ? 0.8 : sv, on: false });
+                                _comfyLoraPresetsSave();
+                            }
+                        });
+                        delete s.lora1; delete s.lora1s; delete s.lora2; delete s.lora2s;
+                        localStorage.setItem(_comfyActiveSettingsKey(), JSON.stringify(s));
                     }
-                });
+                } catch (e2) {}
                 if (s.wfJson) document.getElementById('comfy-wf-json').value = s.wfJson;
                 if (s.wfRandSeed !== undefined) document.getElementById('comfy-wf-randseed').checked = s.wfRandSeed;
                 if (s.seed !== undefined && s.seed !== '') document.getElementById('comfy-seed').value = s.seed;
@@ -6066,9 +6087,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (Array.isArray(s.previewNodes)) _comfyPreviewNodes = s.previewNodes;
                 comfySetWfMode(s.wfMode || 'basic');
                 comfySetTarget(s.target || 'both');
-                _comfyFamilyBadge();
-                _comfyRenderLoraChips();
-                _comfyRenderModelChips();
+                // 표시 전용 — 실패해도 설정 복원 자체엔 영향 없게 각자 격리
+                try { _comfyFamilyBadge(); } catch (e2) {}
+                try { _comfyRenderLoraChips(); } catch (e2) {}
+                try { _comfyRenderModelChips(); } catch (e2) {}
                 if ((s.wfMode === 'custom') && s.wfJson) comfyAnalyzeWorkflow(true);
                 comfyRenderGroups();
                 comfyRenderFavNodes();
@@ -6593,8 +6615,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try {
                 const fam = _ckptFamilyOf(document.getElementById('comfy-ckpt').value);
                 const auto = document.getElementById('comfy-family-auto');
-                const last = localStorage.getItem('comfy_family_last') || '';
-                if (fam) localStorage.setItem('comfy_family_last', fam);
+                // ★ 컨텍스트별 키 — 메인/변환/인페인트 설정이 분리돼 있는데 계열 기억만 공유하면,
+                //   이미지 테마에서 모델을 바꾼 것이 나중에 클래식의 튜닝 세팅을 덮어써 버린다.
+                const lk = 'comfy_family_last::' + _comfyActiveSettingsKey();
+                const last = localStorage.getItem(lk) || '';
+                if (fam) localStorage.setItem(lk, fam);
                 if (fam && auto && auto.checked && last && fam !== last) comfyApplyFamilyPreset();
             } catch (e) {}
         }
@@ -6606,23 +6631,30 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const fam = _ckptFamilyOf(document.getElementById('comfy-ckpt').value);
                 const F = fam && _CKPT_FAMILIES[fam];
                 if (!F || fam === 'pony') return { pos, neg };
-                if (F.stripScore && pos) pos = pos.replace(/\bscore_\d+(?:_up)?\b\s*,?\s*/gi, '').replace(/,\s*,/g, ', ').replace(/^\s*,\s*/, '').trim();
+                if (F.stripScore && pos) pos = pos.replace(/\bscore_\d+(?:_up)?\b\s*,?\s*/gi, '')
+                    .replace(/\(\s*:\s*[\d.]+\s*\)\s*,?\s*/g, '')   // '(score_9:1.2)'를 지우고 남은 빈 가중치 괄호 '(:1.2)' 제거
+                    .replace(/,\s*,/g, ', ').replace(/,\s*\)/g, ')').replace(/^\s*,\s*/, '').replace(/,\s*$/, '').trim();
                 if (F.prefix && pos && !(F.prefixKey && F.prefixKey.test(pos))) pos = F.prefix + ', ' + pos;
-                if (F.negDefault && !String(neg || '').trim()) neg = F.negDefault;   // 부정이 비어 있을 때만 채움(사용자 부정은 존중)
+                //  부정이 비어 있을 때만 기본 부정을 채운다 — 단, '긍정만' 전송은 부정을 일부러 비운 것이니 손대지 않는다
+                if (F.negDefault && !String(neg || '').trim() && _comfyTarget !== 'pos') neg = F.negDefault;
                 return { pos, neg };
             } catch (e) { return { pos, neg }; }
         }
-        //  LoRA-계열 불일치 경고(전송은 막지 않음) — 파일명 힌트가 있을 때만
+        //  LoRA-계열 불일치 경고(전송은 막지 않음) — 파일명 힌트가 있을 때만.
+        //  ★ LoRA 이름의 'xl'은 그저 'SDXL 아키텍처'라는 뜻이라(예: wombTattoos_xl) Pony·Illustrious
+        //    어느 체크포인트와도 정상 조합이다 — sdxl 판정은 경고 대상에서 뺀다. pony↔illustrious 교차만 경고.
         function _comfyLoraFamilyWarn(fam, loraName) {
             if (!fam || !loraName) return;
             const lf = _ckptFamilyOf(loraName);
-            if (lf && lf !== fam) showToast(`⚠ LoRA "${loraName}"는 ${_CKPT_FAMILIES[lf].label}용으로 보여요 — 지금 체크포인트(${_CKPT_FAMILIES[fam].label})에선 효과가 약하거나 그림이 탁해질 수 있습니다.`, 'warning', 5000);
+            if (!lf || lf === 'sdxl' || lf === fam) return;
+            showToast(`⚠ LoRA "${loraName}"는 ${_CKPT_FAMILIES[lf].label}용으로 보여요 — 지금 체크포인트(${_CKPT_FAMILIES[fam].label})에선 효과가 약하거나 그림이 탁해질 수 있습니다.`, 'warning', 5000);
         }
         // ══ LoRA 프리셋(칩) — 한 번 등록하면 칩으로 켜고 끄고, 트리거 워드는 켜질 때 프롬프트에 자동 삽입 ══
         //  파일명·강도만 있던 입력칸 방식은 트리거 워드를 사용자가 기억해서 쳐야 했다(제일 큰 불편). 칩이 대신 기억한다.
         const _COMFY_LORA_KEY = 'comfy_lora_presets_v1';
         let _comfyLoraPresets = [];
         try { _comfyLoraPresets = JSON.parse(localStorage.getItem(_COMFY_LORA_KEY) || '[]'); } catch (e) { _comfyLoraPresets = []; }
+        if (!Array.isArray(_comfyLoraPresets)) _comfyLoraPresets = [];   // 손상된 저장값 방어(.some 등이 던지지 않게)
         function _comfyLoraPresetsSave() { try { localStorage.setItem(_COMFY_LORA_KEY, JSON.stringify(_comfyLoraPresets)); } catch (e) {} }
         function _comfyActiveLoras() { return _comfyLoraPresets.filter(p => p.on && p.name); }
         function _comfyRenderLoraChips() {
@@ -6641,13 +6673,19 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         if (p.trigger) showToast(`✦ ${p.label || p.name} 켬 — 트리거 "${p.trigger}"를 프롬프트에 자동으로 넣어 보냅니다`, 'info', 2600);
                     }
                 };
-                // 길게 누르면 삭제(확인 후) — 모바일에서 편집 UI 없이 정리 가능
-                let lpT = null;
-                const lpStart = () => { lpT = setTimeout(() => { lpT = null; if (confirm(`LoRA 칩 "${p.label || p.name}"을 삭제할까요?`)) { _comfyLoraPresets.splice(i, 1); _comfyLoraPresetsSave(); _comfyRenderLoraChips(); } }, 600); };
+                // 길게 누르면 삭제(확인 후) — 모바일에서 편집 UI 없이 정리 가능.
+                //  ★ 인덱스 대신 객체(p)로 지운다 — 타이머와 contextmenu가 겹쳐 두 번 실행돼도
+                //    두 번째는 이미 빠진 객체라 no-op(엉뚱한 이웃 칩이 지워지던 문제 방지).
+                const del = () => {
+                    const idx = _comfyLoraPresets.indexOf(p); if (idx < 0) return;
+                    if (confirm(`LoRA 칩 "${p.label || p.name}"을 삭제할까요?`)) { _comfyLoraPresets.splice(idx, 1); _comfyLoraPresetsSave(); _comfyRenderLoraChips(); }
+                };
+                let lpT = null, lpDone = false;
+                const lpStart = () => { lpDone = false; lpT = setTimeout(() => { lpT = null; lpDone = true; del(); }, 600); };
                 const lpEnd = () => { if (lpT) { clearTimeout(lpT); lpT = null; } };
                 chip.addEventListener('touchstart', lpStart, { passive: true });
                 ['touchend', 'touchmove', 'touchcancel'].forEach(ev => chip.addEventListener(ev, lpEnd, { passive: true }));
-                chip.addEventListener('contextmenu', (e) => { e.preventDefault(); lpEnd(); if (confirm(`LoRA 칩 "${p.label || p.name}"을 삭제할까요?`)) { _comfyLoraPresets.splice(i, 1); _comfyLoraPresetsSave(); _comfyRenderLoraChips(); } });
+                chip.addEventListener('contextmenu', (e) => { e.preventDefault(); lpEnd(); if (lpDone) { lpDone = false; return; } del(); });
                 box.appendChild(chip);
             });
             const add = document.createElement('button');
@@ -6695,9 +6733,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const chip = document.createElement('button');
                 chip.type = 'button'; chip.className = 'io-pill' + (active ? ' active' : '');
                 chip.style.cssText = `--pc:${_CKPT_FAMILIES[fam].color}; padding:6px 12px; font-size:12px;`;
-                const idx = files.indexOf(cur);
+                const idx = files.indexOf(cur);   // 현재 파일이 목록에 없으면(-1, 대소문자 차이 등) 번호 없이 개수만 표시
                 chip.title = active && files.length > 1 ? `현재: ${cur}\n다시 누르면 같은 계열 다음 파일로 (${files.length}개)` : files[0];
-                chip.textContent = _CKPT_CHIP_LABELS[fam] + (files.length > 1 ? ` ${active ? (idx + 1) : ''}/${files.length}`.replace(' /', ' ') : '');
+                chip.textContent = _CKPT_CHIP_LABELS[fam] + (files.length > 1 ? ' ' + (active && idx >= 0 ? (idx + 1) + '/' : '') + files.length : '');
                 chip.onclick = () => {
                     const next = active ? files[(idx + 1) % files.length] : files[0];   // 다른 계열이면 첫 파일, 같은 계열이면 순환
                     document.getElementById('comfy-ckpt').value = next;
@@ -8307,9 +8345,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const p = {};
                 ['prompt', 'steps', 'cfg', 'denoise', 'sampler', 'scheduler', 'seed', 'megapixels', 'upscaleMethod', 'refWeight', 'refMode',
                     'cnPose', 'cnLoraName', 'cnLora', 'cnRefWeight',
-                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb', 'exprMore', 'exprRecent', 'sweep', 'sweepSeedInherit', 'galGroup', 'srcKey', 'myPreset', 'promptOpen', 'seedLock', 'autoCrop'].forEach(k => p[k] = _anima[k]);
+                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb', 'exprRecent', 'poseRecent', 'sweep', 'sweepSeedInherit', 'galGroup', 'srcKey', 'myPreset', 'promptOpen', 'seedLock', 'autoCrop'].forEach(k => p[k] = _anima[k]);
                 // 결과 이미지 목록은 여기 없다 — IndexedDB(_animaIdb*)로 옮겼다. 장수가 늘어도 이 저장이 무거워지지 않는다.
-                p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null, detail: s.detail || null }));
+                p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null, detail: s.detail || null, nsfw: !!s.nsfw }));
                 // 이전에 넣은 원본 이미지(축소본)들 — 다시 불러오기용. 여기 남은 것 중엔 이게 제일 크다(그림 데이터).
                 const hist = (_anima.srcHistory || []).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0, key: h.key || null }));
                 // 용량 초과 시 무거운 것부터 단계적으로 줄여 재시도 — 설정(프롬프트·모델·서버 주소)만은 반드시 살린다.
@@ -8347,6 +8385,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     // s.results = 구버전(localStorage) 저장분. 여기서는 임시로만 담아 두고, 아래 _animaLoadResults()가 IndexedDB로 옮긴다.
                     if (Array.isArray(s.results)) _animaLegacyResults = s.results.filter(r => r && r.url).map(r => ({ url: r.url, seed: r.seed == null ? null : r.seed, src: r.src || null, opt: r.opt || '' }));
                     if (Array.isArray(s.snippets)) _anima.snippets = s.snippets.filter(x => x && x.id).map(x => ({ id: x.id, name: x.name || '옵션', text: x.text || '', on: !!x.on, kind: x.kind || 'append', group: x.group || null, detail: x.detail || null, nsfw: !!x.nsfw }));
+                    // 치유(v9.117.1): 예전 저장은 nsfw 표시를 떨어뜨려서(저장 목록에 없었음) 한 번 저장하면
+                    //  19+ 항목이 전부 일반 항목이 돼 성인 표시를 꺼도 새어 나왔다. 기본 제공 항목은
+                    //  id로 기본값의 nsfw를 되찾아 준다 — repose가 id 집합으로 판정하는 것과 같은 원칙.
+                    (_anima.snippets || []).forEach(x => { const d = ANIMA_DEFAULT_SNIPPETS.find(v => v.id === x.id); if (d && d.nsfw && !x.nsfw) x.nsfw = true; });
                     if (Array.isArray(s.srcHistory)) _anima.srcHistory = s.srcHistory.filter(h => h && h.thumb).slice(0, _ANIMA_SRCHIST_MAX).map(h => ({ thumb: h.thumb, name: h.name || 'image', ts: h.ts || 0, key: h.key || null }));
                     if (_anima.imgThumb) { _anima.img = { dataURL: _anima.imgThumb, name: 'image' }; _anima.uploadedName = null; }
                     // srcKey 복구 — 예전 버전은 srcKey를 저장하지 않아 새로고침 후 '원본 정보 없음'으로 묶였다.
@@ -8961,6 +9003,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  ★ 포즈 고정 중에는 참조 강도를 따로 쓴다. Cosmos는 '원본의 몸 배치'를, ControlNet은
             //    '골격'을 같은 조건에 밀어 넣어 서로 싸운다 — 참조를 그대로 1.0으로 두면 골격을 붙여도
             //    원본 자세가 이겨서 증상이 그대로다(다리가 덧그려짐). 그래서 켜지면 낮춘 값을 쓴다.
+            //  ⚠ 포즈 고정(cn)을 다시 켤 때 주의: cn 경로는 S.refWeight를 안 쓰므로 문신·임신의
+            //    자동 참조 하향과 '문신·임신 강도' 검증 축이 조용히 무시된다 — 그때 이 줄을 함께 손볼 것.
             const _refW = cn ? S.cnRefWeight : S.refWeight;
             wf['71'] = _animaNode('CosmosReferenceConditioning', [_refW, S.refMode], { positive: ['67', 0], negative: _negRef, reference_latent: ['76', 0] });
             // ── 포즈 골격 주입 ── 공식 Qwen Union 워크플로우와 같은 순서:
@@ -9318,6 +9362,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _animaSnapshotSettings() { const s = {}; _ANIMA_SNAP_KEYS.forEach(k => s[k] = _anima[k]); return s; }
         // 실행 버튼 = 현재 상태를 대기열에 추가 (idle이면 바로 시작)
         async function _animaGenerate(quiet) {
+            // 스윕이 도는 짧은 동안의 수동 실행은 막는다 — 그 순간 상태(고정 시드·바꿔치기된 옵션·검증용 참조값)로
+            //  엉뚱한 작업이 끼어 들어가기 때문. 스윕 내부 호출(quiet=true)은 그대로 통과한다.
+            if (!quiet && _animaSweeping) { showToast('연속 생성을 넣는 중이에요 — 잠시 후 다시 눌러주세요.', 'info', 2200); return; }
             if (!_animaHasImage()) { showToast('먼저 이미지를 넣어주세요.', 'warning', 2500); return; }
             const base0 = (_anima.prompt || '').trim();
             if (!base0) { showToast('프롬프트를 입력하세요.', 'warning', 2500); return; }
@@ -9392,7 +9439,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     .filter(w => w != null);
                 if (_inkWs.length) {
                     const _inkW = Math.min.apply(null, _inkWs);
-                    if ((parseFloat(settings.refWeight) || 1) > _inkW) {
+                    const _curRef = parseFloat(settings.refWeight);   // ★ ||1 금지 — 0도 유효한 사용자 값(더 낮으니 존중)
+                    if ((isNaN(_curRef) ? 1 : _curRef) > _inkW) {
                         settings.refWeight = _inkW;
                         if (!quiet && !_animaInkNoticed) {
                             _animaInkNoticed = true;
@@ -10168,11 +10216,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { showToast(quiet ? '원본이 바뀌어 시드 고정이 풀렸어요' : '🔓 시드 고정을 풀었어요', 'info', 2000); } catch (e) {}
             return true;
         }
-        function _animaSeedInherit() {
+        function _animaSeedInherit(forSweep) {
             try {
                 if (!(_anima.seed == null || _anima.seed < 0)) return null;   // 직접 지정한 시드가 가장 우선
                 const L = _animaSeedLocked();
                 if (L) return L.seed;                                          // 꾹 눌러 잠근 시드
+                // ★ '선택한 그림 이어받기'는 연속 생성 전용이다 — 일반 실행에 새면, 생성이 끝날 때마다
+                //   새 결과가 자동 선택되면서 그 시드를 또 물려받아 랜덤인데도 같은 그림만 반복된다.
+                if (!forSweep) return null;
                 if (!_anima.sweepSeedInherit) return null;
                 const r = (_anima.results || [])[_animaResSel];
                 if (!r || r.seed == null) return null;
@@ -10215,9 +10266,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             _animaSave();
         }
         // 스윕 실행 — 고른 항목마다 (그 항목만 켠 뒤) 대기열에 넣는다. 끝나면 원래 상태로 되돌린다.
+        let _animaSweeping = false;   // 스윕이 도는 짧은 동안 수동 실행을 막는다 — 임시 상태(고정 시드·바꿔치기된 옵션)로 잘못 뽑히는 것 방지
         async function _animaRunSweep(axisKey) {
             const axis = _ANIMA_SWEEP_AXES.find(a => a.key === axisKey); if (!axis) return;
             if (!_animaHasImage()) { showToast('먼저 이미지를 넣어주세요.', 'warning', 2500); return; }
+            if (!(_anima.prompt || '').trim()) { showToast('프롬프트를 입력하세요.', 'warning', 2500); return; }   // 루프 안에서 N번 막히며 헛도는 것 방지
+            // 설정 축(품질·강도)은 커스텀 워크플로우에 주입되지 않는다 — 같은 그림 N장이 나오니 미리 막는다
+            if (axis.settings && _anima.customWf && _anima.customWf.trim()) { showToast('내 워크플로우(JSON) 사용 중에는 이 축이 적용되지 않아요 — 내장 워크플로우로 바꾸고 돌려주세요.', 'warning', 4500); return; }
             const items = axis.pick(), sel = _animaSweepSel(axis);
             if (!sel.length) { showToast(`${axis.name}에서 돌릴 항목을 하나 이상 골라주세요 (⚙ 설정)`, 'warning', 3000); return; }
             // 되돌리기용 현재 상태 백업
@@ -10229,37 +10284,45 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  시드가 -1(랜덤)이면 기본은 새 랜덤이지만, '선택한 그림 이어받기'가 켜져 있으면
             //  비교창에 떠 있는 그 결과의 시드를 빌려 쓴다 — "마음에 드는 그림에서 표정만 돌리기"가
             //  기존엔 새 랜덤이 뽑혀 전혀 다른 그림 15장이 나오던 문제.
-            //  ★ _anima.seed는 아래에서 원래 값으로 되돌리므로 설정 자체는 바뀌지 않는다.
-            const inherit = _animaSeedInherit();
+            //  ★ _anima.seed는 아래 finally에서 원래 값으로 되돌리므로 설정 자체는 바뀌지 않는다.
+            const inherit = _animaSeedInherit(true);
             const fixed = (inherit != null) ? inherit : _animaSeedVal();
             _anima.seed = fixed;
             if (inherit != null) { try { showToast(`선택한 그림의 시드(${inherit})로 ${axis.name} ${sel.length}장`, 'info', 2600); } catch (e) {} }
             let made = 0;
-            for (const id of sel) {
-                if (axis.apply) { axis.apply(id); }        // 축이 스스로 설정을 갈아끼우는 경우(포즈 강도 등)
-                else if (axis.settings) {
-                    // 품질 축 — 프롬프트·옵션은 그대로 두고 스텝·메가픽셀만 갈아끼운다
-                    const q = _ANIMA_PRESETS.find(x => x.id === id); if (!q) continue;
-                    _anima.steps = q.steps; _anima.megapixels = q.megapixels;
-                } else if (axis.key === 'base') {
-                    if (id === _ANIMA_SWEEP_NONE) _anima.prompt = _ANIMA_NEUTRAL_BASE;
-                    else { const s = items.find(x => x.id === id); if (!s) continue; _anima.prompt = s.text; }
-                } else {
-                    const s = items.find(x => x.id === id); if (!s) continue;
-                    // 같은 축은 하나만 켜지게(상호배타) — 다른 축은 손대지 않음
-                    items.forEach(x => { x.on = (x.id === id); });
+            _animaSweeping = true;
+            // ★ try/finally — 도중에 뭐가 던져져도 복원은 반드시 실행된다. 안 그러면 고정 시드와
+            //   _refExact(검증 축)가 살아남아, 이후 모든 일반 생성이 같은 시드 + 참조 보정 생략으로 조용히 망가진다.
+            try {
+                for (const id of sel) {
+                    if (axis.apply) { axis.apply(id); }        // 축이 스스로 설정을 갈아끼우는 경우(포즈 강도 등)
+                    else if (axis.settings) {
+                        // 품질 축 — 프롬프트·옵션은 그대로 두고 스텝·메가픽셀만 갈아끼운다
+                        const q = _ANIMA_PRESETS.find(x => x.id === id); if (!q) continue;
+                        _anima.steps = q.steps; _anima.megapixels = q.megapixels;
+                    } else if (axis.key === 'base') {
+                        if (id === _ANIMA_SWEEP_NONE) _anima.prompt = _ANIMA_NEUTRAL_BASE;
+                        else { const s = items.find(x => x.id === id); if (!s) continue; _anima.prompt = s.text; }
+                    } else {
+                        const s = items.find(x => x.id === id); if (!s) continue;
+                        // 같은 축은 하나만 켜지게(상호배타) — 다른 축은 손대지 않음
+                        items.forEach(x => { x.on = (x.id === id); });
+                    }
+                    const _nBefore = _animaJobs.length;
+                    await _animaGenerate(true);   // 대기열에 추가(파이프라인이 순서대로 처리) — 개별 토스트는 생략
+                    if (_animaJobs.length > _nBefore) made++;   // 실제로 대기열에 들어간 것만 센다(중간에 이미지가 빠지면 실패)
                 }
-                await _animaGenerate(true);   // 대기열에 추가(파이프라인이 순서대로 처리) — 개별 토스트는 생략
-                made++;
+            } finally {
+                _animaSweeping = false;
+                // 원래 상태 복원 — 스윕은 '돌려보기'일 뿐 내 설정을 바꾸지 않는다
+                _anima.prompt = beforePrompt; _anima.seed = beforeSeed;
+                _anima.steps = beforeSteps; _anima.megapixels = beforeMp;
+                if (axis.restore) axis.restore(beforeAxis);
+                (_anima.snippets || []).forEach(s => { if (s.id in beforeOn) s.on = beforeOn[s.id]; });
+                const pt = _animaEl('#anima-prompt'); if (pt) pt.value = _anima.prompt;
+                _animaSave(); _animaRenderSnippets(); _animaRenderAdv();
             }
-            // 원래 상태 복원 — 스윕은 '돌려보기'일 뿐 내 설정을 바꾸지 않는다
-            _anima.prompt = beforePrompt; _anima.seed = beforeSeed;
-            _anima.steps = beforeSteps; _anima.megapixels = beforeMp;
-            if (axis.restore) axis.restore(beforeAxis);
-            (_anima.snippets || []).forEach(s => { if (s.id in beforeOn) s.on = beforeOn[s.id]; });
-            const pt = _animaEl('#anima-prompt'); if (pt) pt.value = _anima.prompt;
-            _animaSave(); _animaRenderSnippets(); _animaRenderAdv();
-            showToast(`🔁 ${axis.name} ${made}장을 대기열에 넣었어요 (시드 고정)`, 'success', 2600);
+            showToast(made ? `🔁 ${axis.name} ${made}장을 대기열에 넣었어요 (시드 고정)` : `${axis.name} 스윕이 대기열에 못 들어갔어요 — 이미지·프롬프트를 확인해주세요`, made ? 'success' : 'warning', 2600);
         }
         // 실행 버튼 길게 누르기 → 연속 생성 메뉴
         let _animaSweepMenuEl = null;
@@ -10857,11 +10920,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             box._slBound = 1;
             const target = (t) => (t && t.closest && (t.closest('.anima-gitem') || t.closest('.anima-frame[data-lb]'))) || null;
             const down = (e) => {
+                // ★ 플래그 리셋을 가드보다 먼저 — 우클릭/터치 잠금 뒤 click이 안 따라온 경우(우클릭엔 click이 없다)
+                //   플래그가 남는데, 아래 가드에서 먼저 return하면 다음 탭의 click이 엉뚱하게 먹혀
+                //   정리 모드 첫 삭제 탭이 씹히는 문제가 있었다.
+                _animaLpFired = false;
                 if (_animaGalManage) return;                       // 정리 모드에선 삭제가 우선
                 if (e.target.closest && e.target.closest('.anima-gx')) return;
                 const el = target(e.target); if (!el) return;
                 const pt = e.touches ? e.touches[0] : e;
-                _animaLpX = pt.clientX; _animaLpY = pt.clientY; _animaLpFired = false;
+                _animaLpX = pt.clientX; _animaLpY = pt.clientY;
                 _animaLpCancel();
                 _animaLpT = setTimeout(() => {
                     _animaLpT = null; _animaLpFired = true;
@@ -11089,8 +11156,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const nx = _animaEl('#anima-result') && _animaEl('#anima-result').querySelector('#anima-gal-more');
                     if (nx) _animaGalObserve(nx); else _animaGalObserve(null);
                 }
-            }, { root: null, rootMargin: '600px 0px' });
+            }, { root: _animaGalIORoot(el), rootMargin: '600px 0px' });
             _animaGalIO.observe(el);
+        }
+        // 넓은 화면 2단 모드에서는 결과 칸(.anima-col-r)이 자체 스크롤 컨테이너다 — root를 뷰포트로 두면
+        //  rootMargin이 그 칸의 클리핑을 못 넘어 '600px 미리 불러오기'가 죽는다. 실제 스크롤 주체를 root로 준다.
+        function _animaGalIORoot(el) {
+            try {
+                const col = el.closest && el.closest('.anima-col-r');
+                if (col && getComputedStyle(col).overflowY === 'auto') return col;
+            } catch (e) {}
+            return null;
         }
         function _animaRenderResult() {
             const box = _animaEl('#anima-result'); if (!box) return;
@@ -11745,14 +11821,19 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             /* 결과 칸은 스크롤을 따라온다 — 왼쪽에서 실행하면 오른쪽에서 바로 보인다.
                내용이 길면(갤러리) 칸 안에서 따로 스크롤된다. 하단 바 높이만큼 빼서
                바에 가려지는 부분이 없게 한다. */
-            .anima-col-r { position:sticky; top:0; max-height:calc(100dvh - var(--pl-topbar-h,54px) - var(--anima-mact-h,128px) - 16px); overflow-y:auto; overscroll-behavior:contain; }
+            .anima-col-r { position:sticky; top:0;
+              max-height:calc(100vh - var(--pl-topbar-h,54px) - var(--anima-mact-h,128px) - 16px);   /* dvh 미지원 구형 엔진 폴백 */
+              max-height:calc(100dvh - var(--pl-topbar-h,54px) - var(--anima-mact-h,128px) - 16px);
+              overflow-y:auto; overscroll-behavior:contain; }
           }
           @media (min-width:1500px){
             .anima-wrap { grid-template-columns:minmax(0,2fr) minmax(0,3fr); max-width:1800px; }
           }
-          /* 낮은 화면(폰 가로) — 3:4 비교 프레임이 화면 높이를 넘지 않게 상한 */
+          /* 낮은 화면(폰 가로) — 3:4 비교 프레임이 화면 높이를 넘지 않게 상한.
+             ★ #anima-root로 특이도를 올린다 — 같은 특이도면 뒤에 나오는 기본 .anima-frame 규칙(aspect-ratio:3/4)이
+               이겨서 auto가 죽고, 프레임이 높이×3/4 폭으로 쪼그라든다(칸을 못 채움). */
           @media (max-height:560px){
-            .anima-frame { aspect-ratio:auto; height:min(72vh,420px); }
+            #anima-root .anima-frame { aspect-ratio:auto; height:min(72vh,420px); }
           }
           .anima-head { display:flex; flex-direction:column; gap:3px; padding:4px 2px; }
           .anima-head b { font-size:18px; color:var(--text-main); }
@@ -11869,7 +11950,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-seed label { font-size:12px; color:var(--text-dim); font-weight:700; }
           .anima-seed input { width:120px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:9px; padding:9px 10px; color:var(--text-main); font-size:12.5px; }
           .anima-seed button { background:var(--bg-base); border:1px solid var(--border-dim); border-radius:9px; padding:9px 11px; cursor:pointer; color:var(--text-main); }
-          .anima-adv-toggle { font-size:12.5px; font-weight:800; color:var(--text-main); cursor:pointer; user-select:none; -webkit-touch-callout:none; }
+          .anima-adv-toggle { font-size:12.5px; font-weight:800; color:var(--text-main); cursor:pointer; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
           .anima-adv { flex-direction:column; gap:9px; }
           /* 품질 프리셋 줄 — 버튼 라벨은 짧게(모바일에서 줄바꿈·비대해짐 방지) */
           .anima-preset { display:flex; align-items:center; flex-wrap:wrap; gap:6px; padding:2px 0 11px; margin-bottom:9px; border-bottom:1px dashed var(--border-dim); }
@@ -12029,7 +12110,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-gal.manage .anima-gitem { cursor:default; }
           @media (max-width:600px){ .anima-arow { grid-template-columns:96px 1fr; } .anima-run { font-size:15px; } }
           /* 서버 카드 접기 — 주소가 이미 있으면 한 줄로 접혀 공간 절약 */
-          .anima-srv-head { display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:800; color:var(--text-main); cursor:pointer; user-select:none; -webkit-touch-callout:none; }
+          .anima-srv-head { display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:800; color:var(--text-main); cursor:pointer; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
           .anima-srv-arrow { margin-left:auto; font-size:10px; color:var(--text-dim); transition:transform .15s; }
           .anima-srv-card.closed .anima-srv-arrow { transform:rotate(-90deg); }
           .anima-srv-card.closed #anima-srv-body { display:none; }
@@ -16473,6 +16554,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             "fantasy-plus": {3:[{t:"fox girl",k:"여우 소녀"},{t:"cat girl",k:"고양이 소녀"},{t:"demon horns",k:"악마 뿔"},{t:"demon girl",k:"서큐버스/마족 소녀"},{t:"elf",k:"엘프"},{t:"dark elf",k:"다크 엘프"},{t:"dwarf",k:"드워프"},{t:"angel",k:"천사"},{t:"vampire",k:"뱀파이어"},{t:"mermaid",k:"인어"},{t:"dragon girl",k:"용인 소녀"},{t:"dragon horns",k:"용 뿔"},{t:"elf ears",k:"엘프 귀"},{t:"dragon tail",k:"용 꼬리"},{t:"angel wings",k:"천사 날개"}], 4:[{t:"wizard hat",k:"마법사 모자"},{t:"wizard robe",k:"마법사 로브"},{t:"knight armor",k:"기사 갑옷"},{t:"plate armor",k:"판금 갑옷"},{t:"chainmail",k:"사슬 갑옷"},{t:"magical girl outfit",k:"마법소녀 의상"},{t:"priestess outfit",k:"무녀복"}], 5:[{t:"holding sword",k:"검 들기"},{t:"staff",k:"지팡이"},{t:"holding staff",k:"지팡이 들기"},{t:"magic wand",k:"마법봉"},{t:"casting magic",k:"마법 시전"},{t:"summoning",k:"소환"}], 6:[{t:"enchanted forest",k:"마법의 숲"},{t:"wizard tower",k:"마법사 탑"},{t:"ancient ruins",k:"고대 유적"},{t:"floating castle",k:"떠 있는 성"},{t:"crystal cave",k:"수정 동굴"},{t:"magic academy",k:"마법 학교"},{t:"dragon lair",k:"용의 둥지"},{t:"fairy tale",k:"동화풍 배경"}], 7:[{t:"glowing runes",k:"빛나는 룬"},{t:"magic aura",k:"마력 오라"},{t:"floating magic circle",k:"떠오른 마법진"},{t:"sparkling magic",k:"반짝이는 마법"},{t:"elemental fire",k:"화염 정령력"},{t:"elemental ice",k:"얼음 정령력"},{t:"divine light",k:"신성한 빛"}] },
         };
         const _PACK_META = {"adult":{"e":"🔞","l":"성인팩"},"hardcore":{"e":"🔥","l":"하드코어"},"danbooru-general":{"e":"📦","l":"대형팩"},"nsfw-adult":{"e":"🔞","l":"성인사전"},"expressions-plus":{"e":"😊","l":"표정팩"},"fantasy-plus":{"e":"🐉","l":"판타지팩"}};
+        //  ⚠ 각 팩의 조합은 '뒤에 추가만' 할 것 — 삭제 기억(pack_combo_deleted_v1)이 배열 인덱스 기반이라
+        //    중간에 끼우거나 순서를 바꾸면 사용자가 지워둔 조합이 엉뚱한 항목을 숨긴다.
         const _PACK_COMBOS = {
             "adult": [{n:"가터 란제리",g:{"4":"garter belt, garter straps, thighhighs, thong, choker","5":"looking at viewer, seductive","6":"dim lighting, bed"}},{n:"하이레그 노출",g:{"4":"highleg, revealing clothes, skin tight, thigh boots","5":"standing, arched back","6":"neon lighting, indoors"}},{n:"침실 유혹",g:{"5":"lying, spread legs, seductive, looking at viewer","6":"bed, dim lighting, candlelight"}},{n:"뒤태 강조",g:{"5":"from behind, ass focus, looking back, arched back","6":"dim lighting, indoors"}},{n:"초미니 + 하이힐",g:{"4":"micro skirt, high heels, cleavage, bare shoulders","5":"standing, looking at viewer"}}],
             "hardcore": [{n:"기본 정사",g:{"5":"sex, vaginal, penis, uncensored"}},{n:"후타나리",g:{"5":"futanari, penis, futa on futa, uncensored"}},{n:"오랄",g:{"5":"fellatio, oral, uncensored"}},{n:"백합 (여여)",g:{"5":"yuri, uncensored"}},{n:"파이즈리",g:{"5":"paizuri, penis, uncensored"}}],
