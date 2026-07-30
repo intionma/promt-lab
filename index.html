@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.115.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.116.0 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.115.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.116.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1757,8 +1757,35 @@
                 <div id="comfy-basic-params" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px;">
                     <div style="grid-column:1/-1;">
                         <label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:5px;">체크포인트 (모델 파일명)</label>
-                        <input id="comfy-ckpt" list="comfy-ckpt-list" type="text" placeholder="ponyRealism_v23.safetensors" style="width:100%; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:9px 12px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;">
+                        <input id="comfy-ckpt" list="comfy-ckpt-list" type="text" placeholder="ponyRealism_v23.safetensors" onchange="comfyCkptChanged()" style="width:100%; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:8px; padding:9px 12px; color:var(--text-main); font-family:var(--font-code); font-size:13px; outline:none;">
                         <datalist id="comfy-ckpt-list"></datalist>
+                        <!-- 모델 계열 자동 감지 — 기본 모드 전용(커스텀 워크플로우는 이 영역 자체가 숨겨져 아무 영향 없음) -->
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:7px;">
+                            <span id="comfy-family-badge" style="font-size:11px; font-weight:800; padding:3px 10px; border-radius:12px; border:1px solid var(--border-dim); color:var(--text-dim);">계열 감지 안 됨</span>
+                            <button type="button" class="action-btn" onclick="comfyApplyFamilyPreset()" style="padding:4px 10px; font-size:11px;" title="감지된 계열의 권장 CFG·스텝·샘플러 적용">🎯 이 모델 권장 세팅</button>
+                            <label style="display:inline-flex; align-items:center; gap:5px; font-size:11px; color:var(--text-dim); cursor:pointer;"><input type="checkbox" id="comfy-family-auto" checked onchange="_comfySaveSettings()"> 계열 자동 보정 (Pony는 항상 그대로)</label>
+                            <span id="comfy-family-hint" style="font-size:11px; color:var(--text-dim); flex:1 1 100%;"></span>
+                        </div>
+                    </div>
+                    <!-- LoRA (기본 모드 전용 — 비우면 미사용. 커스텀 워크플로우엔 자기 LoRA가 있으므로 여기 안 뜸) -->
+                    <div style="grid-column:1/-1; display:grid; grid-template-columns:1fr 76px; gap:8px;">
+                        <div>
+                            <label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:5px;">LoRA 1 (선택 — 비우면 미사용)</label>
+                            <input id="comfy-lora1" list="comfy-lora-list" type="text" placeholder="예: wombTattoos_xl.safetensors" onchange="_comfySaveSettings()" class="comfy-num">
+                        </div>
+                        <div>
+                            <label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:5px;">강도</label>
+                            <input id="comfy-lora1-s" type="number" value="0.8" min="-2" max="2" step="0.05" onchange="_comfySaveSettings()" class="comfy-num">
+                        </div>
+                        <div>
+                            <label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:5px;">LoRA 2 (선택)</label>
+                            <input id="comfy-lora2" list="comfy-lora-list" type="text" placeholder="비우면 미사용" onchange="_comfySaveSettings()" class="comfy-num">
+                        </div>
+                        <div>
+                            <label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:5px;">강도</label>
+                            <input id="comfy-lora2-s" type="number" value="0.8" min="-2" max="2" step="0.05" onchange="_comfySaveSettings()" class="comfy-num">
+                        </div>
+                        <datalist id="comfy-lora-list"></datalist>
                     </div>
                     <div><label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Steps</label><input id="comfy-steps" type="number" value="28" min="1" max="150" class="comfy-num"></div>
                     <div><label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">CFG</label><input id="comfy-cfg" type="number" value="7" min="1" max="30" step="0.5" class="comfy-num"></div>
@@ -2053,7 +2080,17 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.115.0', date: '2026-07-30', time: '최신',
+                version: 'v9.116.0', date: '2026-07-30', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[클래식·스튜디오] <b>다른 체크포인트도 제대로 쓸 수 있게 됐습니다</b> — 모델 파일명으로 계열(Pony / Illustrious / 실사 SDXL)을 자동 감지해서, 그 모델이 알아듣는 품질 태그·CFG·샘플러로 맞춰 보냅니다. Illustrious가 '뭔가 잘 안 되던' 이유는 Pony식 score 태그가 독이 됐던 것 — 이제 자동으로 걸러냅니다.",
+                    "[클래식·스튜디오] 체크포인트 칸 아래 <b>계열 배지 + 🎯 권장 세팅 버튼</b>이 생겼습니다. 계열을 바꿔 고르면 권장 세팅이 자동 적용돼요(같은 계열 안에서는 아무것도 안 바뀝니다). 자동 보정은 체크박스로 끌 수 있어요.",
+                    "[클래식·스튜디오] 기본 모드에 <b>LoRA 칸 2개</b>가 생겼습니다 — 문신·음문 같은 LoRA를 받아 넣으면 목록에서 골라 바로 쓸 수 있어요. 체크포인트와 계열이 안 맞는 LoRA를 고르면 미리 알려줍니다.",
+                    "[클래식·스튜디오] ⚠ <b>Pony(지금 쓰시는 것)와 커스텀 워크플로우는 아무것도 안 바뀝니다</b> — Pony는 프롬프트를 절대 건드리지 않고, 커스텀 모드는 이 기능이 아예 지나가지 않는 별도 경로입니다.",
+                ]
+            },
+            {
+                version: 'v9.115.0', date: '2026-07-30', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] 문신에 <b>'전신 도배(낙서·정자)'</b>가 추가됐습니다 — 서양에서 유행하는 온몸 음란 낙서 스타일을 태그 조합(몸 낙서 + 정자 마크 + 카운트 + 얼굴 낙서)으로 최대한 재현합니다. 면적이 제일 넓어 참조 강도도 가장 낮게 자동 조절돼요.",
@@ -5929,6 +5966,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     h: document.getElementById('comfy-h').value,
                     sampler: document.getElementById('comfy-sampler').value,
                     scheduler: document.getElementById('comfy-scheduler').value,
+                    lora1: (document.getElementById('comfy-lora1') || {}).value || '',
+                    lora1s: (document.getElementById('comfy-lora1-s') || {}).value || '0.8',
+                    lora2: (document.getElementById('comfy-lora2') || {}).value || '',
+                    lora2s: (document.getElementById('comfy-lora2-s') || {}).value || '0.8',
+                    familyAuto: !!(document.getElementById('comfy-family-auto') || {}).checked,
                     wfMode: _comfyWfMode,
                     wfJson: document.getElementById('comfy-wf-json').value,
                     wfRandSeed: document.getElementById('comfy-wf-randseed').checked,
@@ -5986,6 +6028,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (s.h) document.getElementById('comfy-h').value = s.h;
                 if (s.sampler) document.getElementById('comfy-sampler').value = s.sampler;
                 if (s.scheduler) document.getElementById('comfy-scheduler').value = s.scheduler;
+                if (s.lora1 !== undefined && document.getElementById('comfy-lora1')) document.getElementById('comfy-lora1').value = s.lora1;
+                if (s.lora1s !== undefined && document.getElementById('comfy-lora1-s')) document.getElementById('comfy-lora1-s').value = s.lora1s;
+                if (s.lora2 !== undefined && document.getElementById('comfy-lora2')) document.getElementById('comfy-lora2').value = s.lora2;
+                if (s.lora2s !== undefined && document.getElementById('comfy-lora2-s')) document.getElementById('comfy-lora2-s').value = s.lora2s;
+                if (s.familyAuto !== undefined && document.getElementById('comfy-family-auto')) document.getElementById('comfy-family-auto').checked = !!s.familyAuto;
                 if (s.wfJson) document.getElementById('comfy-wf-json').value = s.wfJson;
                 if (s.wfRandSeed !== undefined) document.getElementById('comfy-wf-randseed').checked = s.wfRandSeed;
                 if (s.seed !== undefined && s.seed !== '') document.getElementById('comfy-seed').value = s.seed;
@@ -5996,6 +6043,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (Array.isArray(s.previewNodes)) _comfyPreviewNodes = s.previewNodes;
                 comfySetWfMode(s.wfMode || 'basic');
                 comfySetTarget(s.target || 'both');
+                _comfyFamilyBadge();
                 if ((s.wfMode === 'custom') && s.wfJson) comfyAnalyzeWorkflow(true);
                 comfyRenderGroups();
                 comfyRenderFavNodes();
@@ -6430,6 +6478,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _comfyMixedHelp(false);
                 _comfyConnectedOnce = true;
                 comfyUpdateQuickButtons();
+                _comfyFamilyBadge();
+                // LoRA 목록도 같이 받아 datalist 채움(기본 모드 LoRA 칸용) — 실패해도 연결 자체엔 영향 없음
+                try {
+                    const lres = await fetch(_comfyBase() + '/object_info/LoraLoader', { signal: AbortSignal.timeout(8000) });
+                    if (lres.ok) {
+                        const ldata = await lres.json();
+                        const lnames = ldata?.LoraLoader?.input?.required?.lora_name?.[0] || [];
+                        const ldl = document.getElementById('comfy-lora-list');
+                        if (ldl) { ldl.innerHTML = ''; lnames.forEach(n => { const o = document.createElement('option'); o.value = n; ldl.appendChild(o); }); }
+                    }
+                } catch (e2) {}
                 _comfySaveSettings();
                 _comfyReconnectNow(); // 수동 연결 성공 → 라이브 진행용 소켓도 즉시 (재)연결
             } catch (e) {
@@ -6449,13 +6508,110 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
         }
 
+        // ══ 체크포인트 계열 감지 + 계열별 보정 ═══════════════════════════════
+        //  ★ 전부 '기본 (간단 생성)' 모드 전용이다 — 커스텀 워크플로우 경로(_comfyBuildCustomWorkflow)는
+        //    한 줄도 안 지나가고, UI도 기본 모드에서만 보인다. 기존 커스텀 사용에 영향 0.
+        //  ★ Pony 계열은 프롬프트를 절대 건드리지 않는다(지금 잘 쓰는 방식 그대로).
+        //    Illustrious/실사 SDXL로 바꿨을 때만 그 모델의 사투리에 맞게 보정한다 —
+        //    "다른 모델은 뭔가 잘 안 되던" 원인이 이 사투리 차이(score 태그·CFG·샘플러)였다.
+        const _CKPT_FAMILIES = {
+            pony: { label: 'Pony 계열', color: '#f472b6', cfg: 6.5, steps: 30, sampler: 'dpmpp_2m', scheduler: 'karras' },
+            illustrious: {
+                label: 'Illustrious 계열', color: '#a78bfa', cfg: 5.5, steps: 28, sampler: 'euler_ancestral', scheduler: 'normal',
+                prefix: 'masterpiece, best quality, very aesthetic', prefixKey: /masterpiece|best quality/i,
+                stripScore: true,   // score_9 같은 Pony 전용 태그는 Illustrious에선 오히려 독
+                negDefault: 'worst quality, low quality, bad anatomy, bad hands, watermark, artist name',
+            },
+            sdxl: {
+                label: '실사 SDXL', color: '#f59e0b', cfg: 5, steps: 30, sampler: 'dpmpp_2m', scheduler: 'karras',
+                stripScore: true,
+                note: '이 계열은 자연어 문장을 선호해서 태그식 프롬프트와 궁합이 낮습니다',
+            },
+        };
+        function _ckptFamilyOf(name) {
+            const n = (name || '').toLowerCase();
+            if (!n) return null;
+            if (/pony|pny/.test(n)) return 'pony';
+            if (/illustrious|noob|wai[-_]?nsfw|obsession|ntrmix/.test(n)) return 'illustrious';
+            if (/xl/.test(n)) return 'sdxl';
+            return null;
+        }
+        function _comfyFamilyBadge() {
+            try {
+                const fam = _ckptFamilyOf(document.getElementById('comfy-ckpt').value);
+                const b = document.getElementById('comfy-family-badge'), h = document.getElementById('comfy-family-hint');
+                if (!b) return;
+                const F = fam && _CKPT_FAMILIES[fam];
+                b.textContent = F ? F.label : '계열 감지 안 됨';
+                b.style.color = F ? F.color : 'var(--text-dim)';
+                b.style.borderColor = F ? F.color : 'var(--border-dim)';
+                if (h) h.textContent = F ? (F.note || (fam === 'pony' ? '지금 그대로 — 아무것도 자동 변경하지 않습니다' : '전송 시 이 계열에 맞는 품질 태그로 자동 보정합니다')) : '';
+            } catch (e) {}
+        }
+        function comfyApplyFamilyPreset() {
+            const fam = _ckptFamilyOf(document.getElementById('comfy-ckpt').value);
+            const F = fam && _CKPT_FAMILIES[fam];
+            if (!F) { showToast('체크포인트 이름으로 계열을 알 수 없어요 — 파일명에 pony/illustrious 등이 들어가야 감지됩니다.', 'warning', 4000); return; }
+            document.getElementById('comfy-cfg').value = F.cfg;
+            document.getElementById('comfy-steps').value = F.steps;
+            document.getElementById('comfy-sampler').value = F.sampler;
+            document.getElementById('comfy-scheduler').value = F.scheduler;
+            _comfySaveSettings();
+            showToast(`${F.label} 권장 세팅 적용 — CFG ${F.cfg} · ${F.steps}스텝 · ${F.sampler}/${F.scheduler}`, 'success', 3500);
+        }
+        // 체크포인트를 바꾸면: 배지 갱신 + (자동 보정 켜짐 && 계열이 실제로 바뀜)일 때만 권장 세팅 적용.
+        //  같은 계열 안에서 파일만 바꾸면 아무것도 안 바뀐다 — 늘 쓰던 Pony 세팅이 흔들리지 않게.
+        function comfyCkptChanged() {
+            _comfySaveSettings(); _comfyFamilyBadge();
+            try {
+                const fam = _ckptFamilyOf(document.getElementById('comfy-ckpt').value);
+                const auto = document.getElementById('comfy-family-auto');
+                const last = localStorage.getItem('comfy_family_last') || '';
+                if (fam) localStorage.setItem('comfy_family_last', fam);
+                if (fam && auto && auto.checked && last && fam !== last) comfyApplyFamilyPreset();
+            } catch (e) {}
+        }
+        //  전송 직전 프롬프트 보정 — 기본 모드 전용. Pony·미감지 계열은 원문 그대로 반환.
+        function _comfyFamilyWrap(pos, neg) {
+            try {
+                const auto = document.getElementById('comfy-family-auto');
+                if (!auto || !auto.checked) return { pos, neg };
+                const fam = _ckptFamilyOf(document.getElementById('comfy-ckpt').value);
+                const F = fam && _CKPT_FAMILIES[fam];
+                if (!F || fam === 'pony') return { pos, neg };
+                if (F.stripScore && pos) pos = pos.replace(/\bscore_\d+(?:_up)?\b\s*,?\s*/gi, '').replace(/,\s*,/g, ', ').replace(/^\s*,\s*/, '').trim();
+                if (F.prefix && pos && !(F.prefixKey && F.prefixKey.test(pos))) pos = F.prefix + ', ' + pos;
+                if (F.negDefault && !String(neg || '').trim()) neg = F.negDefault;   // 부정이 비어 있을 때만 채움(사용자 부정은 존중)
+                return { pos, neg };
+            } catch (e) { return { pos, neg }; }
+        }
+        //  LoRA-계열 불일치 경고(전송은 막지 않음) — 파일명 힌트가 있을 때만
+        function _comfyLoraFamilyWarn(fam, loraName) {
+            if (!fam || !loraName) return;
+            const lf = _ckptFamilyOf(loraName);
+            if (lf && lf !== fam) showToast(`⚠ LoRA "${loraName}"는 ${_CKPT_FAMILIES[lf].label}용으로 보여요 — 지금 체크포인트(${_CKPT_FAMILIES[fam].label})에선 효과가 약하거나 그림이 탁해질 수 있습니다.`, 'warning', 5000);
+        }
         function _comfyBuildWorkflow(pos, neg) {
             const seedInput = parseInt(document.getElementById('comfy-seed').value);
             const seed = (isNaN(seedInput) || seedInput < 0) ? Math.floor(Math.random() * 1e15) : seedInput;
             // 전송 대상에 따라 한쪽 비우기
             if (_comfyTarget === 'pos') neg = '';
             if (_comfyTarget === 'neg') pos = '';
-            return {
+            // 계열 자동 보정(기본 모드 전용) — Pony는 원문 그대로
+            { const w = _comfyFamilyWrap(pos, neg); pos = w.pos; neg = w.neg; }
+            // LoRA 체인(기본 모드 전용) — 비어 있으면 기존과 100% 동일한 워크플로우
+            const _fam = _ckptFamilyOf(document.getElementById('comfy-ckpt').value);
+            let _mRef = ["4", 0], _cRef = ["4", 1];
+            const _loraWf = {};
+            [['comfy-lora1', 'comfy-lora1-s', '10'], ['comfy-lora2', 'comfy-lora2-s', '11']].forEach(([idEl, sEl, nid]) => {
+                const el = document.getElementById(idEl); const nm = el ? (el.value || '').trim() : '';
+                if (!nm) return;
+                const st = parseFloat((document.getElementById(sEl) || {}).value) || 0.8;
+                _comfyLoraFamilyWarn(_fam, nm);
+                _loraWf[nid] = { "class_type": "LoraLoader", "inputs": { "model": _mRef, "clip": _cRef, "lora_name": nm, "strength_model": st, "strength_clip": st } };
+                _mRef = [nid, 0]; _cRef = [nid, 1];
+            });
+            return Object.assign(_loraWf, {
                 "3": { "class_type": "KSampler", "inputs": {
                     "seed": seed,
                     "steps": parseInt(document.getElementById('comfy-steps').value) || 28,
@@ -6463,7 +6619,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     "sampler_name": document.getElementById('comfy-sampler').value,
                     "scheduler": document.getElementById('comfy-scheduler').value,
                     "denoise": 1,
-                    "model": ["4", 0], "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["5", 0]
+                    "model": _mRef, "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["5", 0]
                 }},
                 "4": { "class_type": "CheckpointLoaderSimple", "inputs": { "ckpt_name": document.getElementById('comfy-ckpt').value } },
                 "5": { "class_type": "EmptyLatentImage", "inputs": {
@@ -6471,11 +6627,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     "height": parseInt(document.getElementById('comfy-h').value) || 1024,
                     "batch_size": 1
                 }},
-                "6": { "class_type": "CLIPTextEncode", "inputs": { "text": pos, "clip": ["4", 1] } },
-                "7": { "class_type": "CLIPTextEncode", "inputs": { "text": neg, "clip": ["4", 1] } },
+                "6": { "class_type": "CLIPTextEncode", "inputs": { "text": pos, "clip": _cRef } },
+                "7": { "class_type": "CLIPTextEncode", "inputs": { "text": neg, "clip": _cRef } },
                 "8": { "class_type": "VAEDecode", "inputs": { "samples": ["3", 0], "vae": ["4", 2] } },
                 "9": { "class_type": "SaveImage", "inputs": { "filename_prefix": "PromptLab", "images": ["8", 0] } }
-            };
+            });
         }
 
         // ══════════════════════════════════════════════════════════
