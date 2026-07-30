@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.113.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.114.0 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.113.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.114.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2053,11 +2053,20 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.113.0', date: '2026-07-30', time: '최신',
+                version: 'v9.114.0', date: '2026-07-30', time: '최신',
                 tag: 'feat',
                 items: [
-                    "[Anima 편집] <b>문신 목록을 실제로 나오는 것만 남겼습니다</b> — 직접 뽑아 보신 결과대로 <b>자궁 문신 · 바코드 낙인</b> 2종만 남고, 그림에 안 나타나던 나머지 10종은 뺐습니다. 목록이 짧아져 고르기 쉬워요.",
-                    "[Anima 편집] <b>임신은 1종으로 합쳤습니다</b> — 4종이 거의 같은 그림이라 <b>임신</b> 하나만 남기고, 배가 확실히 나오는 조합으로 태그를 잡았습니다. '전부 돌리기'도 이제 낭비 없이 돕니다.",
+                    "[Anima 편집] <b>문신 12종·임신 4종을 되살리고, '안 나오는 원인'을 고쳤습니다</b> — 분석 결과 태그 문제가 아니라 <b>원본을 따라 그리는 참조 강도(1.0)에 눌려서</b>였어요. 잘 나오던 자궁·바코드는 좁은 부위라 비집고 들어갔던 것이고, 넓은 문신·임신 배는 원본 피부가 이겨서 안 새겨졌던 겁니다. (포즈가 안 먹던 것과 같은 원인)",
+                    "[Anima 편집] 그래서 이제 <b>문신·임신을 켜면 참조 강도를 자동으로 낮춰서</b> 보냅니다 — 넓은 문신일수록 더 낮춥니다. 원래 잘 나오던 자궁·바코드는 <b>아무것도 안 바뀝니다</b>. 태그 힘도 전반적으로 올렸어요.",
+                    "[Anima 편집] 🧪 <b>연속 생성에 '문신·임신 강도 (검증)'이 임시로 생겼습니다</b> — 문신이나 임신을 켜 두고 실행을 길게 누르면 보여요. 같은 시드로 <b>참조 강도 1.0→0.25 6장</b>을 뽑아, 어느 강도부터 문신이 살아나고 언제 얼굴이 무너지는지 직접 확인할 수 있습니다. 결과 캡션에 참조 값이 붙어요.",
+                    "[Anima 편집] 검증 결과를 알려주시면 자동 강도 값을 실측값으로 맞추고 검증 축은 제거할 예정입니다. (v9.113.0의 '목록 축소'는 방침 변경으로 되돌렸습니다)",
+                ]
+            },
+            {
+                version: 'v9.113.0', date: '2026-07-30', time: '',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] <b>문신 목록을 실제로 나오는 것만 남겼습니다</b> — 직접 뽑아 보신 결과대로 <b>자궁 문신 · 바코드 낙인</b> 2종만 남고, 그림에 안 나타나던 나머지 10종은 뺐습니다. (v9.114.0에서 방침 변경으로 복원)",
                 ]
             },
             {
@@ -7753,18 +7762,36 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // ── 문신 (group 'tat' — 하나만) ────────────────────────────────
             //  ★ 임시 배치다. 하단 바 '문신' 버튼 → 팝오버로만 고른다. 나중에 UI를 다시 잡을 예정이라
             //    여기 배열만 고치면 버튼·팝오버·연속 생성 축이 전부 따라오도록 해 뒀다(별도 코드 수정 불필요).
-            //  처음엔 단부루 건수 기준 12종을 넣었으나, 실사용 결과 실제로 그림에 나오는 건
-            //  자궁·바코드 둘뿐이라 나머지 10종은 뺐다(2026-07-30 사용자 확인).
-            //  ✗ 안 나와서 뺀 것: 온몸 낙서 · 온몸 문양 · 전신 문신 · 창녀 낙인 · 스페이드 퀸
-            //    · 트라이벌 · 팔토시 · 엉덩이 · 노예 낙인 · 바디페인트
+            //  실측(2026-07-30): 12종 중 자궁·바코드만 나오고 나머지는 안 나타났다. 원인 분석 결과
+            //  태그 학습량이 아니라 '참조 강도 1.0에 원본 피부가 이기는 구조'가 주범 —
+            //  나온 둘은 좁은 부위의 국소 마크라 비집고 들어갔고, 넓은 면적일수록 참조에 눌렸다.
+            //  (안 나온 온몸 낙서 15,092건 > 나온 바코드 4,726건 — 건수로는 설명이 안 된다.
+            //   포즈 고정이 참조 강도를 낮춰야만 먹혔던 것과 같은 메커니즘, index.html의 cnRefWeight 참고)
+            //  → 대응: ① refW = 켜면 자동으로 낮출 참조 강도(면적이 넓을수록 낮게. 잠정값 — 실측 후 조정)
+            //          ② 가중치 상향(cfg=1 distilled라 견인력이 약함 — 노출 프리셋이 :2를 쓰는 이유)
+            //  잘 나오던 자궁·바코드는 문구·동작 모두 이전 그대로 둔다(refW 없음 = 참조 안 낮춤).
             //  ✗ 애초에 넣지 않은 것: text_tattoo(237) 글자가 반드시 깨짐 / womb_tattoo(겔부루 1건) 학습 안 됨
             //    interracial(34,617)은 상대 남성까지 그려 버려서 문신 축에 섞으면 안 된다.
+            { id: 'tat_writing', name: '온몸 낙서', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.6, text: '(body writing:1.5)' },
+            { id: 'tat_markings', name: '온몸 문양', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.6, text: '(body markings:1.5)' },
+            { id: 'tat_full', name: '전신 문신', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.6, text: '(full-body tattoo:1.5), tattoo' },
+            { id: 'tat_slut', name: '창녀 낙인', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.75, text: '(pubic tattoo, number tattoo:1.4), tattoo' },
             { id: 'tat_barcode', name: '바코드 낙인', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(barcode tattoo:1.2), stomach tattoo, tattoo' },
+            { id: 'tat_spade', name: '스페이드 퀸', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.75, text: '(queen of spades symbol:1.5), pubic tattoo, tattoo' },
+            { id: 'tat_tribal', name: '트라이벌', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.7, text: '(tribal tattoo:1.5), tattoo' },
+            { id: 'tat_sleeve', name: '팔토시 문신', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.6, text: '(tattoo sleeve, arm tattoo:1.4), tattoo' },
             { id: 'tat_pubic', name: '자궁 문신', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(pubic tattoo:1.3), tattoo' },
+            { id: 'tat_ass', name: '엉덩이 문신', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.75, text: '(ass tattoo:1.5), tattoo' },
+            { id: 'tat_brand', name: '노예 낙인', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.75, text: '(slave brand:1.5), tattoo' },
+            { id: 'tat_paint', name: '바디페인트', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.6, text: '(bodypaint:1.5)' },
             // ── 임신 (group 'preg' — 하나만) ───────────────────────────────
-            //  처음엔 4종(임신·만삭·초기·임신+낙인)이었으나 실사용 결과 넷이 거의 같은 그림이라
-            //  '임신' 하나로 합쳤다(2026-07-30 사용자 확인). 강조를 위해 만삭 태그를 함께 쓴다.
-            { id: 'preg_on', name: '임신', kind: 'append', on: false, group: 'preg', nsfw: true, text: '(pregnant, big belly:1.3)' }
+            //  실측(2026-07-30): 4종이 거의 같은 그림 + 배가 제대로 안 나옴 — 배 형태 변화는 광역이라
+            //  문신과 같은 벽(참조 강도)에 막힌다. → refW로 참조를 낮추고 문구도 단계가 벌어지게 조정.
+            //  pregnant 13,490 · big_belly 8,147 · implied_pregnancy 1,095 · pregnancy_mark 162
+            { id: 'preg_on', name: '임신', kind: 'append', on: false, group: 'preg', nsfw: true, refW: 0.65, text: '(pregnant:1.5)' },
+            { id: 'preg_big', name: '만삭', kind: 'append', on: false, group: 'preg', nsfw: true, refW: 0.6, text: '(pregnant, big belly:1.6)' },
+            { id: 'preg_slight', name: '초기 (살짝)', kind: 'append', on: false, group: 'preg', nsfw: true, refW: 0.8, text: '(pregnant:0.9), implied pregnancy' },
+            { id: 'preg_mark', name: '임신 + 낙인', kind: 'append', on: false, group: 'preg', nsfw: true, refW: 0.6, text: '(pregnant, big belly:1.5), pregnancy mark' }
         ];
         // '자위' 포즈는 후타 여부에 따라 손동작이 달라야 한다 — 후타 프리셋이 켜져 있으면 생성 시 이 문구로 자동 교체.
         const _ANIMA_POSE_MAST_FUTA = '(futanari masturbation, hand on own penis:1.2), masturbation, spread legs';
@@ -8150,25 +8177,34 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         const add = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === g && !_anima.snippets.some(x => x.id === d.id));
                         if (add.length) _anima.snippets = _anima.snippets.concat(JSON.parse(JSON.stringify(add)));
                     });
-                    // 마이그레이션(v9.113.0): 실사용 결과 그림에 안 나오던 문신 10종 + 거의 같은 그림이던
-                    //  임신 3종을 기존 사용자 저장분에서도 제거. ✏️로 문구를 고쳐 쓴 항목은 사용자의
-                    //  것이니 남긴다 — 예전 기본 문구 그대로일 때만 지운다(위 GHOST_FIX와 같은 원칙).
+                    // 마이그레이션(v9.114.0): 문신·임신 문구를 강화판으로 교체.
+                    //  v9.113.0에서 안 나오는 항목을 지웠다가, '지우지 말고 나오게 만들자'로 방침이 바뀌어
+                    //  기본값 배열을 복원했다(지워진 항목은 바로 위 tat/preg 신규 추가 줄이 되살린다).
+                    //  여기서는 남아 있던 항목의 '옛 기본 문구'만 새 강화 문구로 올린다 —
+                    //  ✏️로 고쳐 쓴 문구는 사용자의 것이니 그대로 둔다(GHOST_FIX와 같은 원칙).
+                    //  키: id → [옛 기본 문구들(v9.108 원본, v9.113 임시판)]. 새 문구는 기본값 배열에서 찾는다.
                     {
-                        const CULL = {
-                            tat_writing: '(body writing:1.3)', tat_markings: '(body markings:1.2)',
-                            tat_full: '(full-body tattoo:1.2), tattoo', tat_slut: '(pubic tattoo, number tattoo:1.2), tattoo',
-                            tat_spade: '(queen of spades symbol:1.3), pubic tattoo, tattoo', tat_tribal: '(tribal tattoo:1.2), tattoo',
-                            tat_sleeve: 'tattoo sleeve, arm tattoo, tattoo', tat_ass: '(ass tattoo:1.3), tattoo',
-                            tat_brand: '(slave brand:1.3), tattoo', tat_paint: '(bodypaint:1.2)',
-                            preg_big: '(pregnant, big belly:1.3)', preg_slight: '(pregnant:0.9), implied pregnancy',
-                            preg_mark: '(pregnant, big belly:1.3), pregnancy mark',
+                        const INK_OLD = {
+                            tat_writing: ['(body writing:1.3)'], tat_markings: ['(body markings:1.2)'],
+                            tat_full: ['(full-body tattoo:1.2), tattoo'], tat_slut: ['(pubic tattoo, number tattoo:1.2), tattoo'],
+                            tat_spade: ['(queen of spades symbol:1.3), pubic tattoo, tattoo'], tat_tribal: ['(tribal tattoo:1.2), tattoo'],
+                            tat_sleeve: ['tattoo sleeve, arm tattoo, tattoo'], tat_ass: ['(ass tattoo:1.3), tattoo'],
+                            tat_brand: ['(slave brand:1.3), tattoo'], tat_paint: ['(bodypaint:1.2)'],
+                            preg_on: ['pregnant', '(pregnant, big belly:1.3)'],
+                            preg_big: ['(pregnant, big belly:1.3)'],
+                            preg_mark: ['(pregnant, big belly:1.3), pregnancy mark'],
                         };
-                        _anima.snippets = _anima.snippets.filter(x => !(CULL[x.id] != null && (x.text || '').trim() === CULL[x.id]));
-                        // 남은 '임신'은 배가 확실히 나오게 만삭 태그로 강화 + '자궁 문신만' 이름 정리 — 기본값 그대로일 때만
-                        const pg = _anima.snippets.find(x => x.id === 'preg_on');
-                        if (pg && (pg.text || '').trim() === 'pregnant') pg.text = '(pregnant, big belly:1.3)';
-                        const tp = _anima.snippets.find(x => x.id === 'tat_pubic');
-                        if (tp && tp.name === '자궁 문신만') tp.name = '자궁 문신';
+                        _anima.snippets.forEach(x => {
+                            const olds = INK_OLD[x.id]; if (!olds) return;
+                            if (olds.indexOf((x.text || '').trim()) < 0) return;   // ✏️ 수정본은 보존
+                            const d = ANIMA_DEFAULT_SNIPPETS.find(v => v.id === x.id);
+                            if (d) x.text = d.text;
+                        });
+                        // 이름 정리('자궁 문신만'→'자궁 문신', '엉덩이 문신만'→'엉덩이 문신')
+                        _anima.snippets.forEach(x => {
+                            if (x.id === 'tat_pubic' && x.name === '자궁 문신만') x.name = '자궁 문신';
+                            if (x.id === 'tat_ass' && x.name === '엉덩이 문신만') x.name = '엉덩이 문신';
+                        });
                     }
                     // ══ 마이그레이션: 단부루에 없는 '유령 태그' 일괄 교정 ═══════════════════
                     //  실제 태그 사용량(danbooru post 수)으로 전수 검사한 결과, 아래 태그들은 0건이라
@@ -8698,6 +8734,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         let _animaExprOpen = false;   // 하단 바 표정 줄 펼침 여부
         let _animaPoseOpen = false;   // 하단 바 포즈 줄 펼침 여부
         let _animaFlatNoticed = false;   // 절벽 자동 보정 안내를 세션당 한 번만 띄우기 위한 표시
+        let _animaInkNoticed = false;    // 문신·임신 참조 하향 안내를 세션당 한 번만 띄우기 위한 표시
         let _animaFutaPop = null;     // 열려 있는 후타 상세 팝오버의 크기 id (✕로만 닫힘)
         // (자동 스크롤 제거 — 생성 때마다 화면이 결과로 튀면 옵션을 계속 만지기 불편하다.
         //  완료는 토스트·진동으로 알리고, 어디를 보고 있든 그 자리를 지킨다.)
@@ -9050,6 +9087,27 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 snap.poseDataURL = _anima.poseImg.dataURL; snap.poseUploadedName = _anima.poseUploadedName;
             }
             const settings = _animaSnapshotSettings();   // 고급 설정도 이 순간 값으로 고정 → 대기 중 바꿔도 안 섞임
+            // [문신·임신 자동 참조 하향] 원본에 없는 걸 새기는 항목이 켜져 있으면 참조 강도를 그 항목의
+            //  refW(기본값 배열 기준)까지 내려서 보낸다 — 참조 1.0이면 원본 피부가 이겨서 안 새겨진다
+            //  (포즈 고정이 cnRefWeight 0.5로 낮춰야만 먹혔던 것과 같은 원리). 여러 개 켜졌으면 가장 낮은 값.
+            //  refW가 없는 항목(자궁·바코드 — 참조 1.0에서도 원래 잘 나옴)만 켜져 있으면 아무것도 안 바꾼다.
+            //  사용자가 고급 설정에서 이미 더 낮게 내려놨으면 그 값을 존중한다(min이 아니라 초과분만 하향).
+            //  ★ 연속 생성의 '문신·임신 강도' 검증 축은 정확한 값을 재야 하므로 _refExact로 이 보정을 건너뛴다.
+            if (!_anima._refExact) {
+                const _inkWs = ons.filter(s => s.group === 'tat' || s.group === 'preg')
+                    .map(s => { const d = ANIMA_DEFAULT_SNIPPETS.find(v => v.id === s.id); return d ? d.refW : null; })
+                    .filter(w => w != null);
+                if (_inkWs.length) {
+                    const _inkW = Math.min.apply(null, _inkWs);
+                    if ((parseFloat(settings.refWeight) || 1) > _inkW) {
+                        settings.refWeight = _inkW;
+                        if (!quiet && !_animaInkNoticed) {
+                            _animaInkNoticed = true;
+                            try { showToast(`문신·임신이 원본에 눌리지 않게 참조 강도를 ${_inkW}로 낮춰 보냅니다`, 'info', 3400); } catch (e) {}
+                        }
+                    }
+                }
+            }
             // 대기열 '표시용' 작은 썸네일(≈128px). 원본 768 dataURL을 목록에 박으면 30개일 때 HTML이 수백 KB라 렌더가 느려짐 → 작게.
             let qthumb = _anima.imgThumb || snap.dataURL || '';
             try { qthumb = await _animaThumb(snap.dataURL, 128); } catch (e) {}
@@ -9740,6 +9798,20 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 restore: (before) => { _anima.cnRefWeight = before; },
                 grab: () => _anima.cnRefWeight,
             },
+            // ══ [임시 검증 축 — 실측 끝나면 이 오브젝트 '하나만' 지우면 흔적 없이 사라짐] ═══════
+            //  문신·임신이 '참조 강도 때문에' 안 나온다는 진단의 실측 도구. 문신/임신을 켜 두면
+            //  메뉴에 나타나고, 켜 둔 옵션 그대로 참조 강도만 1.0→0.25 6단을 같은 시드로 6장 뽑는다.
+            //  → 어느 강도부터 문신이 살아나는지 / 얼굴·체형이 언제 무너지는지가 한 세트에 보인다.
+            //  결과가 나오면 위 기본값 배열의 refW(잠정값)를 실측값으로 바꾸고 이 축은 삭제.
+            //  ★ apply의 _refExact: 자동 참조 하향(_animaGenerate)이 검증값을 덮지 않게 하는 스위치.
+            {
+                key: 'inkref', name: '문신·임신 강도 (검증)', emo: '🧪', settings: true,
+                only: () => (_anima.snippets || []).some(s => (s.group === 'tat' || s.group === 'preg') && s.on),
+                pick: () => [1.0, 0.85, 0.7, 0.55, 0.4, 0.25].map(v => ({ id: String(v), name: '참조 ' + v.toFixed(2) })),
+                apply: (id) => { _anima.refWeight = parseFloat(id); _anima._refExact = true; },
+                restore: (before) => { _anima.refWeight = before; _anima._refExact = false; },
+                grab: () => _anima.refWeight,
+            },
         ];
         // ── 눌림 반응 (Anima에서 누르는 모든 것) ─────────────────────────────
         //  ★ CSS :active만으로는 절대 안 된다. 칩을 누르면 핸들러가 곧바로 innerHTML을
@@ -10004,6 +10076,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (bust) parts.push(bust.name);
                 const pose = all.find(s => s.group === 'pose' && s.on);
                 if (pose) parts.push(pose.name);
+                const tat = all.find(s => s.group === 'tat' && s.on);
+                if (tat) parts.push(tat.name);
+                const preg = all.find(s => s.group === 'preg' && s.on);
+                if (preg) parts.push(preg.name);
+                // [임시 검증 축 🧪 전용] '문신·임신 강도' 세트는 옵션이 전부 같아서 참조 값이 캡션에
+                //  없으면 6장을 구분할 수 없다 — 검증 축이 돌 때(_refExact)만 붙는다. 축 지울 때 같이 삭제.
+                if (_anima._refExact) parts.push(`참조 ${_anima.refWeight}`);
                 // 품질 — '품질 전부 돌리기'로 뽑은 세트는 옵션이 전부 같아서, 이게 없으면 어느 게 어느 건지 구분이 안 된다.
                 //  기본값(3/1)일 땐 굳이 붙이지 않아 평소 캡션이 지저분해지지 않게 한다.
                 const q = _animaPresetMatch();
