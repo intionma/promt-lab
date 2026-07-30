@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.118.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.119.0 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.118.1 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.119.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1735,6 +1735,19 @@
                             </details>
                         </div>
 
+                        <!-- 커스텀 워크플로우에도 LoRA 칩 적용 (옵트인 — 기본 꺼짐) -->
+                        <div style="border-top:1px dashed var(--border-dim); padding-top:10px;">
+                            <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-main); font-weight:700; cursor:pointer;">
+                                <input type="checkbox" id="comfy-wf-lora" onchange="_comfySaveSettings()"> 🧩 내 워크플로우에도 <b>LoRA 칩</b> 적용
+                            </label>
+                            <div style="font-size:11px; color:var(--text-dim); line-height:1.6; margin-top:4px;">
+                                켜면 켜져 있는 LoRA 칩을 <b>체크포인트 바로 뒤에 끼워 넣고</b> 배선을 이어 줍니다(트리거 워드도 함께 들어갑니다).
+                                <b style="color:#f59e0b;">꺼 두면 지금까지처럼 워크플로우를 전혀 건드리지 않습니다.</b>
+                                워크플로우에 이미 LoRA 노드가 있으면 굳이 켜지 마세요 — 두 번 겹칩니다.
+                            </div>
+                            <div id="comfy-wf-lora-note" style="font-size:11px; color:var(--text-dim); margin-top:4px;"></div>
+                        </div>
+
                         <!-- 고급: 노드 수치 직접 편집 (즐겨찾기) -->
                         <div style="border-top:1px dashed var(--border-dim); padding-top:10px;">
                             <label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:6px;">고급 — 노드 수치 직접 편집 (steps·cfg·denoise·강도 등)</label>
@@ -1806,6 +1819,17 @@
                                 <div>
                                     <label style="font-size:10px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:3px;">트리거 워드 (켜면 프롬프트에 자동 추가 — 모델 페이지의 Trigger Words)</label>
                                     <input id="comfy-lora-trigger" type="text" placeholder="예: womb tattoo" class="comfy-num">
+                                </div>
+                            </div>
+                            <div>
+                                <label style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--text-main); cursor:pointer; font-weight:700;">
+                                    <input type="checkbox" id="comfy-lora-auto" checked> ⚡ 자동 — 아래 단어가 프롬프트에 있을 때만 적용
+                                </label>
+                                <div style="font-size:10.5px; color:var(--text-dim); margin:3px 0 4px;">관련 태그를 넣으면 알아서 켜지고, 태그를 다 빼면 <b>트리거 워드까지 같이 사라집니다</b>. 조건을 비워 두면 자동이 꺼지고 <b>칩을 눌러서만</b> 켜집니다.</div>
+                                <div style="display:flex; gap:6px;">
+                                    <input id="comfy-lora-watch" type="text" placeholder="tattoo, 문신, 낙인 …" class="comfy-num" style="flex:1 1 auto; min-width:0;">
+                                    <button type="button" class="action-btn" style="flex:0 0 auto; padding:0 10px;" onclick="comfyLoraWatchFill('tattoo')" title="문신 관련 단어 한 번에 넣기">🖋 문신</button>
+                                    <button type="button" class="action-btn" style="flex:0 0 auto; padding:0 10px;" onclick="comfyLoraWatchFill('preg')" title="임신 관련 단어 한 번에 넣기">🤰 임신</button>
                                 </div>
                             </div>
                             <div style="display:flex; gap:8px;">
@@ -2107,7 +2131,17 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.118.1', date: '2026-07-30', time: '최신',
+                version: 'v9.119.0', date: '2026-07-30', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[클래식·스튜디오] <b>LoRA가 알아서 켜지고 꺼집니다</b> — 등록할 때 ⚡<b>자동</b>을 켜두면, 프롬프트에 <b>문신 관련 태그가 들어오는 순간 LoRA와 트리거 워드가 자동으로 붙고</b>, 태그를 다 빼면 <b>트리거까지 같이 사라집니다</b>. 간편 조합으로 태그를 넣어도 똑같이 반응해요.",
+                    "[클래식·스튜디오] 등록 화면에 <b>🖋 문신 · 🤰 임신</b> 버튼이 있어 조건 단어를 한 번에 채울 수 있습니다. 칩을 <b>누르면 '항상 켬'</b>(조건 무시), 다시 누르면 자동으로 돌아가요. 자동으로 켜져 있는 칩은 <b>초록색 ⚡</b>로 표시됩니다.",
+                    "[클래식·스튜디오] <b>내 워크플로우(JSON)에도 LoRA 칩을 쓸 수 있습니다</b> — 설정에 <b>🧩 '내 워크플로우에도 LoRA 칩 적용'</b> 체크박스가 생겼어요. 켜면 체크포인트 뒤에 LoRA를 자동으로 끼워 넣고 배선을 이어 줍니다. <b>기본은 꺼짐</b>이라, 켜지 않으면 지금까지와 완전히 똑같이 동작합니다.",
+                    "[클래식·스튜디오] 같은 LoRA 파일을 다시 등록하면 <b>수정</b>으로 처리돼, 트리거·강도·조건만 바꿔 저장할 수 있습니다.",
+                ]
+            },
+            {
+                version: 'v9.118.1', date: '2026-07-30', time: '',
                 tag: 'feat',
                 items: [
                     "[클래식·스튜디오] <b>엉뚱한 종류의 LoRA를 넣으면 바로 알려줍니다</b> — Civitai는 같은 LoRA도 <b>Flux · SDXL · SD1.5 버전이 따로</b>인데, 기본으로 걸린 Flux판을 받아 넣으면 ComfyUI가 <b>에러도 없이 조용히 무시</b>해서 \"왜 안 되지?\"가 됩니다. 이제 파일명에서 알아채고 <b>전혀 적용되지 않는다고</b> 짚어 줘요.",
@@ -6031,6 +6065,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     sampler: document.getElementById('comfy-sampler').value,
                     scheduler: document.getElementById('comfy-scheduler').value,
                     familyAuto: !!(document.getElementById('comfy-family-auto') || {}).checked,
+                    wfLora: !!(document.getElementById('comfy-wf-lora') || {}).checked,
                     wfMode: _comfyWfMode,
                     wfJson: document.getElementById('comfy-wf-json').value,
                     wfRandSeed: document.getElementById('comfy-wf-randseed').checked,
@@ -6089,6 +6124,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (s.sampler) document.getElementById('comfy-sampler').value = s.sampler;
                 if (s.scheduler) document.getElementById('comfy-scheduler').value = s.scheduler;
                 if (s.familyAuto !== undefined && document.getElementById('comfy-family-auto')) document.getElementById('comfy-family-auto').checked = !!s.familyAuto;
+                if (document.getElementById('comfy-wf-lora')) document.getElementById('comfy-wf-lora').checked = !!s.wfLora;   // 기본 꺼짐(저장값 없으면 false)
                 // 마이그레이션(v9.117.0→9.117.1): v9.116.0의 LoRA 입력칸 값이 남아 있으면 칩 프리셋으로 이관.
                 //  ★ 자체 try — 여기가 던지면 아래 커스텀 워크플로우(wfJson) 복원까지 건너뛰게 되므로 격리한다.
                 //  ★ 이관 후 옛 키를 저장소에서 바로 지운다 — 안 지우면 칩을 삭제해도 복원 때마다 되살아난다.
@@ -6746,21 +6782,56 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         try { _comfyLoraPresets = JSON.parse(localStorage.getItem(_COMFY_LORA_KEY) || '[]'); } catch (e) { _comfyLoraPresets = []; }
         if (!Array.isArray(_comfyLoraPresets)) _comfyLoraPresets = [];   // 손상된 저장값 방어(.some 등이 던지지 않게)
         function _comfyLoraPresetsSave() { try { localStorage.setItem(_COMFY_LORA_KEY, JSON.stringify(_comfyLoraPresets)); } catch (e) {} }
-        function _comfyActiveLoras() { return _comfyLoraPresets.filter(p => p.on && p.name); }
+        // ⚡ 자동 모드 — 프롬프트에 '지켜보는 단어'가 있을 때만 켜진다.
+        //  문신 태그를 넣으면 LoRA와 트리거 워드가 알아서 붙고, 태그를 다 빼면 트리거까지 같이 사라진다.
+        //  (수동 켬(p.on)은 그대로 최우선 — 조건과 무관하게 항상 적용)
+        const _COMFY_WATCH_PRESETS = {
+            tattoo: 'tattoo, body writing, spermatozoon, tally, slave brand, queen of spades, bodypaint, body markings, 문신, 낙인, 낙서, 음문',
+            preg: 'pregnant, big belly, pregnancy, 임신, 만삭',
+        };
+        function comfyLoraWatchFill(kind) {
+            const el = document.getElementById('comfy-lora-watch'); if (!el) return;
+            const add = _COMFY_WATCH_PRESETS[kind] || '';
+            const cur = (el.value || '').trim().replace(/,\s*$/, '');
+            el.value = cur ? (cur + ', ' + add) : add;
+            const chk = document.getElementById('comfy-lora-auto'); if (chk) chk.checked = true;
+        }
+        function _comfyLoraWatchHit(p, pos) {
+            const words = String(p.watch || '').split(',').map(w => w.trim().toLowerCase()).filter(Boolean);
+            //  조건이 비어 있으면 '자동'이 성립하지 않는다 → 켜지지 않음(칩을 눌러야 적용).
+            //  여기서 true를 주면 '자동 체크 + 조건 빈칸'인 칩이 사용자가 켠 적도 없는데 늘 적용돼 버린다.
+            if (!words.length) return false;
+            const t = String(pos || '').toLowerCase();
+            return words.some(w => t.indexOf(w) >= 0);
+        }
+        //  pos를 주면 자동 모드까지 반영해 지금 실제로 적용될 LoRA 목록을 돌려준다.
+        function _comfyActiveLoras(pos) {
+            return _comfyLoraPresets.filter(p => p && p.name && (p.on || (p.auto && _comfyLoraWatchHit(p, pos))));
+        }
+        //  칩에 '지금 자동으로 켜져 있는지'를 보여 주기 위해 현재 결과창 프롬프트를 읽는다(표시용).
+        function _comfyCurrentPosText() {
+            try { return (document.getElementById('final-positive') || {}).value || ''; } catch (e) { return ''; }
+        }
         function _comfyRenderLoraChips() {
             const box = document.getElementById('comfy-lora-chips'); if (!box) return;
             box.innerHTML = '';
+            const _pos = _comfyCurrentPosText();
             _comfyLoraPresets.forEach((p, i) => {
+                const autoHit = !!(p.auto && !p.on && _comfyLoraWatchHit(p, _pos));   // 자동으로 지금 켜져 있는 상태
                 const chip = document.createElement('button');
-                chip.type = 'button'; chip.className = 'io-pill' + (p.on ? ' active' : '');
-                chip.style.cssText = '--pc:#c084fc; padding:6px 12px; font-size:12px;';
-                chip.title = `${p.name}\n강도 ${p.strength}${p.trigger ? '\n트리거: ' + p.trigger : ''}\n(길게 누르면 삭제)`;
-                chip.innerHTML = `${p.on ? '✦ ' : ''}${p.label || p.name}`;
+                chip.type = 'button'; chip.className = 'io-pill' + (p.on || autoHit ? ' active' : '');
+                chip.style.cssText = '--pc:' + (autoHit ? '#22c55e' : '#c084fc') + '; padding:6px 12px; font-size:12px;';
+                chip.title = `${p.name}\n강도 ${p.strength}${p.trigger ? '\n트리거: ' + p.trigger : ''}`
+                    + (p.auto ? `\n⚡ 자동 — 조건: ${p.watch || '(없음 = 항상)'}\n지금 ${autoHit ? '조건 충족(적용됨)' : '조건 미충족(적용 안 됨)'}` : '')
+                    + '\n(눌러서 항상 켬/끔 · 길게 누르면 삭제)';
+                chip.innerHTML = `${p.on ? '✦ ' : (autoHit ? '⚡ ' : (p.auto ? '⚡' : ''))}${p.label || p.name}`;
                 chip.onclick = () => {
                     p.on = !p.on; _comfyLoraPresetsSave(); _comfyRenderLoraChips();
                     if (p.on) {
                         _comfyLoraFamilyWarn(_ckptFamilyOf(document.getElementById('comfy-ckpt').value), p.name);
-                        if (p.trigger) showToast(`✦ ${p.label || p.name} 켬 — 트리거 "${p.trigger}"를 프롬프트에 자동으로 넣어 보냅니다`, 'info', 2600);
+                        showToast(`✦ ${p.label || p.name} — 조건과 상관없이 <b>항상 적용</b>합니다` + (p.trigger ? ` (트리거 "${p.trigger}" 자동 삽입)` : ''), 'info', 2800);
+                    } else if (p.auto) {
+                        showToast(`⚡ ${p.label || p.name} — <b>자동</b>으로 돌아갔어요. 프롬프트에 관련 태그가 있을 때만 적용됩니다`, 'info', 2800);
                     }
                 };
                 // 길게 누르면 삭제(확인 후) — 모바일에서 편집 UI 없이 정리 가능.
@@ -6835,15 +6906,27 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function comfyLoraFormSave() {
             const name = (document.getElementById('comfy-lora-file').value || '').trim();
             if (!name) { showToast('LoRA 파일명을 선택하거나 입력하세요.', 'warning', 3000); return; }
-            if (_comfyLoraPresets.some(p => p.name === name)) { showToast('이미 등록된 LoRA입니다 — 칩을 눌러 켜세요.', 'info', 3000); return; }
             const label = (document.getElementById('comfy-lora-label').value || '').trim() || name.replace(/\.(safetensors|pt|ckpt)$/i, '').slice(0, 18);
             const trigger = (document.getElementById('comfy-lora-trigger').value || '').trim();
-            const strength = parseFloat(document.getElementById('comfy-lora-strength').value) || 0.8;
-            _comfyLoraPresets.push({ name, label, trigger, strength, on: false });
+            const sv = parseFloat(document.getElementById('comfy-lora-strength').value);
+            const strength = isNaN(sv) ? 0.8 : sv;
+            const watch = ((document.getElementById('comfy-lora-watch') || {}).value || '').trim();
+            const auto = !!(document.getElementById('comfy-lora-auto') || {}).checked && !!watch;   // 조건 없는 '자동'은 성립하지 않는다
+            const exist = _comfyLoraPresets.find(p => p.name === name);
+            if (exist) {   // 같은 파일을 다시 등록하면 '수정'으로 동작한다(별도 편집 UI 없이 값만 갈아끼움)
+                Object.assign(exist, { label, trigger, strength, auto, watch });
+                _comfyLoraPresetsSave(); _comfyRenderLoraChips(); comfyLoraFormClose();
+                ['comfy-lora-file', 'comfy-lora-label', 'comfy-lora-trigger', 'comfy-lora-watch'].forEach(id => { const e2 = document.getElementById(id); if (e2) e2.value = ''; });
+                comfyLoraShowManual(false); try { _comfyLoraFillSel(); } catch (e) {}
+                showToast(`LoRA "${label}" 설정을 업데이트했어요`, 'success', 2600);
+                return;
+            }
+            _comfyLoraPresets.push({ name, label, trigger, strength, auto, watch, on: false });
             _comfyLoraPresetsSave(); _comfyRenderLoraChips(); comfyLoraFormClose();
-            ['comfy-lora-file', 'comfy-lora-label', 'comfy-lora-trigger'].forEach(id => { const el2 = document.getElementById(id); if (el2) el2.value = ''; });
+            ['comfy-lora-file', 'comfy-lora-label', 'comfy-lora-trigger', 'comfy-lora-watch'].forEach(id => { const el2 = document.getElementById(id); if (el2) el2.value = ''; });
             comfyLoraShowManual(false); try { _comfyLoraFillSel(); } catch (e) {}   // '✓ 등록됨' 표시 갱신
-            showToast(`LoRA "${label}" 등록됨 — 칩을 눌러 켜면 적용됩니다`, 'success', 3000);
+            showToast(auto && watch ? `LoRA "${label}" 등록됨 — ⚡ 관련 태그를 넣으면 자동으로 적용됩니다`
+                                    : `LoRA "${label}" 등록됨 — 칩을 눌러 켜면 적용됩니다`, 'success', 3200);
         }
         // ══ 모델 원터치 전환 칩 — 설치된 체크포인트를 계열별로 묶어 한 번에 전환(권장 세팅 포함) ══
         //  같은 계열 파일이 여러 개면 칩을 다시 눌러 다음 파일로 순환한다.
@@ -6886,7 +6969,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (_comfyTarget === 'neg') pos = '';
             // 켜진 LoRA 칩의 트리거 워드를 프롬프트에 자동 삽입 — 이미 써 놨으면 중복으로 안 붙인다.
             //  (LoRA는 트리거 워드가 없으면 발동하지 않는 경우가 많다 — 사용자가 기억할 필요 없게 칩이 넣는다)
-            const _actLoras = _comfyActiveLoras();
+            const _actLoras = _comfyActiveLoras(pos);   // ⚡ 자동 칩은 지금 프롬프트 내용으로 판정
             if (pos) _actLoras.forEach(p => {
                 const t = (p.trigger || '').trim();
                 if (t && pos.toLowerCase().indexOf(t.split(',')[0].trim().toLowerCase()) < 0) pos = pos.replace(/,\s*$/, '') + ', ' + t;
@@ -12543,12 +12626,64 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         }
         window.__i2iApplyRecommended = _i2iApplyRecommendedSettings;
 
+        // ══ 커스텀 워크플로우에 LoRA 칩 끼워 넣기 (옵트인 — 체크박스가 꺼져 있으면 호출조차 안 된다) ══
+        //  방식: 체크포인트 로더의 MODEL/CLIP을 쓰던 '모든 소비처'를 LoraLoader 체인 끝으로 갈아 끼운다.
+        //  ★ 새 노드 id는 기존과 절대 겹치지 않게 'pl_lora_N' 문자열을 쓴다(숫자 id 충돌 방지).
+        //  ★ 체크포인트 로더를 못 찾으면 아무것도 하지 않고 원본 그대로 돌려준다(망가뜨리지 않는 게 우선).
+        function _comfyInjectLorasIntoWf(wf, loras) {
+            if (!loras || !loras.length) return { ok: true, n: 0 };
+            // 체크포인트 로더 찾기 — 여러 개면 첫 번째(가장 흔한 구성)
+            const ckptId = Object.keys(wf).find(id => /CheckpointLoader/i.test(wf[id] && wf[id].class_type || ''));
+            if (!ckptId) return { ok: false, why: '체크포인트 로더 노드를 못 찾았어요' };
+            let mRef = [ckptId, 0], cRef = [ckptId, 1];
+            const added = [];
+            loras.forEach((p, i) => {
+                const nid = 'pl_lora_' + i;
+                const st = parseFloat(p.strength); const s = isNaN(st) ? 0.8 : st;
+                wf[nid] = { class_type: 'LoraLoader', inputs: { model: mRef, clip: cRef, lora_name: p.name, strength_model: s, strength_clip: s } };
+                added.push(nid); mRef = [nid, 0]; cRef = [nid, 1];
+            });
+            // 기존 노드들이 체크포인트의 MODEL(0)/CLIP(1)을 직접 보고 있던 것만 체인 끝으로 옮긴다.
+            //  (방금 추가한 LoRA 노드 자신은 제외 — 안 그러면 자기 자신을 가리키게 된다)
+            for (const id in wf) {
+                if (added.indexOf(id) >= 0) continue;
+                const inp = wf[id] && wf[id].inputs; if (!inp) continue;
+                for (const k in inp) {
+                    const v = inp[k];
+                    if (!Array.isArray(v) || String(v[0]) !== String(ckptId)) continue;
+                    if (v[1] === 0) inp[k] = mRef.slice();
+                    else if (v[1] === 1) inp[k] = cRef.slice();
+                    // VAE(2)는 LoRA와 무관하므로 그대로 둔다
+                }
+            }
+            return { ok: true, n: loras.length };
+        }
         // 내 워크플로우(API JSON)에 프롬프트 주입 (전송 대상에 따라 긍정/부정 선택)
         function _comfyBuildCustomWorkflow(pos, neg) {
             if (!_comfyCustomWF) { showToast('워크플로우 JSON을 먼저 분석하세요.', 'error'); return null; }
             const posId = document.getElementById('comfy-wf-pos').value;
             const negId = document.getElementById('comfy-wf-neg').value;
             const wf = JSON.parse(JSON.stringify(_comfyCustomWF)); // 깊은 복사 (원본 보존)
+            // 🧩 LoRA 칩 적용 — 체크박스를 켠 경우에만. 끄면 이 블록이 통째로 건너뛰어져 예전과 100% 동일하다.
+            let _wfLoraTrig = '';
+            try {
+                const chk = document.getElementById('comfy-wf-lora');
+                if (chk && chk.checked) {
+                    const act = _comfyActiveLoras(pos);
+                    if (act.length) {
+                        const r = _comfyInjectLorasIntoWf(wf, act);
+                        if (!r.ok) { showToast(`LoRA 칩을 못 넣었어요 — ${r.why}. 이번 생성은 LoRA 없이 진행합니다.`, 'warning', 5000); }
+                        else {
+                            act.forEach(p => {
+                                const t = (p.trigger || '').trim();
+                                if (t && String(pos || '').toLowerCase().indexOf(t.split(',')[0].trim().toLowerCase()) < 0) _wfLoraTrig += (_wfLoraTrig ? ', ' : '') + t;
+                            });
+                            act.forEach(p => _comfyLoraFamilyWarn(_ckptFamilyOf((wf[Object.keys(wf).find(id => /CheckpointLoader/i.test(wf[id].class_type || ''))] || { inputs: {} }).inputs.ckpt_name || ''), p.name));
+                        }
+                    }
+                }
+            } catch (e) {}
+            if (_wfLoraTrig) pos = (String(pos || '').replace(/,\s*$/, '') + ', ' + _wfLoraTrig).replace(/^,\s*/, '');
 
             const mode = document.getElementById('comfy-wf-injectmode').value || 'replace';
             const combine = (existing, text) => {
