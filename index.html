@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.121.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.121.1 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.121.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.121.1 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2139,7 +2139,15 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.121.0', date: '2026-07-30', time: '최신',
+                version: 'v9.121.1', date: '2026-07-30', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[클래식·스튜디오] <b>LoRA 트리거 워드를 프롬프트 앞쪽에 넣습니다</b> — 예전엔 맨 뒤에 붙였는데, 프롬프트가 길면(75토큰 초과) 뒤쪽은 힘이 약해져서 <b>LoRA가 잘 안 걸리는 원인</b>이었어요. 이제 <b>score_9 같은 품질 접두 바로 뒤</b>에 끼워 넣어 확실히 반영됩니다.",
+                    "[클래식·스튜디오] 프롬프트가 길수록 차이가 큽니다 — 트리거를 넣었는데 LoRA 효과가 약했다면 이번 수정으로 나아질 거예요.",
+                ]
+            },
+            {
+                version: 'v9.121.0', date: '2026-07-30', time: '',
                 tag: 'feat',
                 items: [
                     "[간편 조합] <b>문신 도배 조합을 제대로 강화했습니다</b> — 예전엔 태그 몇 개뿐이라 바코드 하나 찍히고 마는 수준이었어요. 이제 <b>전신·팔·가슴·배·허벅지·등</b>을 한꺼번에 지정하고 가중치도 올려서 실제로 넓게 덮입니다.",
@@ -7095,6 +7103,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 box.appendChild(chip);
             });
         }
+        //  트리거 워드는 프롬프트 '앞쪽'에 넣는다 — CLIP은 75토큰 단위로 끊어 읽어서, 긴 프롬프트 뒤에
+        //  붙이면 뒤 청크로 밀려 힘이 크게 약해진다(LoRA가 안 걸리는 흔한 원인). 다만 품질 접두
+        //  태그(score_9 등)는 맨 앞에 있어야 제 역할을 하므로 그 바로 뒤에 끼워 넣는다.
+        function _comfyInsertTrigger(pos, trig) {
+            const t = String(trig || '').trim(); if (!t) return pos;
+            const src = String(pos || '');
+            if (!src.trim()) return t;
+            //  선두의 score_* / masterpiece·best quality 류 접두를 건너뛴 지점을 찾는다
+            const parts = src.split(',');
+            let i = 0;
+            while (i < parts.length && /^\s*(score_\d+(_up)?|masterpiece|best quality|very aesthetic|absurdres|highres|newest|amazing quality)\s*$/i.test(parts[i])) i++;
+            if (i === 0) return t + ', ' + src.replace(/^\s*,\s*/, '');
+            if (i >= parts.length) return src.replace(/,\s*$/, '') + ', ' + t;
+            return parts.slice(0, i).join(',').replace(/,\s*$/, '') + ', ' + t + ', ' + parts.slice(i).join(',').replace(/^\s*,\s*/, '').trim();
+        }
         function _comfyBuildWorkflow(pos, neg) {
             const seedInput = parseInt(document.getElementById('comfy-seed').value);
             const seed = (isNaN(seedInput) || seedInput < 0) ? Math.floor(Math.random() * 1e15) : seedInput;
@@ -7106,7 +7129,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const _actLoras = _comfyActiveLoras(pos);   // ⚡ 자동 칩은 지금 프롬프트 내용으로 판정
             if (pos) _actLoras.forEach(p => {
                 const t = (p.trigger || '').trim();
-                if (t && pos.toLowerCase().indexOf(t.split(',')[0].trim().toLowerCase()) < 0) pos = pos.replace(/,\s*$/, '') + ', ' + t;
+                if (t && pos.toLowerCase().indexOf(t.split(',')[0].trim().toLowerCase()) < 0) pos = _comfyInsertTrigger(pos, t);
             });
             // 계열 자동 보정(기본 모드 전용) — Pony는 원문 그대로
             { const w = _comfyFamilyWrap(pos, neg); pos = w.pos; neg = w.neg; }
@@ -12820,7 +12843,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     }
                 }
             } catch (e) {}
-            if (_wfLoraTrig) pos = (String(pos || '').replace(/,\s*$/, '') + ', ' + _wfLoraTrig).replace(/^,\s*/, '');
+            if (_wfLoraTrig) pos = _comfyInsertTrigger(pos, _wfLoraTrig);
 
             const mode = document.getElementById('comfy-wf-injectmode').value || 'replace';
             const combine = (existing, text) => {
