@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.123.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.123.1 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.123.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.123.1 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2139,7 +2139,14 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.123.0', date: '2026-07-30', time: '최신',
+                version: 'v9.123.1', date: '2026-07-30', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[클래식·스튜디오] <b>트리거 캡슐이 맨 뒤에 붙던 것을 앞으로 옮겼습니다</b> — 뒤쪽은 75토큰 경계 밖으로 밀려 LoRA가 잘 안 걸립니다. 이제 계층 <b>맨 앞</b>에 들어가요.",
+                ]
+            },
+            {
+                version: 'v9.123.0', date: '2026-07-30', time: '',
                 tag: 'feat',
                 items: [
                     "[클래식·스튜디오] <b>LoRA 트리거 워드가 이제 캡슐로 들어갑니다</b> — 칩을 켜면 트리거가 <b>프롬프트에 실제 태그로</b> 추가돼요. 눈에 보이고, 다른 태그처럼 <b>가중치도 줄 수 있습니다</b>. 칩을 끄면 가중치를 준 상태여도 같이 빠집니다.",
@@ -7155,13 +7162,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (!ta) { try { showToast('프롬프트 계층을 찾지 못했어요 — 클래식/스튜디오 화면에서 눌러 주세요', 'warning', 3500); } catch (e) {} return 0; }
             try { saveStateToUndoStack(); } catch (e) {}
             let content = ta.value, n = 0;
+            const addList = [];
             segs.forEach(t => {
                 //  가중치가 걸린 형태((tag:1.2))도 같이 지워진다 — getRegexForTag가 가중치를 포함해 잡는다
                 const had = getRegexForTag(t).test(content);
                 content = content.replace(getRegexForTag(t), '');
-                if (add) { content = (content.replace(/,\s*,+/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').trim()); content = content ? (content + ', ' + t) : t; n++; }
+                if (add) { addList.push(t); n++; }
                 else if (had) n++;
             });
+            content = content.replace(/,\s*,+/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').trim();
+            //  ★ 반드시 '앞'에 붙인다 — 뒤에 붙이면 75토큰 경계 밖으로 밀려 LoRA가 잘 안 걸린다.
+            //    (전송 시 자동 삽입도 같은 이유로 앞쪽에 넣는다 — 두 경로가 같은 규칙을 따라야 한다)
+            if (addList.length) content = content ? (addList.join(', ') + ', ' + content) : addList.join(', ');
             ta.value = content.replace(/,\s*,+/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').trim();
             try { syncFromManualInput(_COMFY_TRIG_LAYER); } catch (e) {}
             return n;
