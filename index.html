@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.118.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.118.1 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.118.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.118.1 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2107,7 +2107,14 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.118.0', date: '2026-07-30', time: '최신',
+                version: 'v9.118.1', date: '2026-07-30', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[클래식·스튜디오] <b>엉뚱한 종류의 LoRA를 넣으면 바로 알려줍니다</b> — Civitai는 같은 LoRA도 <b>Flux · SDXL · SD1.5 버전이 따로</b>인데, 기본으로 걸린 Flux판을 받아 넣으면 ComfyUI가 <b>에러도 없이 조용히 무시</b>해서 \"왜 안 되지?\"가 됩니다. 이제 파일명에서 알아채고 <b>전혀 적용되지 않는다고</b> 짚어 줘요.",
+                ]
+            },
+            {
+                version: 'v9.118.0', date: '2026-07-30', time: '',
                 tag: 'feat',
                 items: [
                     "[클래식·스튜디오] <b>모델을 이제 목록에서 고릅니다</b> — 파일명을 타이핑하던 칸이 <b>드롭다운</b>으로 바뀌었어요. 계열별(🐴 Pony 실사 · 🎨 애니 · 📷 실사 XL)로 묶여 있어 뭐가 뭔지 한눈에 보이고, 옆 🔄로 목록을 다시 불러옵니다.",
@@ -6710,10 +6717,27 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         //  ★ LoRA 이름의 'xl'은 그저 'SDXL 아키텍처'라는 뜻이라(예: wombTattoos_xl) Pony·Illustrious
         //    어느 체크포인트와도 정상 조합이다 — sdxl 판정은 경고 대상에서 뺀다. pony↔illustrious 교차만 경고.
         function _comfyLoraFamilyWarn(fam, loraName) {
-            if (!fam || !loraName) return;
+            if (!loraName) return;
+            // ① 아키텍처 자체가 다른 것 — 이건 '약하게 먹는' 정도가 아니라 아예 안 먹는다(ComfyUI가 조용히 무시).
+            //    Civitai는 같은 모델도 Flux/SDXL/SD1.5 버전이 따로라, 기본 선택된 Flux판을 받아 넣는 실수가 잦다.
+            const arch = _comfyLoraArch(loraName);
+            if (arch) { showToast(`🚫 "${loraName}"는 ${arch}용 LoRA예요 — 지금 체크포인트(SDXL 계열)에선 <b>전혀 적용되지 않습니다</b>. 모델 페이지에서 <b>SDXL 버전</b>을 받아 넣어주세요.`, 'error', 8000); return; }
+            if (!fam) return;
             const lf = _ckptFamilyOf(loraName);
             if (!lf || lf === 'sdxl' || lf === fam) return;
             showToast(`⚠ LoRA "${loraName}"는 ${_CKPT_FAMILIES[lf].label}용으로 보여요 — 지금 체크포인트(${_CKPT_FAMILIES[fam].label})에선 효과가 약하거나 그림이 탁해질 수 있습니다.`, 'warning', 5000);
+        }
+        //  파일명에 드러난 '다른 아키텍처' 표시 — 있으면 그 이름을, 없으면 null.
+        //  ★ 부분 일치는 쓰지 않는다 — '_'는 정규식에서 단어 문자라 \b가 안 먹고,
+        //    'influx' 안의 'flux' 같은 오탐이 난다. 확장자를 떼고 토큰으로 쪼개 정확히 맞춘다.
+        function _comfyLoraArch(name) {
+            const toks = String(name || '').toLowerCase().replace(/\.[a-z0-9]+$/, '').split(/[^a-z0-9.]+/).filter(Boolean);
+            const has = (re) => toks.some(t => re.test(t));
+            if (has(/^flux(1|1d|\.1|dev)?$/)) return 'Flux';
+            if (has(/^sd1(5|\.5)?$/)) return 'SD 1.5';
+            if (has(/^sd3(5|\.5)?$/)) return 'SD 3';
+            if (has(/^(wan|hunyuan|ltx|cosmos|mochi)$/)) return '동영상/기타 모델';
+            return null;
         }
         // ══ LoRA 프리셋(칩) — 한 번 등록하면 칩으로 켜고 끄고, 트리거 워드는 켜질 때 프롬프트에 자동 삽입 ══
         //  파일명·강도만 있던 입력칸 방식은 트리거 워드를 사용자가 기억해서 쳐야 했다(제일 큰 불편). 칩이 대신 기억한다.
