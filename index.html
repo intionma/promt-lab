@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.106.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.107.0 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.106.1 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.107.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2053,7 +2053,17 @@
         const CHANGELOG = [
             // ── 2026-07-29 ──────────────────────────────────────────────────
             {
-                version: 'v9.106.0', date: '2026-07-30', time: '최신',
+                version: 'v9.107.0', date: '2026-07-30', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] <b>공유로 사진을 보내면 그 자리에서 한 장이 바로 나옵니다</b> — 앱이 열리자마자 <b>전신 노출</b>로 한 장을 알아서 뽑습니다. 이제 공유만 하면 끝이에요.",
+                    "[Anima 편집] 자동으로 뽑는 한 장은 <b>후타나리 설정만 켜 둔 대로</b> 따라가고, <b>표정·포즈·가슴은 기본값</b>으로 갑니다. 이 <b>한 장에만</b> 해당하고 <b>켜 두신 설정은 그대로 남습니다</b>.",
+                    "[Anima 편집] 공유로 들어오면 화면이 <b>③ 결과 · 비교</b>로 내려가 있습니다 — 생성 누르고 아래로 스크롤할 필요가 없어요. (화면을 만지면 따라가기는 즉시 멈춥니다)",
+                    "[Anima 편집] <b>이미 돌고 있는 작업이 있으면 자동 생성은 건너뜁니다</b> — 하던 걸 밀어내지 않습니다. <b>ComfyUI가 꺼져 있으면</b> 사진은 넣되 <b>연결 안 됐다고 알려 드립니다</b>.",
+                ]
+            },
+            {
+                version: 'v9.106.0', date: '2026-07-30', time: '',
                 tag: 'feat',
                 items: [
                     "[전체] <b>안드로이드에서 사진을 '공유'로 바로 넣을 수 있습니다</b> — 아무 앱에서 사진을 꾹 눌러 <b>공유 → 프롬프트 랩</b>을 고르면, 앱이 <b>Anima 편집으로 열리면서 그 사진이 이미 원본으로 들어가 있습니다</b>. 복사 → 앱 전환 → 붙여넣기가 한 번으로 줄어요.",
@@ -8173,6 +8183,77 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             return _anima.poseUploadedName;
         }
 
+        // ══ 공유로 들어왔을 때의 자동 진행 ═════════════════════════════════
+        //  ★ '공유 진입 1회'에만 움직인다. 생성할 때마다 결과로 튀는 자동 스크롤은
+        //    예전에 일부러 없앴다(옵션을 계속 만지는데 화면이 튀어서 불편) — 그건 그대로 둔다.
+        //  원본 미리보기·결과 카드가 뒤늦게 커지면서 ③이 아래로 밀린다 → 자리가 잡힐 때까지 잠깐 따라간다.
+        //  손가락으로 화면을 만지는 순간 즉시 멈춘다(원치 않는데 끌려가면 안 된다).
+        function _animaScrollToResultOnce() {
+            const root = _animaDom, el = _animaEl('#anima-result');
+            if (!root || !el) return;
+            const card = (el.closest && el.closest('.anima-card')) || el;   // '③ 결과 · 비교' 제목까지 보이게
+            let stop = false, tries = 0;
+            const off = () => { stop = true; root.removeEventListener('touchstart', off); root.removeEventListener('wheel', off); };
+            root.addEventListener('touchstart', off, { passive: true });
+            root.addEventListener('wheel', off, { passive: true });
+            const step = () => {
+                if (stop || tries++ > 24) { off(); return; }               // 최대 약 1.6초
+                try {
+                    const want = Math.max(0, card.getBoundingClientRect().top - root.getBoundingClientRect().top + root.scrollTop - 8);
+                    if (Math.abs(want - root.scrollTop) > 4) root.scrollTo({ top: want, behavior: tries === 1 ? 'smooth' : 'auto' });
+                } catch (e) {}
+                setTimeout(step, 70);
+            };
+            requestAnimationFrame(step);
+        }
+        // ComfyUI가 살아 있는지 짧게 확인 — 꺼져 있는데 자동 생성을 걸면 실패 항목만 쌓인다.
+        //  ★ 주소칸(#anima-url)은 공용 #comfy-url과 '전송 직전'에만 맞춰진다(_animaRunJob).
+        //    확인은 전송보다 먼저 일어나므로 여기서도 똑같이 맞춰 준다 — 안 그러면 기본 주소로 물어보고 늘 '연결 안 됨'이 된다.
+        async function _animaPing() {
+            if (_animaMock()) return true;
+            try { const ai = _animaEl('#anima-url'); const g = document.getElementById('comfy-url'); if (ai && g && ai.value.trim()) { g.value = ai.value.trim(); if (typeof _comfyPatchUrl === 'function') _comfyPatchUrl(ai.value.trim()); } } catch (e) {}
+            try { return await _comfyPing(0, 4000); } catch (e) { return false; }
+        }
+        //  공유로 이미지가 들어오면 그 자리에서 한 장 뽑는다.
+        //   · 대기열이 비어 있을 때만 (돌고 있는 걸 밀어내지 않는다)
+        //   · 전신 노출 + 후타는 사용자가 켜 둔 그대로, 표정·포즈·가슴은 끈다
+        //   · ★ 설정을 실제로 바꾸지는 않는다. 이 한 장만 그렇게 뽑고 원래대로 되돌린다(연속 생성과 같은 방식).
+        const _ANIMA_SHARE_BASE = 'base_full';
+        async function _animaShareAutoGen() {
+            if (!_animaHasImage()) return false;
+            if (_animaJobs.length) {
+                try { showToast('대기열이 있어 자동 생성은 건너뛰었어요 — 실행을 눌러 주세요', 'info', 3000); } catch (e) {}
+                return false;
+            }
+            if (!(await _animaPing())) {
+                try { showToast('ComfyUI에 연결되지 않아 자동 생성을 못 했어요 — 서버를 켠 뒤 실행을 눌러 주세요', 'warning', 5200); } catch (e) {}
+                return false;
+            }
+            const beforePrompt = _anima.prompt;
+            const beforeOn = {}; (_anima.snippets || []).forEach(s => beforeOn[s.id] = !!s.on);
+            try {
+                // 성인 표시가 꺼져 있으면 노출 프리셋을 강제로 넣지 않는다(꺼 둔 걸 우회하면 안 된다)
+                if (_adultOn()) {
+                    const base = (_anima.snippets || []).find(s => s.id === _ANIMA_SHARE_BASE);
+                    if (base && base.text) _anima.prompt = base.text;
+                }
+                // 표정·포즈·가슴만 끈다. futa/futaErect/futaSkin/futaCum은 손대지 않는다(설정한 대로 반영).
+                (_anima.snippets || []).forEach(s => {
+                    if (s.group === 'expr' || s.group === 'pose' || s.group === 'bust') s.on = false;
+                });
+                await _animaGenerate(true);
+            } catch (e) {
+                return false;
+            } finally {
+                // 화면 상태는 원래대로 — 공유 자동 생성이 내 설정을 바꿔 놓으면 다음 작업이 헷갈린다
+                _anima.prompt = beforePrompt;
+                (_anima.snippets || []).forEach(s => { if (s.id in beforeOn) s.on = beforeOn[s.id]; });
+                const pt = _animaEl('#anima-prompt'); if (pt) pt.value = _anima.prompt;
+                try { _animaSave(); _animaRenderSnippets(); } catch (e) {}
+            }
+            return true;
+        }
+
         // ── V8F → API 형식 노드 변환 (설치본 object_info로 위젯 이름을 정확히 매핑, 오프라인/목업 폴백) ──
         const _ANIMA_FALLBACK_NAMES = {
             CLIPLoader: ['clip_name', 'type', 'device'], VAELoader: ['vae_name'], UNETLoader: ['unet_name', 'weight_dtype'],
@@ -13705,7 +13786,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (typeof _animaSetImage !== 'function') return false;
             // async 함수라 throw가 예외가 아니라 거부된 약속으로 온다 — try/catch로는 못 잡는다
             Promise.resolve(_animaSetImage(dataURL, name))
-                .then(() => { try { showToast('공유받은 이미지를 넣었어요 — ' + name, 'success', 2600); } catch (e) {} })
+                .then(() => {
+                    // 넣자마자 '결과 · 비교' 자리로 옮겨 준다 — 어차피 원본은 이미 들어갔으니 위를 볼 이유가 없고,
+                    //  바로 이어서 자동 생성이 돌기 때문에 여기 있어야 진행(스피너)과 결과가 눈앞에 온다.
+                    try { _animaScrollToResultOnce(); } catch (e) {}
+                    return _animaShareAutoGen();
+                })
                 .catch(() => { try { showToast('공유받은 이미지를 넣지 못했어요', 'warning', 2600); } catch (e) {} });
             return true;
         }
