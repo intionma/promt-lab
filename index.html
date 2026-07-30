@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.129.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.130.0 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1266,7 +1266,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.129.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.130.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2146,7 +2146,14 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.129.0', date: '2026-07-30', time: '최신',
+                version: 'v9.130.0', date: '2026-07-30', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[내부 규칙] <b>잘 나오고 있는 프리셋은 앞으로 손대지 않습니다</b> — “더 좋아질 것 같아서” 멀쩡한 문구를 갈아엎지 않아요. 안 나온다고 말씀하신 것, 바꿔 달라고 하신 것만 고칩니다. (자연어 재작성이 적용된 범위는 <b>문신·임신까지</b>)",
+                ]
+            },
+            {
+                version: 'v9.129.0', date: '2026-07-30', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima] <b>문신 프리셋 13종을 자연어 위주로 전부 다시 썼습니다</b> — Anima는 문장을 제일 잘 알아듣는 구조라, 이제 <b>그림 설명이 앞에 오고 태그가 뒤를 받칩니다.</b> (클래식·스튜디오는 반대로 태그가 앞 — 모델이 달라서 서로 다른 문구를 씁니다)",
@@ -8604,6 +8611,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         //  kind:'base'  = 노출 프리셋 — 누르면 기본 프롬프트를 이걸로 교체 (전신/하의만 등, 상호배타)
         //  kind:'append'= 추가 옵션 — 켜면 기본 프롬프트 뒤에 붙음 (후타나리 등, 여러 개 중복 가능)
         //  group        = 같은 그룹의 추가 옵션끼리는 상호배타 (거근/소추처럼 하나 켜면 다른 쪽 자동 꺼짐)
+        //  ✋ 프리셋 문구 수정 규칙 (CLAUDE.md와 같은 내용 — 여기서도 못 박아 둔다)
+        //   · 지금 잘 나오는 프리셋은 손대지 않는다. "더 좋아질 것 같아서" 갈아엎지 말 것.
+        //   · 고쳐도 되는 건 사용자가 "안 나온다"고 말했거나 직접 바꿔 달라고 한 프리셋뿐이다.
+        //     옆 프리셋을 고치는 김에 묶어서 손보는 것도 금지.
+        //   · 고칠 때는 자연어 우선 재작성: Anima는 인코더가 Qwen이라 '서술이 앞, 태그가 뒤'.
+        //     (클래식/스튜디오 조합 _PACK_COMBOS 는 CLIP이라 반대 — 태그가 앞, 서술이 뒤)
+        //   · 태그를 없애지 않는다. 서술과 병행한다. 단부루 0건이라고 지우지 않는다.
+        //   · 서술 안에는 쉼표 금지(계층·조합이 쉼표로 태그를 쪼갠다).
+        //   · 지금까지 자연어 재작성이 된 범위는 문신(tat)·임신(preg)뿐이다.
+        //     표정·포즈·가슴·후타·노출은 문제 제기 전까지 그대로 둔다.
         const ANIMA_DEFAULT_SNIPPETS = [
             { id: 'base_full', name: '전신 노출', kind: 'base', text: 'masterpiece, best quality, score_7, (nude, completely nude, uncensored, :2), ' },
             { id: 'base_top', name: '상의만 벗기기', kind: 'base', text: 'masterpiece, best quality, score_7, (topless female, breasts out, nipples, uncensored, :2), ' },
