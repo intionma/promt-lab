@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.111.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.111.1 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.111.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.111.1 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2051,9 +2051,16 @@
         // 토스트 알림
         // ── 업데이트 내역 ────────────────────────────────────────────────────
         const CHANGELOG = [
-            // ── 2026-07-29 ──────────────────────────────────────────────────
+            // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.111.0', date: '2026-07-30', time: '최신',
+                version: 'v9.111.1', date: '2026-07-30', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] <b>버튼·칩을 길게 눌러도 '복사' 팝업이 안 뜹니다</b> — 하단 바 아이콘, 프롬프트 캡슐, 실행 버튼 같은 조작용 요소는 이제 길게 눌러도 브라우저 기본 복사 메뉴가 끼어들지 않습니다. <b>프롬프트 입력창 등 실제 텍스트는 그대로</b> 길게 눌러 선택·복사할 수 있어요.",
+                ]
+            },
+            {
+                version: 'v9.111.0', date: '2026-07-30', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] <b>캐릭터만 자동 크롭</b> — 사진에 인물이 작게 나와 있을 때, 그 부분만 잘라서 원본으로 씁니다. 원본을 넣는 화면에 '✂ 캐릭터만 자동 크롭' 버튼이 새로 생겼어요(기본은 꺼짐).",
@@ -11321,7 +11328,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-step { display:flex; align-items:center; gap:9px; font-size:13px; font-weight:800; color:var(--text-main); }
           .anima-step .n { width:22px; height:22px; border-radius:50%; background:var(--accent-blue,#3b82f6); color:#fff; display:grid; place-items:center; font-size:12px; flex:0 0 auto; }
           /* ② 프롬프트 접기 머리줄 — 접으면 지금 고른 걸 요약해 보여 준다 */
-          .anima-p-head { cursor:pointer; user-select:none; -webkit-user-select:none; }
+          .anima-p-head { cursor:pointer; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
           .anima-p-head:hover { color:var(--accent-blue,#3b82f6); }
           .anima-p-sum { flex:1 1 auto; min-width:0; font-size:11.5px; font-weight:700; color:var(--text-dim);
             overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -11429,7 +11436,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-seed label { font-size:12px; color:var(--text-dim); font-weight:700; }
           .anima-seed input { width:120px; background:var(--input-bg); border:1px solid var(--border-dim); border-radius:9px; padding:9px 10px; color:var(--text-main); font-size:12.5px; }
           .anima-seed button { background:var(--bg-base); border:1px solid var(--border-dim); border-radius:9px; padding:9px 11px; cursor:pointer; color:var(--text-main); }
-          .anima-adv-toggle { font-size:12.5px; font-weight:800; color:var(--text-main); cursor:pointer; user-select:none; }
+          .anima-adv-toggle { font-size:12.5px; font-weight:800; color:var(--text-main); cursor:pointer; user-select:none; -webkit-touch-callout:none; }
           .anima-adv { flex-direction:column; gap:9px; }
           /* 품질 프리셋 줄 — 버튼 라벨은 짧게(모바일에서 줄바꿈·비대해짐 방지) */
           .anima-preset { display:flex; align-items:center; flex-wrap:wrap; gap:6px; padding:2px 0 11px; margin-bottom:9px; border-bottom:1px dashed var(--border-dim); }
@@ -11589,7 +11596,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-gal.manage .anima-gitem { cursor:default; }
           @media (max-width:600px){ .anima-arow { grid-template-columns:96px 1fr; } .anima-run { font-size:15px; } }
           /* 서버 카드 접기 — 주소가 이미 있으면 한 줄로 접혀 공간 절약 */
-          .anima-srv-head { display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:800; color:var(--text-main); cursor:pointer; user-select:none; }
+          .anima-srv-head { display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:800; color:var(--text-main); cursor:pointer; user-select:none; -webkit-touch-callout:none; }
           .anima-srv-arrow { margin-left:auto; font-size:10px; color:var(--text-dim); transition:transform .15s; }
           .anima-srv-card.closed .anima-srv-arrow { transform:rotate(-90deg); }
           .anima-srv-card.closed #anima-srv-body { display:none; }
@@ -11758,6 +11765,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-chip, .anima-ico, .anima-btn, .anima-run, .anima-gbtn, .anima-fp-x,
           .anima-sweep-row, .anima-seedopt, .anima-sweep-x, .anima-gbtn-x {
             -webkit-tap-highlight-color:transparent; }
+          /* 롱프레스해도 브라우저 기본 "복사" 팝업이 안 뜨게 — 얘넨 텍스트가 아니라 누르는 대상이다.
+             프롬프트 입력창 등 실제 텍스트 영역은 이 목록에 없어서 그대로 선택·복사된다. */
+          .anima-chip, .anima-ico, .anima-btn, .anima-run, .anima-gbtn, .anima-fp-x,
+          .anima-sweep-row, .anima-seedopt, .anima-sweep-x, .anima-gbtn-x,
+          .anima-thumb-x, .anima-bgsel-btn, .anima-srchist-clr, .anima-se-del,
+          .anima-q-clear, .anima-q-x, .anima-zoom, .anima-gal-vb, .anima-gal-manage,
+          .anima-gal-clear, .anima-gx {
+            user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
           .anima-chip, .anima-ico, .anima-btn, .anima-run, .anima-gbtn, .anima-fp-x,
           .anima-sweep-row, .anima-seedopt, .anima-sweep-x {
             transition:transform .24s cubic-bezier(.22,1,.36,1), background-color .16s, border-color .16s, color .16s, opacity .16s; }
