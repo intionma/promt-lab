@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.127.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.128.0 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -514,6 +514,13 @@
             display: inline-flex; align-items: center; background: var(--chip-bg); border: 1px solid var(--border-dim);
             border-radius: 16px; padding: 6px 14px; font-family: var(--font-code); font-size: 13px; font-weight: 500; color: var(--text-main);
             cursor: pointer; transition: 0.2s; word-break: break-all; min-height: 28px; user-select: none;
+        }
+        /* 자연어 서술(문장) 태그는 길어서 캡슐이 화면을 다 먹는다 — 두 줄까지만 보이고 나머지는 … 처리.
+           전체 문구는 캡슐 title(길게 누르기·마우스 올리기)로 확인한다. */
+        .prompt-chip { max-width: min(100%, 420px); }
+        .prompt-chip .chip-kr {
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+            overflow: hidden; overflow-wrap: anywhere; min-width: 0;
         }
         .prompt-chip:hover { border-color: var(--text-dim); }
         .prompt-chip.selected { background: rgba(59, 130, 246, 0.15) !important; border-color: var(--accent-blue) !important; color: var(--text-main) !important; box-shadow: 0 0 0 2px rgba(59,130,246,0.25) !important; }
@@ -1259,7 +1266,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.127.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.128.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2139,7 +2146,17 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.127.0', date: '2026-07-30', time: '최신',
+                version: 'v9.128.0', date: '2026-07-30', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[문신 조합] <b>단부루 태그에 기대지 않아도 의도대로 나오게</b> 전부 다시 썼습니다 — 문신 조합 5종에 <b>영어 서술 문장</b>을 함께 넣었어요. 부루 태그를 아는 모델은 태그로, <b>Pony Realism 같은 실사 머지는 문장으로</b> 알아듣습니다.",
+                    "[문신 조합] 예: 온몸 낙서 → <i>“두꺼운 검정 매직으로 온몸에 갈겨쓴 낙서”</i>, 치골 낙인 → <i>“치골 바로 위 아랫배에 찍힌 진한 낙인”</i>, 극한 도배 → <i>“이마부터 발끝까지 빈틈없이 겹쳐 덮인 문신”</i> 처럼 그림 설명을 그대로 넣었습니다.",
+                    "[Anima] 문신 프리셋 <b>전신 도배 · 문양 도배 · 극한 도배</b>에도 같은 서술을 넣었습니다 — Anima는 문장을 특히 잘 알아듣습니다.",
+                    "[캡슐] 긴 서술 문장이 캡슐로 들어가도 <b>짧은 한글 이름으로 보이게</b> 했습니다 (예: <b>서술·이마~발끝 전부</b>). 캡슐이 화면을 다 먹지 않고, 원문은 캡슐에 손을 올리면 보입니다.",
+                ]
+            },
+            {
+                version: 'v9.127.0', date: '2026-07-30', time: '',
                 tag: 'fix',
                 items: [
                     "[이미지 크게 보기] <b>넘김 영역을 화면의 60% → 20%로 확 줄였습니다</b> — 좌·우 가장자리 <b>10%씩</b>만 넘김이에요. 그림 보려고 누른 곳에서 자꾸 넘어가던 문제가 없어집니다. (가운데 80%는 확대·닫기 전용)",
@@ -8713,13 +8730,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  ★ 단부루 0건 태그(covered in tattoos, ornamental/blackwork tattoo, filigree, spermatozoon 등)도 그대로 쓴다 —
             //    0건은 '부루 학습 모델(Anima·Illustrious·WAI)에서 약하다'는 뜻일 뿐, Pony Realism 같은 실사 머지는
             //    SDXL CLIP이 살아 있어 영어 구절을 그대로 읽는다. 지울 이유가 없다(v9.122.0에서 지웠던 걸 되돌림).
-            { id: 'tat_cover', name: '전신 도배(낙서)', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.55, text: '(full-body tattoo, covered in tattoos:1.4), (body writing, spermatozoon, tally:1.4), body markings, facial mark, heart tattoo, arm tattoo, chest tattoo, leg tattoo, thigh tattoo, tattoo' },
+            { id: 'tat_cover', name: '전신 도배(낙서)', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.55, text: '(full-body tattoo, covered in tattoos:1.4), (body writing, spermatozoon, tally:1.4), body markings, facial mark, heart tattoo, arm tattoo, chest tattoo, leg tattoo, thigh tattoo, tattoo, (her bare skin is scrawled all over with thick black marker writing:1.3), crude handwritten words and tally marks inked across her stomach chest and thighs' },
             //  문양만으로 온몸을 덮는 쪽 — 글자가 없어서 뭉개질 게 없다(글자 문신보다 성공률이 높다).
             //  ★ 극한 도배 — 단부루 실사용 수를 전수 조회해 '실제로 존재하는' 부위 태그만 머리→발끝 순서로 채웠다.
             //    (full-body tattoo는 하이픈이 있어야 실존 2,665건 / covered in tattoos·blackwork·thigh tattoo는 0건)
             //    면적이 최대라 참조와 가장 세게 싸운다 → refW 최저(0.5).
-            { id: 'tat_max', name: '★ 극한 도배(얼굴~발끝)', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.5, text: '(full-body tattoo, covered in tattoos:1.5), (multiple tattoos:1.4), tattoo, (facial tattoo:1.4), forehead tattoo, cheek tattoo, teardrop tattoo, head tattoo, neck tattoo, shoulder tattoo, arm tattoo, tattoo sleeve, hand tattoo, finger tattoo, wrist tattoo, chest tattoo, breast tattoo, stomach tattoo, midriff tattoo, back tattoo, pubic tattoo, hip tattoo, ass tattoo, thigh tattoo, leg tattoo, ankle tattoo, foot tattoo, tribal tattoo, irezumi, body markings, facial mark' },
-            { id: 'tat_ornate', name: '문양 도배(만다라)', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.55, text: '(full-body tattoo, covered in tattoos:1.5), mandala tattoo, mandala, ornamental tattoo, blackwork tattoo, filigree, tribal tattoo, tattoo sleeve, arm tattoo, chest tattoo, back tattoo, leg tattoo, thigh tattoo, body markings' },
+            { id: 'tat_max', name: '★ 극한 도배(얼굴~발끝)', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.5, text: '(full-body tattoo, covered in tattoos:1.5), (multiple tattoos:1.4), tattoo, (facial tattoo:1.4), forehead tattoo, cheek tattoo, teardrop tattoo, head tattoo, neck tattoo, shoulder tattoo, arm tattoo, tattoo sleeve, hand tattoo, finger tattoo, wrist tattoo, chest tattoo, breast tattoo, stomach tattoo, midriff tattoo, back tattoo, pubic tattoo, hip tattoo, ass tattoo, thigh tattoo, leg tattoo, ankle tattoo, foot tattoo, tribal tattoo, irezumi, body markings, facial mark, (every inch of her skin from forehead to toes is covered in dense overlapping tattoos:1.4), heavy black ink on her face neck hands fingers and feet, layered patterns running down her arms torso and both legs without a break, barely any bare skin remains anywhere on her body' },
+            { id: 'tat_ornate', name: '문양 도배(만다라)', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.55, text: '(full-body tattoo, covered in tattoos:1.5), mandala tattoo, mandala, ornamental tattoo, blackwork tattoo, filigree, tribal tattoo, tattoo sleeve, arm tattoo, chest tattoo, back tattoo, leg tattoo, thigh tattoo, body markings, (intricate ornamental blackwork covers her arms shoulders chest and thighs:1.3), dense mandala and tribal patterns wrapping around her limbs' },
             // ── 임신 (group 'preg' — 하나만) ───────────────────────────────
             //  실측(2026-07-30): 4종이 거의 같은 그림 + 배가 제대로 안 나옴 — 배 형태 변화는 광역이라
             //  문신과 같은 벽(참조 강도)에 막힌다. → refW로 참조를 낮추고 문구도 단계가 벌어지게 조정.
@@ -16602,11 +16619,32 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
         }
         // 태그 한글 오버레이 — 룩·추천이 넣는 danbooru 태그를 캡슐에서 한글로 표시 (팩 미설치·사전 미검색 문제 해결)
-        let _DATA_KO = {};
+        //  ★ 자연어 서술(문장) 태그는 영어 문장 그대로 캡슐에 뜨면 화면을 다 먹는다 → 여기서 짧은 한글로 바꿔 보여 준다.
+        //    (프롬프트에 나가는 실제 문구는 그대로다 — 보이는 이름만 바꾸는 것)
+        const _NL_KO = {
+            'her bare skin is scrawled all over with thick black marker writing': '서술·온몸 매직 낙서',
+            'crude handwritten words and tally marks inked across her stomach chest and thighs': '서술·배/가슴/허벅지 손글씨',
+            'messy permanent marker doodles on her face and body': '서술·얼굴까지 낙서',
+            'a bold dark tattoo branded on her lower belly just above the pubic mound': '서술·치골 위 낙인',
+            'a crisp black barcode inked across her lower abdomen': '서술·아랫배 바코드',
+            'high contrast black ink clearly visible on her pale skin': '서술·선명한 검정 잉크',
+            'intricate ornamental blackwork covers her arms shoulders chest and thighs': '서술·팔/어깨/가슴 블랙워크',
+            'dense mandala and tribal patterns wrapping around her limbs': '서술·만다라/트라이벌 감김',
+            'symmetrical geometric linework inked over most of her skin': '서술·기하 라인워크',
+            'tattoos cover nearly every inch of her body': '서술·온몸 뒤덮음',
+            'heavy dense ink over her arms chest stomach back and legs': '서술·팔/몸통/다리 빽빽',
+            'almost no bare skin left': '서술·맨살 거의 없음',
+            'every inch of her skin from forehead to toes is covered in dense overlapping tattoos': '서술·이마~발끝 전부',
+            'heavy black ink on her face neck hands fingers and feet': '서술·얼굴/손/발까지',
+            'layered patterns running down her arms torso and both legs without a break': '서술·끊김 없이 이어짐',
+            'barely any bare skin remains anywhere on her body': '서술·맨살 거의 없음(강)',
+        };
+        let _DATA_KO = Object.assign({}, _NL_KO);
         (function _loadTagKo() {
             try {
                 fetch('./data/tag-ko.json').then(r => { if (!r.ok) throw 0; return r.json(); })
-                    .then(d => { _DATA_KO = d || {}; try { if (typeof currentViewMode !== 'undefined' && currentViewMode === 'visual') for (let i = 1; i <= 7; i++) renderChips(i); } catch (e) {} })
+                    //  받아온 사전이 통째로 덮어쓰지 않게 _NL_KO를 뒤에 다시 얹는다
+                    .then(d => { _DATA_KO = Object.assign({}, d || {}, _NL_KO); try { if (typeof currentViewMode !== 'undefined' && currentViewMode === 'visual') for (let i = 1; i <= 7; i++) renderChips(i); } catch (e) {} })
                     .catch(() => {});
             } catch (e) {}
         })();
@@ -17244,7 +17282,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             "adult": [{n:"가터 란제리",g:{"4":"garter belt, garter straps, thighhighs, thong, choker","5":"looking at viewer, seductive","6":"dim lighting, bed"}},{n:"하이레그 노출",g:{"4":"highleg, revealing clothes, skin tight, thigh boots","5":"standing, arched back","6":"neon lighting, indoors"}},{n:"침실 유혹",g:{"5":"lying, spread legs, seductive, looking at viewer","6":"bed, dim lighting, candlelight"}},{n:"뒤태 강조",g:{"5":"from behind, ass focus, looking back, arched back","6":"dim lighting, indoors"}},{n:"초미니 + 하이힐",g:{"4":"micro skirt, high heels, cleavage, bare shoulders","5":"standing, looking at viewer"}}],
             "hardcore": [{n:"기본 정사",g:{"5":"sex, vaginal, penis, uncensored"}},{n:"후타나리",g:{"5":"futanari, penis, futa on futa, uncensored"}},{n:"오랄",g:{"5":"fellatio, oral, uncensored"}},{n:"백합 (여여)",g:{"5":"yuri, uncensored"}},{n:"파이즈리",g:{"5":"paizuri, penis, uncensored"}}],
             "danbooru-general": [{n:"스마트폰 셀카",g:{"5":"holding phone, smartphone, hands up"}},{n:"자연 야외 배경",g:{"6":"tree, cloud, grass"}},{n:"장미 배경",g:{"6":"rose, red rose, bouquet"}},{n:"불꽃 이펙트",g:{"7":"fire, explosion, motion lines"}},{n:"무기 소지",g:{"5":"sword, holding, gun"}}],
-            "nsfw-adult": [{n:"완전 노출",g:{"3":"areolae, dark nipples","4":"completely nude, no panties, breasts out"}},{n:"옷 젖힘 노출",g:{"4":"clothes pull, shirt lift, bra lift, one breast out"}},{n:"체액 · 땀",g:{"3":"pussy juice, wet body, oiled body, glistening skin","5":"saliva"}},{n:"카우걸 체위",g:{"5":"girl on top, cowgirl position, uncensored"}},{n:"언더웨어만",g:{"4":"underwear only, bra and panties, side-tie bikini bottom"}},{n:"문신 낙서 도배",g:{"3":"(body writing:1.5), spermatozoon, tally, heart tattoo, facial mark, body markings"}},{n:"음문 · 낙인",g:{"3":"(pubic tattoo:1.4), stomach tattoo, barcode tattoo, tattoo"}},{n:"문양 도배 (만다라·트라이벌)",g:{"3":"(full-body tattoo, covered in tattoos:1.4), mandala tattoo, mandala, ornamental tattoo, blackwork tattoo, filigree, tribal tattoo, tattoo sleeve, arm tattoo, chest tattoo, leg tattoo, thigh tattoo, back tattoo, body markings"}},{n:"문신 도배 (전신)",g:{"3":"(full-body tattoo, covered in tattoos:1.5), arm tattoo, chest tattoo, breast tattoo, stomach tattoo, leg tattoo, thigh tattoo, back tattoo, neck tattoo, tribal tattoo, body markings"}},{n:"★ 문신 도배 극한 (얼굴~발끝)",g:{"3":"(full-body tattoo, covered in tattoos:1.5), (multiple tattoos:1.4), tattoo, (facial tattoo:1.4), forehead tattoo, cheek tattoo, teardrop tattoo, head tattoo, neck tattoo, shoulder tattoo, arm tattoo, tattoo sleeve, hand tattoo, finger tattoo, wrist tattoo, chest tattoo, breast tattoo, stomach tattoo, midriff tattoo, back tattoo, pubic tattoo, hip tattoo, ass tattoo, thigh tattoo, leg tattoo, ankle tattoo, foot tattoo, tribal tattoo, irezumi, body markings, facial mark"}}],
+            "nsfw-adult": [{n:"완전 노출",g:{"3":"areolae, dark nipples","4":"completely nude, no panties, breasts out"}},{n:"옷 젖힘 노출",g:{"4":"clothes pull, shirt lift, bra lift, one breast out"}},{n:"체액 · 땀",g:{"3":"pussy juice, wet body, oiled body, glistening skin","5":"saliva"}},{n:"카우걸 체위",g:{"5":"girl on top, cowgirl position, uncensored"}},{n:"언더웨어만",g:{"4":"underwear only, bra and panties, side-tie bikini bottom"}},{n:"문신 낙서 도배",g:{"3":"(body writing:1.5), spermatozoon, tally, heart tattoo, facial mark, body markings, stomach tattoo, chest tattoo, her bare skin is scrawled all over with thick black marker writing, crude handwritten words and tally marks inked across her stomach chest and thighs, (messy permanent marker doodles on her face and body:1.2)"}},{n:"음문 · 낙인",g:{"3":"(pubic tattoo:1.4), stomach tattoo, barcode tattoo, tattoo, (a bold dark tattoo branded on her lower belly just above the pubic mound:1.3), a crisp black barcode inked across her lower abdomen, high contrast black ink clearly visible on her pale skin"}},{n:"문양 도배 (만다라·트라이벌)",g:{"3":"(full-body tattoo, covered in tattoos:1.4), mandala tattoo, mandala, ornamental tattoo, blackwork tattoo, filigree, tribal tattoo, tattoo sleeve, arm tattoo, chest tattoo, leg tattoo, thigh tattoo, back tattoo, body markings, (intricate ornamental blackwork covers her arms shoulders chest and thighs:1.3), dense mandala and tribal patterns wrapping around her limbs, symmetrical geometric linework inked over most of her skin"}},{n:"문신 도배 (전신)",g:{"3":"(full-body tattoo, covered in tattoos:1.5), arm tattoo, chest tattoo, breast tattoo, stomach tattoo, leg tattoo, thigh tattoo, back tattoo, neck tattoo, tribal tattoo, body markings, (tattoos cover nearly every inch of her body:1.3), heavy dense ink over her arms chest stomach back and legs, almost no bare skin left"}},{n:"★ 문신 도배 극한 (얼굴~발끝)",g:{"3":"(full-body tattoo, covered in tattoos:1.5), (multiple tattoos:1.4), tattoo, (facial tattoo:1.4), forehead tattoo, cheek tattoo, teardrop tattoo, head tattoo, neck tattoo, shoulder tattoo, arm tattoo, tattoo sleeve, hand tattoo, finger tattoo, wrist tattoo, chest tattoo, breast tattoo, stomach tattoo, midriff tattoo, back tattoo, pubic tattoo, hip tattoo, ass tattoo, thigh tattoo, leg tattoo, ankle tattoo, foot tattoo, tribal tattoo, irezumi, body markings, facial mark, (every inch of her skin from forehead to toes is covered in dense overlapping tattoos:1.4), heavy black ink on her face neck hands fingers and feet, layered patterns running down her arms torso and both legs without a break, barely any bare skin remains anywhere on her body"}}],
             "expressions-plus": [{n:"황홀경",g:{"3":"ecstatic, teary-eyed, one eye closed"}},{n:"우울 · 눈물",g:{"3":"gloomy, melancholic expression, sobbing"}},{n:"얀데레 미소",g:{"3":"yandere, smug grin, sparkling eyes"}},{n:"무표정 · 냉담",g:{"3":"deadpan, determined"}},{n:"당황 · 부끄",g:{"3":"flustered, annoyed"}}],
             "fantasy-plus": [{n:"엘프 마법사",g:{"3":"elf, elf ears","4":"wizard robe, wizard hat","5":"holding staff, casting magic","7":"magic aura, glowing runes"}},{n:"드래곤 걸",g:{"3":"dragon girl, dragon horns, dragon tail"}},{n:"기사 갑옷",g:{"4":"knight armor, plate armor","5":"holding sword"}},{n:"마법 숲 배경",g:{"6":"enchanted forest, wizard tower","7":"sparkling magic, divine light"}},{n:"수인 (냥/여우)",g:{"3":"cat girl, fox girl, animal ears"}}],
         };
@@ -22121,6 +22159,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 chip.innerHTML = korLabel && korLabel !== mapKey
                     ? `<span class="chip-kr">${_esc(displayLabel)}</span><span class="chip-tooltip">${_esc(tag)}</span>`
                     : `<span class="chip-kr">${_esc(displayLabel)}</span>`;
+                if (String(tag).length > 24) chip.title = tag;   // 긴 서술은 원문을 툴팁으로
 
                 // 드래그 (단일 또는 다중 선택)
                 chip.addEventListener('dragstart', (e) => {
