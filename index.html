@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.111.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.112.0 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.111.1 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.112.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2053,7 +2053,16 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.111.1', date: '2026-07-30', time: '최신',
+                version: 'v9.112.0', date: '2026-07-30', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[전체] <b>PC·태블릿·폴드 화면에 맞는 2단 배치</b> — 화면이 넓으면 Anima 편집이 <b>왼쪽 입력 · 오른쪽 결과</b>로 나뉩니다. 실행을 누르면 오른쪽에서 바로 결과가 보여요. 폰 세로 화면은 <b>지금 그대로</b>입니다.",
+                    "[전체] 넓은 화면에서 <b>결과 칸이 스크롤을 따라옵니다</b> — 왼쪽에서 옵션을 내려도 결과·비교가 항상 눈앞에 있어요. 갤러리가 길면 그 칸 안에서 따로 스크롤됩니다.",
+                    "[전체] <b>가로 회전 잠금을 풀었습니다</b> — 설치한 앱(PWA)에서도 이제 폰·태블릿을 돌리면 화면이 같이 돕니다. 가로로 낮은 화면에서는 비교 그림 높이를 자동으로 줄여 화면을 넘지 않아요.",
+                ]
+            },
+            {
+                version: 'v9.111.1', date: '2026-07-30', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] <b>버튼·칩을 길게 눌러도 '복사' 팝업이 안 뜹니다</b> — 하단 바 아이콘, 프롬프트 캡슐, 실행 버튼 같은 조작용 요소는 이제 길게 눌러도 브라우저 기본 복사 메뉴가 끼어들지 않습니다. <b>프롬프트 입력창 등 실제 텍스트는 그대로</b> 길게 눌러 선택·복사할 수 있어요.",
@@ -10850,6 +10859,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         const ANIMA_HTML = `
           <div class="anima-wrap">
             <div class="anima-head"><b>🎨 Anima 편집</b><span>업로드 → 실행 → 끝. 원본을 참고해 프롬프트대로 다시 그려요.</span></div>
+            <div class="anima-col-l">
             <div class="anima-card anima-srv-card">
               <div class="anima-srv-head" id="anima-srv-head">🔌 ComfyUI 연결 <span id="anima-srv-mini" class="anima-conn"></span><span class="anima-srv-arrow" id="anima-srv-arrow">▼</span></div>
               <div id="anima-srv-body">
@@ -10886,9 +10896,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
               <div class="anima-adv-toggle" id="anima-adv-toggle">▼ 고급 설정 (모델·스텝·강도)</div>
               <div class="anima-adv" id="anima-adv" style="display:none"></div>
             </div>
+            </div>
+            <div class="anima-col-r">
             <div class="anima-card">
               <div class="anima-step"><span class="n">3</span> 결과 · 비교</div>
               <div class="anima-result" id="anima-result"></div>
+            </div>
             </div>
           </div>
           <!-- 모바일 하단 고정 바: 노출·옵션 선택 + 실행 (스크롤 없이 핵심 흐름 완료) -->
@@ -11321,6 +11334,27 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           #anima-root { position:fixed; left:0; right:0; top:var(--pl-topbar-h,54px); bottom:0; overflow-y:auto; background:var(--bg-base); z-index:40; }
           #anima-root * { box-sizing:border-box; }
           .anima-wrap { max-width:1000px; margin:0 auto; padding:16px 16px 80px; display:flex; flex-direction:column; gap:14px; }
+          /* ── 전 해상도 반응형 ──────────────────────────────────────────────
+             좁은 화면(폰 세로)에서는 .anima-col-l/.anima-col-r가 display:contents로
+             레이아웃에서 사라져 기존 세로 1열이 그대로 유지된다 — 폰 동작 무변경.
+             넓은 화면(PC·태블릿 가로·폴드 펼침)에서만 좌(입력)·우(결과) 2단이 된다. */
+          .anima-col-l, .anima-col-r { display:contents; }
+          @media (min-width:1000px){
+            .anima-wrap { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:start; max-width:1500px; gap:14px 18px; }
+            .anima-head { grid-column:1 / -1; }
+            .anima-col-l, .anima-col-r { display:flex; flex-direction:column; gap:14px; min-width:0; }
+            /* 결과 칸은 스크롤을 따라온다 — 왼쪽에서 실행하면 오른쪽에서 바로 보인다.
+               내용이 길면(갤러리) 칸 안에서 따로 스크롤된다. 하단 바 높이만큼 빼서
+               바에 가려지는 부분이 없게 한다. */
+            .anima-col-r { position:sticky; top:0; max-height:calc(100dvh - var(--pl-topbar-h,54px) - var(--anima-mact-h,128px) - 16px); overflow-y:auto; overscroll-behavior:contain; }
+          }
+          @media (min-width:1500px){
+            .anima-wrap { grid-template-columns:minmax(0,2fr) minmax(0,3fr); max-width:1800px; }
+          }
+          /* 낮은 화면(폰 가로) — 3:4 비교 프레임이 화면 높이를 넘지 않게 상한 */
+          @media (max-height:560px){
+            .anima-frame { aspect-ratio:auto; height:min(72vh,420px); }
+          }
           .anima-head { display:flex; flex-direction:column; gap:3px; padding:4px 2px; }
           .anima-head b { font-size:18px; color:var(--text-main); }
           .anima-head span { font-size:12.5px; color:var(--text-dim); }
