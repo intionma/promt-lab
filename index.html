@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.112.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.112.1 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.112.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.112.1 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2053,7 +2053,14 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.112.0', date: '2026-07-30', time: '최신',
+                version: 'v9.112.1', date: '2026-07-30', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[Anima 편집] <b>꾹 눌러 시드를 고정하면 곧바로 풀리던 버그</b>를 고쳤습니다 — 안드로이드에서 꾹 누르면 고정과 해제가 연달아 실행돼 잠기자마자 풀렸어요. 이제 한 번 누르면 고정, 다시 누르면 해제로 정확히 동작합니다.",
+                ]
+            },
+            {
+                version: 'v9.112.0', date: '2026-07-30', time: '',
                 tag: 'feat',
                 items: [
                     "[전체] <b>PC·태블릿·폴드 화면에 맞는 2단 배치</b> — 화면이 넓으면 Anima 편집이 <b>왼쪽 입력 · 오른쪽 결과</b>로 나뉩니다. 실행을 누르면 오른쪽에서 바로 결과가 보여요. 폰 세로 화면은 <b>지금 그대로</b>입니다.",
@@ -10428,7 +10435,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         //  PC는 우클릭으로도 같은 일을 한다. 손가락을 조금이라도 끌면 취소한다
         //  (폴더 밀기·스크롤과 겹치면 안 된다).
         const _ANIMA_LP_MS = 500, _ANIMA_LP_SLOP = 10;
-        let _animaLpT = null, _animaLpFired = false, _animaLpX = 0, _animaLpY = 0;
+        let _animaLpT = null, _animaLpFired = false, _animaLpX = 0, _animaLpY = 0, _animaLpTouch = false;
         //  꾹 누르기가 방금 처리했으면 뒤따라오는 클릭 1회를 먹는다(크게보기가 같이 열리면 안 된다)
         function _animaLpEat() { if (!_animaLpFired) return false; _animaLpFired = false; return true; }
         function _animaLpCancel() { if (_animaLpT !== null) { clearTimeout(_animaLpT); _animaLpT = null; } }
@@ -10479,19 +10486,23 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const pt = e.touches ? e.touches[0] : e;
                 if (Math.abs(pt.clientX - _animaLpX) > _ANIMA_LP_SLOP || Math.abs(pt.clientY - _animaLpY) > _ANIMA_LP_SLOP) _animaLpCancel();
             };
-            box.addEventListener('touchstart', down, { passive: true });
+            box.addEventListener('touchstart', (e) => { _animaLpTouch = true; down(e); }, { passive: true });
             box.addEventListener('touchmove', move, { passive: true });
             box.addEventListener('touchend', _animaLpCancel, { passive: true });
             box.addEventListener('touchcancel', _animaLpCancel, { passive: true });
-            box.addEventListener('mousedown', (e) => { if (e.button === 0) down(e); });
+            box.addEventListener('mousedown', (e) => { _animaLpTouch = false; if (e.button === 0) down(e); });
             box.addEventListener('mousemove', move);
             window.addEventListener('mouseup', _animaLpCancel);
             box.addEventListener('scroll', _animaLpCancel, { passive: true });
             // PC 우클릭 — 기다릴 것 없이 바로
+            //  ★ 안드로이드는 꾹 누르면 contextmenu가 '같이' 온다 — 위 500ms 타이머가 이미
+            //    잠근 직후 여기서 또 토글해 잠그자마자 풀리는 버그가 있었다. 터치로 시작된
+            //    contextmenu는 브라우저 기본 메뉴만 막고 토글은 타이머에게 맡긴다.
             box.addEventListener('contextmenu', (e) => {
                 const el = target(e.target); if (!el) return;
                 if (_animaGalManage) return;
                 e.preventDefault(); e.stopPropagation();
+                if (_animaLpTouch) return;
                 _animaLpCancel(); _animaLpFired = true;
                 _animaSeedLockHit(el);
             });
