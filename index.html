@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.123.2 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.124.0 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.123.2 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.124.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2139,7 +2139,18 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.123.2', date: '2026-07-30', time: '최신',
+                version: 'v9.124.0', date: '2026-07-30', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[클래식·스튜디오] <b>LoRA 트리거 캡슐을 1계층(화질) 맨 앞으로 옮겼습니다</b> — 3계층에 넣고 있어서 최종 프롬프트에서는 한참 뒤였어요. 계층은 순서대로 이어 붙으니 <b>1계층 맨 앞 = 프롬프트 최상단</b>이고, 여기 있어야 LoRA가 확실히 걸립니다.",
+                    "[클래식·스튜디오] 넣은 트리거가 <b>다시 뒤로 밀려나던 문제</b>를 고쳤습니다 — 계층은 태그 DB 순서대로 자동 정렬되는데 트리거는 DB에 없는 태그라 뒤로 밀렸어요. 이제 정렬해도 트리거는 항상 맨 앞에 고정됩니다.",
+                    "[클래식·스튜디오] 트리거가 <b>다른 태그를 잡아먹던 문제</b>를 고쳤습니다 — 트리거가 <b>tattoo</b>처럼 한 단어면 <b>neck tattoo</b> 같은 다른 태그의 뒷단어까지 지워서 <b>neck</b>만 남았어요. 이제 태그 전체가 똑같을 때만 지웁니다.",
+                    "[클래식·스튜디오] 트리거가 같은 LoRA를 두 개 켜면 캡슐이 <b>두 번 들어가던 문제</b>를 고쳤습니다.",
+                    "[이미지 변환·Anima] LoRA 칩을 눌렀을 때 <b>화면에 안 보이는 클래식 프롬프트가 몰래 바뀌던 문제</b>를 고쳤습니다 — 클래식으로 돌아오면 태그가 달라져 있었어요. 이제 그 테마에서는 클래식 프롬프트를 건드리지 않습니다.",
+                ]
+            },
+            {
+                version: 'v9.123.2', date: '2026-07-30', time: '',
                 tag: 'fix',
                 items: [
                     "[클래식·스튜디오] LoRA 칩을 끌 때 <b>간편 조합이 쓰는 태그까지 지워지던 문제</b>를 고쳤습니다 — 조합은 켜져 있는데 태그만 사라지는 상태가 됐었어요. 이제 조합 태그는 그대로 두고 알려 드립니다.",
@@ -7160,37 +7171,67 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         //  전송할 때만 몰래 붙이면 화면에서 안 보이고 가중치도 못 준다.
         //  → 레이어 textarea에 직접 넣어 캡슐로 만들면, 다른 태그처럼 가중치를 조절할 수 있다.
         //  (조합 적용과 같은 방식: textarea 수정 → syncFromManualInput으로 캡슐 다시 그림)
-        const _COMFY_TRIG_LAYER = '3';   // 조합이 쓰는 '특징' 계층과 같은 자리
+        //  1계층(화질)에 넣는다 — 최종 프롬프트에서 계층 순서대로 이어 붙기 때문에
+        //  1계층 맨 앞이 곧 프롬프트 최상단이다. CLIP은 앞 75토큰이 제일 세게 먹으므로
+        //  LoRA 트리거는 여기 있어야 확실히 걸린다(3계층은 이미 뒤로 밀린 자리였다).
+        const _COMFY_TRIG_LAYER = '1';
+        //  태그 문자열에서 가중치를 벗겨 낸 '핵심 이름'(소문자)을 뽑는다 — (tag:1.2) → tag
+        function _comfyTagCore(t) {
+            const m = String(t || '').trim().match(/^\(\s*(.+?)\s*:\s*[\d.]+\s*\)$/);
+            return (m ? m[1] : String(t || '')).trim().toLowerCase();
+        }
+        //  ★ 등록된 LoRA의 트리거 워드 집합 — 계층 정렬(sortLayerByDB)에서 '맨 앞 고정'에 쓴다.
+        //    정렬은 DB 순서를 따르는데 트리거는 DB에 없는 태그라 그냥 두면 뒤로 밀린다.
+        function _comfyTrigPins() {
+            const s = new Set();
+            try {
+                (_comfyLoraPresets || []).forEach(p => String((p && p.trigger) || '').split(',')
+                    .map(x => _comfyTagCore(x)).filter(Boolean).forEach(x => s.add(x)));
+            } catch (e) {}
+            return s;
+        }
         function _comfyTriggerChips(trigger, add) {
             const segs = String(trigger || '').split(',').map(x => x.trim()).filter(Boolean);
             if (!segs.length) return 0;
-            let ta = document.getElementById('layer-' + _COMFY_TRIG_LAYER);
-            if (!ta) { for (let i = 1; i <= 9 && !ta; i++) ta = document.getElementById('layer-' + i); }
+            //  ★ 이미지 변환·인페인팅·Anima는 이 계층을 안 쓴다 — 화면에 없는 클래식 프롬프트를
+            //    몰래 고쳐 놓으면 나중에 클래식으로 돌아왔을 때 태그가 바뀌어 있다(사용자에겐 원인 불명).
+            try {
+                if ((typeof _img2img !== 'undefined' && _img2img && _img2img.enabled)
+                    || (typeof _plCurrent !== 'undefined' && _plCurrent === 'anima')) return 0;
+            } catch (e) {}
+            let layerIdx = _COMFY_TRIG_LAYER;
+            let ta = document.getElementById('layer-' + layerIdx);
+            //  못 찾으면 있는 계층 아무거나 — 이때 '실제로 고친 계층'을 sync해야 저장까지 반영된다
+            if (!ta) { for (let i = 1; i <= 7 && !ta; i++) { ta = document.getElementById('layer-' + i); if (ta) layerIdx = String(i); } }
             if (!ta) { try { showToast('프롬프트 계층을 찾지 못했어요 — 클래식/스튜디오 화면에서 눌러 주세요', 'warning', 3500); } catch (e) {} return 0; }
             try { saveStateToUndoStack(); } catch (e) {}   // 실제로 고칠 때만 되돌리기 지점을 남긴다
             //  ★ 지금 켜져 있는 간편 조합이 쓰는 태그는 건드리지 않는다 —
             //    트리거와 겹치는 태그(예: pubic tattoo)를 지우면, 조합은 켜진 채로 태그만 사라진다.
             let protect = new Set();
             try { if (typeof _comboTagsProtectedExcluding === 'function') protect = _comboTagsProtectedExcluding('__lora__'); } catch (e) {}
-            let content = ta.value, n = 0, skipped = 0;
+            //  ★ 정규식이 아니라 '쉼표로 끊은 태그 단위'로 지운다 —
+            //    getRegexForTag는 단어 경계만 봐서 trigger가 'tattoo'면 'neck tattoo'의 뒷단어까지
+            //    잡아먹고 'neck '만 남긴다(태그 파괴). 태그 전체가 같을 때만 지우는 게 맞다.
+            let tokens = String(ta.value || '').split(',').map(s => s.trim()).filter(Boolean);
+            let n = 0, skipped = 0;
             const addList = [];
             segs.forEach(t => {
-                const core = (t.match(/^\((.+):(\d+\.?\d*)\)$/) || [, t])[1];
-                if (!add && protect.has(String(core).toLowerCase())) { skipped++; return; }   // 조합 소유 태그는 남긴다
-                //  가중치가 걸린 형태((tag:1.2))도 같이 지워진다 — getRegexForTag가 가중치를 포함해 잡는다
-                //  ★ 같은 태그가 여러 번 들어가 있을 수 있어 없어질 때까지 반복한다(정규식이 비전역이라 1회만 지운다)
-                let had = false;
-                for (let g = 0; g < 20 && getRegexForTag(core).test(content); g++) { content = content.replace(getRegexForTag(core), ''); had = true; }
-                if (add) { addList.push(t); n++; }
+                const core = _comfyTagCore(t);
+                if (!core) return;
+                if (!add && protect.has(core)) { skipped++; return; }   // 조합 소유 태그는 남긴다
+                const before = tokens.length;
+                tokens = tokens.filter(x => _comfyTagCore(x) !== core);   // 가중치가 걸린 형태도 같이 빠진다
+                const had = tokens.length !== before;
+                //  같은 트리거를 쓰는 LoRA가 둘이면 segs에 중복이 들어온다 → 캡슐도 중복 생성되던 문제
+                if (add) { if (!addList.some(a => _comfyTagCore(a) === core)) { addList.push(t); n++; } }
                 else if (had) n++;
             });
             if (skipped && !add) { try { showToast('간편 조합이 쓰는 태그는 그대로 뒀어요 (조합을 꺼야 빠집니다)', 'info', 3200); } catch (e) {} }
-            content = content.replace(/,\s*,+/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').trim();
             //  ★ 반드시 '앞'에 붙인다 — 뒤에 붙이면 75토큰 경계 밖으로 밀려 LoRA가 잘 안 걸린다.
             //    (전송 시 자동 삽입도 같은 이유로 앞쪽에 넣는다 — 두 경로가 같은 규칙을 따라야 한다)
-            if (addList.length) content = content ? (addList.join(', ') + ', ' + content) : addList.join(', ');
-            ta.value = content.replace(/,\s*,+/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').trim();
-            try { syncFromManualInput(_COMFY_TRIG_LAYER); } catch (e) {}
+            if (addList.length) tokens = addList.concat(tokens);
+            ta.value = tokens.join(', ');
+            try { syncFromManualInput(layerIdx); } catch (e) {}
             return n;
         }
         function comfyLoraFormClose() { const f = document.getElementById('comfy-lora-form'); if (f) f.style.display = 'none'; _comfyLoraFormReset(); }
@@ -22619,9 +22660,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 });
             }
 
+            //  ★ LoRA 트리거 워드는 DB에 없는 태그라 그냥 두면 '순서 없음(Infinity)'으로 뒤로 밀린다.
+            //    트리거는 프롬프트 최상단에 있어야 확실히 걸리므로 여기서 맨 앞에 고정한다.
+            let pins = null;
+            try { if (typeof _comfyTrigPins === 'function') pins = _comfyTrigPins(); } catch (e) { pins = null; }
             const getOrder = (token) => {
                 const m = token.match(/^\((.+):[\d.]+\)$/);
                 const core = m ? m[1] : token;
+                if (pins && pins.size && pins.has(String(core).trim().toLowerCase())) return -1;
                 return orderMap.has(core) ? orderMap.get(core) : Infinity;
             };
 
