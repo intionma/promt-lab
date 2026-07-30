@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.123.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.123.2 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.123.1 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.123.2 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2139,7 +2139,16 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.123.1', date: '2026-07-30', time: '최신',
+                version: 'v9.123.2', date: '2026-07-30', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[클래식·스튜디오] LoRA 칩을 끌 때 <b>간편 조합이 쓰는 태그까지 지워지던 문제</b>를 고쳤습니다 — 조합은 켜져 있는데 태그만 사라지는 상태가 됐었어요. 이제 조합 태그는 그대로 두고 알려 드립니다.",
+                    "[클래식·스튜디오] 같은 트리거가 프롬프트에 <b>여러 번 들어가 있으면 하나만 지워지던 것</b>도 고쳐 전부 정리합니다.",
+                    "[내부] 화면 표시용 이스케이프 함수가 중복 선언돼 기존 함수를 덮어쓰던 것을 정리했습니다(동작은 같았지만 위험한 구조였음).",
+                ]
+            },
+            {
+                version: 'v9.123.1', date: '2026-07-30', time: '',
                 tag: 'fix',
                 items: [
                     "[클래식·스튜디오] <b>트리거 캡슐이 맨 뒤에 붙던 것을 앞으로 옮겼습니다</b> — 뒤쪽은 75토큰 경계 밖으로 밀려 LoRA가 잘 안 걸립니다. 이제 계층 <b>맨 앞</b>에 들어가요.",
@@ -6919,8 +6928,6 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _comfyActiveLoras(pos) {
             return _comfyLoraPresets.filter(p => p && p.name && (p.on || (p.auto && _comfyLoraWatchHit(p, pos))));
         }
-        //  사용자 입력(칩 이름 등)을 화면에 넣기 전 HTML 특수문자 무력화
-        function _esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
         //  칩에 '지금 자동으로 켜져 있는지'를 보여 주기 위해 현재 결과창 프롬프트를 읽는다(표시용).
         function _comfyCurrentPosText() {
             try { return (document.getElementById('final-positive') || {}).value || ''; } catch (e) { return ''; }
@@ -7160,16 +7167,24 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             let ta = document.getElementById('layer-' + _COMFY_TRIG_LAYER);
             if (!ta) { for (let i = 1; i <= 9 && !ta; i++) ta = document.getElementById('layer-' + i); }
             if (!ta) { try { showToast('프롬프트 계층을 찾지 못했어요 — 클래식/스튜디오 화면에서 눌러 주세요', 'warning', 3500); } catch (e) {} return 0; }
-            try { saveStateToUndoStack(); } catch (e) {}
-            let content = ta.value, n = 0;
+            try { saveStateToUndoStack(); } catch (e) {}   // 실제로 고칠 때만 되돌리기 지점을 남긴다
+            //  ★ 지금 켜져 있는 간편 조합이 쓰는 태그는 건드리지 않는다 —
+            //    트리거와 겹치는 태그(예: pubic tattoo)를 지우면, 조합은 켜진 채로 태그만 사라진다.
+            let protect = new Set();
+            try { if (typeof _comboTagsProtectedExcluding === 'function') protect = _comboTagsProtectedExcluding('__lora__'); } catch (e) {}
+            let content = ta.value, n = 0, skipped = 0;
             const addList = [];
             segs.forEach(t => {
+                const core = (t.match(/^\((.+):(\d+\.?\d*)\)$/) || [, t])[1];
+                if (!add && protect.has(String(core).toLowerCase())) { skipped++; return; }   // 조합 소유 태그는 남긴다
                 //  가중치가 걸린 형태((tag:1.2))도 같이 지워진다 — getRegexForTag가 가중치를 포함해 잡는다
-                const had = getRegexForTag(t).test(content);
-                content = content.replace(getRegexForTag(t), '');
+                //  ★ 같은 태그가 여러 번 들어가 있을 수 있어 없어질 때까지 반복한다(정규식이 비전역이라 1회만 지운다)
+                let had = false;
+                for (let g = 0; g < 20 && getRegexForTag(core).test(content); g++) { content = content.replace(getRegexForTag(core), ''); had = true; }
                 if (add) { addList.push(t); n++; }
                 else if (had) n++;
             });
+            if (skipped && !add) { try { showToast('간편 조합이 쓰는 태그는 그대로 뒀어요 (조합을 꺼야 빠집니다)', 'info', 3200); } catch (e) {} }
             content = content.replace(/,\s*,+/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').trim();
             //  ★ 반드시 '앞'에 붙인다 — 뒤에 붙이면 75토큰 경계 밖으로 밀려 LoRA가 잘 안 걸린다.
             //    (전송 시 자동 삽입도 같은 이유로 앞쪽에 넣는다 — 두 경로가 같은 규칙을 따라야 한다)
