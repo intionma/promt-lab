@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.126.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.127.0 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.126.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.127.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2139,7 +2139,15 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.126.0', date: '2026-07-30', time: '최신',
+                version: 'v9.127.0', date: '2026-07-30', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[이미지 크게 보기] <b>넘김 영역을 화면의 60% → 20%로 확 줄였습니다</b> — 좌·우 가장자리 <b>10%씩</b>만 넘김이에요. 그림 보려고 누른 곳에서 자꾸 넘어가던 문제가 없어집니다. (가운데 80%는 확대·닫기 전용)",
+                    "[이미지 크게 보기] 가장자리 안에서 <b>위 30% = 다음 / 아래 70% = 이전</b>으로 바꿨습니다 — 한 손으로 잡았을 때 엄지가 닿는 아래쪽이 넓어졌어요.",
+                ]
+            },
+            {
+                version: 'v9.126.0', date: '2026-07-30', time: '',
                 tag: 'fix',
                 items: [
                     "[문신] <b>지웠던 태그를 전부 되살렸습니다</b> — <b>covered in tattoos · ornamental tattoo · blackwork tattoo · filigree · mandala tattoo · thigh tattoo · spermatozoon</b>. 상세 태그, 간편 조합, Anima 프리셋 모두 복구했습니다.",
@@ -14011,11 +14019,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             function _handleTapEnd(x, y, target) {
                 const onCtl = target && target.closest && target.closest('button, #img-lightbox-counter, a');
                 if (onCtl) return;
-                const centerX = x > VW() * 0.3 && x < VW() * 0.7;   // 가운데 세로 띠 = 확대(더블탭)/닫기 전용 — 넘기기 없음
-                // ── 좌·우 사이드(바깥 30%) : 위=다음·아래=이전. 딜레이 없이 즉시(더블탭 줌은 가운데 전용). ──
+                //  넘김 띠는 좌·우 가장자리 10%씩만 — 예전엔 30%씩(화면의 60%)이라 그림을 보려고
+                //  누른 곳까지 죄다 넘어갔다. 지금은 가운데 80%가 확대·닫기 전용이다.
+                const centerX = x > VW() * 0.1 && x < VW() * 0.9;   // 가운데 세로 띠 = 확대(더블탭)/닫기 전용 — 넘기기 없음
+                // ── 좌·우 사이드(바깥 10%) : 위 30%=다음 · 아래 70%=이전. 딜레이 없이 즉시(더블탭 줌은 가운데 전용). ──
                 if (!centerX && _lbCoarse && !_isZoomed() && _lbUrls.length > 1) {
                     _cancelClose(); _lastTapT = 0;
-                    const dir = (y < VH() * 0.5) ? 1 : -1;
+                    const dir = (y < VH() * 0.3) ? 1 : -1;
                     _flashEdgeHint(dir === 1 ? 'next' : 'prev');
                     lightboxNav(dir);
                     return;
