@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.112.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.113.0 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.112.1 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.113.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2053,7 +2053,15 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.112.1', date: '2026-07-30', time: '최신',
+                version: 'v9.113.0', date: '2026-07-30', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] <b>문신 목록을 실제로 나오는 것만 남겼습니다</b> — 직접 뽑아 보신 결과대로 <b>자궁 문신 · 바코드 낙인</b> 2종만 남고, 그림에 안 나타나던 나머지 10종은 뺐습니다. 목록이 짧아져 고르기 쉬워요.",
+                    "[Anima 편집] <b>임신은 1종으로 합쳤습니다</b> — 4종이 거의 같은 그림이라 <b>임신</b> 하나만 남기고, 배가 확실히 나오는 조합으로 태그를 잡았습니다. '전부 돌리기'도 이제 낭비 없이 돕니다.",
+                ]
+            },
+            {
+                version: 'v9.112.1', date: '2026-07-30', time: '',
                 tag: 'fix',
                 items: [
                     "[Anima 편집] <b>꾹 눌러 시드를 고정하면 곧바로 풀리던 버그</b>를 고쳤습니다 — 안드로이드에서 꾹 누르면 고정과 해제가 연달아 실행돼 잠기자마자 풀렸어요. 이제 한 번 누르면 고정, 다시 누르면 해제로 정확히 동작합니다.",
@@ -7745,30 +7753,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // ── 문신 (group 'tat' — 하나만) ────────────────────────────────
             //  ★ 임시 배치다. 하단 바 '문신' 버튼 → 팝오버로만 고른다. 나중에 UI를 다시 잡을 예정이라
             //    여기 배열만 고치면 버튼·팝오버·연속 생성 축이 전부 따라오도록 해 뒀다(별도 코드 수정 불필요).
-            //  태그는 단부루 실사용 건수로 골랐다. 건수가 낮으면 그림에 잘 안 나온다.
-            //   body_writing 15,092 · body_markings 16,007 · pubic_tattoo 19,178 · number_tattoo 14,304
-            //   stomach_tattoo 9,311 · bodypaint 7,164 · barcode_tattoo 4,726 · full-body_tattoo 2,665
-            //   queen_of_spades_symbol 1,919 · tribal_tattoo 1,622 · ass_tattoo 1,326 · tattoo_sleeve 446 · slave_brand 363
-            //  ✗ 넣지 않은 것: text_tattoo(237) 글자가 반드시 깨짐 / womb_tattoo(겔부루 1건) 학습 안 됨
+            //  처음엔 단부루 건수 기준 12종을 넣었으나, 실사용 결과 실제로 그림에 나오는 건
+            //  자궁·바코드 둘뿐이라 나머지 10종은 뺐다(2026-07-30 사용자 확인).
+            //  ✗ 안 나와서 뺀 것: 온몸 낙서 · 온몸 문양 · 전신 문신 · 창녀 낙인 · 스페이드 퀸
+            //    · 트라이벌 · 팔토시 · 엉덩이 · 노예 낙인 · 바디페인트
+            //  ✗ 애초에 넣지 않은 것: text_tattoo(237) 글자가 반드시 깨짐 / womb_tattoo(겔부루 1건) 학습 안 됨
             //    interracial(34,617)은 상대 남성까지 그려 버려서 문신 축에 섞으면 안 된다.
-            { id: 'tat_writing', name: '온몸 낙서', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(body writing:1.3)' },
-            { id: 'tat_markings', name: '온몸 문양', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(body markings:1.2)' },
-            { id: 'tat_full', name: '전신 문신', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(full-body tattoo:1.2), tattoo' },
-            { id: 'tat_slut', name: '창녀 낙인', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(pubic tattoo, number tattoo:1.2), tattoo' },
             { id: 'tat_barcode', name: '바코드 낙인', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(barcode tattoo:1.2), stomach tattoo, tattoo' },
-            { id: 'tat_spade', name: '스페이드 퀸', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(queen of spades symbol:1.3), pubic tattoo, tattoo' },
-            { id: 'tat_tribal', name: '트라이벌', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(tribal tattoo:1.2), tattoo' },
-            { id: 'tat_sleeve', name: '팔토시 문신', kind: 'append', on: false, group: 'tat', nsfw: true, text: 'tattoo sleeve, arm tattoo, tattoo' },
-            { id: 'tat_pubic', name: '자궁 문신만', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(pubic tattoo:1.3), tattoo' },
-            { id: 'tat_ass', name: '엉덩이 문신만', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(ass tattoo:1.3), tattoo' },
-            { id: 'tat_brand', name: '노예 낙인', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(slave brand:1.3), tattoo' },
-            { id: 'tat_paint', name: '바디페인트', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(bodypaint:1.2)' },
+            { id: 'tat_pubic', name: '자궁 문신', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(pubic tattoo:1.3), tattoo' },
             // ── 임신 (group 'preg' — 하나만) ───────────────────────────────
-            //  pregnant 13,490 · big_belly 8,147 · implied_pregnancy 1,095 · pregnancy_mark 162 · veiny_belly 121
-            { id: 'preg_on', name: '임신', kind: 'append', on: false, group: 'preg', nsfw: true, text: 'pregnant' },
-            { id: 'preg_big', name: '만삭', kind: 'append', on: false, group: 'preg', nsfw: true, text: '(pregnant, big belly:1.3)' },
-            { id: 'preg_slight', name: '초기 (살짝)', kind: 'append', on: false, group: 'preg', nsfw: true, text: '(pregnant:0.9), implied pregnancy' },
-            { id: 'preg_mark', name: '임신 + 낙인', kind: 'append', on: false, group: 'preg', nsfw: true, text: '(pregnant, big belly:1.3), pregnancy mark' }
+            //  처음엔 4종(임신·만삭·초기·임신+낙인)이었으나 실사용 결과 넷이 거의 같은 그림이라
+            //  '임신' 하나로 합쳤다(2026-07-30 사용자 확인). 강조를 위해 만삭 태그를 함께 쓴다.
+            { id: 'preg_on', name: '임신', kind: 'append', on: false, group: 'preg', nsfw: true, text: '(pregnant, big belly:1.3)' }
         ];
         // '자위' 포즈는 후타 여부에 따라 손동작이 달라야 한다 — 후타 프리셋이 켜져 있으면 생성 시 이 문구로 자동 교체.
         const _ANIMA_POSE_MAST_FUTA = '(futanari masturbation, hand on own penis:1.2), masturbation, spread legs';
@@ -8154,6 +8150,26 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         const add = ANIMA_DEFAULT_SNIPPETS.filter(d => d.group === g && !_anima.snippets.some(x => x.id === d.id));
                         if (add.length) _anima.snippets = _anima.snippets.concat(JSON.parse(JSON.stringify(add)));
                     });
+                    // 마이그레이션(v9.113.0): 실사용 결과 그림에 안 나오던 문신 10종 + 거의 같은 그림이던
+                    //  임신 3종을 기존 사용자 저장분에서도 제거. ✏️로 문구를 고쳐 쓴 항목은 사용자의
+                    //  것이니 남긴다 — 예전 기본 문구 그대로일 때만 지운다(위 GHOST_FIX와 같은 원칙).
+                    {
+                        const CULL = {
+                            tat_writing: '(body writing:1.3)', tat_markings: '(body markings:1.2)',
+                            tat_full: '(full-body tattoo:1.2), tattoo', tat_slut: '(pubic tattoo, number tattoo:1.2), tattoo',
+                            tat_spade: '(queen of spades symbol:1.3), pubic tattoo, tattoo', tat_tribal: '(tribal tattoo:1.2), tattoo',
+                            tat_sleeve: 'tattoo sleeve, arm tattoo, tattoo', tat_ass: '(ass tattoo:1.3), tattoo',
+                            tat_brand: '(slave brand:1.3), tattoo', tat_paint: '(bodypaint:1.2)',
+                            preg_big: '(pregnant, big belly:1.3)', preg_slight: '(pregnant:0.9), implied pregnancy',
+                            preg_mark: '(pregnant, big belly:1.3), pregnancy mark',
+                        };
+                        _anima.snippets = _anima.snippets.filter(x => !(CULL[x.id] != null && (x.text || '').trim() === CULL[x.id]));
+                        // 남은 '임신'은 배가 확실히 나오게 만삭 태그로 강화 + '자궁 문신만' 이름 정리 — 기본값 그대로일 때만
+                        const pg = _anima.snippets.find(x => x.id === 'preg_on');
+                        if (pg && (pg.text || '').trim() === 'pregnant') pg.text = '(pregnant, big belly:1.3)';
+                        const tp = _anima.snippets.find(x => x.id === 'tat_pubic');
+                        if (tp && tp.name === '자궁 문신만') tp.name = '자궁 문신';
+                    }
                     // ══ 마이그레이션: 단부루에 없는 '유령 태그' 일괄 교정 ═══════════════════
                     //  실제 태그 사용량(danbooru post 수)으로 전수 검사한 결과, 아래 태그들은 0건이라
                     //  그림에 아무 영향도 주지 못하고 프롬프트 자리만 차지하고 있었다.
