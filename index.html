@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.121.1 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.122.0 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.121.1 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.122.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2139,7 +2139,21 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.121.1', date: '2026-07-30', time: '최신',
+                version: 'v9.122.0', date: '2026-07-30', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[전체] 코드 전수 조사로 잡은 버그를 한 번에 고쳤습니다. 아래는 체감될 만한 것들이에요.",
+                    "[간편 조합] <b>예전에 지운 조합이 엉뚱한 조합을 숨기던 문제</b>를 고쳤습니다 — 지난 업데이트에서 조합 자리를 바꾸는 바람에, '문신 낙서 도배'를 지웠던 분은 새로 생긴 '문신 도배(전신)'이 안 보였어요. 자리를 되돌렸습니다.",
+                    "[간편 조합] 조합이 <b>목록의 다른 문신 태그를 잡아먹던 문제</b>도 고쳤습니다 — '목 문신' 같은 태그를 넣어둔 상태에서 조합을 적용하면 그 태그가 망가졌어요.",
+                    "[태그] <b>그림에 아무 영향이 없던 '유령 태그'를 걷어냈습니다</b> — 실제로는 존재하지 않는 태그(0건)라 자리만 차지했어요. 있는 태그로 바꿔 넣었습니다: 만다라 · 다리 문신 등.",
+                    "[클래식·스튜디오] <b>LoRA 칩이 안 먹는 화면에서 '적용됨'이라고 잘못 표시하던 것</b>을 고쳤습니다 — 이미지 변환·Anima에서는 이 칩이 안 나가는데도 적용된 것처럼 보였어요. 이제 명확히 알려줍니다.",
+                    "[클래식·스튜디오] <b>LoRA를 다시 등록해 수정하면 이름·트리거·조건이 날아가던 문제</b>를 고쳤습니다 — 이제 고르면 기존 설정이 그대로 채워집니다. 폼에 앞서 쓰던 값이 남아 다른 LoRA에 섞이던 것도 정리했어요.",
+                    "[클래식·스튜디오] 자동 조건이 <b>엉뚱한 단어에 반응하던 것</b>(예: totally에 tally가 걸림)을 고치고, 트리거가 여러 단어일 때 <b>빠진 것만 골라 넣도록</b> 개선했습니다. 강도를 0으로 둔 LoRA가 0.8로 바뀌던 것도 수정.",
+                    "[내 워크플로우] LoRA 자동 삽입이 더 안전해졌습니다 — 영상용 로더에 잘못 물려 <b>생성 자체가 실패하던 경우</b>를 막고, 이미 같은 LoRA가 있으면 <b>중복 적용을 건너뜁니다</b>. 로더가 여러 개면 알려주고, 배선을 못 찾으면 넣었던 것을 되돌립니다.",
+                ]
+            },
+            {
+                version: 'v9.121.1', date: '2026-07-30', time: '',
                 tag: 'fix',
                 items: [
                     "[클래식·스튜디오] <b>LoRA 트리거 워드를 프롬프트 앞쪽에 넣습니다</b> — 예전엔 맨 뒤에 붙였는데, 프롬프트가 길면(75토큰 초과) 뒤쪽은 힘이 약해져서 <b>LoRA가 잘 안 걸리는 원인</b>이었어요. 이제 <b>score_9 같은 품질 접두 바로 뒤</b>에 끼워 넣어 확실히 반영됩니다.",
@@ -2152,7 +2166,7 @@
                 items: [
                     "[간편 조합] <b>문신 도배 조합을 제대로 강화했습니다</b> — 예전엔 태그 몇 개뿐이라 바코드 하나 찍히고 마는 수준이었어요. 이제 <b>전신·팔·가슴·배·허벅지·등</b>을 한꺼번에 지정하고 가중치도 올려서 실제로 넓게 덮입니다.",
                     "[간편 조합] 조합이 <b>4개로 늘었습니다</b> — <b>문신 도배(전신)</b> · <b>문양 도배(만다라·트라이벌)</b> · <b>낙서 도배(마크·카운트)</b> · <b>음문·낙인</b>. 특히 <b>문양 도배</b>는 글자가 없어서 실패가 적고 제일 잘 나오는 계열입니다.",
-                    "[태그 카탈로그] 성인사전 팩에 <b>문양·부위 태그 16종</b>을 더 넣었습니다 — 온몸 문신투성이 · 만다라 · 장식 문양 · 블랙워크 · 필리그리 · 슬리브 · 가슴/등/허벅지/목/얼굴 문신 등. 원하는 부위만 골라 쓸 수 있어요.",
+                    "[태그 카탈로그] 성인사전 팩에 <b>문양·부위 태그</b>를 더 넣었습니다 — 온몸 문신투성이 · 만다라 · 장식 문양 · 블랙워크 · 필리그리 · 슬리브 · 가슴/등/허벅지/목/얼굴 문신 등. 원하는 부위만 골라 쓸 수 있어요.",
                     "[Anima 편집] 문신에 <b>'문양 도배(만다라)'</b>가 추가되고, <b>'전신 도배'</b>도 같은 기준으로 강화됐습니다.",
                     "[참고] 사진처럼 <b>글자가 또렷한 문신</b>은 태그로는 한계가 있습니다(반드시 뭉개짐) — 그쪽은 LoRA를 켜고 쓰세요. 문양·밀도는 이번 강화로 태그만으로도 올라갑니다.",
                 ]
@@ -6766,7 +6780,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             });
             if (cur && !seen.has(cur)) opt(cur, cur + '  (직접 입력)');   // 목록에 없는 현재 값도 잃지 않게 보존
             opt(_CKPT_MANUAL_OPT, '✏️ 직접 입력…');
-            sel.value = cur || (list.length ? sel.value : '');
+            //  아직 아무것도 안 고른 상태면 '고르세요' 자리를 만들어 둔다 —
+            //  안 그러면 셀렉트만 첫 모델을 고른 것처럼 보이고 실제 값은 비어 있어(전송 시 오류) 헷갈린다.
+            if (!cur && list.length) {
+                const ph = document.createElement('option'); ph.value = ''; ph.textContent = '— 모델을 고르세요 —';
+                sel.insertBefore(ph, sel.firstChild);
+            }
+            sel.value = cur || '';
         }
         function comfyCkptShowManual(on) {
             const box = document.getElementById('comfy-ckpt-manual'); if (!box) return;
@@ -6797,8 +6817,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (!F || fam === 'pony') return { pos, neg };
                 if (F.stripScore && pos) pos = pos.replace(/\bscore_\d+(?:_up)?\b\s*,?\s*/gi, '')
                     .replace(/\(\s*:\s*[\d.]+\s*\)\s*,?\s*/g, '')   // '(score_9:1.2)'를 지우고 남은 빈 가중치 괄호 '(:1.2)' 제거
+                    .replace(/,\s*:/g, ':')                                 // '(masterpiece, :1.1)'처럼 앞 항목만 남은 가중치 복구
+                    .replace(/\(\s*,\s*/g, '(')
                     .replace(/,\s*,/g, ', ').replace(/,\s*\)/g, ')').replace(/^\s*,\s*/, '').replace(/,\s*$/, '').trim();
-                if (F.prefix && pos && !(F.prefixKey && F.prefixKey.test(pos))) pos = F.prefix + ', ' + pos;
+                //  프롬프트가 score 태그뿐이었다면 위에서 통째로 비므로, 접두만이라도 남겨 빈 프롬프트 전송을 막는다
+                if (F.prefix && !(F.prefixKey && F.prefixKey.test(pos))) pos = pos.trim() ? (F.prefix + ', ' + pos) : F.prefix;
                 //  부정이 비어 있을 때만 기본 부정을 채운다 — 단, '긍정만' 전송은 부정을 일부러 비운 것이니 손대지 않는다
                 if (F.negDefault && !String(neg || '').trim() && _comfyTarget !== 'pos') neg = F.negDefault;
                 return { pos, neg };
@@ -6851,18 +6874,37 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             el.value = cur ? (cur + ', ' + add) : add;
             const chk = document.getElementById('comfy-lora-auto'); if (chk) chk.checked = true;
         }
+        //  단어가 프롬프트에 '낱말로' 들어있는지 — 영문은 경계를 본다.
+        //  단순 부분일치면 'tally'가 'totally'에, 'ink'가 'thinking'에 걸려 엉뚱하게 자동 발동한다.
+        function _comfyWordIn(text, w) {
+            if (!w) return false;
+            if (/^[\x00-\x7F]+$/.test(w)) {           // 영문·숫자 → 단어 경계 검사
+                const esc = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                try { return new RegExp('(?:^|[^a-z0-9_])' + esc + '(?![a-z0-9_])', 'i').test(text); } catch (e) { return text.indexOf(w) >= 0; }
+            }
+            return text.indexOf(w) >= 0;                 // 한글 등은 그대로 부분일치
+        }
         function _comfyLoraWatchHit(p, pos) {
             const words = String(p.watch || '').split(',').map(w => w.trim().toLowerCase()).filter(Boolean);
             //  조건이 비어 있으면 '자동'이 성립하지 않는다 → 켜지지 않음(칩을 눌러야 적용).
             //  여기서 true를 주면 '자동 체크 + 조건 빈칸'인 칩이 사용자가 켠 적도 없는데 늘 적용돼 버린다.
             if (!words.length) return false;
             const t = String(pos || '').toLowerCase();
-            return words.some(w => t.indexOf(w) >= 0);
+            return words.some(w => _comfyWordIn(t, w));
+        }
+        //  트리거 문구 중 '아직 프롬프트에 없는 조각'만 골라 돌려준다(여러 단어짜리 트리거 대응).
+        function _comfyMissingTrigger(trigger, pos) {
+            const t = String(pos || '').toLowerCase();
+            const segs = String(trigger || '').split(',').map(x => x.trim()).filter(Boolean);
+            const miss = segs.filter(x => !_comfyWordIn(t, x.toLowerCase()));
+            return miss.join(', ');
         }
         //  pos를 주면 자동 모드까지 반영해 지금 실제로 적용될 LoRA 목록을 돌려준다.
         function _comfyActiveLoras(pos) {
             return _comfyLoraPresets.filter(p => p && p.name && (p.on || (p.auto && _comfyLoraWatchHit(p, pos))));
         }
+        //  사용자 입력(칩 이름 등)을 화면에 넣기 전 HTML 특수문자 무력화
+        function _esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
         //  칩에 '지금 자동으로 켜져 있는지'를 보여 주기 위해 현재 결과창 프롬프트를 읽는다(표시용).
         function _comfyCurrentPosText() {
             try { return (document.getElementById('final-positive') || {}).value || ''; } catch (e) { return ''; }
@@ -6890,7 +6932,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 chip.title = `${p.name}\n강도 ${p.strength}${p.trigger ? '\n트리거: ' + p.trigger : ''}`
                     + (p.auto ? `\n⚡ 자동 — 조건: ${p.watch || '(없음 = 항상)'}\n지금 ${autoHit ? '조건 충족(적용됨)' : '조건 미충족(적용 안 됨)'}` : '')
                     + '\n(눌러서 항상 켬/끔 · 길게 누르면 삭제)';
-                chip.innerHTML = `${p.on ? '✦ ' : (autoHit ? '⚡ ' : (p.auto ? '⚡' : ''))}${p.label || p.name}`;
+                chip.textContent = `${p.on ? '✦ ' : (autoHit ? '⚡ ' : (p.auto ? '⚡' : ''))}${p.label || p.name}`;   // 이름은 사용자 입력 → HTML로 해석하지 않는다
                 chip.onclick = () => {
                     p.on = !p.on; _comfyLoraPresetsSave(); _comfyRenderLoraChips();
                     if (p.on) {
@@ -6926,18 +6968,25 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     const act = _comfyActiveLoras(_pos);
                     const wfCustom = (typeof _comfyWfMode !== 'undefined' && _comfyWfMode === 'custom');
                     const wfOn = !!(document.getElementById('comfy-wf-lora') || {}).checked;
-                    if (!act.length) {
+                    //  ★ 이미지 변환·인페인팅·Anima는 워크플로우를 따로 만들어서 이 칩이 끼어들지 않는다.
+                    //    그런데도 '적용됨'이라고 띄우면 새빨간 거짓말이 된다 → 그 테마에선 명확히 알린다.
+                    const otherTheme = (typeof _img2img !== 'undefined' && _img2img.enabled) ? '이미지 변환·인페인팅'
+                        : ((typeof _plCurrent !== 'undefined' && _plCurrent === 'anima') ? 'Anima 편집' : '');
+                    if (otherTheme) {
+                        note.innerHTML = `이 칩은 <b>클래식·스튜디오 전용</b>이에요 — ${otherTheme}에서는 적용되지 않습니다`
+                            + (otherTheme === '이미지 변환·인페인팅' ? ' (그쪽은 고급 설정의 LoRA 목록을 쓰세요)' : '');
+                        note.style.color = 'var(--text-dim)';
+                    } else if (!act.length) {
                         note.innerHTML = _comfyLoraPresets.some(p => p.auto)
                             ? '관련 태그를 넣으면 ⚡ 자동으로 켜집니다.' : '';
                         note.style.color = 'var(--text-dim)';
                     } else if (wfCustom && !wfOn) {
-                        note.innerHTML = `⚠ <b>내 워크플로우에는 적용되지 않습니다</b> — ComfyUI 설정에서 <b>🧩 '내 워크플로우에도 적용'</b>을 켜 주세요. (지금 켜진 LoRA: ${act.map(p => p.label || p.name).join(', ')})`;
+                        note.innerHTML = `⚠ <b>내 워크플로우에는 적용되지 않습니다</b> — ComfyUI 설정에서 <b>🧩 '내 워크플로우에도 적용'</b>을 켜 주세요. (지금 켜진 LoRA: ${_esc(act.map(p => p.label || p.name).join(', '))})`;
                         note.style.color = '#f59e0b';
                     } else {
-                        const trig = act.map(p => (p.trigger || '').trim())
-                            .filter(t => t && String(_pos).toLowerCase().indexOf(t.split(',')[0].trim().toLowerCase()) < 0);
-                        note.innerHTML = `✓ 적용됨: <b>${act.map(p => p.label || p.name).join(', ')}</b>`
-                            + (trig.length ? ` · 전송할 때 <b>${_animaEsc ? _animaEsc(trig.join(', ')) : trig.join(', ')}</b> 를 프롬프트 뒤에 자동으로 붙입니다` : '');
+                        const trig = act.map(p => _comfyMissingTrigger(p.trigger, _pos)).filter(Boolean);
+                        note.innerHTML = `✓ 적용됨: <b>${_esc(act.map(p => p.label || p.name).join(', '))}</b>`
+                            + (trig.length ? ` · 전송할 때 <b>${_esc(trig.join(', '))}</b> 를 프롬프트 앞쪽에 자동으로 넣습니다` : '');
                         note.style.color = 'var(--accent-green, #22c55e)';
                     }
                 }
@@ -6947,6 +6996,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             add.innerHTML = '＋ LoRA 등록';
             add.onclick = () => {
                 const f = document.getElementById('comfy-lora-form'); if (!f) return;
+                _comfyLoraFormReset();              // 이전에 열었던 값이 남아 다른 LoRA에 섞이지 않게
                 f.style.display = 'flex';
                 comfyLoraShowManual(false);
                 try { _comfyLoraFillSel(); document.getElementById('comfy-lora-sel').focus(); } catch (e) {}
@@ -6991,6 +7041,20 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (v === _CKPT_MANUAL_OPT) { comfyLoraShowManual(true); _comfyLoraFillSel(); return; }
             inp.value = v;
             if (v) comfyLoraShowManual(false);
+            //  ★ 이미 등록된 LoRA를 고르면 '수정'이므로 기존 설정을 폼에 되살린다 —
+            //    안 그러면 저장할 때 이름·트리거·조건·자동이 빈 값으로 덮여 통째로 날아간다.
+            const exist = _comfyLoraPresets.find(x => x.name === v);
+            if (exist) {
+                const setv = (id, val) => { const e = document.getElementById(id); if (e) e.value = val; };
+                setv('comfy-lora-label', exist.label || '');
+                setv('comfy-lora-trigger', exist.trigger || '');
+                setv('comfy-lora-watch', exist.watch || '');
+                setv('comfy-lora-strength', (exist.strength == null ? 0.8 : exist.strength));
+                const a = document.getElementById('comfy-lora-auto'); if (a) a.checked = !!exist.auto;
+                const n = document.getElementById('comfy-lora-trigger-note');
+                if (n) n.innerHTML = '이미 등록된 LoRA예요 — <b>수정</b>해서 다시 저장합니다';
+                return;
+            }
             // 칩 이름을 아직 안 적었으면 파일명에서 자동으로 채워 준다(그대로 등록해도 알아볼 수 있게)
             const lab = document.getElementById('comfy-lora-label');
             if (lab && !lab.value.trim() && v) lab.value = v.replace(/\.(safetensors|pt|ckpt)$/i, '').slice(0, 18);
@@ -7027,6 +7091,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } catch (e) {}
             return null;
         }
+        let _comfyLoraFindSeq = 0;   // 조회 순번 — 늦게 온 응답이 최신 선택을 덮지 않게 하는 표식
         //  force=true면 이미 값이 있어도 덮어쓴다(🔎 버튼)
         async function comfyLoraFindTrigger(force) {
             const fileEl = document.getElementById('comfy-lora-file'), trigEl = document.getElementById('comfy-lora-trigger');
@@ -7038,11 +7103,24 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const known = _COMFY_KNOWN_TRIGGERS.find(k => k.re.test(name));
             if (known) { trigEl.value = known.t; if (note) note.innerHTML = '✓ <b>알려진 모델</b>이라 트리거를 넣었어요 — 다르면 고쳐 주세요'; return; }
             if (note) note.textContent = '파일에서 트리거 찾는 중…';
+            const seq = ++_comfyLoraFindSeq;
             const hit = await _comfyLoraMetaTrigger(name);
+            //  기다리는 동안 다른 파일을 고르거나 사용자가 직접 입력했으면 이 응답은 버린다
+            if (seq !== _comfyLoraFindSeq || (fileEl.value || '').trim() !== name) return;
+            if (!force && trigEl.value.trim()) { if (note) note.textContent = ''; return; }
             if (hit) { trigEl.value = hit.text; if (note) note.innerHTML = `✓ ${hit.how} — 다르면 고쳐 주세요`; }
             else if (note) note.innerHTML = '이 파일엔 트리거 정보가 없어요 — 모델 페이지의 <b>Trigger Words</b>를 직접 넣어 주세요 (없어도 대개 동작합니다)';
         }
-        function comfyLoraFormClose() { const f = document.getElementById('comfy-lora-form'); if (f) f.style.display = 'none'; }
+        //  폼 초기화 — 열 때/닫을 때 모두 부른다. 안 지우면 앞서 고르던 LoRA의 트리거·조건이
+        //  다음에 등록하는 LoRA에 그대로 딸려 들어간다(실제로 섞이던 문제).
+        function _comfyLoraFormReset() {
+            [['comfy-lora-file', ''], ['comfy-lora-label', ''], ['comfy-lora-trigger', ''], ['comfy-lora-watch', ''], ['comfy-lora-strength', '0.8']]
+                .forEach(([id, v]) => { const e = document.getElementById(id); if (e) e.value = v; });
+            const a = document.getElementById('comfy-lora-auto'); if (a) a.checked = true;
+            const n = document.getElementById('comfy-lora-trigger-note'); if (n) n.textContent = '';
+            _comfyLoraFindSeq++;                  // 진행 중인 트리거 조회 결과를 무효화
+        }
+        function comfyLoraFormClose() { const f = document.getElementById('comfy-lora-form'); if (f) f.style.display = 'none'; _comfyLoraFormReset(); }
         function comfyLoraFormSave() {
             const name = (document.getElementById('comfy-lora-file').value || '').trim();
             if (!name) { showToast('LoRA 파일명을 선택하거나 입력하세요.', 'warning', 3000); return; }
@@ -7076,9 +7154,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         const _CKPT_CHIP_LABELS = { pony: '🐴 Pony 실사', illustrious: '🎨 애니 (Illustrious)', sdxl: '📷 실사 XL' };
         function _comfyRenderModelChips(names) {
             const box = document.getElementById('comfy-model-chips'); if (!box) return;
-            if (names) { try { localStorage.setItem(_COMFY_CKPTS_KEY, JSON.stringify(names)); } catch (e) {} }
-            let list = names;
+            //  ★ 빈 배열로 덮어쓰지 않는다 — 엉뚱한 서버에 한 번 붙으면 저장된 목록이 통째로 날아간다
+            if (names && names.length) { try { localStorage.setItem(_COMFY_CKPTS_KEY, JSON.stringify(names)); } catch (e) {} }
+            let list = (names && names.length) ? names : null;
             if (!list) { try { list = JSON.parse(localStorage.getItem(_COMFY_CKPTS_KEY) || '[]'); } catch (e) { list = []; } }
+            if (!Array.isArray(list)) list = [];
             box.innerHTML = '';
             if (!list.length) return;
             const cur = document.getElementById('comfy-ckpt').value;
@@ -7110,13 +7190,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const t = String(trig || '').trim(); if (!t) return pos;
             const src = String(pos || '');
             if (!src.trim()) return t;
-            //  선두의 score_* / masterpiece·best quality 류 접두를 건너뛴 지점을 찾는다
-            const parts = src.split(',');
-            let i = 0;
-            while (i < parts.length && /^\s*(score_\d+(_up)?|masterpiece|best quality|very aesthetic|absurdres|highres|newest|amazing quality)\s*$/i.test(parts[i])) i++;
-            if (i === 0) return t + ', ' + src.replace(/^\s*,\s*/, '');
-            if (i >= parts.length) return src.replace(/,\s*$/, '') + ', ' + t;
-            return parts.slice(0, i).join(',').replace(/,\s*$/, '') + ', ' + t + ', ' + parts.slice(i).join(',').replace(/^\s*,\s*/, '').trim();
+            //  원본을 자르지 않고 '삽입 위치'만 찾는다 — split/join 방식은 BREAK 앞 줄바꿈을 먹었다.
+            //  접두는 (score_9:1.2)처럼 괄호·가중치가 붙어 있어도 접두로 인정한다.
+            const PREFIX = /^\s*\(?\s*(?:score_\d+(?:_up)?|masterpiece|best quality|very aesthetic|absurdres|highres|newest|amazing quality)\s*(?::\s*[\d.]+\s*)?\)?\s*,[ \t]*/i;
+            let idx = 0;
+            for (;;) {
+                const m = src.slice(idx).match(PREFIX);
+                if (!m) break;
+                idx += m[0].length;
+            }
+            if (idx === 0) return t + ', ' + src.replace(/^\s*,\s*/, '');
+            return src.slice(0, idx) + t + ', ' + src.slice(idx);
         }
         function _comfyBuildWorkflow(pos, neg) {
             const seedInput = parseInt(document.getElementById('comfy-seed').value);
@@ -7128,8 +7212,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  (LoRA는 트리거 워드가 없으면 발동하지 않는 경우가 많다 — 사용자가 기억할 필요 없게 칩이 넣는다)
             const _actLoras = _comfyActiveLoras(pos);   // ⚡ 자동 칩은 지금 프롬프트 내용으로 판정
             if (pos) _actLoras.forEach(p => {
-                const t = (p.trigger || '').trim();
-                if (t && pos.toLowerCase().indexOf(t.split(',')[0].trim().toLowerCase()) < 0) pos = _comfyInsertTrigger(pos, t);
+                const t = _comfyMissingTrigger(p.trigger, pos);   // 이미 들어 있는 조각은 빼고 넣는다
+                if (t) pos = _comfyInsertTrigger(pos, t);
             });
             // 계열 자동 보정(기본 모드 전용) — Pony는 원문 그대로
             { const w = _comfyFamilyWrap(pos, neg); pos = w.pos; neg = w.neg; }
@@ -7139,7 +7223,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const _loraWf = {};
             _actLoras.forEach((p, i) => {
                 const nid = String(10 + i);
-                const st = parseFloat(p.strength) || 0.8;
+                const _st0 = parseFloat(p.strength); const st = isNaN(_st0) ? 0.8 : _st0;   // ||0.8 금지 — 강도 0도 유효
                 _comfyLoraFamilyWarn(_fam, p.name);
                 _loraWf[nid] = { "class_type": "LoraLoader", "inputs": { "model": _mRef, "clip": _cRef, "lora_name": p.name, "strength_model": st, "strength_clip": st } };
                 _mRef = [nid, 0]; _cRef = [nid, 1];
@@ -8486,9 +8570,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  spermatozoon(정자 마크) + tally(정자 카운트) + body writing(문구) + facial mark(얼굴 낙서).
             //  면적이 제일 넓어 참조와 가장 세게 싸운다 → refW 최저(0.55). 제대로 하려면 Anima용
             //  전용 LoRA가 정답인데 아직 Civitai에 없다(2026-07-30 검색 기준 — 주기적으로 재확인).
-            { id: 'tat_cover', name: '전신 도배(낙서·정자)', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.55, text: '(full-body tattoo, covered in tattoos:1.4), (body writing, spermatozoon, tally:1.4), body markings, facial mark, heart tattoo, tattoo' },
-            //  문양만으로 온몸을 덮는 쪽 — 글자가 없어서 실패(뭉갬)가 적고, 참조만 낮추면 제일 잘 먹는 계열이다.
-            { id: 'tat_ornate', name: '문양 도배(만다라)', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.55, text: '(full-body tattoo, covered in tattoos:1.5), mandala tattoo, ornamental tattoo, blackwork tattoo, filigree, tribal tattoo, tattoo sleeve, chest tattoo, thigh tattoo, tattoo' },
+            //  ★ 태그는 반드시 단부루에 실제로 있는 것만 쓴다 — 0건짜리(covered in tattoos, mandala tattoo,
+            //    ornamental/blackwork tattoo, spermatozoon 등)는 프롬프트 자리만 차지하고 그림에 아무 영향이 없다.
+            { id: 'tat_cover', name: '전신 도배(낙서)', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.55, text: '(full-body tattoo:1.4), (body writing, tally:1.4), body markings, facial mark, arm tattoo, chest tattoo, leg tattoo' },
+            //  문양만으로 온몸을 덮는 쪽 — 글자가 없어서 뭉개질 게 없다(글자 문신보다 성공률이 높다).
+            { id: 'tat_ornate', name: '문양 도배(만다라)', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.55, text: '(full-body tattoo:1.5), tribal tattoo, mandala, tattoo sleeve, arm tattoo, chest tattoo, back tattoo, leg tattoo, body markings' },
             // ── 임신 (group 'preg' — 하나만) ───────────────────────────────
             //  실측(2026-07-30): 4종이 거의 같은 그림 + 배가 제대로 안 나옴 — 배 형태 변화는 광역이라
             //  문신과 같은 벽(참조 강도)에 막힌다. → refW로 참조를 낮추고 문구도 단계가 벌어지게 조정.
@@ -8902,7 +8988,9 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                             preg_on: ['pregnant', '(pregnant, big belly:1.3)'],
                             preg_big: ['(pregnant, big belly:1.3)'],
                             preg_mark: ['(pregnant, big belly:1.3), pregnancy mark'],
-                            tat_cover: ['(body writing, spermatozoon, tally:1.4), facial mark, heart tattoo, tattoo'],
+                            tat_cover: ['(body writing, spermatozoon, tally:1.4), facial mark, heart tattoo, tattoo',
+                                        '(full-body tattoo, covered in tattoos:1.4), (body writing, spermatozoon, tally:1.4), body markings, facial mark, heart tattoo, tattoo'],
+                            tat_ornate: ['(full-body tattoo, covered in tattoos:1.5), mandala tattoo, ornamental tattoo, blackwork tattoo, filigree, tribal tattoo, tattoo sleeve, chest tattoo, thigh tattoo, tattoo'],
                         };
                         _anima.snippets.forEach(x => {
                             const olds = INK_OLD[x.id]; if (!olds) return;
@@ -12793,10 +12881,23 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         function _comfyInjectLorasIntoWf(wf, loras) {
             if (!loras || !loras.length) return { ok: true, n: 0 };
             // 체크포인트 로더 찾기 — 여러 개면 첫 번째(가장 흔한 구성)
-            const ckptId = Object.keys(wf).find(id => /CheckpointLoader/i.test(wf[id] && wf[id].class_type || ''));
+            //  ★ ImageOnly/Video 계열 로더는 슬롯1이 CLIP이 아니라 CLIP_VISION이라 여기에 물리면
+            //    ComfyUI가 타입 불일치로 생성 전체를 거부한다 → 이름으로 확실히 걸러낸다.
+            const _isCkpt = (n) => { const c = (n && n.class_type) || ''; return /CheckpointLoader/i.test(c) && !/ImageOnly|Video|SVD|unCLIP/i.test(c); };
+            const ckptIds = Object.keys(wf).filter(id => _isCkpt(wf[id]));
+            const ckptId = ckptIds[0];
             if (!ckptId) return { ok: false, why: '체크포인트 로더 노드를 못 찾았어요' };
+            //  로더가 둘 이상(베이스+리파이너 등)이면 한쪽에만 걸리므로 반쪽 적용이 된다 → 알려 준다.
+            if (ckptIds.length > 1) { try { showToast(`체크포인트 로더가 ${ckptIds.length}개예요 — 첫 번째(노드 ${ckptId})에만 LoRA를 겁니다. 나머지 경로에는 안 걸립니다.`, 'warning', 6000); } catch (e) {} }
             let mRef = [ckptId, 0], cRef = [ckptId, 1];
-            const added = [];
+            const added = []; let rewired = 0;
+            //  같은 LoRA가 워크플로우에 이미 있으면 두 번 걸려 강도가 겹친다(그림이 탄다) → 그건 건너뛴다.
+            const already = new Set(Object.keys(wf).filter(id => /LoraLoader/i.test((wf[id] && wf[id].class_type) || ''))
+                .map(id => String((wf[id].inputs || {}).lora_name || '')));
+            const dup = loras.filter(p => already.has(p.name));
+            loras = loras.filter(p => !already.has(p.name));
+            if (dup.length) { try { showToast(`${dup.map(p => p.label || p.name).join(', ')}는 워크플로우에 이미 있어서 건너뜁니다(중복 적용 방지)`, 'info', 5000); } catch (e) {} }
+            if (!loras.length) return { ok: true, n: 0 };
             loras.forEach((p, i) => {
                 const nid = 'pl_lora_' + i;
                 const st = parseFloat(p.strength); const s = isNaN(st) ? 0.8 : st;
@@ -12811,11 +12912,15 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 for (const k in inp) {
                     const v = inp[k];
                     if (!Array.isArray(v) || String(v[0]) !== String(ckptId)) continue;
-                    if (v[1] === 0) inp[k] = mRef.slice();
-                    else if (v[1] === 1) inp[k] = cRef.slice();
+                    const slot = parseInt(v[1], 10);   // 슬롯이 문자열("0")로 직렬화된 워크플로우도 있다
+                    if (slot === 0) { inp[k] = mRef.slice(); rewired++; }
+                    else if (slot === 1) { inp[k] = cRef.slice(); rewired++; }
                     // VAE(2)는 LoRA와 무관하므로 그대로 둔다
                 }
             }
+            //  아무 데도 안 붙었으면(형식이 특이한 워크플로우) 넣은 노드를 도로 걷어낸다 —
+            //  매달린 LoRA 노드만 남아 '적용된 척'하는 게 제일 나쁘다.
+            if (!rewired) { added.forEach(id => { delete wf[id]; }); return { ok: false, why: '워크플로우 배선을 찾지 못했어요' }; }
             return { ok: true, n: loras.length };
         }
         // 내 워크플로우(API JSON)에 프롬프트 주입 (전송 대상에 따라 긍정/부정 선택)
@@ -12835,10 +12940,13 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         if (!r.ok) { showToast(`LoRA 칩을 못 넣었어요 — ${r.why}. 이번 생성은 LoRA 없이 진행합니다.`, 'warning', 5000); }
                         else {
                             act.forEach(p => {
-                                const t = (p.trigger || '').trim();
-                                if (t && String(pos || '').toLowerCase().indexOf(t.split(',')[0].trim().toLowerCase()) < 0) _wfLoraTrig += (_wfLoraTrig ? ', ' : '') + t;
+                                //  이미 모은 트리거까지 합쳐서 판정 — 같은 트리거를 쓰는 칩 2개가 중복 삽입되던 문제
+                                const t = _comfyMissingTrigger(p.trigger, String(pos || '') + ', ' + _wfLoraTrig);
+                                if (t) _wfLoraTrig += (_wfLoraTrig ? ', ' : '') + t;
                             });
-                            act.forEach(p => _comfyLoraFamilyWarn(_ckptFamilyOf((wf[Object.keys(wf).find(id => /CheckpointLoader/i.test(wf[id].class_type || ''))] || { inputs: {} }).inputs.ckpt_name || ''), p.name));
+                            let _wfCkptName = '';
+                            try { const cid = Object.keys(wf).find(id => /CheckpointLoader/i.test((wf[id] && wf[id].class_type) || '')); _wfCkptName = (cid && wf[cid].inputs && wf[cid].inputs.ckpt_name) || ''; } catch (e2) {}
+                            act.forEach(p => _comfyLoraFamilyWarn(_ckptFamilyOf(_wfCkptName), p.name));
                         }
                     }
                 }
@@ -16976,7 +17084,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             "adult": {4:[{t:"thighhighs",k:"허벅지 양말 (니하이)"},{t:"cleavage",k:"가슴 골"},{t:"garter straps",k:"가터 스트랩"},{t:"high heels",k:"하이힐"},{t:"garter belt",k:"가터벨트"},{t:"choker",k:"초커"},{t:"thigh boots",k:"사이하이 부츠"},{t:"thong",k:"끈팬티"},{t:"highleg",k:"하이레그"},{t:"skin tight",k:"몸에 딱 붙는"},{t:"micro skirt",k:"초미니 스커트"},{t:"o-ring",k:"O링 장식"},{t:"bare shoulders",k:"드러난 어깨"},{t:"cape",k:"케이프"},{t:"revealing clothes",k:"노출이 심한 옷"}], 5:[{t:"looking at viewer",k:"정면 응시"},{t:"uncensored",k:"무검열"},{t:"pussy",k:"여성 성기"},{t:"spread legs",k:"다리 벌린"},{t:"arched back",k:"등을 젖힌"},{t:"seductive",k:"유혹적인"},{t:"from behind",k:"뒤에서"},{t:"from above",k:"위에서"},{t:"looking back",k:"뒤돌아보는"},{t:"standing",k:"서 있는"},{t:"from below",k:"아래에서"},{t:"cowboy shot",k:"허벅지 위 컷 (카우보이 샷)"},{t:"full body",k:"전신"},{t:"masturbation",k:"자위"},{t:"ass focus",k:"엉덩이 강조"}], 6:[{t:"dim lighting",k:"어두운 조명"},{t:"indoors",k:"실내"},{t:"night",k:"밤"},{t:"bed",k:"침대"},{t:"steam",k:"수증기"},{t:"neon lighting",k:"네온 조명"},{t:"water",k:"물"},{t:"curtains",k:"커튼"},{t:"window",k:"창문"},{t:"bedroom",k:"침실"},{t:"candlelight",k:"촛불"},{t:"tiles",k:"타일"},{t:"city lights",k:"도시 야경"},{t:"colored lighting",k:"컬러 조명"},{t:"bed sheets",k:"침대 시트"}] },
             "hardcore": {5:[{t:"uncensored",k:"무검열"},{t:"sex",k:"성행위"},{t:"penis",k:"남성 성기"},{t:"vaginal",k:"질 삽입"},{t:"futanari",k:"후타나리"},{t:"cum",k:"사정"},{t:"yuri",k:"백합(여여)"},{t:"nude",k:"누드"},{t:"fellatio",k:"펠라티오"},{t:"oral",k:"구강 행위"},{t:"group sex",k:"그룹 성행위"},{t:"from behind",k:"뒤에서"},{t:"anal",k:"항문 성교"},{t:"futa on futa",k:"후타×후타"},{t:"paizuri",k:"파이즈리 (가슴 섹스)"}] },
             "danbooru-general": {1:[{t:"wallpaper",k:"월페이퍼 퀄리티"},{t:"professional",k:"프로페셔널 퀄리티"}], 2:[{t:"letterboxed",k:"레터박스 시네마 비율"},{t:"side-by-side",k:"나란히 선 구도"},{t:"full shot",k:"인물 전체를 담는 풀 샷"},{t:"profile view",k:"완전 측면 옆모습"},{t:"centered composition",k:"정중앙 배치 구도"}], 3:[{t:"animal ear fluff",k:"동물 귀 솜털"},{t:"dark-skinned female",k:"가무잡잡한 여성"},{t:"parted bangs",k:"가르마 탄 앞머리"},{t:"wet",k:"젖은 몸"},{t:"symbol-shaped pupils",k:"기호 모양 동공"},{t:"fake animal ears",k:"가짜 동물 귀"},{t:"horse tail",k:"말 꼬리"},{t:"blush stickers",k:"볼터치 스티커"},{t:"muscular male",k:"근육질 남성"},{t:"two side up",k:"양쪽 위로 묶은 머리"},{t:"single braid",k:"한 갈래로 땋은 머리"},{t:"bright pupils",k:"밝은 동공"},{t:"crossed bangs",k:"이마에서 교차된 앞머리"},{t:"black nails",k:"검은 손톱"},{t:"facial mark",k:"얼굴 문양"}], 4:[{t:"wrist cuffs",k:"손목 커프스"},{t:"open jacket",k:"열어젖힌 재킷"},{t:"japanese clothes",k:"일본 전통 의상"},{t:"puffy short sleeves",k:"퍼프 반소매"},{t:"white socks",k:"흰색 양말"},{t:"sleeveless shirt",k:"민소매 셔츠"},{t:"sleeveless dress",k:"민소매 드레스"},{t:"detached collar",k:"탈부착 칼라"},{t:"sleeves past wrists",k:"손목 덮는 소매"},{t:"short shorts",k:"핫팬츠"},{t:"frilled skirt",k:"프릴 스커트"},{t:"frilled dress",k:"프릴 드레스"},{t:"mob cap",k:"모브캡"},{t:"capelet",k:"케이플릿"},{t:"frilled sleeves",k:"프릴 소매"}], 5:[{t:"cup",k:"컵"},{t:"pillow",k:"베개"},{t:"hands up",k:"양손 들기"},{t:"sword",k:"검"},{t:"hug",k:"포옹"},{t:"phone",k:"전화기"},{t:"gun",k:"총"},{t:"book",k:"책"},{t:"cellphone",k:"휴대폰"},{t:"standing on one leg",k:"한 발로 서기"},{t:"chain",k:"쇠사슬"},{t:"all fours",k:"네발 자세"},{t:"microphone",k:"마이크"},{t:"smartphone",k:"스마트폰"},{t:"bottle",k:"병"}], 6:[{t:"cloud",k:"구름"},{t:"tree",k:"나무"},{t:"bird",k:"새"},{t:"rose",k:"장미"},{t:"grass",k:"풀"},{t:"cat",k:"고양이"},{t:"penguin",k:"펭귄"},{t:"fish",k:"물고기"},{t:"bouquet",k:"꽃다발"},{t:"red rose",k:"빨간 장미"},{t:"sunflower",k:"해바라기"},{t:"stairs",k:"계단"},{t:"dog",k:"개"},{t:"wolf",k:"늑대"},{t:"bamboo",k:"대나무"}], 7:[{t:"motion lines",k:"속도감 표현선"},{t:"fire",k:"불꽃"},{t:"wind",k:"바람"},{t:"emphasis lines",k:"만화식 집중선"},{t:"explosion",k:"폭발"},{t:"glitch",k:"글리치 효과"},{t:"ripples",k:"잔물결"},{t:"electricity",k:"번쩍이는 전기"},{t:"halftone",k:"하프톤 망점 질감"},{t:"falling feathers",k:"흩날리는 깃털"},{t:"heart background",k:"하트 배경 효과"},{t:"dust cloud",k:"먼지 구름"},{t:"energy",k:"에너지 파동"},{t:"foam",k:"물거품"},{t:"sandstorm",k:"모래폭풍"}] },
-            "nsfw-adult": {3:[{t:"stomach",k:"배"},{t:"pussy juice",k:"애액"},{t:"groin",k:"사타구니"},{t:"huge ass",k:"매우 큰 엉덩이"},{t:"backboob",k:"백붑(등 뒤로 보이는 가슴)"},{t:"areolae",k:"유륜"},{t:"dark nipples",k:"짙은 유두"},{t:"ass focus",k:"엉덩이 강조"},{t:"hip bones",k:"골반뼈 라인"},{t:"shaved",k:"제모함"},{t:"wet body",k:"젖은 몸"},{t:"oiled body",k:"오일 바른 몸"},{t:"glistening skin",k:"윤기 도는 피부"},{t:"steaming body",k:"김이 오르는 몸"},{t:"back dimples",k:"허리 보조개"},{t:"tattoo",k:"문신 (일반)"},{t:"pubic tattoo",k:"자궁 문신 (음문)"},{t:"barcode tattoo",k:"바코드 문신"},{t:"stomach tattoo",k:"배 문신"},{t:"full-body tattoo",k:"전신 문신"},{t:"arm tattoo",k:"팔 문신"},{t:"tribal tattoo",k:"트라이벌 문신"},{t:"heart tattoo",k:"하트 문신"},{t:"queen of spades symbol",k:"스페이드 퀸 문양"},{t:"slave brand",k:"노예 낙인"},{t:"body writing",k:"몸에 쓴 낙서"},{t:"spermatozoon",k:"정자 마크 낙서"},{t:"tally",k:"정(正)자 카운트 낙서"},{t:"covered in tattoos",k:"온몸이 문신투성이"},{t:"mandala tattoo",k:"만다라 문신"},{t:"ornamental tattoo",k:"장식 문양 문신"},{t:"blackwork tattoo",k:"블랙워크(먹칠 문신)"},{t:"filigree",k:"필리그리 세공 문양"},{t:"tattoo sleeve",k:"팔 전체 문신(슬리브)"},{t:"chest tattoo",k:"가슴 문신"},{t:"breast tattoo",k:"유방 문신"},{t:"back tattoo",k:"등 문신"},{t:"thigh tattoo",k:"허벅지 문신"},{t:"neck tattoo",k:"목 문신"},{t:"facial tattoo",k:"얼굴 문신"},{t:"body markings",k:"몸 문양"},{t:"bodypaint",k:"바디페인트"}], 4:[{t:"completely nude",k:"완전 나체"},{t:"areola slip",k:"유륜 노출"},{t:"breasts out",k:"가슴 노출"},{t:"clothes pull",k:"옷 잡아당기기"},{t:"shirt lift",k:"셔츠 들어올리기"},{t:"side-tie bikini bottom",k:"옆에서 묶는 비키니 하의"},{t:"no panties",k:"노팬티"},{t:"cleavage cutout",k:"가슴골 트임"},{t:"partially nude",k:"부분 노출"},{t:"undressing",k:"옷을 벗는 중"},{t:"panty pull",k:"팬티 당기기"},{t:"bra lift",k:"브라 들어올리기"},{t:"one breast out",k:"한쪽 가슴 노출"},{t:"underwear only",k:"속옷만 착용"},{t:"bra and panties",k:"브라와 팬티"}], 5:[{t:"censored",k:"검열됨"},{t:"mosaic censoring",k:"모자이크 검열"},{t:"vaginal",k:"질 삽입"},{t:"oral",k:"구강 행위"},{t:"uncensored",k:"무검열"},{t:"saliva",k:"침"},{t:"cum on body",k:"몸에 정액"},{t:"wrist cuffs",k:"손목 수갑"},{t:"hug",k:"포옹"},{t:"girl on top",k:"여성 상위"},{t:"kiss",k:"키스"},{t:"ejaculation",k:"사정"},{t:"cowgirl position",k:"기승위"},{t:"clothed female nude male",k:"여성 착의·남성 나체(CFNM)"},{t:"licking",k:"핥기"}], 6:[{t:"love hotel",k:"러브호텔"},{t:"bathhouse",k:"목욕탕"}], 7:[{t:"spoken heart",k:"하트 말풍선"},{t:"sex heart",k:"하트 이펙트"}] },
+            "nsfw-adult": {3:[{t:"stomach",k:"배"},{t:"pussy juice",k:"애액"},{t:"groin",k:"사타구니"},{t:"huge ass",k:"매우 큰 엉덩이"},{t:"backboob",k:"백붑(등 뒤로 보이는 가슴)"},{t:"areolae",k:"유륜"},{t:"dark nipples",k:"짙은 유두"},{t:"ass focus",k:"엉덩이 강조"},{t:"hip bones",k:"골반뼈 라인"},{t:"shaved",k:"제모함"},{t:"wet body",k:"젖은 몸"},{t:"oiled body",k:"오일 바른 몸"},{t:"glistening skin",k:"윤기 도는 피부"},{t:"steaming body",k:"김이 오르는 몸"},{t:"back dimples",k:"허리 보조개"},{t:"tattoo",k:"문신 (일반)"},{t:"pubic tattoo",k:"자궁 문신 (음문)"},{t:"barcode tattoo",k:"바코드 문신"},{t:"stomach tattoo",k:"배 문신"},{t:"full-body tattoo",k:"전신 문신"},{t:"arm tattoo",k:"팔 문신"},{t:"tribal tattoo",k:"트라이벌 문신"},{t:"heart tattoo",k:"하트 문신"},{t:"queen of spades symbol",k:"스페이드 퀸 문양"},{t:"slave brand",k:"노예 낙인"},{t:"body writing",k:"몸에 쓴 낙서"},{t:"spermatozoon",k:"정자 마크 낙서"},{t:"tally",k:"정(正)자 카운트 낙서"},{t:"mandala",k:"만다라 문양"},{t:"tattoo sleeve",k:"팔 전체 문신(슬리브)"},{t:"chest tattoo",k:"가슴 문신"},{t:"breast tattoo",k:"유방 문신"},{t:"back tattoo",k:"등 문신"},{t:"leg tattoo",k:"다리·허벅지 문신"},{t:"neck tattoo",k:"목 문신"},{t:"facial tattoo",k:"얼굴 문신"},{t:"body markings",k:"몸 문양"},{t:"bodypaint",k:"바디페인트"}], 4:[{t:"completely nude",k:"완전 나체"},{t:"areola slip",k:"유륜 노출"},{t:"breasts out",k:"가슴 노출"},{t:"clothes pull",k:"옷 잡아당기기"},{t:"shirt lift",k:"셔츠 들어올리기"},{t:"side-tie bikini bottom",k:"옆에서 묶는 비키니 하의"},{t:"no panties",k:"노팬티"},{t:"cleavage cutout",k:"가슴골 트임"},{t:"partially nude",k:"부분 노출"},{t:"undressing",k:"옷을 벗는 중"},{t:"panty pull",k:"팬티 당기기"},{t:"bra lift",k:"브라 들어올리기"},{t:"one breast out",k:"한쪽 가슴 노출"},{t:"underwear only",k:"속옷만 착용"},{t:"bra and panties",k:"브라와 팬티"}], 5:[{t:"censored",k:"검열됨"},{t:"mosaic censoring",k:"모자이크 검열"},{t:"vaginal",k:"질 삽입"},{t:"oral",k:"구강 행위"},{t:"uncensored",k:"무검열"},{t:"saliva",k:"침"},{t:"cum on body",k:"몸에 정액"},{t:"wrist cuffs",k:"손목 수갑"},{t:"hug",k:"포옹"},{t:"girl on top",k:"여성 상위"},{t:"kiss",k:"키스"},{t:"ejaculation",k:"사정"},{t:"cowgirl position",k:"기승위"},{t:"clothed female nude male",k:"여성 착의·남성 나체(CFNM)"},{t:"licking",k:"핥기"}], 6:[{t:"love hotel",k:"러브호텔"},{t:"bathhouse",k:"목욕탕"}], 7:[{t:"spoken heart",k:"하트 말풍선"},{t:"sex heart",k:"하트 이펙트"}] },
             "expressions-plus": {3:[{t:"one eye closed",k:"한쪽 눈 감기"},{t:"ecstatic",k:"황홀한 표정"},{t:"gloomy",k:"우울한 표정"},{t:"melancholic expression",k:"애수 어린 표정"},{t:"determined",k:"결연한 표정"},{t:"annoyed",k:"짜증난 표정"},{t:"disgusted",k:"역겨워하는 표정"},{t:"flustered",k:"당황한 표정"},{t:"smug grin",k:"능글맞은 미소"},{t:"teary-eyed",k:"눈물 그렁그렁"},{t:"sobbing",k:"흐느낌"},{t:"pained expression",k:"고통스러운 표정"},{t:"yandere",k:"얀데레 표정"},{t:"deadpan",k:"무심한 표정"},{t:"sparkling eyes",k:"반짝이는 눈"}] },
             "fantasy-plus": {3:[{t:"fox girl",k:"여우 소녀"},{t:"cat girl",k:"고양이 소녀"},{t:"demon horns",k:"악마 뿔"},{t:"demon girl",k:"서큐버스/마족 소녀"},{t:"elf",k:"엘프"},{t:"dark elf",k:"다크 엘프"},{t:"dwarf",k:"드워프"},{t:"angel",k:"천사"},{t:"vampire",k:"뱀파이어"},{t:"mermaid",k:"인어"},{t:"dragon girl",k:"용인 소녀"},{t:"dragon horns",k:"용 뿔"},{t:"elf ears",k:"엘프 귀"},{t:"dragon tail",k:"용 꼬리"},{t:"angel wings",k:"천사 날개"}], 4:[{t:"wizard hat",k:"마법사 모자"},{t:"wizard robe",k:"마법사 로브"},{t:"knight armor",k:"기사 갑옷"},{t:"plate armor",k:"판금 갑옷"},{t:"chainmail",k:"사슬 갑옷"},{t:"magical girl outfit",k:"마법소녀 의상"},{t:"priestess outfit",k:"무녀복"}], 5:[{t:"holding sword",k:"검 들기"},{t:"staff",k:"지팡이"},{t:"holding staff",k:"지팡이 들기"},{t:"magic wand",k:"마법봉"},{t:"casting magic",k:"마법 시전"},{t:"summoning",k:"소환"}], 6:[{t:"enchanted forest",k:"마법의 숲"},{t:"wizard tower",k:"마법사 탑"},{t:"ancient ruins",k:"고대 유적"},{t:"floating castle",k:"떠 있는 성"},{t:"crystal cave",k:"수정 동굴"},{t:"magic academy",k:"마법 학교"},{t:"dragon lair",k:"용의 둥지"},{t:"fairy tale",k:"동화풍 배경"}], 7:[{t:"glowing runes",k:"빛나는 룬"},{t:"magic aura",k:"마력 오라"},{t:"floating magic circle",k:"떠오른 마법진"},{t:"sparkling magic",k:"반짝이는 마법"},{t:"elemental fire",k:"화염 정령력"},{t:"elemental ice",k:"얼음 정령력"},{t:"divine light",k:"신성한 빛"}] },
         };
@@ -16987,7 +17095,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             "adult": [{n:"가터 란제리",g:{"4":"garter belt, garter straps, thighhighs, thong, choker","5":"looking at viewer, seductive","6":"dim lighting, bed"}},{n:"하이레그 노출",g:{"4":"highleg, revealing clothes, skin tight, thigh boots","5":"standing, arched back","6":"neon lighting, indoors"}},{n:"침실 유혹",g:{"5":"lying, spread legs, seductive, looking at viewer","6":"bed, dim lighting, candlelight"}},{n:"뒤태 강조",g:{"5":"from behind, ass focus, looking back, arched back","6":"dim lighting, indoors"}},{n:"초미니 + 하이힐",g:{"4":"micro skirt, high heels, cleavage, bare shoulders","5":"standing, looking at viewer"}}],
             "hardcore": [{n:"기본 정사",g:{"5":"sex, vaginal, penis, uncensored"}},{n:"후타나리",g:{"5":"futanari, penis, futa on futa, uncensored"}},{n:"오랄",g:{"5":"fellatio, oral, uncensored"}},{n:"백합 (여여)",g:{"5":"yuri, uncensored"}},{n:"파이즈리",g:{"5":"paizuri, penis, uncensored"}}],
             "danbooru-general": [{n:"스마트폰 셀카",g:{"5":"holding phone, smartphone, hands up"}},{n:"자연 야외 배경",g:{"6":"tree, cloud, grass"}},{n:"장미 배경",g:{"6":"rose, red rose, bouquet"}},{n:"불꽃 이펙트",g:{"7":"fire, explosion, motion lines"}},{n:"무기 소지",g:{"5":"sword, holding, gun"}}],
-            "nsfw-adult": [{n:"완전 노출",g:{"3":"areolae, dark nipples","4":"completely nude, no panties, breasts out"}},{n:"옷 젖힘 노출",g:{"4":"clothes pull, shirt lift, bra lift, one breast out"}},{n:"체액 · 땀",g:{"3":"pussy juice, wet body, oiled body, glistening skin","5":"saliva"}},{n:"카우걸 체위",g:{"5":"girl on top, cowgirl position, uncensored"}},{n:"언더웨어만",g:{"4":"underwear only, bra and panties, side-tie bikini bottom"}},{n:"문신 도배 (전신)",g:{"3":"(full-body tattoo:1.5), (covered in tattoos:1.4), tattoo, arm tattoo, chest tattoo, stomach tattoo, thigh tattoo, back tattoo, tribal tattoo, body markings"}},{n:"음문 · 낙인",g:{"3":"(pubic tattoo:1.4), stomach tattoo, barcode tattoo, tattoo"}},{n:"문양 도배 (만다라·트라이벌)",g:{"3":"(full-body tattoo:1.4), mandala tattoo, ornamental tattoo, blackwork tattoo, filigree, tribal tattoo, tattoo sleeve, chest tattoo, thigh tattoo"}},{n:"낙서 도배 (마크·카운트)",g:{"3":"(body writing:1.5), spermatozoon, tally, heart tattoo, facial mark, body markings"}}],
+            "nsfw-adult": [{n:"완전 노출",g:{"3":"areolae, dark nipples","4":"completely nude, no panties, breasts out"}},{n:"옷 젖힘 노출",g:{"4":"clothes pull, shirt lift, bra lift, one breast out"}},{n:"체액 · 땀",g:{"3":"pussy juice, wet body, oiled body, glistening skin","5":"saliva"}},{n:"카우걸 체위",g:{"5":"girl on top, cowgirl position, uncensored"}},{n:"언더웨어만",g:{"4":"underwear only, bra and panties, side-tie bikini bottom"}},{n:"문신 낙서 도배",g:{"3":"(body writing:1.5), tally, heart tattoo, facial mark, body markings"}},{n:"음문 · 낙인",g:{"3":"(pubic tattoo:1.4), stomach tattoo, barcode tattoo"}},{n:"문양 도배 (만다라·트라이벌)",g:{"3":"(full-body tattoo:1.4), tribal tattoo, mandala, tattoo sleeve, arm tattoo, chest tattoo, leg tattoo, back tattoo, body markings"}},{n:"문신 도배 (전신)",g:{"3":"(full-body tattoo:1.5), arm tattoo, chest tattoo, breast tattoo, stomach tattoo, leg tattoo, back tattoo, neck tattoo, tribal tattoo, body markings"}}],
             "expressions-plus": [{n:"황홀경",g:{"3":"ecstatic, teary-eyed, one eye closed"}},{n:"우울 · 눈물",g:{"3":"gloomy, melancholic expression, sobbing"}},{n:"얀데레 미소",g:{"3":"yandere, smug grin, sparkling eyes"}},{n:"무표정 · 냉담",g:{"3":"deadpan, determined"}},{n:"당황 · 부끄",g:{"3":"flustered, annoyed"}}],
             "fantasy-plus": [{n:"엘프 마법사",g:{"3":"elf, elf ears","4":"wizard robe, wizard hat","5":"holding staff, casting magic","7":"magic aura, glowing runes"}},{n:"드래곤 걸",g:{"3":"dragon girl, dragon horns, dragon tail"}},{n:"기사 갑옷",g:{"4":"knight armor, plate armor","5":"holding sword"}},{n:"마법 숲 배경",g:{"6":"enchanted forest, wizard tower","7":"sparkling magic, divine light"}},{n:"수인 (냥/여우)",g:{"3":"cat girl, fox girl, animal ears"}}],
         };
