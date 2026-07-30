@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.128.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.129.0 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1266,7 +1266,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.128.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.129.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2146,7 +2146,17 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.128.0', date: '2026-07-30', time: '최신',
+                version: 'v9.129.0', date: '2026-07-30', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima] <b>문신 프리셋 13종을 자연어 위주로 전부 다시 썼습니다</b> — Anima는 문장을 제일 잘 알아듣는 구조라, 이제 <b>그림 설명이 앞에 오고 태그가 뒤를 받칩니다.</b> (클래식·스튜디오는 반대로 태그가 앞 — 모델이 달라서 서로 다른 문구를 씁니다)",
+                    "[Anima] <b>임신 4종이 거의 똑같이 나오던 문제</b>를 손봤습니다 — 배 크기를 문장으로 확실히 갈랐어요. 초기는 <i>“아랫배가 살짝 부푼 정도”</i>, 만삭은 <i>“배꼽이 밀려 나오고 살갗이 팽팽하게 당겨진 만삭”</i> 처럼요.",
+                    "[Anima] 낙서·문양·바코드·낙인·팔토시·바디페인트 등도 각각 어떤 그림인지 문장으로 적었습니다 — 태그만 있을 때보다 훨씬 또렷하게 나옵니다.",
+                    "[Anima] ✏️로 직접 고쳐 둔 문구는 <b>건드리지 않습니다</b> — 기본 문구를 그대로 쓰던 것만 새 문구로 올라갑니다.",
+                ]
+            },
+            {
+                version: 'v9.128.0', date: '2026-07-30', time: '',
                 tag: 'feat',
                 items: [
                     "[문신 조합] <b>단부루 태그에 기대지 않아도 의도대로 나오게</b> 전부 다시 썼습니다 — 문신 조합 5종에 <b>영어 서술 문장</b>을 함께 넣었어요. 부루 태그를 아는 모델은 태그로, <b>Pony Realism 같은 실사 머지는 문장으로</b> 알아듣습니다.",
@@ -8711,18 +8721,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  잘 나오던 자궁·바코드는 문구·동작 모두 이전 그대로 둔다(refW 없음 = 참조 안 낮춤).
             //  ✗ 애초에 넣지 않은 것: text_tattoo(237) 글자가 반드시 깨짐 / womb_tattoo(겔부루 1건) 학습 안 됨
             //    interracial(34,617)은 상대 남성까지 그려 버려서 문신 축에 섞으면 안 된다.
-            { id: 'tat_writing', name: '온몸 낙서', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.6, text: '(body writing:1.5)' },
-            { id: 'tat_markings', name: '온몸 문양', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.6, text: '(body markings:1.5)' },
-            { id: 'tat_full', name: '전신 문신', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.6, text: '(full-body tattoo:1.5), tattoo' },
-            { id: 'tat_slut', name: '창녀 낙인', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.75, text: '(pubic tattoo, number tattoo:1.4), tattoo' },
-            { id: 'tat_barcode', name: '바코드 낙인', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(barcode tattoo:1.2), stomach tattoo, tattoo' },
+            { id: 'tat_writing', name: '온몸 낙서', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.6, text: 'her bare skin is covered in crude handwriting scrawled with a thick black marker, lewd words written across her chest stomach and thighs, (body writing:1.5)' },
+            { id: 'tat_markings', name: '온몸 문양', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.6, text: 'dark patterned markings drawn all over her bare skin, repeating symbols and shapes spread across her body, (body markings:1.5)' },
+            { id: 'tat_full', name: '전신 문신', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.6, text: 'dense tattoos cover her arms chest stomach back and legs, dark ink over most of her visible skin, (full-body tattoo:1.5), tattoo' },
+            { id: 'tat_slut', name: '창녀 낙인', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.75, text: 'a bold number tattooed just above her pubic mound like a serial number, crisp black digits branded low on her belly, (pubic tattoo, number tattoo:1.4), tattoo' },
+            { id: 'tat_barcode', name: '바코드 낙인', kind: 'append', on: false, group: 'tat', nsfw: true, text: 'a crisp black barcode with printed digits inked across her lower belly, high contrast machine-printed look on her skin, (barcode tattoo:1.2), stomach tattoo, tattoo' },
             { id: 'tat_spade', name: '스페이드 퀸', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.75, text: '(queen of spades symbol:1.5), pubic tattoo, tattoo' },
-            { id: 'tat_tribal', name: '트라이벌', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.7, text: '(tribal tattoo:1.5), tattoo' },
-            { id: 'tat_sleeve', name: '팔토시 문신', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.6, text: '(tattoo sleeve, arm tattoo:1.4), tattoo' },
-            { id: 'tat_pubic', name: '자궁 문신', kind: 'append', on: false, group: 'tat', nsfw: true, text: '(pubic tattoo:1.3), tattoo' },
-            { id: 'tat_ass', name: '엉덩이 문신', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.75, text: '(ass tattoo:1.5), tattoo' },
-            { id: 'tat_brand', name: '노예 낙인', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.75, text: '(slave brand:1.5), tattoo' },
-            { id: 'tat_paint', name: '바디페인트', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.6, text: '(bodypaint:1.5)' },
+            { id: 'tat_tribal', name: '트라이벌', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.7, text: 'bold black tribal patterns with thick curved lines inked across her skin, solid blackwork shapes wrapping around her arms and torso, (tribal tattoo:1.5), tattoo' },
+            { id: 'tat_sleeve', name: '팔토시 문신', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.6, text: 'both arms are fully sleeved in dense tattoos from shoulder to wrist, unbroken ink wrapping all the way around her arms, (tattoo sleeve, arm tattoo:1.4), tattoo' },
+            { id: 'tat_pubic', name: '자궁 문신', kind: 'append', on: false, group: 'tat', nsfw: true, text: 'a bold dark tattoo branded on her lower belly just above the pubic mound, crisp black ink clearly visible on her skin, (pubic tattoo:1.3), tattoo' },
+            { id: 'tat_ass', name: '엉덩이 문신', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.75, text: 'a large tattoo inked across both of her buttocks, dark ink spread over her rear, (ass tattoo:1.5), tattoo' },
+            { id: 'tat_brand', name: '노예 낙인', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.75, text: 'a branding mark seared into her skin like livestock, a raised scar-like brand burned low on her belly, (slave brand:1.5), tattoo' },
+            { id: 'tat_paint', name: '바디페인트', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.6, text: 'thick glossy body paint smeared across her bare skin, wet-looking painted patterns covering her body, (bodypaint:1.5)' },
             //  전신 도배 — 서양에서 유행하는 '온몸 음란 낙서' 스타일. 태그 하나가 아니라 조합이 정체다:
             //  spermatozoon(정자 마크) + tally(정자 카운트) + body writing(문구) + facial mark(얼굴 낙서).
             //  면적이 제일 넓어 참조와 가장 세게 싸운다 → refW 최저(0.55). 제대로 하려면 Anima용
@@ -8730,21 +8740,21 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  ★ 단부루 0건 태그(covered in tattoos, ornamental/blackwork tattoo, filigree, spermatozoon 등)도 그대로 쓴다 —
             //    0건은 '부루 학습 모델(Anima·Illustrious·WAI)에서 약하다'는 뜻일 뿐, Pony Realism 같은 실사 머지는
             //    SDXL CLIP이 살아 있어 영어 구절을 그대로 읽는다. 지울 이유가 없다(v9.122.0에서 지웠던 걸 되돌림).
-            { id: 'tat_cover', name: '전신 도배(낙서)', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.55, text: '(full-body tattoo, covered in tattoos:1.4), (body writing, spermatozoon, tally:1.4), body markings, facial mark, heart tattoo, arm tattoo, chest tattoo, leg tattoo, thigh tattoo, tattoo, (her bare skin is scrawled all over with thick black marker writing:1.3), crude handwritten words and tally marks inked across her stomach chest and thighs' },
+            { id: 'tat_cover', name: '전신 도배(낙서)', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.55, text: 'her bare skin is scrawled all over with thick black marker writing, crude handwritten words and tally marks inked across her stomach chest and thighs, messy doodles reaching up onto her face, (full-body tattoo, covered in tattoos:1.4), (body writing, spermatozoon, tally:1.4), body markings, facial mark, heart tattoo, arm tattoo, chest tattoo, leg tattoo, thigh tattoo, tattoo' },
             //  문양만으로 온몸을 덮는 쪽 — 글자가 없어서 뭉개질 게 없다(글자 문신보다 성공률이 높다).
             //  ★ 극한 도배 — 단부루 실사용 수를 전수 조회해 '실제로 존재하는' 부위 태그만 머리→발끝 순서로 채웠다.
             //    (full-body tattoo는 하이픈이 있어야 실존 2,665건 / covered in tattoos·blackwork·thigh tattoo는 0건)
             //    면적이 최대라 참조와 가장 세게 싸운다 → refW 최저(0.5).
-            { id: 'tat_max', name: '★ 극한 도배(얼굴~발끝)', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.5, text: '(full-body tattoo, covered in tattoos:1.5), (multiple tattoos:1.4), tattoo, (facial tattoo:1.4), forehead tattoo, cheek tattoo, teardrop tattoo, head tattoo, neck tattoo, shoulder tattoo, arm tattoo, tattoo sleeve, hand tattoo, finger tattoo, wrist tattoo, chest tattoo, breast tattoo, stomach tattoo, midriff tattoo, back tattoo, pubic tattoo, hip tattoo, ass tattoo, thigh tattoo, leg tattoo, ankle tattoo, foot tattoo, tribal tattoo, irezumi, body markings, facial mark, (every inch of her skin from forehead to toes is covered in dense overlapping tattoos:1.4), heavy black ink on her face neck hands fingers and feet, layered patterns running down her arms torso and both legs without a break, barely any bare skin remains anywhere on her body' },
-            { id: 'tat_ornate', name: '문양 도배(만다라)', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.55, text: '(full-body tattoo, covered in tattoos:1.5), mandala tattoo, mandala, ornamental tattoo, blackwork tattoo, filigree, tribal tattoo, tattoo sleeve, arm tattoo, chest tattoo, back tattoo, leg tattoo, thigh tattoo, body markings, (intricate ornamental blackwork covers her arms shoulders chest and thighs:1.3), dense mandala and tribal patterns wrapping around her limbs' },
+            { id: 'tat_max', name: '★ 극한 도배(얼굴~발끝)', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.5, text: 'every inch of her skin from forehead to toes is covered in dense overlapping tattoos, heavy black ink on her face neck hands fingers and feet, layered patterns running down her arms torso and both legs without a break, barely any bare skin remains anywhere on her body, (full-body tattoo, covered in tattoos:1.5), (multiple tattoos:1.4), (facial tattoo:1.4), forehead tattoo, cheek tattoo, teardrop tattoo, head tattoo, neck tattoo, shoulder tattoo, arm tattoo, tattoo sleeve, hand tattoo, finger tattoo, wrist tattoo, chest tattoo, breast tattoo, stomach tattoo, midriff tattoo, back tattoo, pubic tattoo, hip tattoo, ass tattoo, thigh tattoo, leg tattoo, ankle tattoo, foot tattoo, tribal tattoo, irezumi, body markings, facial mark, tattoo' },
+            { id: 'tat_ornate', name: '문양 도배(만다라)', kind: 'append', on: false, group: 'tat', nsfw: true, refW: 0.55, text: 'intricate ornamental blackwork covers her arms shoulders chest and thighs, dense mandala and tribal patterns wrapping around her limbs, symmetrical geometric linework inked over most of her skin, (full-body tattoo, covered in tattoos:1.5), mandala tattoo, mandala, ornamental tattoo, blackwork tattoo, filigree, tribal tattoo, tattoo sleeve, arm tattoo, chest tattoo, back tattoo, leg tattoo, thigh tattoo, body markings' },
             // ── 임신 (group 'preg' — 하나만) ───────────────────────────────
             //  실측(2026-07-30): 4종이 거의 같은 그림 + 배가 제대로 안 나옴 — 배 형태 변화는 광역이라
             //  문신과 같은 벽(참조 강도)에 막힌다. → refW로 참조를 낮추고 문구도 단계가 벌어지게 조정.
             //  pregnant 13,490 · big_belly 8,147 · implied_pregnancy 1,095 · pregnancy_mark 162
-            { id: 'preg_on', name: '임신', kind: 'append', on: false, group: 'preg', nsfw: true, refW: 0.65, text: '(pregnant:1.5)' },
-            { id: 'preg_big', name: '만삭', kind: 'append', on: false, group: 'preg', nsfw: true, refW: 0.6, text: '(pregnant, big belly:1.6)' },
-            { id: 'preg_slight', name: '초기 (살짝)', kind: 'append', on: false, group: 'preg', nsfw: true, refW: 0.8, text: '(pregnant:0.9), implied pregnancy' },
-            { id: 'preg_mark', name: '임신 + 낙인', kind: 'append', on: false, group: 'preg', nsfw: true, refW: 0.6, text: '(pregnant, big belly:1.5), pregnancy mark' }
+            { id: 'preg_on', name: '임신', kind: 'append', on: false, group: 'preg', nsfw: true, refW: 0.65, text: 'a clearly rounded pregnant belly bulging forward, visibly pregnant at mid-term, her belly noticeably swollen past her chest line, (pregnant:1.5)' },
+            { id: 'preg_big', name: '만삭', kind: 'append', on: false, group: 'preg', nsfw: true, refW: 0.6, text: 'a huge heavily swollen full-term pregnant belly protruding far forward, her navel pushed outward and the skin stretched tight and shiny, she looks ready to give birth, (pregnant, big belly:1.6)' },
+            { id: 'preg_slight', name: '초기 (살짝)', kind: 'append', on: false, group: 'preg', nsfw: true, refW: 0.8, text: 'a slight gentle swell in her lower belly, barely showing early pregnancy, her waist still mostly slim, (pregnant:0.9), implied pregnancy' },
+            { id: 'preg_mark', name: '임신 + 낙인', kind: 'append', on: false, group: 'preg', nsfw: true, refW: 0.6, text: 'a huge swollen full-term pregnant belly protruding far forward, a dark mark inked on the curve of her pregnant belly, skin stretched tight over the bulge, (pregnant, big belly:1.5), pregnancy mark' }
         ];
         // '자위' 포즈는 후타 여부에 따라 손동작이 달라야 한다 — 후타 프리셋이 켜져 있으면 생성 시 이 문구로 자동 교체.
         const _ANIMA_POSE_MAST_FUTA = '(futanari masturbation, hand on own penis:1.2), masturbation, spread legs';
@@ -9141,6 +9151,28 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     //  ✏️로 고쳐 쓴 문구는 사용자의 것이니 그대로 둔다(GHOST_FIX와 같은 원칙).
                     //  키: id → [옛 기본 문구들(v9.108 원본, v9.113 임시판)]. 새 문구는 기본값 배열에서 찾는다.
                     {
+                        //  v9.128.0까지의 문구(태그만/태그 우선) → 자연어 우선판으로 올린다.
+                        //  ✏️로 직접 고친 문구는 그대로 둔다(아래 indexOf 검사).
+                        const INK_OLD_NL = {
+                            tat_writing: ['(body writing:1.5)'],
+                            tat_markings: ['(body markings:1.5)'],
+                            tat_full: ['(full-body tattoo:1.5), tattoo'],
+                            tat_slut: ['(pubic tattoo, number tattoo:1.4), tattoo'],
+                            tat_barcode: ['(barcode tattoo:1.2), stomach tattoo, tattoo'],
+                            tat_tribal: ['(tribal tattoo:1.5), tattoo'],
+                            tat_sleeve: ['(tattoo sleeve, arm tattoo:1.4), tattoo'],
+                            tat_pubic: ['(pubic tattoo:1.3), tattoo'],
+                            tat_ass: ['(ass tattoo:1.5), tattoo'],
+                            tat_brand: ['(slave brand:1.5), tattoo'],
+                            tat_paint: ['(bodypaint:1.5)'],
+                            tat_cover: ['(full-body tattoo, covered in tattoos:1.4), (body writing, spermatozoon, tally:1.4), body markings, facial mark, heart tattoo, arm tattoo, chest tattoo, leg tattoo, thigh tattoo, tattoo, (her bare skin is scrawled all over with thick black marker writing:1.3), crude handwritten words and tally marks inked across her stomach chest and thighs'],
+                            tat_ornate: ['(full-body tattoo, covered in tattoos:1.5), mandala tattoo, mandala, ornamental tattoo, blackwork tattoo, filigree, tribal tattoo, tattoo sleeve, arm tattoo, chest tattoo, back tattoo, leg tattoo, thigh tattoo, body markings, (intricate ornamental blackwork covers her arms shoulders chest and thighs:1.3), dense mandala and tribal patterns wrapping around her limbs'],
+                            tat_max: ['(full-body tattoo, covered in tattoos:1.5), (multiple tattoos:1.4), tattoo, (facial tattoo:1.4), forehead tattoo, cheek tattoo, teardrop tattoo, head tattoo, neck tattoo, shoulder tattoo, arm tattoo, tattoo sleeve, hand tattoo, finger tattoo, wrist tattoo, chest tattoo, breast tattoo, stomach tattoo, midriff tattoo, back tattoo, pubic tattoo, hip tattoo, ass tattoo, thigh tattoo, leg tattoo, ankle tattoo, foot tattoo, tribal tattoo, irezumi, body markings, facial mark, (every inch of her skin from forehead to toes is covered in dense overlapping tattoos:1.4), heavy black ink on her face neck hands fingers and feet, layered patterns running down her arms torso and both legs without a break, barely any bare skin remains anywhere on her body'],
+                            preg_slight: ['(pregnant:0.9), implied pregnancy'],
+                            preg_on: ['(pregnant:1.5)'],
+                            preg_big: ['(pregnant, big belly:1.6)'],
+                            preg_mark: ['(pregnant, big belly:1.5), pregnancy mark'],
+                        };
                         const INK_OLD = {
                             tat_writing: ['(body writing:1.3)'], tat_markings: ['(body markings:1.2)'],
                             tat_full: ['(full-body tattoo:1.2), tattoo'], tat_slut: ['(pubic tattoo, number tattoo:1.2), tattoo'],
@@ -9159,6 +9191,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                         _anima.snippets.forEach(x => {
                             const olds = INK_OLD[x.id]; if (!olds) return;
                             if (olds.indexOf((x.text || '').trim()) < 0) return;   // ✏️ 수정본은 보존
+                            const d = ANIMA_DEFAULT_SNIPPETS.find(v => v.id === x.id);
+                            if (d) x.text = d.text;
+                        });
+                        //  v9.129.0: Anima는 Qwen 인코더라 문장을 제일 잘 먹는다 → 문신·임신 프리셋을
+                        //  '자연어 서술이 앞, 부루 태그가 뒤'인 문구로 올린다(클래식 조합은 CLIP이라 태그가 앞 — 서로 다르다).
+                        _anima.snippets.forEach(x => {
+                            const oldNL = INK_OLD_NL[x.id]; if (!oldNL) return;
+                            if (oldNL.indexOf((x.text || '').trim()) < 0) return;   // ✏️ 수정본은 보존
                             const d = ANIMA_DEFAULT_SNIPPETS.find(v => v.id === x.id);
                             if (d) x.text = d.text;
                         });
