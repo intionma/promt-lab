@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.110.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.111.0 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.110.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.111.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2053,7 +2053,17 @@
         const CHANGELOG = [
             // ── 2026-07-29 ──────────────────────────────────────────────────
             {
-                version: 'v9.110.0', date: '2026-07-30', time: '최신',
+                version: 'v9.111.0', date: '2026-07-30', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] <b>캐릭터만 자동 크롭</b> — 사진에 인물이 작게 나와 있을 때, 그 부분만 잘라서 원본으로 씁니다. 원본을 넣는 화면에 '✂ 캐릭터만 자동 크롭' 버튼이 새로 생겼어요(기본은 꺼짐).",
+                    "[Anima 편집] 사람을 찾는 건 <b>ComfyUI가 있는 PC가</b> 합니다. 사진을 넣을 때 <b>딱 1번만</b> 시간이 걸리고, 그 뒤로는 잘린 그림을 계속 재사용해서 느려지지 않아요.",
+                    "[Anima 편집] 켤 때 PC에 필요한 기능이 있는지 먼저 확인합니다. <b>없으면 켜지지 않고</b> 무엇을 설치해야 하는지 화면에 알려드려요.",
+                    "[Anima 편집] 방금 자른 사진은 <b>'↩ 원본으로' 버튼</b>으로 되돌릴 수 있습니다. 캐릭터를 못 찾은 경우엔 원본이 그대로 들어가고 알림만 뜹니다 — 흐름을 막지 않아요.",
+                ]
+            },
+            {
+                version: 'v9.110.0', date: '2026-07-30', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] <b>갤러리·비교창 이미지를 꾹 누르면 그 그림의 시드로 고정</b>됩니다 — 그다음 실행부터는 매번 같은 시드로 재현돼요. 다시 꾹 누르면 풀립니다.",
@@ -7592,6 +7602,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             lastInputMode: 'clip',      // 마지막에 쓴 이미지 넣기 방식('clip'|'file') — 하단 바 좌측 버튼이 이걸 따라감
             galSize: 96,                // 갤러리 썸네일 한 칸 최소 너비(px) — 슬라이더로 크게/작게 (60~220)
             flattenBg: 'white',         // 투명 배경 채우기 색('white'|'gray'|'black') — 투명 PNG만 자동 감지해 이 색으로 평탄화
+            autoCrop: false,            // 원본을 넣을 때 캐릭터만 자동으로 잘라낼지 (PC에 감지 모델이 있어야 켜진다)
             seedLock: null,             // 시드 고정 {seed,url} — 갤러리·비교창 그림을 꾹 눌러 잠근다(원본을 새로 넣으면 풀림)
             srcHistory: [],             // 이전에 넣은 원본 이미지들 [{thumb,name,ts}] — 다시 불러오기용(영속, 최근 8장)
             imgThumb: null,             // 영속(축소본)
@@ -7957,7 +7968,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 const p = {};
                 ['prompt', 'steps', 'cfg', 'denoise', 'sampler', 'scheduler', 'seed', 'megapixels', 'upscaleMethod', 'refWeight', 'refMode',
                     'cnPose', 'cnLoraName', 'cnLora', 'cnRefWeight',
-                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb', 'exprMore', 'exprRecent', 'sweep', 'sweepSeedInherit', 'galGroup', 'srcKey', 'myPreset', 'promptOpen', 'seedLock'].forEach(k => p[k] = _anima[k]);
+                    'unetName', 'clipName', 'clipType', 'vaeName', 'lora1Name', 'lora1', 'lora2Name', 'lora2', 'suppressWm', 'lastInputMode', 'galSize', 'flattenBg', '_wf', 'customWf', 'imgThumb', 'exprMore', 'exprRecent', 'sweep', 'sweepSeedInherit', 'galGroup', 'srcKey', 'myPreset', 'promptOpen', 'seedLock', 'autoCrop'].forEach(k => p[k] = _anima[k]);
                 // 결과 이미지 목록은 여기 없다 — IndexedDB(_animaIdb*)로 옮겼다. 장수가 늘어도 이 저장이 무거워지지 않는다.
                 p.snippets = (_anima.snippets || []).map(s => ({ id: s.id, name: s.name, text: s.text, on: !!s.on, kind: s.kind || 'append', group: s.group || null, detail: s.detail || null }));
                 // 이전에 넣은 원본 이미지(축소본)들 — 다시 불러오기용. 여기 남은 것 중엔 이게 제일 크다(그림 데이터).
@@ -8687,8 +8698,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 img.src = dataURL;
             });
         }
-        async function _animaSetImage(dataURL, name) {
+        //  noCrop = 자동 크롭을 건너뛴다('원본으로 되돌리기'가 다시 잘리면 되돌릴 수가 없다)
+        async function _animaSetImage(dataURL, name, noCrop) {
             if (!dataURL) return;
+            // 캐릭터만 자동 크롭 — 원본을 넣는 이 순간 딱 1회. 실패하면 원본 그대로 간다(절대 막지 않는다).
+            if (!noCrop) {
+                let cropped = null;
+                try { cropped = await _animaMaybeCrop(dataURL); } catch (e) {}
+                if (cropped) { _animaCropUndo = { dataURL, name: name || 'image' }; dataURL = cropped; }
+                else _animaCropUndo = null;
+            } else { _animaCropUndo = null; }
             let flat = { transparent: false, url: null };
             try { flat = await _animaFlattenIfTransparent(dataURL, _ANIMA_BG_HEX[_anima.flattenBg] || '#ffffff'); } catch (e) {}
             _animaRawImg = flat.transparent ? dataURL : null;   // 투명이면 원본 보관(배경색 재적용용)
@@ -8746,6 +8765,137 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             try { showToast('이전 원본을 불러왔어요.', 'success', 1600); } catch (e) {}
         }
         function _animaFileToDataURL(file) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); }); }
+        // ══ 캐릭터만 자동 크롭 ══════════════════════════════════════════════
+        //  원본을 넣는 그 순간 1회만 자른다. 이후 생성은 잘린 그림을 그대로 재사용하므로
+        //  느린 건 새 사진을 넣을 때 딱 한 번뿐이다.
+        //  ★ 사람 감지는 PC(ComfyUI)가 한다 — 폰에는 그럴 모델이 없다.
+        //    없으면 켜지지 않고, 무엇을 어디에 넣어야 하는지 알려 준다.
+        const _ANIMA_CROP_PROVIDER = 'UltralyticsDetectorProvider';
+        const _ANIMA_CROP_SEGS = ['SegmDetectorSEGS', 'BboxDetectorSEGS'];   // 앞엣것 우선(실루엣이 더 정확)
+        const _ANIMA_CROP_TOLIST = 'SEGSToImageList';
+        const _ANIMA_CROP_PERSON_RE = /person|people|human|body|full/i;
+        const _ANIMA_CROP_FACTOR = 1.6;   // 1.0이면 딱 붙게 잘려 머리카락·손이 잘린다. 여유를 준다.
+        const _ANIMA_CROP_GUIDE = 'ComfyUI 매니저에서 <b>ComfyUI-Impact-Subpack</b>을 설치하고, '
+            + '사람 감지 모델(<b>person_yolov8m-seg.pt</b>)을 <b>ComfyUI/models/ultralytics/segm/</b> 폴더에 넣어 주세요.';
+        let _animaCropInfo = null;      // { conn, provider, segs, toList, model } — 점검 결과 캐시
+        let _animaCropUndo = null;      // 자르기 전 원본(세션 전용) — '원본으로 되돌리기'용
+        let _animaCropBusy = false;
+
+        async function _animaCropDetect(force) {
+            if (_animaCropInfo && !force) return _animaCropInfo;
+            const models = await _comfyNodeEnum(_ANIMA_CROP_PROVIDER, 'model_name');
+            if (models === null) {   // 서버에 못 붙었거나 노드가 없다 — 둘을 구분해서 안내해야 한다
+                const alive = await _animaPing();
+                _animaCropInfo = { conn: !!alive, provider: false, segs: null, toList: false, model: null };
+                return _animaCropInfo;
+            }
+            let segs = null;
+            for (const c of _ANIMA_CROP_SEGS) { if (await _animaNodeExists(c)) { segs = c; break; } }
+            const toList = !!(await _animaNodeExists(_ANIMA_CROP_TOLIST));
+            //  '사람' 모델만 고른다. 얼굴(face_yolov8) 모델로 자르면 얼굴만 남는다.
+            const model = (models || []).find(m => _ANIMA_CROP_PERSON_RE.test(String(m))) || null;
+            _animaCropInfo = { conn: true, provider: true, segs, toList, model };
+            return _animaCropInfo;
+        }
+        function _animaCropReady() {
+            const i = _animaCropInfo;
+            return !!(i && i.conn && i.provider && i.segs && i.toList && i.model);
+        }
+        //  준비가 안 된 이유를 사람 말로 — '무엇이 없다'를 정확히 짚어야 사용자가 조치할 수 있다
+        function _animaCropWhy() {
+            const i = _animaCropInfo;
+            if (!i) return '아직 확인 안 함';
+            if (!i.conn) return 'ComfyUI에 연결되지 않았어요';
+            if (!i.provider || !i.segs || !i.toList) return '감지 노드(Impact Subpack)가 없어요';
+            if (!i.model) return '사람 감지 모델이 없어요';
+            return '';
+        }
+
+        //  PC에 한 번 물어 잘린 그림을 받아 온다. 실패하면 null — 그러면 원본을 그대로 쓴다(절대 막지 않는다).
+        async function _animaCropRun(dataURL) {
+            const i = _animaCropInfo;
+            if (!_animaCropReady()) return null;
+            const base = _comfyBase();
+            let name = null;
+            try {
+                const uniq = 'promptlab_crop_' + Date.now() + '_' + Math.floor(Math.random() * 1e9) + '.png';
+                name = await _comfyUploadImage(_dataURLtoBlob(dataURL), uniq, _animaTimeoutSignal(_ANIMA_SUBMIT_TIMEOUT));
+            } catch (e) { return null; }
+            if (!name) return null;
+            const segsIn = (i.segs === 'SegmDetectorSEGS')
+                ? { segm_detector: ['1', 1], image: ['2', 0] }
+                : { bbox_detector: ['1', 0], image: ['2', 0] };
+            const wf = {
+                '1': { class_type: _ANIMA_CROP_PROVIDER, inputs: { model_name: i.model } },
+                '2': { class_type: 'LoadImage', inputs: { image: name } },
+                '3': { class_type: i.segs, inputs: Object.assign({
+                        threshold: 0.5, dilation: 10, crop_factor: _ANIMA_CROP_FACTOR, drop_size: 10,
+                      }, segsIn) },
+                '4': { class_type: _ANIMA_CROP_TOLIST, inputs: { segs: ['3', 0] } },
+                '5': { class_type: 'PreviewImage', inputs: { images: ['4', 0] } },
+            };
+            const res = await fetch(base + '/prompt', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: wf, client_id: 'promptlab_crop' }),
+                signal: _animaTimeoutSignal(20000),
+            });
+            if (!res.ok) return null;
+            const pid = (await res.json() || {}).prompt_id;
+            if (!pid) return null;
+            //  감지만 하는 워크플로우라 금방 끝난다. 그래도 못 끝나면 포기하고 원본을 쓴다.
+            const url = await _animaCropWait(base, pid, 25000);
+            if (!url) return null;
+            try { return await _animaUrlToDataURL(url); } catch (e) { return null; }
+        }
+        async function _animaCropWait(base, pid, ms) {
+            const t0 = Date.now();
+            while (Date.now() - t0 < ms) {
+                await new Promise(r => setTimeout(r, 350));
+                try {
+                    const r = await fetch(base + '/history/' + pid, { signal: _animaTimeoutSignal(8000) });
+                    if (!r.ok) continue;
+                    const h = (await r.json() || {})[pid];
+                    if (!h || !h.outputs) continue;
+                    for (const nid in h.outputs) {
+                        const imgs = (h.outputs[nid] || {}).images || [];
+                        //  사람이 여럿이면 여러 장이 온다 — 제일 큰 것(주인공)을 고르고 싶지만
+                        //  크기를 알 수 없으니 첫 장을 쓴다. 대개 신뢰도 순으로 나온다.
+                        if (imgs.length) {
+                            const im = imgs[0];
+                            return base + '/view?filename=' + encodeURIComponent(im.filename)
+                                 + '&subfolder=' + encodeURIComponent(im.subfolder || '')
+                                 + '&type=' + encodeURIComponent(im.type || 'temp');
+                        }
+                    }
+                    return null;   // 끝났는데 결과가 없다 = 사람을 못 찾았다
+                } catch (e) {}
+            }
+            return null;
+        }
+        function _animaUrlToDataURL(url) {
+            return new Promise((resolve, reject) => {
+                fetch(url, { signal: _animaTimeoutSignal(20000) })
+                    .then(r => (r.ok ? r.blob() : Promise.reject(new Error('view'))))
+                    .then(b => { const fr = new FileReader(); fr.onload = () => resolve(fr.result); fr.onerror = reject; fr.readAsDataURL(b); })
+                    .catch(reject);
+            });
+        }
+
+        //  원본을 넣는 경로에서 부른다. 켜져 있고 준비돼 있을 때만 움직이고, 그 외엔 조용히 통과한다.
+        async function _animaMaybeCrop(dataURL) {
+            if (!_anima.autoCrop || _animaCropBusy) return null;
+            _animaCropBusy = true;
+            try {
+                await _animaCropDetect(false);
+                if (!_animaCropReady()) { try { showToast('자동 크롭을 못 했어요 — ' + _animaCropWhy(), 'warning', 3600); } catch (e) {} return null; }
+                try { showToast('캐릭터를 찾는 중…', 'info', 1600); } catch (e) {}
+                const out = await _animaCropRun(dataURL);
+                if (!out) { try { showToast('캐릭터를 못 찾아서 원본 그대로 넣었어요', 'info', 2600); } catch (e) {} return null; }
+                return out;
+            } catch (e) { return null; }
+            finally { _animaCropBusy = false; }
+        }
+
         async function _animaAddFile(fileList) {
             const f = Array.from(fileList || []).find(x => /^image\//.test(x.type));
             if (f) { try { await _animaSetImage(await _animaFileToDataURL(f), f.name.replace(/\.[^.]+$/, '')); } catch (e) {} }
@@ -9100,6 +9250,54 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
 
         // ── UI ──
         function _animaEl(sel) { return _animaDom ? _animaDom.querySelector(sel) : null; }
+        //  자동 크롭 줄 — 켜고 끄기 + (잘렸으면) 원본으로 되돌리기.
+        //  ★ 항상 켜 두는 기능이 아니다. 인물이 사진 한구석에 작게 있을 때만 쓴다.
+        function _animaCropRowHtml() {
+            const on = !!_anima.autoCrop;
+            const undo = !!_animaCropUndo;
+            return `<div class="anima-croprow">
+                <button class="anima-cropbtn${on ? ' on' : ''}" id="anima-crop-t" role="switch" aria-checked="${on}"
+                    title="사진에서 인물만 찾아 잘라내고 그걸 원본으로 씁니다. PC(ComfyUI)가 찾아 주므로 새 사진마다 한 번 시간이 걸려요.">
+                    <i>✂</i> 캐릭터만 자동 크롭<b>${on ? '켜짐' : '꺼짐'}</b></button>
+                ${undo ? `<button class="anima-cropundo" id="anima-crop-u" title="자르기 전 사진으로 되돌립니다">↩ 원본으로</button>` : ''}
+            </div>`;
+        }
+        function _animaBindCropRow(box) {
+            const t = box.querySelector('#anima-crop-t');
+            if (t) t.onclick = async (e) => {
+                e.stopPropagation();
+                if (_anima.autoCrop) {   // 끄는 건 언제나 된다
+                    _anima.autoCrop = false; _animaSave(); _animaRenderInput();
+                    try { showToast('자동 크롭을 껐어요', 'info', 1600); } catch (e2) {}
+                    return;
+                }
+                // 켜기 — PC에 준비가 돼 있는지 먼저 본다. 없는데 켜 두면 사진 넣을 때마다 실패한다.
+                try { showToast('PC에 사람 감지 기능이 있는지 확인 중…', 'info', 1600); } catch (e2) {}
+                await _animaCropDetect(true);
+                if (!_animaCropReady()) {
+                    try { showToast('자동 크롭을 켤 수 없어요 — ' + _animaCropWhy(), 'warning', 4200); } catch (e2) {}
+                    _animaRenderInput();
+                    return;
+                }
+                _anima.autoCrop = true; _animaSave(); _animaRenderInput();
+                try { showToast('자동 크롭을 켰어요 — 다음에 넣는 사진부터 인물만 잘라냅니다', 'success', 3000); } catch (e2) {}
+            };
+            const u = box.querySelector('#anima-crop-u');
+            if (u) u.onclick = async (e) => {
+                e.stopPropagation();
+                const back = _animaCropUndo; if (!back) return;
+                await _animaSetImage(back.dataURL, back.name, true);   // 다시 자르지 않는다
+                try { showToast('자르기 전 원본으로 되돌렸어요', 'info', 2000); } catch (e2) {}
+            };
+            // 준비가 안 된 이유를 화면에도 남긴다 — 토스트는 사라지니까
+            const row = box.querySelector('.anima-croprow');
+            if (row && _anima.autoCrop && _animaCropInfo && !_animaCropReady()) {
+                const n = document.createElement('div');
+                n.className = 'anima-crop-note';
+                n.innerHTML = '⚠ ' + _animaEsc(_animaCropWhy()) + ' — ' + _ANIMA_CROP_GUIDE;
+                row.appendChild(n);
+            }
+        }
         function _animaRenderInput() {
             const box = _animaEl('#anima-input'); if (!box) return;
             if (_animaHasImage()) {
@@ -9109,15 +9307,16 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                     ? `<div class="anima-bgsel"><span class="anima-bgsel-lab">🪟 투명 배경</span>${[['white', '흰색'], ['gray', '회색'], ['black', '검정']].map(([v, l]) => `<button class="anima-bgsel-btn${_anima.flattenBg === v ? ' on' : ''}" data-bg="${v}">${l}</button>`).join('')}</div>`
                     : '';
                 box.innerHTML = `<div class="anima-thumb"><img src="${_anima.img.dataURL}" alt="원본"><button class="anima-thumb-x" title="이미지 제거">✕</button></div>
-                    <div class="anima-input-btns"><button class="anima-btn ghost" data-a="clip">📋 클립보드</button><button class="anima-btn ghost" data-a="file">🖼 다른 이미지</button></div>${bgSel}`;
+                    <div class="anima-input-btns"><button class="anima-btn ghost" data-a="clip">📋 클립보드</button><button class="anima-btn ghost" data-a="file">🖼 다른 이미지</button></div>${_animaCropRowHtml()}${bgSel}`;
                 box.querySelector('.anima-thumb-x').onclick = (e) => { e.stopPropagation(); _anima.img = null; _anima.uploadedName = null; _anima.imgThumb = null; _animaRawImg = null; _animaSave(); _animaRenderInput(); _animaRenderResult(); };
                 box.querySelectorAll('.anima-bgsel-btn').forEach(bt => bt.onclick = (e) => { e.stopPropagation(); _animaSetFlattenBg(bt.dataset.bg); });
             } else {
                 box.classList.remove('has');
                 box.innerHTML = `<div class="anima-drop-in" data-a="file"><div class="big">🖼</div><div class="t1">여기를 눌러 이미지 선택</div>
                     <div class="t2">모바일은 갤러리/카메라 · PC는 Ctrl+V·드래그도 가능</div>
-                    <div class="anima-input-btns"><button class="anima-btn" data-a="file">🖼 갤러리·파일</button><button class="anima-btn ghost" data-a="clip">📋 클립보드</button></div></div>`;
+                    <div class="anima-input-btns"><button class="anima-btn" data-a="file">🖼 갤러리·파일</button><button class="anima-btn ghost" data-a="clip">📋 클립보드</button></div></div>` + _animaCropRowHtml();
             }
+            _animaBindCropRow(box);
             box.querySelectorAll('[data-a=clip]').forEach(b => b.onclick = (e) => { e.stopPropagation(); _animaSetInputMode('clip'); _animaClipboard(); });
             box.querySelectorAll('[data-a=file]').forEach(b => b.onclick = (e) => { e.stopPropagation(); _animaSetInputMode('file'); _animaEl('#anima-file').click(); });
             _animaRenderSrcHistory();
@@ -11276,6 +11475,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
           .anima-frame { position:relative; border-radius:12px; overflow:hidden; border:1px solid var(--border-dim); background:#0b0e13; aspect-ratio:3/4; display:flex; align-items:center; justify-content:center; }
           .anima-frame img { width:100%; height:100%; object-fit:contain; display:block; }
           .anima-frame.nores { color:var(--text-dim); font-size:12px; }
+          /* 자동 크롭 줄 — 평소엔 조용히 있다가 켜면 눈에 띈다 */
+          .anima-croprow { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:8px; }
+          .anima-cropbtn { display:inline-flex; align-items:center; gap:6px; padding:7px 11px; border-radius:9px; cursor:pointer;
+            background:transparent; border:1px solid var(--border-dim); color:var(--text-dim); font-size:12px; font-weight:700; }
+          .anima-cropbtn i { font-style:normal; font-size:12.5px; }
+          .anima-cropbtn b { font-weight:800; font-size:11px; opacity:.75; margin-left:2px; }
+          .anima-cropbtn.on { border-color:#0ea5e9; color:#0ea5e9; background:color-mix(in srgb,#0ea5e9 13%,transparent); }
+          .anima-cropbtn.on b { opacity:1; }
+          .anima-cropundo { padding:7px 11px; border-radius:9px; cursor:pointer; background:transparent;
+            border:1px dashed var(--border-dim); color:var(--text-dim); font-size:12px; font-weight:700; }
+          .anima-crop-note { flex:1 1 100%; font-size:11.5px; line-height:1.6; color:var(--text-dim); }
+          .anima-crop-note b { color:var(--text-main); font-weight:800; }
           /* 시드 고정 — 있던 프레임 안에서만 표시한다. 자리를 새로 만들지 않아 레이아웃이 늘어나지 않는다.
              글자는 그림 위에 얹고, 잘 안 보이지 않게 아래쪽만 살짝 어둡게 깐다. */
           .anima-frame.lock { border-color:color-mix(in srgb,var(--accent-blue,#3b82f6) 55%,var(--border-dim)); }
