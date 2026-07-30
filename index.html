@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.120.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.120.1 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.120.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.120.1 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1456,6 +1456,7 @@
                     <div id="comfy-lora-quick" style="display:none; align-items:center; gap:6px; flex-wrap:wrap; padding:8px 0 2px; border-top:1px dashed var(--border-dim); margin-top:6px;">
                         <span style="font-size:11px; font-weight:800; color:var(--text-dim); flex:0 0 auto;">🧩 LoRA</span>
                         <div id="comfy-lora-quick-chips" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;"></div>
+                        <div id="comfy-lora-quick-note" style="flex:1 1 100%; font-size:11px; color:var(--text-dim); line-height:1.5;"></div>
                     </div>
                     <div id="pos-action-row" style="padding:8px 0 4px; display:flex; gap:8px; flex-wrap:wrap;">
                         <button class="btn-copy pos" style="flex:1 1 110px;" onclick="copyPrompt('pos')"><i class="fa-solid fa-copy"></i> 긍정 복사</button>
@@ -1816,7 +1817,7 @@
                     <!-- 내 워크플로우에도 LoRA 칩 적용 (옵트인 — 기본 꺼짐). 커스텀 모드일 때만 보인다. -->
                     <div id="comfy-wf-lora-row" style="display:none; margin-top:8px; padding:8px 10px; border:1px solid rgba(56,189,248,0.3); border-radius:9px; background:rgba(56,189,248,0.05);">
                         <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-main); font-weight:700; cursor:pointer;">
-                            <input type="checkbox" id="comfy-wf-lora" onchange="_comfySaveSettings()"> 🧩 위 LoRA를 <b>내 워크플로우에도</b> 적용
+                            <input type="checkbox" id="comfy-wf-lora" onchange="_comfySaveSettings(); try{_comfyRenderLoraChips()}catch(e){}"> 🧩 위 LoRA를 <b>내 워크플로우에도</b> 적용
                         </label>
                         <div style="font-size:11px; color:var(--text-dim); line-height:1.6; margin-top:3px;">
                             켜면 켜져 있는 칩을 <b>체크포인트 바로 뒤에 끼워 넣고</b> 배선을 이어 줍니다(트리거 워드도 함께).
@@ -2138,7 +2139,15 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.120.0', date: '2026-07-30', time: '최신',
+                version: 'v9.120.1', date: '2026-07-30', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[클래식·스튜디오] <b>LoRA가 지금 먹고 있는지 눈으로 보입니다</b> — 트리거 워드는 전송하는 순간에만 붙어서 프롬프트 칸에는 안 보였고, 그래서 '안 들어간 것 같다'고 느끼셨을 거예요. 이제 LoRA 줄에 <b>'✓ 적용됨 · 전송할 때 ○○를 붙입니다'</b>라고 미리 알려줍니다.",
+                    "[클래식·스튜디오] <b>내 워크플로우를 쓰는데 🧩를 안 켜 두면 경고</b>가 뜹니다 — 이 경우 LoRA도 트리거도 안 나가는데 아무 표시가 없어서 알 수 없었습니다. 이제 <b>주황색으로 '내 워크플로우에는 적용되지 않습니다'</b>라고 바로 알려줘요.",
+                ]
+            },
+            {
+                version: 'v9.120.0', date: '2026-07-30', time: '',
                 tag: 'feat',
                 items: [
                     "[클래식·스튜디오] <b>트리거 워드를 이제 안 적어도 됩니다</b> — LoRA 파일을 고르면 <b>파일 안에 들어 있는 학습 정보를 읽어서</b> 트리거 문구를 자동으로 채웁니다. 모델 페이지를 찾아가 복사해 올 필요가 없어요.",
@@ -6133,6 +6142,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             document.getElementById('comfy-basic-hint').style.display = mode === 'custom' ? 'none' : 'block';
             //  '내 워크플로우에도 적용' 줄은 커스텀 모드에서만 의미가 있다(기본 모드는 칩이 그냥 적용됨)
             { const r = document.getElementById('comfy-wf-lora-row'); if (r) r.style.display = mode === 'custom' ? 'block' : 'none'; }
+            try { _comfyRenderLoraChips(); } catch (e) {}   // 모드에 따라 '적용됨/적용 안 됨' 안내가 달라진다
             _comfySaveSettings();
         }
 
@@ -6887,6 +6897,32 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 box.appendChild(chip);
                 _mirror(chip, p, autoHit);
             });
+            // ── 지금 실제로 무엇이 나가는지 한 줄로 보여 준다 ─────────────────────
+            //  트리거 워드는 '전송하는 순간'에만 붙어서 결과 프롬프트 칸에는 안 보인다.
+            //  그래서 "안 들어간 것 같다"는 오해가 생겼다 → 나갈 내용을 미리 적어 준다.
+            //  커스텀 워크플로우 모드에서 🧩를 안 켜면 아무것도 안 나가므로 그것도 여기서 경고한다.
+            try {
+                const note = document.getElementById('comfy-lora-quick-note');
+                if (note) {
+                    const act = _comfyActiveLoras(_pos);
+                    const wfCustom = (typeof _comfyWfMode !== 'undefined' && _comfyWfMode === 'custom');
+                    const wfOn = !!(document.getElementById('comfy-wf-lora') || {}).checked;
+                    if (!act.length) {
+                        note.innerHTML = _comfyLoraPresets.some(p => p.auto)
+                            ? '관련 태그를 넣으면 ⚡ 자동으로 켜집니다.' : '';
+                        note.style.color = 'var(--text-dim)';
+                    } else if (wfCustom && !wfOn) {
+                        note.innerHTML = `⚠ <b>내 워크플로우에는 적용되지 않습니다</b> — ComfyUI 설정에서 <b>🧩 '내 워크플로우에도 적용'</b>을 켜 주세요. (지금 켜진 LoRA: ${act.map(p => p.label || p.name).join(', ')})`;
+                        note.style.color = '#f59e0b';
+                    } else {
+                        const trig = act.map(p => (p.trigger || '').trim())
+                            .filter(t => t && String(_pos).toLowerCase().indexOf(t.split(',')[0].trim().toLowerCase()) < 0);
+                        note.innerHTML = `✓ 적용됨: <b>${act.map(p => p.label || p.name).join(', ')}</b>`
+                            + (trig.length ? ` · 전송할 때 <b>${_animaEsc ? _animaEsc(trig.join(', ')) : trig.join(', ')}</b> 를 프롬프트 뒤에 자동으로 붙입니다` : '');
+                        note.style.color = 'var(--accent-green, #22c55e)';
+                    }
+                }
+            } catch (e) {}
             const add = document.createElement('button');
             add.type = 'button'; add.className = 'io-pill'; add.style.cssText = '--pc:#38bdf8; padding:6px 12px; font-size:12px;';
             add.innerHTML = '＋ LoRA 등록';
