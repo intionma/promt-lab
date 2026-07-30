@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.119.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.119.1 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.119.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.119.1 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -1450,6 +1450,12 @@
                             </span>
                         </div>
                         <div class="preview-box" id="korean-preview">태그의 한글 뜻이 표시됩니다.</div>
+                    </div>
+                    <!-- LoRA 빠른 줄 — 설정 모달까지 들어가지 않고 결과창에서 바로 켜고 끈다.
+                         등록된 칩이 하나도 없으면 통째로 숨는다(평소 화면이 지저분해지지 않게). -->
+                    <div id="comfy-lora-quick" style="display:none; align-items:center; gap:6px; flex-wrap:wrap; padding:8px 0 2px; border-top:1px dashed var(--border-dim); margin-top:6px;">
+                        <span style="font-size:11px; font-weight:800; color:var(--text-dim); flex:0 0 auto;">🧩 LoRA</span>
+                        <div id="comfy-lora-quick-chips" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;"></div>
                     </div>
                     <div id="pos-action-row" style="padding:8px 0 4px; display:flex; gap:8px; flex-wrap:wrap;">
                         <button class="btn-copy pos" style="flex:1 1 110px;" onclick="copyPrompt('pos')"><i class="fa-solid fa-copy"></i> 긍정 복사</button>
@@ -1735,19 +1741,6 @@
                             </details>
                         </div>
 
-                        <!-- 커스텀 워크플로우에도 LoRA 칩 적용 (옵트인 — 기본 꺼짐) -->
-                        <div style="border-top:1px dashed var(--border-dim); padding-top:10px;">
-                            <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-main); font-weight:700; cursor:pointer;">
-                                <input type="checkbox" id="comfy-wf-lora" onchange="_comfySaveSettings()"> 🧩 내 워크플로우에도 <b>LoRA 칩</b> 적용
-                            </label>
-                            <div style="font-size:11px; color:var(--text-dim); line-height:1.6; margin-top:4px;">
-                                켜면 켜져 있는 LoRA 칩을 <b>체크포인트 바로 뒤에 끼워 넣고</b> 배선을 이어 줍니다(트리거 워드도 함께 들어갑니다).
-                                <b style="color:#f59e0b;">꺼 두면 지금까지처럼 워크플로우를 전혀 건드리지 않습니다.</b>
-                                워크플로우에 이미 LoRA 노드가 있으면 굳이 켜지 마세요 — 두 번 겹칩니다.
-                            </div>
-                            <div id="comfy-wf-lora-note" style="font-size:11px; color:var(--text-dim); margin-top:4px;"></div>
-                        </div>
-
                         <!-- 고급: 노드 수치 직접 편집 (즐겨찾기) -->
                         <div style="border-top:1px dashed var(--border-dim); padding-top:10px;">
                             <label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:6px;">고급 — 노드 수치 직접 편집 (steps·cfg·denoise·강도 등)</label>
@@ -1791,11 +1784,45 @@
                             <span id="comfy-family-hint" style="font-size:11px; color:var(--text-dim); flex:1 1 100%;"></span>
                         </div>
                     </div>
-                    <!-- LoRA 칩 (기본 모드 전용) — 한 번 등록해두면 칩을 눌러 켜고 끄고, 트리거 워드는 자동으로 프롬프트에 붙는다.
-                         커스텀 워크플로우엔 자기 LoRA가 있으므로 이 영역 자체가 숨겨진다. -->
-                    <div style="grid-column:1/-1;">
+                    <div><label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Steps</label><input id="comfy-steps" type="number" value="28" min="1" max="150" class="comfy-num"></div>
+                    <div><label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">CFG</label><input id="comfy-cfg" type="number" value="7" min="1" max="30" step="0.5" class="comfy-num"></div>
+                    <div><label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Width</label><input id="comfy-w" type="number" value="1024" min="64" step="8" class="comfy-num"></div>
+                    <div><label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Height</label><input id="comfy-h" type="number" value="1024" min="64" step="8" class="comfy-num"></div>
+                    <div>
+                        <label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Sampler</label>
+                        <select id="comfy-sampler" class="comfy-num">
+                            <option>euler</option><option>euler_ancestral</option><option selected>dpmpp_2m</option><option>dpmpp_2m_sde</option><option>dpmpp_3m_sde</option><option>dpmpp_sde</option><option>ddim</option><option>uni_pc</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Scheduler</label>
+                        <select id="comfy-scheduler" class="comfy-num">
+                            <option selected>karras</option><option>normal</option><option>exponential</option><option>sgm_uniform</option><option>simple</option><option>ddim_uniform</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Seed</label>
+                        <div style="display:flex; gap:6px;">
+                            <input id="comfy-seed" type="number" value="-1" class="comfy-num" style="flex:1;" onchange="try{_comfySaveSettings()}catch(e){}">
+                            <button class="action-btn" onclick="document.getElementById('comfy-seed').value=-1; try{_comfySaveSettings()}catch(e){}" title="랜덤(-1)" style="padding:0 10px;"><i class="fa-solid fa-dice"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <!-- LoRA 칩 — 기본 모드·내 워크플로우 어느 쪽에서도 보이게 basic-params '밖'에 둔다.
+                     (커스텀 모드에선 위 '🧩 내 워크플로우에도 LoRA 칩 적용'을 켜야 실제로 반영된다) -->
+                <div id="comfy-lora-box" style="border-top:1px dashed var(--border-dim); padding-top:10px;">
                         <label style="font-size:11px; color:var(--text-dim); font-weight:700; display:block; margin-bottom:6px;">LoRA — 칩을 눌러 켜고 끄기 (트리거 워드 자동 삽입)</label>
                         <div id="comfy-lora-chips" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;"></div>
+                    <!-- 내 워크플로우에도 LoRA 칩 적용 (옵트인 — 기본 꺼짐). 커스텀 모드일 때만 보인다. -->
+                    <div id="comfy-wf-lora-row" style="display:none; margin-top:8px; padding:8px 10px; border:1px solid rgba(56,189,248,0.3); border-radius:9px; background:rgba(56,189,248,0.05);">
+                        <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-main); font-weight:700; cursor:pointer;">
+                            <input type="checkbox" id="comfy-wf-lora" onchange="_comfySaveSettings()"> 🧩 위 LoRA를 <b>내 워크플로우에도</b> 적용
+                        </label>
+                        <div style="font-size:11px; color:var(--text-dim); line-height:1.6; margin-top:3px;">
+                            켜면 켜져 있는 칩을 <b>체크포인트 바로 뒤에 끼워 넣고</b> 배선을 이어 줍니다(트리거 워드도 함께).
+                            <b style="color:#f59e0b;">꺼 두면 워크플로우를 전혀 건드리지 않습니다.</b> 워크플로우에 이미 LoRA 노드가 있으면 켜지 마세요 — 두 번 겹칩니다.
+                        </div>
+                    </div>
                         <div id="comfy-lora-form" style="display:none; margin-top:8px; padding:10px; border:1px solid var(--border-dim); border-radius:10px; background:var(--bg-surface); flex-direction:column; gap:8px;">
                             <div style="display:grid; grid-template-columns:1fr 100px; gap:8px;">
                                 <div>
@@ -1838,30 +1865,6 @@
                             </div>
                         </div>
                     </div>
-                    <div><label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Steps</label><input id="comfy-steps" type="number" value="28" min="1" max="150" class="comfy-num"></div>
-                    <div><label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">CFG</label><input id="comfy-cfg" type="number" value="7" min="1" max="30" step="0.5" class="comfy-num"></div>
-                    <div><label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Width</label><input id="comfy-w" type="number" value="1024" min="64" step="8" class="comfy-num"></div>
-                    <div><label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Height</label><input id="comfy-h" type="number" value="1024" min="64" step="8" class="comfy-num"></div>
-                    <div>
-                        <label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Sampler</label>
-                        <select id="comfy-sampler" class="comfy-num">
-                            <option>euler</option><option>euler_ancestral</option><option selected>dpmpp_2m</option><option>dpmpp_2m_sde</option><option>dpmpp_3m_sde</option><option>dpmpp_sde</option><option>ddim</option><option>uni_pc</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Scheduler</label>
-                        <select id="comfy-scheduler" class="comfy-num">
-                            <option selected>karras</option><option>normal</option><option>exponential</option><option>sgm_uniform</option><option>simple</option><option>ddim_uniform</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="font-size:11px;color:var(--text-dim);font-weight:700;display:block;margin-bottom:5px;">Seed</label>
-                        <div style="display:flex; gap:6px;">
-                            <input id="comfy-seed" type="number" value="-1" class="comfy-num" style="flex:1;" onchange="try{_comfySaveSettings()}catch(e){}">
-                            <button class="action-btn" onclick="document.getElementById('comfy-seed').value=-1; try{_comfySaveSettings()}catch(e){}" title="랜덤(-1)" style="padding:0 10px;"><i class="fa-solid fa-dice"></i></button>
-                        </div>
-                    </div>
-                </div>
                 <p id="comfy-basic-hint" style="font-size:11px; color:var(--text-dim); margin:-6px 0 0;">Seed = -1 이면 매번 랜덤. 긍정/부정 프롬프트는 현재 결과 패널 내용을 자동으로 사용합니다.</p>
 
                 <!-- 전송 대상 -->
@@ -2131,7 +2134,15 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.119.0', date: '2026-07-30', time: '최신',
+                version: 'v9.119.1', date: '2026-07-30', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[클래식·스튜디오] <b>LoRA 칩이 '내 워크플로우' 모드에서 아예 안 보이던 문제</b>를 고쳤습니다 — 칩 영역이 기본 모드 전용 칸 안에 들어가 있어서, 커스텀 워크플로우를 쓰면 통째로 숨겨졌어요. 이제 어느 모드에서든 보입니다.",
+                    "[클래식·스튜디오] <b>결과창에 LoRA 빠른 줄</b>이 생겼습니다 — 설정을 열지 않고 <b>프롬프트 아래에서 바로</b> 켜고 끌 수 있어요. 등록한 칩이 없으면 줄 자체가 안 보이고, 프롬프트를 고칠 때마다 ⚡자동 칩이 <b>지금 켜졌는지 초록색으로</b> 알려줍니다.",
+                ]
+            },
+            {
+                version: 'v9.119.0', date: '2026-07-30', time: '',
                 tag: 'feat',
                 items: [
                     "[클래식·스튜디오] <b>LoRA가 알아서 켜지고 꺼집니다</b> — 등록할 때 ⚡<b>자동</b>을 켜두면, 프롬프트에 <b>문신 관련 태그가 들어오는 순간 LoRA와 트리거 워드가 자동으로 붙고</b>, 태그를 다 빼면 <b>트리거까지 같이 사라집니다</b>. 간편 조합으로 태그를 넣어도 똑같이 반응해요.",
@@ -6107,6 +6118,8 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             // 기본 모드 전용 파라미터(체크포인트/스텝/cfg 등) 숨김
             document.getElementById('comfy-basic-params').style.display = mode === 'custom' ? 'none' : 'grid';
             document.getElementById('comfy-basic-hint').style.display = mode === 'custom' ? 'none' : 'block';
+            //  '내 워크플로우에도 적용' 줄은 커스텀 모드에서만 의미가 있다(기본 모드는 칩이 그냥 적용됨)
+            { const r = document.getElementById('comfy-wf-lora-row'); if (r) r.style.display = mode === 'custom' ? 'block' : 'none'; }
             _comfySaveSettings();
         }
 
@@ -6816,6 +6829,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const box = document.getElementById('comfy-lora-chips'); if (!box) return;
             box.innerHTML = '';
             const _pos = _comfyCurrentPosText();
+            //  결과창 '빠른 줄'에도 같은 칩을 복제해 둔다 — 설정 모달을 안 열고도 여기서 바로 켜고 끈다.
+            const quick = document.getElementById('comfy-lora-quick'), quickBox = document.getElementById('comfy-lora-quick-chips');
+            if (quickBox) quickBox.innerHTML = '';
+            if (quick) quick.style.display = _comfyLoraPresets.length ? 'flex' : 'none';   // 등록된 게 없으면 아예 숨김
+            const _mirror = (chip, p, autoHit) => {
+                if (!quickBox) return;
+                const c2 = chip.cloneNode(true);
+                c2.onclick = () => { chip.onclick(); };   // 원본 칩과 완전히 같은 동작(양쪽이 항상 같은 상태로 다시 그려짐)
+                c2.oncontextmenu = (e) => { e.preventDefault(); };   // 빠른 줄에서는 실수로 지워지지 않게 삭제 없음
+                quickBox.appendChild(c2);
+            };
             _comfyLoraPresets.forEach((p, i) => {
                 const autoHit = !!(p.auto && !p.on && _comfyLoraWatchHit(p, _pos));   // 자동으로 지금 켜져 있는 상태
                 const chip = document.createElement('button');
@@ -6848,6 +6872,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 ['touchend', 'touchmove', 'touchcancel'].forEach(ev => chip.addEventListener(ev, lpEnd, { passive: true }));
                 chip.addEventListener('contextmenu', (e) => { e.preventDefault(); lpEnd(); if (lpDone) { lpDone = false; return; } del(); });
                 box.appendChild(chip);
+                _mirror(chip, p, autoHit);
             });
             const add = document.createElement('button');
             add.type = 'button'; add.className = 'io-pill'; add.style.cssText = '--pc:#38bdf8; padding:6px 12px; font-size:12px;';
@@ -23549,6 +23574,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             } catch (e) {}
             document.getElementById('final-positive').value = finalOutput || "";
             try { _renderLayerWarning(); } catch (e) {} // 레이어 재배치 경고(모든 테마)
+            try { _comfyRenderLoraChips(); } catch (e) {}   // ⚡자동 LoRA 칩의 '지금 켜졌나' 표시를 프롬프트에 맞춰 갱신
 
             // 각 BREAK 청크별로 토큰을 세어 최대 청크 기준으로 판정 (SD는 75토큰/청크)
             const _chunks = finalOutput.split(/\bBREAK\b/).map(s => s.trim()).filter(Boolean);
