@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.130.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.130.1 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1266,7 +1266,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.130.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.130.1 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2146,10 +2146,11 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.130.0', date: '2026-07-30', time: '최신',
+                version: 'v9.130.1', date: '2026-07-30', time: '최신',
                 tag: 'fix',
                 items: [
                     "[내부 규칙] <b>잘 나오고 있는 프리셋은 앞으로 손대지 않습니다</b> — “더 좋아질 것 같아서” 멀쩡한 문구를 갈아엎지 않아요. 안 나온다고 말씀하신 것, 바꿔 달라고 하신 것만 고칩니다. (자연어 재작성이 적용된 범위는 <b>문신·임신까지</b>)",
+                    "[내부 규칙] 정정 — <b>클래식·스튜디오에서도 문장은 잘 먹힙니다.</b> 갈리는 건 테마가 아니라 <b>물린 체크포인트</b>예요. Pony Realism 같은 실사 머지는 문장을 그대로 읽고, 부루 학습 모델(Illustrious·WAI)에서만 문장이 약합니다. 조합에 태그를 앞에 두는 건 '문장이 안 먹혀서'가 아니라 <b>앞 75토큰 예산을 아끼려는 것</b>입니다.",
                 ]
             },
             {
@@ -8615,8 +8616,12 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         //   · 지금 잘 나오는 프리셋은 손대지 않는다. "더 좋아질 것 같아서" 갈아엎지 말 것.
         //   · 고쳐도 되는 건 사용자가 "안 나온다"고 말했거나 직접 바꿔 달라고 한 프리셋뿐이다.
         //     옆 프리셋을 고치는 김에 묶어서 손보는 것도 금지.
-        //   · 고칠 때는 자연어 우선 재작성: Anima는 인코더가 Qwen이라 '서술이 앞, 태그가 뒤'.
-        //     (클래식/스튜디오 조합 _PACK_COMBOS 는 CLIP이라 반대 — 태그가 앞, 서술이 뒤)
+        //   · 고칠 때는 자연어 서술 + 태그 병행. Anima는 인코더가 Qwen이라 '서술이 앞, 태그가 뒤'.
+        //     ⚠ '클래식은 문장이 안 먹힌다'가 아니다 — 갈리는 건 테마가 아니라 물린 체크포인트다.
+        //       Pony Realism 같은 실사 머지는 클래식에서도 문장을 잘 읽는다(사용자 실측 2026-07-30).
+        //       부루 학습 모델(Illustrious/NoobAI/WAI)에서만 문장이 약하다.
+        //     CLIP의 진짜 제약은 '문장이냐 태그냐'가 아니라 앞 75토큰이 제일 세다는 것.
+        //     그래서 여러 모델에서 쓰이는 _PACK_COMBOS 는 태그를 앞에 둬 예산을 아끼고 서술을 뒤에 붙인다.
         //   · 태그를 없애지 않는다. 서술과 병행한다. 단부루 0건이라고 지우지 않는다.
         //   · 서술 안에는 쉼표 금지(계층·조합이 쉼표로 태그를 쪼갠다).
         //   · 지금까지 자연어 재작성이 된 범위는 문신(tat)·임신(preg)뿐이다.
