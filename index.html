@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.108.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.109.0 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1259,7 +1259,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.108.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.109.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2053,7 +2053,16 @@
         const CHANGELOG = [
             // ── 2026-07-29 ──────────────────────────────────────────────────
             {
-                version: 'v9.108.0', date: '2026-07-30', time: '최신',
+                version: 'v9.109.0', date: '2026-07-30', time: '최신',
+                tag: 'feat',
+                items: [
+                    "[Anima 편집] <b>크게 보다가 다음 결과가 도착해도 확대가 안 풀립니다</b> — 비교창에서 확대해 놓으면 그 배율·그 자리 그대로 새 그림으로 바뀝니다. 같은 부위를 다시 찾아 확대할 필요가 없어요.",
+                    "[Anima 편집] <b>생성 중에는 원본을 안 받습니다</b> — 확대할 때 받아오는 원본이 수 MB라, 대기열이 도는 동안엔 미뤘다가 <b>끝나면 조용히 받아서 바꿔 놓습니다</b>. 생성·전송이 밀리지 않아요.",
+                    "[Anima 편집] PC에서 <b>확대 중에는 좌우 화살표가 사라집니다</b> — 폰에서는 원래 확대하면 넘기기가 안 되는데 PC만 남아 있어서, 실수로 누르면 확대가 풀렸습니다. 이제 양쪽이 같습니다.",
+                ]
+            },
+            {
+                version: 'v9.108.0', date: '2026-07-30', time: '',
                 tag: 'feat',
                 items: [
                     "[Anima 편집] <b>문신</b>과 <b>임신</b>을 고를 수 있습니다 — 하단 바에 버튼이 하나씩 생겼고, 누르면 목록이 떠요. 가슴·포즈와 같은 방식입니다.",
@@ -12414,7 +12423,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 _zoomBadge.style.opacity = _isZoomed() ? '1' : '0';
                 _zoomBadge.textContent = _zoom.toFixed(1) + 'x';
                 _syncEdgeHints();   // 확대 중엔 가장자리 힌트 숨김
+                _syncNavBtns();     // 확대 중엔 좌우 화살표도 숨김(모바일과 동일)
                 if (capEl && capEl.dataset.has === '1') capEl.style.display = _isZoomed() ? 'none' : 'block';   // 확대하면 캡션도 감춤
+            }
+            // 좌우 화살표 버튼 — 데스크톱에서만, 그리고 확대 중이 아닐 때만.
+            //  모바일은 옛 ←→가 새 위/아래 방식과 헷갈려서 아예 숨기고 가장자리 힌트로 안내한다.
+            //  ★ 확대 중 숨기는 이유: 모바일은 확대하면 스와이프·가장자리 탭이 전부 팬으로 바뀌는데
+            //    데스크톱만 화살표가 남아 있어, 그걸 누르면 넘어가며 확대가 풀렸다(동작이 서로 달랐다).
+            function _syncNavBtns() {
+                const n = _lbUrls.length;
+                const show = !_lbCoarse && n > 1 && !_isZoomed();
+                if (btnPrev) btnPrev.style.display = (show && _lbIdx > 0)     ? 'block' : 'none';
+                if (btnNext) btnNext.style.display = (show && _lbIdx < n - 1) ? 'block' : 'none';
             }
             function _resetZoom(animate) { _zoom = 1; _zx = 0; _zy = 0; _applyZoom(!!animate); }
             // 한 점(cx,cy) 고정하며 배율 곱하기 — 휠·핀치·더블탭 공용
@@ -12527,14 +12547,36 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }, LB_SETTLE_MS);
             }
             // ③ — 확대하면 그때 원본. '자세히 보려는' 의도가 분명할 때만 수 MB를 받는다.
-            function _lbLoadFull() { _lbRaise(SLOTS[1], SLOTS[1].dataset.full, 'full'); }
-            function _loadSlots() {
+            //  ★ 대기열이 도는 중이면 미룬다. 원본은 수 MB라 지금 받으면 생성·전송이 그만큼 밀린다.
+            //    (썸네일 저장이 생성 중엔 쉬는 것과 같은 규칙 — _animaTFillPump)
+            //    끝나면 조용히 받아서 그때 교체된다. 그동안은 미리보기로 확대돼 보인다.
+            //    확대를 풀었거나 창을 닫았으면 더 이상 기다리지 않는다.
+            let _lbFullT = null;
+            function _lbCancelFull() { if (_lbFullT !== null) { clearTimeout(_lbFullT); _lbFullT = null; } }
+            function _lbLoadFull() {
+                _lbCancelFull();
+                if (box.style.display === 'none' || !_isZoomed()) return;
+                const busy = (typeof window._lbBusyHint === 'function') && window._lbBusyHint();
+                if (busy) { _lbFullT = setTimeout(_lbLoadFull, 1200); return; }
+                _lbRaise(SLOTS[1], SLOTS[1].dataset.full, 'full');   // 그 사이 다른 장으로 바뀌었으면 '지금 보고 있는' 장을 받는다
+            }
+            //  keepZoom = 내가 넘긴 게 아니라 '목록이 저절로 갱신된' 경우(_lbRefresh).
+            //   비교창에서 대기열 결과가 도착하면 보던 자리가 새 그림으로 갈리는데,
+            //   그때 확대가 풀리면 같은 부위를 다시 확대해야 했다 → 배율·위치를 그대로 둔다.
+            //   내가 직접 넘긴 경우(lightboxNav)는 다른 그림이므로 예전처럼 초기화한다.
+            function _loadSlots(keepZoom) {
                 const n = _lbUrls.length;
                 const th = (i) => (_lbThumbs && _lbThumbs[i]) || '';
                 _setSlot(SLOTS[1], _lbUrls[_lbIdx] || '', th(_lbIdx));
                 _setSlot(SLOTS[0], _lbIdx > 0     ? _lbUrls[_lbIdx - 1] : '', th(_lbIdx - 1));
                 _setSlot(SLOTS[2], _lbIdx < n - 1 ? _lbUrls[_lbIdx + 1] : '', th(_lbIdx + 1));
-                _resetZoom(false); // 다른 이미지로 넘어가면 줌 초기화
+                if (keepZoom && _isZoomed()) {
+                    // 새 그림은 크기가 다를 수 있다 → 이동 범위만 다시 잡는다(배율은 그대로).
+                    _clampPan(); _applyZoom(false);
+                    _lbLoadFull();   // 새 그림은 아직 미리보기다 — 원본을 다시 받아야 흐릿하지 않다
+                } else {
+                    _resetZoom(false); // 다른 이미지로 넘어가면 줌 초기화
+                }
                 _lbScheduleUpgrade();
             }
 
@@ -12564,9 +12606,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 counter.style.display = multi ? 'block' : 'none';
                 if (odoTotal) odoTotal.textContent = ' / ' + n;   // 총 장수는 굴리지 않고 조용히 갱신
                 if (!_odoAnim) _odoSync();
-                // 데스크톱만 좌우 화살표 버튼 — 모바일은 옛 ←→가 새 위/아래 방식과 헷갈려서 숨기고 가장자리 힌트로 안내
-                if (btnPrev) btnPrev.style.display = (!_lbCoarse && multi && _lbIdx > 0)     ? 'block' : 'none';
-                if (btnNext) btnNext.style.display = (!_lbCoarse && multi && _lbIdx < n - 1) ? 'block' : 'none';
+                _syncNavBtns();
                 // 옵션 캡션 — 등록된 라벨이 있을 때만. 확대 중엔 감상 방해가 되니 감춘다.
                 if (capEl) {
                     const lab = (_lbCaps ? _lbCaps[_lbIdx] : (window._lbCaptions && window._lbCaptions[_lbUrls[_lbIdx]])) || '';
@@ -12604,7 +12644,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (ni < 0) ni = Math.min(_lbIdx, imgs.length - 1);
                 _lbIdx = Math.max(0, ni);
                 if (_busy) return;
-                if (lenChanged || _lbUrls[_lbIdx] !== prevUrl) _loadSlots();
+                if (lenChanged || _lbUrls[_lbIdx] !== prevUrl) _loadSlots(true);   // 확대 유지
                 _updateUI();
             }
             window._lbRefresh = _lbRefresh;   // 새 결과가 도착했을 때 앱이 직접 호출
@@ -12820,6 +12860,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 if (box.style.display === 'none') return;
                 _cancelClose(); _resetZoom(false);
                 clearTimeout(_lbUpT); _lbUpT = null; _lbUpFor = null;   // 닫은 뒤에 화질 올리기가 시작되지 않게
+                _lbCancelFull();                                        // 미뤄 둔 원본 받기도 취소(닫았는데 나중에 받으면 낭비)
                 box.style.display = 'none';
                 SLOTS.forEach(img => { img.src = ''; img.dataset.full = ''; img.dataset.q = ''; });
                 _lbUrls = []; _lbIdx = 0; _lbThumbs = null;
