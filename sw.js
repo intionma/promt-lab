@@ -128,11 +128,21 @@ self.addEventListener('fetch', (e) => {
     // ── 2) 앱 파일: 캐시본을 즉시 주고 뒤에서 새로 받는다 ──────
     if (!_cacheable(e.request, url)) return;   // 그 외에는 서비스워커가 없는 것과 동일
 
+    //  ★ 'no-store' = 캐시를 아예 건드리지 말라는 뜻. 'HTML 저장'이 최신 원문을 받으려고 이걸 쓴다.
+    //    여기서 캐시본을 주면 낡은 버전이 저장되는 사고가 난다 → 손대지 않고 그냥 통과시킨다.
+    if (e.request.cache === 'no-store') return;
+
     e.respondWith((async () => {
         const cache = await caches.open(APP_CACHE);
         //  문서 요청은 쿼리(?shared=1 등)가 붙어도 같은 파일이다 → 쿼리를 뗀 주소를 열쇠로 쓴다
         const key = e.request.mode === 'navigate' ? new Request(url.origin + url.pathname) : e.request;
-        const hit = await cache.match(key);
+        //  ★ '문서 이동'은 언제나 캐시본을 먼저 준다. 공유로 들어오는 진입은 POST 리다이렉트라
+        //    브라우저가 reload 로 표시하는데, 그게 이 앱에서 제일 빨라야 하는 경로다(2.2MB를 다시 받으면 말짱 도루묵).
+        //    손으로 누른 새로고침은 reloadApp() 이 미리 pl-drop-cache 를 보내 캐시를 비우므로
+        //    여기서 따로 막지 않아도 최신본을 받는다.
+        //  문서가 아닌 파일(json·png 등)만 reload/no-cache 를 존중한다. 받아온 새 파일은 캐시에 넣는다.
+        const fresh = (e.request.mode !== 'navigate') && (e.request.cache === 'reload' || e.request.cache === 'no-cache');
+        const hit = fresh ? null : await cache.match(key);
         if (hit) {
             e.waitUntil(_revalidate(cache, key, hit.clone()));
             return hit;
