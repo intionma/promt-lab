@@ -162,6 +162,23 @@ const boot=async(b,port,seed)=>{
  ck('하나 고르면 이름이 보인다', lbl.하나==='흑갈', lbl.하나);
  ck('여럿 고르면 "이름 +N"으로 줄여 보인다', lbl.여럿==='흑갈 +2', lbl.여럿);
  ck('✕ 툴팁이 모두 해제임을 알린다', /모두 해제/.test(lbl.X툴팁), lbl.X툴팁);
+ // ✕ 를 실제로 눌러 본다 — 그 팝오버가 담은 축이 전부 꺼지고, 하단 바는 다시 그려지지 않아야 한다
+ const xclick=await p.evaluate(async()=>{
+   const mact=document.getElementById('anima-mact');
+   const btn=mact.querySelector('.anima-gbtn[data-grp="body"]');
+   const before=[...document.querySelectorAll('#anima-snips .anima-chip')].length;
+   const mark=Symbol('keep'); btn.__keep=mark;                 // 다시 그려지면 이 표시가 사라진다
+   btn.querySelector('.anima-gbtn-x').click();
+   await new Promise(r=>setTimeout(r,250));
+   const b2=document.querySelector('.anima-gbtn[data-grp="body"]');
+   return { 남은선택:(_anima.snippets||[]).filter(s=>['skin','tanline','pubic','armpit'].includes(s.group)&&s.on).map(s=>s.name),
+            버튼그대로: b2 && b2.__keep===mark, 값사라짐: !b2.querySelector('.anima-gbtn-v'),
+            다른축유지:(_anima.snippets||[]).filter(s=>s.group==='bust'&&s.on).length,
+            패널칩수변화: [...document.querySelectorAll('#anima-snips .anima-chip')].length-before };
+ });
+ ck('✕ 를 누르면 그 팝오버의 축이 전부 꺼진다', xclick.남은선택.length===0, xclick.남은선택.join(','));
+ ck('✕ 를 눌러도 하단 바를 다시 그리지 않는다(눌림 모션 유지)', xclick.버튼그대로===true, JSON.stringify(xclick));
+ ck('버튼에서 값 표시가 사라진다', xclick.값사라짐===true, JSON.stringify(xclick));
  console.log('  · 하단 바 '+bar.하단바+'px (아이콘 '+bar.아이콘줄+' / 표정 '+bar.표정줄+' / 버튼 '+bar.버튼줄+') · 버튼 '+bar.그룹버튼.join(','));
 
  // ── 팝오버가 섹션으로 열리는가
