@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO PROMPT ARCHITECT v9.132.0 (Responsive & Light/Dark Theme)</title>
+    <title>PRO PROMPT ARCHITECT v9.133.0 (Responsive & Light/Dark Theme)</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1078,6 +1078,19 @@
            (마운트되면 #anima-root가 그려지고, 다른 테마로 나가면 app-container가 다시 보인다.) */
         body[data-layout="anima"] #app-container,
         body[data-layout="anima"] #mobile-tabbar { display: none !important; }
+        /* ★ body 가 만들어지기 전에도 먹히도록 <html> 에도 같은 규칙을 건다.
+           아래 <head> 안 부트 스크립트가 첫 페인트 '전에' html[data-layout] 을 세운다.
+           이게 없으면 스크립트가 도는 124ms 전까지(첫 페인트 80ms) 클래식 UI가 그려진다 — 그 번쩍임의 정체다. */
+        html[data-layout="anima"] #app-container,
+        html[data-layout="anima"] #mobile-tabbar { display: none !important; }
+        /* 부트 가림막 — 화면이 자리 잡기 전까지 배경색만 보여 준다(잘못된 화면이 보이는 것보다 낫다). */
+        #pl-boot { position:fixed; inset:0; z-index:2147483000; background:var(--bg-base);
+                   display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px;
+                   transition:opacity .18s ease; }
+        #pl-boot.gone { opacity:0; pointer-events:none; }
+        #pl-boot .pb-t { font-family:var(--font-heading),sans-serif; font-size:14px; font-weight:800; color:var(--text-dim); letter-spacing:.02em; }
+        #pl-boot .pb-s { width:26px; height:26px; border-radius:50%; border:2.5px solid var(--border-dim); border-top-color:#7c3aed; animation:pb-spin .7s linear infinite; }
+        @keyframes pb-spin { to { transform:rotate(360deg); } }
 
         /* 이미지 변환(img2img)·인페인팅 테마 — 3열: [에디터] · [원본+도구] · [결과] (원본↔결과 나란히) */
         body[data-layout="img2img"] #panel-left,
@@ -1223,8 +1236,37 @@
             .toast i, .toast svg { font-size: 13px !important; }
         }
     </style>
+    <script>
+        /* ══ 부트 스크립트 — 반드시 첫 페인트 전에 돈다(본문 파싱 전이라 body 가 아직 없다) ══
+           목적 1: 저장된 테마·레이아웃을 <html> 에 미리 걸어 '클래식 화면이 잠깐 번쩍이는' 것을 없앤다.
+                   (예전엔 본문을 다 읽은 뒤 initTheme 이 걸어서, 그 전에 이미 클래식이 그려졌다)
+           목적 2: 공유(?shared=1)로 들어온 경우도 여기서 바로 anima 로 잡는다 — 공유 진입은 무조건
+                   문서를 새로 띄우므로, 이 처리가 늦으면 매번 클래식이 번쩍인다. */
+        (function () {
+            var d = document.documentElement;
+            var theme = 'dark', layout = null;
+            try { theme = localStorage.getItem('pro_prompt_theme') || 'dark'; } catch (e) {}
+            try {
+                layout = /[?&]shared=1/.test(location.search) ? 'anima' : localStorage.getItem('pl_layout');
+                if (layout === 'anima') { try { localStorage.setItem('pl_layout', 'anima'); } catch (e2) {} }
+            } catch (e) {}
+            d.setAttribute('data-theme', theme);
+            if (layout) d.setAttribute('data-layout', layout);
+        })();
+    </script>
 </head>
 <body data-theme="dark">
+    <!-- 화면이 자리 잡기 전까지 덮어 두는 가림막. initApp/Anima 마운트가 끝나면 _plBootDone()이 걷어낸다.
+         (스크립트가 죽어도 영영 남지 않게 아래 안전장치가 3초 뒤 무조건 걷어낸다) -->
+    <div id="pl-boot"><div class="pb-s"></div><div class="pb-t">프롬프트 랩</div></div>
+    <script>
+        window._plBootDone = function () {
+            var b = document.getElementById('pl-boot'); if (!b || b.__gone) return;
+            b.__gone = true; b.classList.add('gone');
+            setTimeout(function () { try { b.remove(); } catch (e) {} }, 240);
+        };
+        setTimeout(window._plBootDone, 3000);   // 안전장치 — 무슨 일이 있어도 화면이 막히지 않게
+    </script>
     <div id="dev-banner"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 6px #fff;animation:dev-blink 1s step-start infinite;"></span> 🧪 DEV MODE · 가상 생성 모드 (ComfyUI 미연결)</div>
     <div id="dev-frame"></div>
     <div id="toast-container"></div>
@@ -1266,7 +1308,7 @@
 
     <!-- ── 전역 상단바 (제목 + 햄버거 메뉴) ── -->
     <header id="global-topbar">
-        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.132.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
+        <span class="gt-brand" onclick="openChangelogModal()" style="cursor:pointer;"><i class="fa-solid fa-tags"></i> 프롬프트 랩<span class="app-version-tooltip">v9.133.0 &nbsp;·&nbsp; 2026-07-30 — 클릭하면 업데이트 내역 보기</span></span>
         <span id="dev-chip"><i class="fa-solid fa-flask"></i> DEV</span>
         <div class="gt-spacer"></div>
         <div id="gt-pins" class="gt-scroll" style="flex:0 1 auto; gap:6px;"></div>
@@ -2148,7 +2190,17 @@
         const CHANGELOG = [
             // ── 2026-07-30 ──────────────────────────────────────────────────
             {
-                version: 'v9.132.0', date: '2026-07-31', time: '최신',
+                version: 'v9.133.0', date: '2026-07-31', time: '최신',
+                tag: 'fix',
+                items: [
+                    "[전체] <b>새로고침·공유로 들어올 때 클래식 화면이 번쩍이던 문제를 고쳤습니다</b> — Anima를 쓰고 있어도 잠깐 클래식 UI가 보였다 사라졌죠. 저장된 화면을 <b>첫 그림이 그려지기 전에</b> 미리 잡도록 바꿨습니다. 이제 0프레임이에요.",
+                    "[전체] 화면이 자리 잡을 때까지 <b>가림막</b>이 덮습니다 — 어중간한 화면 대신 앱 이름과 로딩 표시만 보입니다.",
+                    "[전체] <b>앱이 훨씬 빨리 뜹니다</b> — 열 때마다 2MB짜리 앱 파일을 새로 받던 걸 <b>저장해 두고 바로 쓰도록</b> 바꿨습니다. 공유로 들어올 때도 마찬가지예요. (전송량 2.2MB → 0)",
+                    "[전체] 대신 새 버전은 <b>한 박자 늦게</b> 옵니다 — 배경에서 미리 받아 두고 <b>“새 버전이 준비됐어요”</b> 알림을 띄웁니다. 좌상단 <b>프롬프트 랩 → 새로고침</b>을 누르면 바로 적용돼요. 이 버튼은 <b>항상 새 파일을 받아옵니다.</b>",
+                ]
+            },
+            {
+                version: 'v9.132.0', date: '2026-07-31', time: '',
                 tag: 'feat',
                 items: [
                     "[전체] <b>앱 안에서 새로고침할 수 있습니다</b> — 좌상단 <b>프롬프트 랩</b>을 누르면 뜨는 이 창의 오른쪽 위에 <b>🔄 새로고침</b> 버튼이 생겼어요. 설치한 앱에는 주소창이 없어 새로고침할 방법이 아예 없었습니다.",
@@ -4995,10 +5047,16 @@
             if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-arrows-rotate fa-spin"></i> 새로고침 중…'; }
             try { if (typeof saveTabsAndStates === 'function') saveTabsAndStates(); } catch (e) {}
             try { if (typeof _animaSave === 'function') _animaSave(); } catch (e) {}
+            //  ★ 손으로 누른 새로고침은 '무조건 새 파일'이어야 한다 —
+            //    평소 로딩은 캐시본을 써서 빠르지만, 이 버튼만은 캐시를 버리고 다시 받는다.
+            try {
+                if (navigator.serviceWorker && navigator.serviceWorker.controller)
+                    navigator.serviceWorker.controller.postMessage({ type: 'pl-drop-cache' });
+            } catch (e) {}
             setTimeout(() => {
                 try { location.replace(location.pathname + location.hash); }
                 catch (e) { try { location.reload(); } catch (e2) {} }
-            }, 260);
+            }, 320);
         }
         window.reloadApp = reloadApp;
         function openChangelogModal() {
@@ -15639,6 +15697,18 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const httpsOk = location.protocol === 'https:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
             if (!('serviceWorker' in navigator) || !httpsOk) return;
             try { navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {}); } catch (e) {}
+            //  서비스워커가 앱 파일을 캐시해 두기 때문에 '한 박자 늦게' 최신이 된다.
+            //  새 버전을 받아 두면 여기로 알려 온다 → 사용자가 바로 새로고침할 수 있게 띄운다.
+            //  (조용히 있으면 예전처럼 "업데이트가 안 된다"가 된다 — 그건 반드시 피한다)
+            try {
+                navigator.serviceWorker.addEventListener('message', (ev) => {
+                    if (!ev.data || ev.data.type !== 'pl-update' || window.__plUpdateShown) return;
+                    window.__plUpdateShown = true;
+                    try {
+                        showToast('새 버전이 준비됐어요 — 좌상단 <b>프롬프트 랩</b> → <b>새로고침</b>을 누르면 적용됩니다', 'info', 8000);
+                    } catch (e) {}
+                });
+            } catch (e) {}
             if (!shared) return;
             // 주소창에서 표식을 지운다 — 새로고침할 때마다 '공유 받는 중'이 되면 안 된다
             //  ★ 통째로 지우면 안 된다 — 다른 쿼리가 붙어 있으면 그것까지 날아간다(실측으로 확인).
@@ -28057,12 +28127,17 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (_plTeardown) { try { _plTeardown(); } catch (e) {} _plTeardown = null; }
             runCleanups();
             document.body.setAttribute('data-layout', def.id);
+            //  ★ 부트용으로 <html>에 걸어 둔 값은 여기서 반드시 지운다.
+            //    안 지우면 클래식으로 나가도 html[data-layout="anima"] 규칙이 살아 있어 화면이 빈 채로 남는다.
+            try { document.documentElement.removeAttribute('data-layout'); } catch (e) {}
             _plCurrent = def.id;
             try { localStorage.setItem('pl_layout', def.id); } catch (e) {}
             const lbl = document.getElementById('pl-current-name'); if (lbl) lbl.textContent = '현재: ' + def.name;
             setTopbarVar();
             if (def.init) { try { _plTeardown = def.init() || null; } catch (e) { console.error('layout init error', e); } }
             renderPickerCards();
+            //  화면이 실제로 자리 잡은 지금 부트 가림막을 걷는다(다음 프레임 = 첫 그림이 나온 뒤).
+            try { requestAnimationFrame(() => requestAnimationFrame(() => { if (window._plBootDone) window._plBootDone(); })); } catch (e) { if (window._plBootDone) window._plBootDone(); }
         }
         window.applyLayout = applyLayout;
 
@@ -28111,7 +28186,14 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             setTopbarVar();
             let saved = 'classic'; try { saved = localStorage.getItem('pl_layout') || 'classic'; } catch (e) {}
             if (saved && saved !== 'classic') applyLayout(saved);
-            else { const lbl = document.getElementById('pl-current-name'); if (lbl) lbl.textContent = '현재: 클래식'; document.body.setAttribute('data-layout', 'classic'); }
+            else {
+                const lbl = document.getElementById('pl-current-name'); if (lbl) lbl.textContent = '현재: 클래식';
+                document.body.setAttribute('data-layout', 'classic');
+                //  ★ 클래식은 applyLayout을 타지 않는다 — 정리와 가림막 걷기를 여기서도 해야 한다.
+                //    (안 하면 3초 안전장치가 걷을 때까지 클래식 사용자가 가림막을 계속 본다)
+                try { document.documentElement.removeAttribute('data-layout'); } catch (e) {}
+                try { requestAnimationFrame(() => requestAnimationFrame(() => { if (window._plBootDone) window._plBootDone(); })); } catch (e) { if (window._plBootDone) window._plBootDone(); }
+            }
         }
         // 저장된 레이아웃 복원 — 외부 리소스(load 이벤트)에 절대 의존하지 않게 DOMContentLoaded 기준으로 실행.
         //  ★ 예전엔 window 'load' 이벤트를 기다렸는데, 폰트·아이콘·three.js CDN이 느리거나 막히면
