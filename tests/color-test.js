@@ -136,14 +136,33 @@ const boot=async(b,port,seed)=>{
    (_anima.snippets||[]).forEach(s=>{ if(s.kind!=='base') s.on=false; });
    _animaRenderSnippets(); await new Promise(r=>setTimeout(r,300));
    const mact=document.getElementById('anima-mact');
-   return { 그룹버튼수: mact.querySelectorAll('.anima-gbtn[data-grp]').length,
-            세부칩: !!mact.querySelector('.anima-ico[data-grp="body"]'),
-            아이콘줄높이: Math.round(mact.querySelector('.anima-mact-icos').getBoundingClientRect().height),
-            버튼줄높이: Math.round((mact.querySelector('.anima-mact-grp')||{getBoundingClientRect:()=>({height:0})}).getBoundingClientRect().height) };
+   const h=(sel)=>{const e=mact.querySelector(sel);return e?Math.round(e.getBoundingClientRect().height):0;};
+   const 줄수=(sel)=>{const e=mact.querySelector(sel);return e?[...new Set([...e.children].map(c=>Math.round(c.getBoundingClientRect().top)))].length:0;};
+   return { 그룹버튼: [...mact.querySelectorAll('.anima-gbtn[data-grp]')].map(b=>b.dataset.grp),
+            하단바: Math.round(mact.getBoundingClientRect().height),
+            아이콘줄: h('.anima-mact-icos'), 표정줄: h('.anima-mact-expr'), 버튼줄: h('.anima-mact-grp'),
+            아이콘줄수: 줄수('.anima-mact-icos') };
  });
- ck('그룹 버튼은 4개 그대로다(줄이 안 늘어남)', bar.그룹버튼수===4, bar.그룹버튼수+'개');
- ck('아이콘 줄에 [세부] 칩이 생겼다', bar.세부칩===true, JSON.stringify(bar));
- console.log('  · 아이콘 줄 '+bar.아이콘줄높이+'px · 그룹 버튼 줄 '+bar.버튼줄높이+'px');
+ //  ★ 개수가 아니라 '실제 높이'로 본다. v9.146.0에서 개수만 보고 통과시켰다가
+ //    아이콘 줄이 한 줄 접혀 하단 바가 43px 두꺼워진 걸 놓쳤다.
+ const BASE={하단바:225, 아이콘줄:38, 표정줄:27, 버튼줄:68, 아이콘줄수:2};   // v9.145.0 실측(폰 390px)
+ ck('★ 하단 바 높이가 전과 같다', bar.하단바===BASE.하단바, `${BASE.하단바} → ${bar.하단바}px`);
+ ['아이콘줄','표정줄','버튼줄','아이콘줄수'].forEach(k=>
+   ck(`  ${k}이(가) 그대로`, bar[k]===BASE[k], `${BASE[k]} → ${bar[k]}`));
+ ck('노출 세부가 버튼 줄에 있다', bar.그룹버튼.includes('body'), bar.그룹버튼.join(','));
+ const lbl=await p.evaluate(async()=>{
+   (_anima.snippets||[]).forEach(s=>{ if(s.kind!=='base') s.on=false; });
+   const set=(ids)=>{ids.forEach(id=>{const s=_anima.snippets.find(x=>x.id===id); if(s) s.on=true;});};
+   set(['skin_dark']); _animaRenderSnippets(); await new Promise(r=>setTimeout(r,250));
+   const t1=document.querySelector('.anima-gbtn[data-grp="body"] .anima-gbtn-v').textContent;
+   set(['tan_bikini','pubic_bush']); _animaSyncGrpBtns();
+   const b=document.querySelector('.anima-gbtn[data-grp="body"]');
+   return { 하나:t1, 여럿:b.querySelector('.anima-gbtn-v').textContent, X툴팁:b.querySelector('.anima-gbtn-x').title };
+ });
+ ck('하나 고르면 이름이 보인다', lbl.하나==='흑갈', lbl.하나);
+ ck('여럿 고르면 "이름 +N"으로 줄여 보인다', lbl.여럿==='흑갈 +2', lbl.여럿);
+ ck('✕ 툴팁이 모두 해제임을 알린다', /모두 해제/.test(lbl.X툴팁), lbl.X툴팁);
+ console.log('  · 하단 바 '+bar.하단바+'px (아이콘 '+bar.아이콘줄+' / 표정 '+bar.표정줄+' / 버튼 '+bar.버튼줄+') · 버튼 '+bar.그룹버튼.join(','));
 
  // ── 팝오버가 섹션으로 열리는가
  const pop=await p.evaluate(async(kind)=>{
@@ -204,10 +223,10 @@ const boot=async(b,port,seed)=>{
    const rows=[...box.querySelectorAll('.anima-olab')].map(e=>e.textContent.trim());
    return { 칩에남음: chips.filter(t=>['창백','태닝','갈색','흑갈','없음 (면도)','살짝','큰 유륜','말자지'].includes(t)),
             줄에남음: rows.filter(t=>['피부색','수영복 자국','음모','겨털','유두 색','유륜 크기','자지 형태','자지 색'].includes(t)),
-            세부칩:!!document.querySelector('.anima-ico[data-grp="body"]') };
+            세부버튼:!!document.querySelector('.anima-gbtn[data-grp="body"]') };
  });
  ck('성인 표시를 끄면 새 축이 숨는다',
-    adultOff.칩에남음.length===0 && adultOff.줄에남음.length===0 && !adultOff.세부칩, JSON.stringify(adultOff));
+    adultOff.칩에남음.length===0 && adultOff.줄에남음.length===0 && !adultOff.세부버튼, JSON.stringify(adultOff));
  await p.evaluate(()=>{localStorage.setItem('adult_optin_v1','1');});
 
  // ── 기존 사용자 마이그레이션
