@@ -73,6 +73,41 @@ const type=async(p,n,v)=>await p.evaluate(async({n,v})=>{
    ta.value='school uniform, thighhighs'; syncFromManualInput(4); return ta.value; });
  ck('캡슐 경로는 설정과 무관하게 정렬', chip==='thighhighs, school uniform', chip);
 
+ // ★ 자체 검토에서 잡은 것 — 스위치를 '텍스트 칸 blur'가 아닌 곳까지 물리면
+ //   사용자가 일부러 배치한 것(드래그·전체저장)이 즉시 되돌려진다. 실제 DB 태그로 확인한다.
+ const manualPaths = await p.evaluate(async ()=>{
+   const db=[]; Object.values(promptDB[4]||{}).forEach(a=>a.forEach(d=>
+     (d.t||'').split(',').map(s=>s.trim()).filter(Boolean).forEach(t=>{ if(db.length<4&&!db.includes(t)) db.push(t); })));
+   if (db.length<3) return {skip:true};
+   const rev=[...db].reverse(), L4=()=>document.getElementById('layer-4').value;
+   const out={rev};
+   localStorage.setItem('editor_keeporder_v1','0');       // 기본(자동 정렬) 상태에서 확인
+   switchViewMode('visual'); await new Promise(r=>setTimeout(r,150));
+   // ① 다른 계층으로 끌어 옮기기
+   document.getElementById('layer-5').value=''; syncFromManualInput(5, true);
+   document.getElementById('layer-4').value=rev.join(', ');
+   _chipMoveAcross(4, 0, 1, 5, null);
+   out.끌어옮김 = L4();
+   // ② 같은 계층 순서 바꾸기
+   document.getElementById('layer-4').value=rev.join(', '); syncFromManualInput(4, true);
+   out.순서바꾸기 = L4();
+   // ③ 전체 모드 [저장(적은 그대로)]
+   switchViewMode('full'); await new Promise(r=>setTimeout(r,250));
+   const fta=document.querySelector('#editor-full-wrap textarea');
+   if (fta){ fta.value='# 4. 의상\n'+rev.join(', ')+'\n'; saveFullEditorText(); await new Promise(r=>setTimeout(r,200)); }
+   out.전체저장 = L4();
+   switchViewMode('text');
+   return out;
+ });
+ if (!manualPaths.skip) {
+   const rev=manualPaths.rev;
+   const keeps=(v)=>{const t=v.split(',').map(s=>s.trim()).filter(Boolean);
+     return t.join(',')===rev.filter(x=>t.includes(x)).join(',');};
+   ck('★ 끌어 옮긴 뒤 남은 순서가 유지된다', keeps(manualPaths.끌어옮김), manualPaths.끌어옮김);
+   ck('★ 같은 계층 순서 바꾸기가 되돌려지지 않는다', keeps(manualPaths.순서바꾸기), manualPaths.순서바꾸기);
+   ck('★ 전체 모드 [저장(적은 그대로)]가 정말 그대로 저장한다', keeps(manualPaths.전체저장), manualPaths.전체저장);
+ }
+
  // 백업에 담기는가
  const bk=await p.evaluate(()=>{ openIOModal('export');
    const v=document.getElementById('io-textarea').value;
