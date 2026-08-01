@@ -107,6 +107,58 @@ const px = (c) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="h
     await page.waitForTimeout(300);
     ck('결과가 없으면 원본 한 장만', g1 === 1, String(g1));
 
+    // ── 시드를 잠그면 그 그림이 두 번 들어가지 않는가 (검토에서 잡힌 것)
+    const lk = await page.evaluate(async () => {
+        _anima.results = [
+            { k: 1, url: 'http://x/a1.png', seed: 11, src: 'KEY_A', opt: '하나' },
+            { k: 2, url: 'http://x/a2.png', seed: 22, src: 'KEY_A', opt: '둘' },
+            { k: 3, url: 'http://x/a3.png', seed: 33, src: 'KEY_A', opt: '셋' },
+        ];
+        _animaResSel = 1;
+        _anima.seedLock = { seed: 11, url: 'http://x/a1.png' };   // 왼쪽에 a1 이 뜬다
+        _animaRenderResult();
+        await new Promise(r => setTimeout(r, 300));
+        window.__lb = null;
+        const fr = [...document.querySelectorAll('.anima-frame')].find(f => f.dataset.lb === '1');
+        if (fr) fr.click();
+        await new Promise(r => setTimeout(r, 250));
+        try { history.back(); } catch (e) {}
+        const L = window.__lb;
+        return L && { urls: L.urls, idx: L.idx, caps: L.caps };
+    });
+    await page.waitForTimeout(300);
+    ck('★ 시드를 잠가도 같은 그림이 두 번 안 들어간다',
+        lk && lk.urls.length === new Set(lk.urls).size, lk && JSON.stringify(lk.urls));
+    ck('잠근 그림은 제자리에서 잠금 표시를 단다',
+        lk && /🔒/.test(lk.caps[0]) && /1\/3/.test(lk.caps[0]), lk && JSON.stringify(lk.caps));
+    ck('잠금 중에도 시작 위치는 지금 고른 결과다',
+        lk && lk.urls[lk.idx] === 'http://x/a2.png', lk && `idx ${lk.idx}`);
+    await page.evaluate(() => { _anima.seedLock = null; _animaRenderResult(); });
+    await page.waitForTimeout(250);
+
+    // ── 대기열 작업이 '결과 크기' 스위치를 물고 가는가 (검토에서 잡힌 것)
+    const snap = await page.evaluate(() => ({
+        있음: _ANIMA_SNAP_KEYS.indexOf('matchSrcSize') >= 0,
+        스냅: _animaSnapshotSettings().matchSrcSize,
+    }));
+    ck('★ 대기열 스냅샷에 결과 크기 스위치가 담긴다', snap.있음 === true, JSON.stringify(snap));
+
+    // ── 캡션에 축이 빠지지 않는가 (검토에서 잡힌 것)
+    const lab = await page.evaluate(() => {
+        const set = (ids) => { _anima.snippets.forEach(s => { if (s.kind !== 'base') s.on = false; }); ids.forEach(i => _animaToggleSnip(i)); return _animaOptLabel(); };
+        return {
+            장식: set(['tat_fil_arm', 'tat_fil_chest']),
+            색: set(['skin_tan', 'tan_bikini', 'nip_black']),
+            후타끔: set(['fcon_used']),
+            후타켬: set(['futa_normal', 'fcon_used']),
+        };
+    });
+    ck('★ 장식 문신이 캡션에 나온다', /팔\/어깨/.test(lab.장식) && /흉골/.test(lab.장식), lab.장식);
+    ck('★ 피부색·자국·유두 색이 캡션에 나온다', /태닝/.test(lab.색) && /비키니/.test(lab.색) && /흑갈/.test(lab.색), lab.색);
+    ck('후타를 안 켰으면 후타 상세는 캡션에 안 나온다', !/콘돔/.test(lab.후타끔), lab.후타끔);
+    ck('후타를 켜면 콘돔이 캡션에 나온다', /콘돔/.test(lab.후타켬), lab.후타켬);
+    NOTE.push('  캡션 예: ' + lab.색 + '  |  ' + lab.후타켬);
+
     // ══ ② 후타 콘돔 축 ═══════════════════════════════════════════════════
     const con = await page.evaluate(() => {
         const c = _anima.snippets.filter(s => s.group === 'futaCondom');
