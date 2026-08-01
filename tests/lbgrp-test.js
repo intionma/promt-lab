@@ -159,6 +159,63 @@ const px = (c) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="h
     ck('후타를 켜면 콘돔이 캡션에 나온다', /콘돔/.test(lab.후타켬), lab.후타켬);
     NOTE.push('  캡션 예: ' + lab.색 + '  |  ' + lab.후타켬);
 
+    // ── 크게 본 채로 새 결과가 도착했을 때 어디에 있어야 하는가 ────────────
+    //  ① 최신을 보고 있었으면 → 자리를 지키고 그림이 새것으로 갈아끼워진다(결과창이 교체되는 느낌)
+    //  ② 뒤로 넘겨 옛것을 보고 있었으면 → 그 그림을 계속 본다(번호만 밀린다)
+    const arrive = async (startBack) => await page.evaluate(async (startBack) => {
+        _anima.seedLock = null;
+        _anima.srcKey = 'KEY_A';
+        _anima.results = [
+            { k: 20, url: 'http://x/new2.png', seed: 2, src: 'KEY_A', opt: '둘' },
+            { k: 10, url: 'http://x/new1.png', seed: 1, src: 'KEY_A', opt: '하나' },
+        ];
+        _animaResSel = 0;
+        _animaRenderResult();
+        await new Promise(r => setTimeout(r, 250));
+        const fr = [...document.querySelectorAll('.anima-frame')].find(f => f.dataset.lb === '1');
+        fr.click();                                   // 크게 보기 열기 (최신 = 머리 자리)
+        await new Promise(r => setTimeout(r, 300));
+        const cur = () => {
+            const im = document.querySelector('#lightbox img, .lb-img, #lightbox-img');
+            return { idx: window.__lbIdxProbe ? window.__lbIdxProbe() : null };
+        };
+        for (let i = 0; i < startBack; i++) { window.lightboxNav(1); await new Promise(r => setTimeout(r, 200)); }
+        const before = window.__lbState();
+        // 새 결과 도착 — 앱이 하는 그대로 맨 앞에 넣고 라이트박스에 알린다
+        _anima.results.unshift({ k: 30, url: 'http://x/new3.png', seed: 3, src: 'KEY_A', opt: '셋' });
+        _animaResSel = 0;
+        try { window._lbRefresh(); } catch (e) {}
+        await new Promise(r => setTimeout(r, 300));
+        const after = window.__lbState();
+        try { history.back(); } catch (e) {}
+        return { before, after };
+    }, startBack);
+
+    //  라이트박스 내부 상태를 읽을 창구 (idx·현재 url)
+    await page.evaluate(() => {
+        window.__lbState = () => {
+            const cap = document.getElementById('img-lightbox-cap');
+            const cnt = document.getElementById('img-lightbox-counter');
+            return {
+                cap: cap ? cap.textContent.trim() : null,
+                counter: cnt ? cnt.textContent.replace(/\s+/g, ' ').trim() : null,
+                열림: (document.getElementById('img-lightbox') || {}).style ? document.getElementById('img-lightbox').style.display : null,
+            };
+        };
+    });
+
+    const head = await arrive(0);
+    ck('★ 최신을 보다가 새 결과가 오면 그 새것으로 갈아끼워진다',
+        head.after.cap && /1\/3/.test(head.after.cap) && /셋/.test(head.after.cap),
+        `전 ${head.before.cap} → 후 ${head.after.cap}`);
+    NOTE.push(`  최신 자리: ${head.before.cap} → ${head.after.cap}`);
+
+    const older = await arrive(1);
+    ck('★ 옛것을 보고 있으면 그 그림을 계속 본다',
+        older.after.cap && /하나/.test(older.after.cap) && /3\/3/.test(older.after.cap),
+        `전 ${older.before.cap} → 후 ${older.after.cap}`);
+    NOTE.push(`  옛것 자리: ${older.before.cap} → ${older.after.cap}`);
+
     // ══ ② 후타 콘돔 축 ═══════════════════════════════════════════════════
     const con = await page.evaluate(() => {
         const c = _anima.snippets.filter(s => s.group === 'futaCondom');
