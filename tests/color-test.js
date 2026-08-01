@@ -205,9 +205,9 @@ const boot=async(b,port,seed)=>{
    const el=document.getElementById('anima-futapop'); if(!el) return {err:'안 열림'};
    return { 소제목:[...el.querySelectorAll('.anima-fp-lab')].map(e=>e.textContent), 칩수: el.querySelectorAll('.anima-chip[data-fd]').length };
  });
- ck('후타 팝오버에 형태·색·대비 섹션이 추가됐다',
-    JSON.stringify(pop3.소제목)===JSON.stringify(['발기','포피','사정','형태','색','대비']), JSON.stringify(pop3));
- ck('후타 팝오버에 15개 칩', pop3.칩수===15, String(pop3.칩수));
+ ck('후타 팝오버 섹션 (v9.154.0에서 콘돔 추가)',
+    JSON.stringify(pop3.소제목)===JSON.stringify(['발기','포피','사정','콘돔','형태','색','대비']), JSON.stringify(pop3));
+ ck('후타 팝오버에 20개 칩', pop3.칩수===20, String(pop3.칩수));
 
  // ── 옵션 패널에 '기타'로 새어 나오지 않는가
  const panel=await p.evaluate(async()=>{
