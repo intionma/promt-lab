@@ -28,7 +28,8 @@ const boot=async(b,port,seed)=>{
    g['_대비'] = (_anima.snippets||[]).filter(s=>s.detail==='futa'&&!s.group).map(s=>s.name);
    return g;
  });
- const want={skin:4,tanline:3,pubic:4,armpit:3,nip:5,areola:2,futaColor:4,futaShape:4,_대비:1};
+ //  v9.161.0: futaColor 5(하양 추가) · pubicCol 2(음모 색) · futaGlans 2('귀두만 진하게'가 그룹을 얻음 → _대비 0)
+ const want={skin:4,tanline:3,pubic:4,armpit:3,nip:5,areola:2,futaColor:5,futaShape:4,pubicCol:2,futaGlans:2,_대비:0};
  Object.entries(want).forEach(([k,v])=>ck(`축 ${k} ${v}개`, (groups[k]||[]).length===v, JSON.stringify(groups[k])));
  console.log('  · 피부색: '+(groups.skin||[]).join(' / '));
  console.log('  · 음모: '+(groups.pubic||[]).join(' / ')+'  · 겨털: '+(groups.armpit||[]).join(' / '));
@@ -188,9 +189,9 @@ const boot=async(b,port,seed)=>{
    return { 소제목: [...el.querySelectorAll('.anima-fp-lab')].map(e=>e.textContent),
             칩수: el.querySelectorAll('.anima-chip[data-gd]').length };
  },'body');
- ck('노출 세부 팝오버가 4개 소제목으로 열린다',
-    JSON.stringify(pop.소제목)===JSON.stringify(['피부색','수영복 자국','음모','겨털']), JSON.stringify(pop));
- ck('노출 세부 팝오버에 14개 칩', pop.칩수===14, String(pop.칩수));
+ ck('노출 세부 팝오버가 5개 소제목으로 열린다 (v9.161.0 음모 색 추가)',
+    JSON.stringify(pop.소제목)===JSON.stringify(['피부색','수영복 자국','음모','음모 색','겨털']), JSON.stringify(pop));
+ ck('노출 세부 팝오버에 16개 칩 (v9.161.0 음모 색 2개 추가)', pop.칩수===16, String(pop.칩수));
  const pop2=await p.evaluate(async()=>{ _animaGrpPop='bust'; _animaSyncPops(); await new Promise(r=>setTimeout(r,200));
    const el=document.getElementById('anima-grppop');
    return { 소제목:[...el.querySelectorAll('.anima-fp-lab')].map(e=>e.textContent), 칩수: el.querySelectorAll('.anima-chip[data-gd]').length }; });
@@ -205,9 +206,9 @@ const boot=async(b,port,seed)=>{
    const el=document.getElementById('anima-futapop'); if(!el) return {err:'안 열림'};
    return { 소제목:[...el.querySelectorAll('.anima-fp-lab')].map(e=>e.textContent), 칩수: el.querySelectorAll('.anima-chip[data-fd]').length };
  });
- ck('후타 팝오버 섹션 (v9.154.0에서 콘돔 추가)',
-    JSON.stringify(pop3.소제목)===JSON.stringify(['발기','포피','사정','콘돔','형태','색','대비']), JSON.stringify(pop3));
- ck('후타 팝오버에 20개 칩', pop3.칩수===20, String(pop3.칩수));
+ ck('후타 팝오버 섹션 (v9.161.0에서 귀두 추가·대비는 귀두로 흡수)',
+    JSON.stringify(pop3.소제목)===JSON.stringify(['발기','포피','사정','콘돔','형태','색','귀두']), JSON.stringify(pop3));
+ ck('후타 팝오버에 22개 칩 (v9.161.0 하양·귀두 핑크 추가)', pop3.칩수===22, String(pop3.칩수));
 
  // ── 옵션 패널에 '기타'로 새어 나오지 않는가
  const panel=await p.evaluate(async()=>{
@@ -219,8 +220,8 @@ const boot=async(b,port,seed)=>{
    return { 줄: rows.map(r=>r.lab).filter(Boolean), 기타개수: etc?etc.n:0 };
  });
  ck('★ 새 축이 기타 줄로 새지 않는다', panel.기타개수===0, '기타 '+panel.기타개수+'개');
- ck('후타가 켜져 있으면 형태·색·대비 줄이 나온다',
-    ['형태','색','대비'].every(l=>panel.줄.includes(l)), panel.줄.join('/'));
+ ck('후타가 켜져 있으면 형태·색·귀두 줄이 나온다 (대비는 v9.161.0에서 귀두로 흡수)',
+    ['형태','색','귀두'].every(l=>panel.줄.includes(l)), panel.줄.join('/'));
  const panelOff=await p.evaluate(async()=>{
    (_anima.snippets||[]).forEach(s=>{ if(s.group==='futa') s.on=false; });
    _animaRenderSnippets(); await new Promise(r=>setTimeout(r,400));
@@ -259,7 +260,7 @@ const boot=async(b,port,seed)=>{
             glans: (_anima.snippets||[]).some(s=>s.id==='dcol_glans'),
             원래것: (_anima.snippets||[]).some(s=>s.id==='bust_large') };
  });
- const migOk = mig.skin===4&&mig.pubic===4&&mig.armpit===3&&mig.nip===5&&mig.areola===2&&mig.futaColor===4&&mig.futaShape===4&&mig.tanline===3&&mig.glans;
+ const migOk = mig.skin===4&&mig.pubic===4&&mig.armpit===3&&mig.nip===5&&mig.areola===2&&mig.futaColor===5&&mig.futaShape===4&&mig.tanline===3&&mig.glans;
  ck('★ 기존 사용자에게도 새 축이 전부 들어간다', migOk, JSON.stringify(mig));
  ck('기존 사용자의 원래 항목은 그대로', mig.원래것===true, String(mig.원래것));
  const e2=s2.errs.filter(e=>!/Failed to load|net::ERR/.test(e));
