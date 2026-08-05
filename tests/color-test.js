@@ -258,9 +258,11 @@ const boot=async(b,port,seed)=>{
             nip:(g.nip||[]).length, areola:(g.areola||[]).length, futaColor:(g.futaColor||[]).length,
             futaShape:(g.futaShape||[]).length, tanline:(g.tanline||[]).length,
             glans: (_anima.snippets||[]).some(s=>s.id==='dcol_glans'),
+            //  v9.161.0 치유 검증: 옛 저장분(group:null)이 futaGlans 그룹을 되찾아야 배타가 작동한다
+            glansHealed: ((_anima.snippets||[]).find(s=>s.id==='dcol_glans')||{}).group==='futaGlans',
             원래것: (_anima.snippets||[]).some(s=>s.id==='bust_large') };
  });
- const migOk = mig.skin===4&&mig.pubic===4&&mig.armpit===3&&mig.nip===5&&mig.areola===2&&mig.futaColor===5&&mig.futaShape===4&&mig.tanline===3&&mig.glans;
+ const migOk = mig.skin===4&&mig.pubic===4&&mig.armpit===3&&mig.nip===5&&mig.areola===2&&mig.futaColor===5&&mig.futaShape===4&&mig.tanline===3&&mig.glans&&mig.glansHealed;
  ck('★ 기존 사용자에게도 새 축이 전부 들어간다', migOk, JSON.stringify(mig));
  ck('기존 사용자의 원래 항목은 그대로', mig.원래것===true, String(mig.원래것));
  const e2=s2.errs.filter(e=>!/Failed to load|net::ERR/.test(e));
