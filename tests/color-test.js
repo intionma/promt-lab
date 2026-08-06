@@ -150,7 +150,9 @@ const boot=async(b,port,seed)=>{
  ck('★ 하단 바 높이가 전과 같다', bar.하단바===BASE.하단바, `${BASE.하단바} → ${bar.하단바}px`);
  ['아이콘줄','표정줄','버튼줄','아이콘줄수'].forEach(k=>
    ck(`  ${k}이(가) 그대로`, bar[k]===BASE[k], `${BASE[k]} → ${bar[k]}`));
- ck('노출 세부가 버튼 줄에 있다', bar.그룹버튼.includes('body'), bar.그룹버튼.join(','));
+ ck('몸 버튼이 버튼 줄에 있다', bar.그룹버튼.includes('body'), bar.그룹버튼.join(','));
+ ck('★ v9.165.0 6덩어리가 패널과 같은 순서로 버튼 줄에 있다',
+    JSON.stringify(bar.그룹버튼)===JSON.stringify(['body','bust','hair','futa','face','ink']), bar.그룹버튼.join(','));
  const lbl=await p.evaluate(async()=>{
    (_anima.snippets||[]).forEach(s=>{ if(s.kind!=='base') s.on=false; });
    const set=(ids)=>{ids.forEach(id=>{const s=_anima.snippets.find(x=>x.id===id); if(s) s.on=true;});};
@@ -161,7 +163,8 @@ const boot=async(b,port,seed)=>{
    return { 하나:t1, 여럿:b.querySelector('.anima-gbtn-v').textContent, X툴팁:b.querySelector('.anima-gbtn-x').title };
  });
  ck('하나 고르면 이름이 보인다', lbl.하나==='흑갈', lbl.하나);
- ck('여럿 고르면 "이름 +N"으로 줄여 보인다', lbl.여럿==='흑갈 +2', lbl.여럿);
+ // v9.165.0: '몸' 덩어리는 피부색·수영복 자국 둘뿐(음모·겨털·털 색은 '털'로 옮겼다)
+ ck('여럿 고르면 "이름 +N"으로 줄여 보인다', lbl.여럿==='흑갈 +1', lbl.여럿);
  ck('✕ 툴팁이 모두 해제임을 알린다', /모두 해제/.test(lbl.X툴팁), lbl.X툴팁);
  // ✕ 를 실제로 눌러 본다 — 그 팝오버가 담은 축이 전부 꺼지고, 하단 바는 다시 그려지지 않아야 한다
  const xclick=await p.evaluate(async()=>{
@@ -172,7 +175,7 @@ const boot=async(b,port,seed)=>{
    btn.querySelector('.anima-gbtn-x').click();
    await new Promise(r=>setTimeout(r,250));
    const b2=document.querySelector('.anima-gbtn[data-grp="body"]');
-   return { 남은선택:(_anima.snippets||[]).filter(s=>['skin','tanline','pubic','armpit'].includes(s.group)&&s.on).map(s=>s.name),
+   return { 남은선택:(_anima.snippets||[]).filter(s=>['skin','tanline'].includes(s.group)&&s.on).map(s=>s.name),
             버튼그대로: b2 && b2.__keep===mark, 값사라짐: !b2.querySelector('.anima-gbtn-v'),
             다른축유지:(_anima.snippets||[]).filter(s=>s.group==='bust'&&s.on).length,
             패널칩수변화: [...document.querySelectorAll('#anima-snips .anima-chip')].length-before };
@@ -189,9 +192,16 @@ const boot=async(b,port,seed)=>{
    return { 소제목: [...el.querySelectorAll('.anima-fp-lab')].map(e=>e.textContent),
             칩수: el.querySelectorAll('.anima-chip[data-gd]').length };
  },'body');
- ck('노출 세부 팝오버가 5개 소제목으로 열린다 (v9.161.0 음모 색 추가)',
-    JSON.stringify(pop.소제목)===JSON.stringify(['피부색','수영복 자국','음모','겨털','털 색']), JSON.stringify(pop));
- ck('노출 세부 팝오버에 16개 칩 (v9.161.0 음모 색 2개 추가)', pop.칩수===16, String(pop.칩수));
+ // v9.165.0: 팝오버 구성은 옵션 패널의 덩어리 정의(_ANIMA_SECS)를 그대로 쓴다 → 이름·묶음이 패널과 같다.
+ ck('몸 팝오버가 2개 소제목으로 열린다 (음모·겨털·털 색은 "털"로 옮김)',
+    JSON.stringify(pop.소제목)===JSON.stringify(['피부색','수영복 자국']), JSON.stringify(pop));
+ ck('몸 팝오버에 7개 칩', pop.칩수===7, String(pop.칩수));
+ const popH=await p.evaluate(async()=>{ _animaGrpPop='hair'; _animaSyncPops(); await new Promise(r=>setTimeout(r,200));
+   const el=document.getElementById('anima-grppop');
+   return { 소제목:[...el.querySelectorAll('.anima-fp-lab')].map(e=>e.textContent), 칩수: el.querySelectorAll('.anima-chip[data-gd]').length }; });
+ ck('★ 털 팝오버가 새로 생겼다 (음모·겨털·털 색)',
+    JSON.stringify(popH.소제목)===JSON.stringify(['음모','겨털','털 색 (음모·겨털)']), JSON.stringify(popH));
+ ck('털 팝오버에 9개 칩', popH.칩수===9, String(popH.칩수));
  const pop2=await p.evaluate(async()=>{ _animaGrpPop='bust'; _animaSyncPops(); await new Promise(r=>setTimeout(r,200));
    const el=document.getElementById('anima-grppop');
    return { 소제목:[...el.querySelectorAll('.anima-fp-lab')].map(e=>e.textContent), 칩수: el.querySelectorAll('.anima-chip[data-gd]').length }; });
@@ -214,7 +224,10 @@ const boot=async(b,port,seed)=>{
  const panel=await p.evaluate(async()=>{
    _animaGrpPop=null; _animaFutaPop=null; _animaRenderSnippets(); await new Promise(r=>setTimeout(r,400));
    const box=document.getElementById('anima-snips');
-   const rows=[...box.querySelectorAll('.anima-orow')].map(r=>({lab:(r.querySelector('.anima-olab')||{}).textContent||'',
+   // v9.165.0: 줄이 아니라 '덩어리 안의 칸(.anima-fld)'이다. 접힌 덩어리는 전부 펴고 본다.
+   box.querySelectorAll('.anima-sec:not(.open) .anima-sec-h').forEach(h=>h.click());
+   await new Promise(r=>setTimeout(r,250));
+   const rows=[...box.querySelectorAll('.anima-fld')].map(r=>({lab:(r.querySelector('.anima-fld-l')||{}).textContent||'',
      n:r.querySelectorAll('.anima-chip').length}));
    const etc=rows.find(r=>r.lab==='기타');
    return { 줄: rows.map(r=>r.lab).filter(Boolean), 기타개수: etc?etc.n:0 };
@@ -225,7 +238,9 @@ const boot=async(b,port,seed)=>{
  const panelOff=await p.evaluate(async()=>{
    (_anima.snippets||[]).forEach(s=>{ if(s.group==='futa') s.on=false; });
    _animaRenderSnippets(); await new Promise(r=>setTimeout(r,400));
-   return [...document.querySelectorAll('#anima-snips .anima-olab')].map(e=>e.textContent.trim()).filter(Boolean);
+   document.querySelectorAll('#anima-snips .anima-sec:not(.open) .anima-sec-h').forEach(h=>h.click());
+   await new Promise(r=>setTimeout(r,250));
+   return [...document.querySelectorAll('#anima-snips .anima-fld-l')].map(e=>e.textContent.trim()).filter(Boolean);
  });
  ck('후타를 끄면 형태·색·대비 줄이 사라진다',
     !['형태','색','대비'].some(l=>panelOff.includes(l)), panelOff.join('/'));

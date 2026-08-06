@@ -153,10 +153,11 @@ const px = (c) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="h
             후타켬: set(['futa_normal', 'fcon_used']),
         };
     });
-    ck('★ 장식 문신이 캡션에 나온다', /팔\/어깨/.test(lab.장식) && /흉골/.test(lab.장식), lab.장식);
+    ck('★ 장식 문신이 캡션에 나온다', /팔·어깨/.test(lab.장식) && /흉골/.test(lab.장식), lab.장식);   // v9.165.0 이름 통일
     ck('★ 피부색·자국·유두 색이 캡션에 나온다', /태닝/.test(lab.색) && /비키니/.test(lab.색) && /흑갈/.test(lab.색), lab.색);
     ck('후타를 안 켰으면 후타 상세는 캡션에 안 나온다', !/콘돔/.test(lab.후타끔), lab.후타끔);
-    ck('후타를 켜면 콘돔이 캡션에 나온다', /콘돔/.test(lab.후타켬), lab.후타켬);
+    //  v9.165.0: 칩 이름이 '콘돔 (정액 참)' → '정액 참' 으로 짧아졌다(라벨에 이미 '콘돔'이 있어서)
+    ck('후타를 켜면 콘돔이 캡션에 나온다', /정액 참/.test(lab.후타켬), lab.후타켬);
     NOTE.push('  캡션 예: ' + lab.색 + '  |  ' + lab.후타켬);
 
     // ── 크게 본 채로 새 결과가 도착했을 때 어디에 있어야 하는가 ────────────
@@ -226,7 +227,7 @@ const px = (c) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="h
     ck('콘돔 축이 5개 들어갔다', con.n === 5, JSON.stringify(con.names));
     ck('전부 후타 상세로 묶여 있다', con.detail === true, '');
     ck('전부 성인 표시 대상이다', con.nsfw === true, '');
-    ck('포장지만 여러 개 켜기다', con.multi.length === 1 && con.multi[0] === '포장지 널브러짐', JSON.stringify(con.multi));
+    ck('포장지만 여러 개 켜기다', con.multi.length === 1 && con.multi[0] === '포장지', JSON.stringify(con.multi));   // v9.165.0 이름 통일
     ck('서술 안에 쉼표를 쓰지 않았다', con.texts.every(t => {
         const head = t.split(',')[0]; return head.split(' ').length >= 8;
     }), JSON.stringify(con.texts.map(t => t.split(',')[0])));
