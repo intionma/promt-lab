@@ -75,8 +75,8 @@ const boot = async (b, port, seed, adult) => {
   });
   ck('★ 맨 위에 요약 줄이 있다', st.요약);
   ck('★ 6덩어리가 순서대로', JSON.stringify(st.덩어리) === JSON.stringify(['body', 'bust', 'hair', 'futa', 'face', 'ink']), st.덩어리.join(','));
-  ck('★ 머리글이 이모지 + 이름',
-     st.머리글.join('|') === '🧍 몸|🍒 가슴|🌿 털|🍆 후타|😀 표정·포즈|🖋 문신·임신', st.머리글.join('|'));
+  ck('★ 머리글이 이름만 (v9.165.1에서 이모지 제거)',
+     st.머리글.join('|') === '몸|가슴|털|후타|표정·포즈|문신·임신', st.머리글.join('|'));
   ck('처음엔 몸·가슴·털만 펼쳐져 있다', JSON.stringify(st.펼침) === JSON.stringify(['body', 'bust', 'hair']), st.펼침.join(','));
   ck('옛 가로 줄(.anima-orow)은 남아 있지 않다', st.옛줄 === 0, String(st.옛줄));
 
@@ -136,9 +136,9 @@ const boot = async (b, port, seed, adult) => {
   });
   ck('★ 하단 바도 같은 6덩어리·같은 순서', JSON.stringify(bar.키) === JSON.stringify(['body', 'bust', 'hair', 'futa', 'face', 'ink']), bar.키.join(','));
   ck('★ 하단 바 이름이 패널 이름과 같다',
-     bar.이름.join('|') === '🧍 몸|🍒 가슴|🌿 털|🍆 후타|😀 표정·포즈|🖋 문신·임신', bar.이름.join('|'));
+     bar.이름.join('|') === '몸|가슴|털|후타|표정·포즈|문신·임신', bar.이름.join('|'));
   ck('★ 버튼 줄이 두 줄을 넘지 않는다 (하단 바가 두꺼워지지 않음)', bar.줄수 <= 2, String(bar.줄수));
-  ck('★ 후타 버튼이 생겼고 고른 값이 보인다', bar.값.some(v => /후타=거근/.test(v)), bar.값.join(' / '));
+  ck('★ 후타 버튼이 생겼고 고른 값이 보인다', bar.값.some(v => /^후타=거근/.test(v)), bar.값.join(' / '));
   console.log('  · 하단 바 ' + bar.높이 + 'px · ' + bar.값.join(' / '));
 
   const pop = await s1.p.evaluate(() => {
@@ -148,7 +148,7 @@ const boot = async (b, port, seed, adult) => {
                   소제목: [...el.querySelectorAll('.anima-fp-lab')].map(e => e.textContent.trim()) } : null;
   });
   ck('★ 후타 팝오버 소제목이 패널 칸과 같다',
-     pop && pop.제목 === '🍆 후타' && JSON.stringify(pop.소제목) === JSON.stringify(['크기', '색', '귀두', '발기', '포피', '사정', '콘돔', '형태']),
+     pop && pop.제목 === '후타' && JSON.stringify(pop.소제목) === JSON.stringify(['크기', '색', '귀두', '발기', '포피', '사정', '콘돔', '형태']),
      JSON.stringify(pop));
 
   // ══ ⑦ 접힘이 새로고침 뒤에도 남는다 (★ 새로고침 필수) ═══════════════
