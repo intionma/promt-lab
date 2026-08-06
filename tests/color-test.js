@@ -190,7 +190,7 @@ const boot=async(b,port,seed)=>{
             칩수: el.querySelectorAll('.anima-chip[data-gd]').length };
  },'body');
  ck('노출 세부 팝오버가 5개 소제목으로 열린다 (v9.161.0 음모 색 추가)',
-    JSON.stringify(pop.소제목)===JSON.stringify(['피부색','수영복 자국','음모','음모 색','겨털']), JSON.stringify(pop));
+    JSON.stringify(pop.소제목)===JSON.stringify(['피부색','수영복 자국','음모','겨털','털 색']), JSON.stringify(pop));
  ck('노출 세부 팝오버에 16개 칩 (v9.161.0 음모 색 2개 추가)', pop.칩수===16, String(pop.칩수));
  const pop2=await p.evaluate(async()=>{ _animaGrpPop='bust'; _animaSyncPops(); await new Promise(r=>setTimeout(r,200));
    const el=document.getElementById('anima-grppop');
