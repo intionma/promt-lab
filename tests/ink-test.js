@@ -142,6 +142,25 @@ const PX = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAA
             on('preg_on');
             out.axShownWhenOn = ax.only();
             out.axPicks = ax.pick().map(p => p.id).join(',');
+            //  ★ v9.167.0: 피부색·음모처럼 refW 를 선언한 축이면 무엇이든 떠야 한다.
+            //    예전엔 tat·preg 만 봐서, 정작 "흑갈이 들쭉날쭉하다"는 피부색에서 이 도구가 안 나왔다.
+            offAll(); on('skin_dark');
+            out.axSkin = ax.only();
+            offAll(); on('pubic_bush');
+            out.axHair = ax.only();
+            offAll(); on('expr_smile');          // refW 없는 축만 켜면 안 떠야
+            out.axExpr = ax.only();
+            // 3-6c ★ 붙는 순서 — 몸 전체를 바꾸는 피부색이 부위 묘사보다 앞이어야 한다
+            //   (뒤에 깔리면 원본 피부에 밀려 '몇 장만 흑갈'이 된다 — 사용자 실사용 신고)
+            offAll();
+            ['nip_lightpink', 'areola_huge', 'pubic_bush', 'armpit_thick', 'futa_large', 'skin_dark', 'tan_bikini'].forEach(on);
+            await _animaGenerate(true);
+            {
+                const p = _animaJobs[_animaJobs.length - 1].prompt;
+                out.order = ['very dark skin', 'untanned bands', 'soft pale pink', 'large areolae', 'excessive pubic hair', 'armpit hair', 'large penis']
+                    .map(k => p.indexOf(k));
+                out.orderRef = _animaJobs[_animaJobs.length - 1].settings.refWeight;
+            }
             // 3-7 캡션에 문신 이름
             offAll(); on('tat_barcode');
             await _animaGenerate(true);
@@ -161,6 +180,19 @@ const PX = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAA
         check('[C] 검증 캡션에 참조 값', /참조 0\.85/.test(r.exactCaption || ''), r.exactCaption);
         check('[C] 축: 문신·임신 꺼짐 → 숨김', r.axHiddenWhenOff === true, String(r.axHiddenWhenOff));
         check('[C] 축: 켜면 표시 + 6단', r.axShownWhenOn === true && r.axPicks === '1,0.85,0.7,0.55,0.4,0.25', r.axPicks);
+        check('[C] ★ 축: 피부색만 켜도 나온다 (v9.167.0 — 옛날엔 안 나왔다)', r.axSkin === true, String(r.axSkin));
+        check('[C] ★ 축: 음모만 켜도 나온다', r.axHair === true, String(r.axHair));
+        check('[C] 축: refW 없는 축(표정)만 켜면 안 나온다', r.axExpr === false, String(r.axExpr));
+        {
+            const [skin, tan, nip, areola, pubic, armpit, futa] = r.order;
+            check('[C] ★ 피부색이 프롬프트 맨 앞(부위 묘사보다 먼저)',
+                skin >= 0 && skin < nip && skin < areola && skin < pubic && skin < armpit && skin < futa, JSON.stringify(r.order));
+            check('[C] ★ 수영복 자국은 피부색 바로 뒤',
+                tan > skin && tan < nip, JSON.stringify(r.order));
+            check('[C] 나머지 축은 원래 순서 그대로(유두→유륜→음모→겨털→후타)',
+                nip < areola && areola < pubic && pubic < armpit && armpit < futa, JSON.stringify(r.order));
+            check('[C] 여러 축이 켜지면 참조는 가장 낮은 값(흑갈 0.6)', r.orderRef === 0.6, String(r.orderRef));
+        }
         check('캡션에 문신 이름 표시', /바코드/.test(r.tatCaption || ''), r.tatCaption);
         check('★ 캡션에 장식 문신 이름도 표시', /옆구리|골반/.test(r.filCaption || ''), r.filCaption);
         await page.close();
