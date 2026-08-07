@@ -89,6 +89,34 @@ const PX = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAA
         await page.close();
     }
 
+    // ── 시나리오 2-b: 피부색 재작성 마이그레이션 (v9.168.0) ────────────────
+    //   옛 기본 문구는 새 문구로, ✏️로 고친 건 그대로.
+    {
+        const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+        await page.goto('http://127.0.0.1:8938/', { waitUntil: 'load' });
+        await page.evaluate(() => {
+            const rows = [
+                { id: 'skin_dark', name: '흑갈', text: 'her skin is deep rich brown across her entire body, (very dark skin, dark-skinned female:1.5)', on: false, kind: 'append', group: 'skin', nsfw: true },
+                { id: 'skin_tan', name: '태닝', text: 'her whole body carries a warm sun-kissed golden brown tone, (tan:1.3)', on: false, kind: 'append', group: 'skin', nsfw: true },
+                { id: 'skin_pale', name: '창백', text: '내가 직접 고친 창백 문구', on: false, kind: 'append', group: 'skin', nsfw: true },
+            ];
+            localStorage.setItem('anima_settings_v1', JSON.stringify({ snippets: rows }));
+            localStorage.setItem('adult_optin_v1', '1');
+        });
+        await page.reload({ waitUntil: 'load' });
+        await page.evaluate(() => window.mountAnima());
+        await page.waitForTimeout(1200);
+        const r = await page.evaluate(() => {
+            const g = id => ((_anima.snippets || []).find(s => s.id === id) || {}).text || '';
+            return { dark: g('skin_dark'), tan: g('skin_tan'), pale: g('skin_pale'), brown: g('skin_brown') };
+        });
+        check('[D] ★ 옛 흑갈 문구 → 부위를 부르는 새 문구', /her face and neck/.test(r.dark) && /dark-skinned woman/.test(r.dark), r.dark.slice(0, 90));
+        check('[D] 옛 태닝 문구도 교체', /her face and neck/.test(r.tan), r.tan.slice(0, 90));
+        check('[D] ★ ✏️로 고친 창백 문구는 보존', r.pale === '내가 직접 고친 창백 문구', r.pale);
+        check('[D] 없던 갈색은 새로 주입된다', /her face and neck/.test(r.brown), r.brown.slice(0, 90));
+        await page.close();
+    }
+
     // ── 시나리오 3: [A] 자동 참조 하향 + [C] 검증 축
     {
         const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
@@ -150,6 +178,18 @@ const PX = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAA
             out.axHair = ax.only();
             offAll(); on('expr_smile');          // refW 없는 축만 켜면 안 떠야
             out.axExpr = ax.only();
+            // 3-6d ★ v9.168.0 — 피부색이 '자지로 새던' 문제
+            //   증상: 몸은 그대로인데 후타를 켜면 자지만 흑갈이 된다(사용자 실측).
+            //   ① 문구가 부위를 하나하나 부르는가  ② 자지 색을 안 골랐으면 자지에 못을 박는가
+            offAll(); on('skin_dark');
+            await _animaGenerate(true);
+            out.skinOnly = _animaJobs[_animaJobs.length - 1].prompt;
+            offAll(); on('skin_dark'); on('futa_large');
+            await _animaGenerate(true);
+            out.skinFuta = _animaJobs[_animaJobs.length - 1].prompt;
+            offAll(); on('skin_dark'); on('futa_large'); on('dcol_pale');
+            await _animaGenerate(true);
+            out.skinFutaPale = _animaJobs[_animaJobs.length - 1].prompt;
             // 3-6c ★ 붙는 순서 — 몸 전체를 바꾸는 피부색이 부위 묘사보다 앞이어야 한다
             //   (뒤에 깔리면 원본 피부에 밀려 '몇 장만 흑갈'이 된다 — 사용자 실사용 신고)
             offAll();
@@ -193,6 +233,15 @@ const PX = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAA
                 nip < areola && areola < pubic && pubic < armpit && armpit < futa, JSON.stringify(r.order));
             check('[C] 여러 축이 켜지면 참조는 가장 낮은 값(흑갈 0.6)', r.orderRef === 0.6, String(r.orderRef));
         }
+        // v9.168.0 — 피부색이 자지로 새던 문제
+        check('[D] ★ 피부색 문구가 부위를 하나하나 부른다 (얼굴~다리)',
+            /her face and neck/.test(r.skinOnly) && /thighs and legs/.test(r.skinOnly), r.skinOnly.slice(0, 160));
+        check('[D] 후타를 안 켰으면 자지 문구는 안 붙는다',
+            !/shaft and testicles/.test(r.skinOnly), r.skinOnly.slice(-90));
+        check('[D] ★ 피부색 + 후타 + 자지 색 안 고름 → 자지에 "몸과 같은 톤" 못을 박는다',
+            /her shaft and testicles are exactly the same skin tone as the rest of her body/.test(r.skinFuta), r.skinFuta.slice(-120));
+        check('[D] ★ 자지 색을 직접 골랐으면 자동 문구는 안 붙는다 (사용자 선택 우선)',
+            !/shaft and testicles are exactly the same/.test(r.skinFutaPale) && /almost white porcelain/.test(r.skinFutaPale), r.skinFutaPale.slice(-140));
         check('캡션에 문신 이름 표시', /바코드/.test(r.tatCaption || ''), r.tatCaption);
         check('★ 캡션에 장식 문신 이름도 표시', /옆구리|골반/.test(r.filCaption || ''), r.filCaption);
         await page.close();
