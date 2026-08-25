@@ -90,6 +90,92 @@ const look = (p) => p.evaluate(() => {
        r.cols === 2 && r.bustRows === 1 && !r.hscroll, JSON.stringify(r));
   }
 
+
+  // ══ 가로로 들었을 때 = 레일 (v9.175.0) ═════════════════════════════
+  //  ★ 사고: 폴드 겉화면 가로(900x390)에서 상단 50 + 하단바 190 = 화면의 62% 를 컨트롤이 먹어
+  //    내용에 남는 세로가 150px 뿐이었다("하단바가 너무 높아서 미디어가 잘 안 보임").
+  //  ★ 조건은 폭이 아니라 **높이**로 건다 — 문제는 넓은 게 아니라 낮은 것이다.
+  const LAND = { width: 900, height: 390 };   // 폴드 겉화면 가로
+  const railLook = (p) => p.evaluate(() => {
+    const root = document.querySelector('#anima-root');
+    const mact = document.querySelector('#anima-mact');
+    const vis = (s) => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== 'none'; };
+    const mr = mact.getBoundingClientRect();
+    const grp = document.querySelector('.anima-mact-grp');
+    const run = document.querySelector('.anima-mact-run');
+    const gb = [...document.querySelectorAll('.anima-mact-grp .anima-gbtn')];
+    //  ★ 레일은 세로로 길어 스크롤이 생긴다. '제일 자주 쓰는 것이 스크롤 없이 보이는가'가 전부다.
+    const inView = (e) => { const r = e.getBoundingClientRect(); return r.top >= mr.top - 1 && r.bottom <= mr.bottom + 1; };
+    return {
+      side: root.dataset.rail,
+      바: { w: Math.round(mr.width), h: Math.round(mr.height), l: Math.round(mr.left), t: Math.round(mr.top) },
+      mactH: getComputedStyle(root).getPropertyValue('--anima-mact-h').trim(),
+      표정줄: vis('.anima-mact-expr'), 좌우버튼: vis('#anima-rail-side'),
+      실행보임: !!run && inView(run),
+      그룹수: gb.length, 그룹다보임: gb.length > 0 && gb.every(inView),
+      //  글자가 눌려 잘리지 않았는가 (세로 flex 에서 쭈그러들면 이렇게 된다 — 실제로 그랬다)
+      그룹최소높이: gb.length ? Math.round(Math.min(...gb.map(e => e.getBoundingClientRect().height))) : 0,
+      내용세로: window.innerHeight - 50,
+    };
+  });
+
+  await p.setViewportSize(LAND); await p.waitForTimeout(900);
+  const L = await railLook(p);
+  ck('★ 가로로 들면 하단바가 옆으로 선다 (레일)', L.바.h > 300 && L.바.w <= 110, JSON.stringify(L.바));
+  ck('★ 레일은 세로를 안 먹는다 (--anima-mact-h = 0)', L.mactH === '0px', L.mactH);
+  ck('★ 내용에 남는 세로가 늘었다 (예전 150px → 340px)', L.내용세로 >= 330, String(L.내용세로));
+  ck('★ 실행 버튼이 스크롤 없이 보인다', L.실행보임, JSON.stringify(L));
+  ck('★ 그룹 버튼 6개가 전부 스크롤 없이 보인다', L.그룹다보임 && L.그룹수 >= 6, `${L.그룹수}개 · 다보임=${L.그룹다보임}`);
+  ck('★ 그룹 버튼이 눌려 글자가 잘리지 않는다', L.그룹최소높이 >= 28, `최소 ${L.그룹최소높이}px`);
+  ck('표정 칩 줄은 레일에서 숨긴다 (표정·포즈 버튼의 팝업으로 간다)', !L.표정줄);
+  ck('좌우 바꾸기 버튼이 보인다', L.좌우버튼);
+  ck('기본은 오른쪽 (오른손 엄지)', L.side === 'right', L.side);
+
+  //  팝업이 레일 안에서 96px 로 찌그러지지 않고 옆으로 열리는가
+  await p.evaluate(() => { const b = document.querySelector('.anima-gbtn[data-grp="face"]'); if (b) b.click(); });
+  await p.waitForTimeout(500);
+  const pop = await p.evaluate(() => {
+    const e = document.querySelector('.anima-futapop'); if (!e) return null;
+    const r = e.getBoundingClientRect();
+    return { w: Math.round(r.width), 화면밖: r.left < -1 || r.right > window.innerWidth + 1 || r.bottom > window.innerHeight + 1 };
+  });
+  ck('★ 팝업이 옆으로 넉넉히 열린다 (레일 폭에 안 찌그러짐)', !!pop && pop.w >= 300 && !pop.화면밖, JSON.stringify(pop));
+  await p.evaluate(() => { const x = document.querySelector('#anima-gp-x'); if (x) x.click(); });
+  await p.waitForTimeout(300);
+
+  // ── 좌우 바꾸기 — ★ 반드시 새로고침을 끼워서 본다 ────────────────
+  //   저장 목록에서 빠진 설정은 '켠 직후엔 멀쩡하다가 새로고침하면 사라진다'(v9.153.0 사고).
+  await p.evaluate(() => { window.showToast = () => {}; document.querySelector('#anima-rail-side').click(); });
+  await p.waitForTimeout(500);
+  const Lf = await railLook(p);
+  ck('★ ⇄ 를 누르면 레일이 왼쪽으로 간다', Lf.side === 'left' && Lf.바.l <= 2, JSON.stringify(Lf.바));
+  await p.reload({ waitUntil: 'load' });
+  await p.waitForFunction(() => typeof _anima !== 'undefined' && !!_anima.snippets, null, { timeout: 25000 });
+  await p.waitForTimeout(1200);
+  const Lr = await railLook(p);
+  ck('★ 새로고침해도 왼쪽 그대로 (저장됨)', Lr.side === 'left' && Lr.바.l <= 2, JSON.stringify(Lr.바));
+  ck('새로고침 뒤에도 그룹 버튼이 다 보인다', Lr.그룹다보임, `${Lr.그룹수}개`);
+  await p.evaluate(() => { try { localStorage.removeItem('anima_rail_side_v1'); } catch (e) {} });
+
+  // ── 세로로 되돌리면 예전 하단바 그대로 ───────────────────────────
+  await p.setViewportSize(FOLDED); await p.waitForTimeout(900);
+  const back = await p.evaluate(() => {
+    const mact = document.querySelector('#anima-mact'); const r = mact.getBoundingClientRect();
+    const vis = (s) => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== 'none'; };
+    return { w: Math.round(r.width), 바닥: Math.round(window.innerHeight - r.bottom),
+             표정줄: vis('.anima-mact-expr'), 좌우버튼: vis('#anima-rail-side'),
+             mactH: getComputedStyle(document.querySelector('#anima-root')).getPropertyValue('--anima-mact-h').trim() };
+  });
+  ck('★ 세로로 되돌리면 예전 하단바로 복귀', back.w >= 380 && back.바닥 <= 2, JSON.stringify(back));
+  ck('세로에서는 표정 칩 줄이 다시 보인다', back.표정줄);
+  ck('세로에서는 좌우 바꾸기 버튼을 숨긴다 (하단바에선 자리만 먹는다)', !back.좌우버튼);
+  ck('세로에서 --anima-mact-h 가 다시 실제 높이', back.mactH !== '0px' && parseFloat(back.mactH) > 100, back.mactH);
+
+  // ── 백업에 들어가는가 (빠지면 기기 옮길 때 통째로 사라진다) ──────
+  const inBackup = require('fs').readFileSync('/home/user/promt-lab/index.html', 'utf8')
+    .includes("'anima_rail_side_v1'");
+  ck('★ 레일 좌우 설정이 백업(_IO_ETC_KEYS)에 들어 있다', inBackup);
+
   ck('오류 없음', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close(); srv.close();
   console.log(F ? `\n${F} FAILED` : '\nALL PASS');
