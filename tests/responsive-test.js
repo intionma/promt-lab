@@ -15,7 +15,7 @@ const srv = http.createServer((q, r) => {
 let F = 0;
 const ck = (n, c, d) => { console.log((c ? 'PASS' : 'FAIL') + ' - ' + n + (c ? '' : ' :: ' + d)); if (!c) F++; };
 
-const WIDTHS = [320, 360, 390, 412, 480, 768, 1024, 1280, 1920];
+const WIDTHS = [320, 360, 390, 412, 480, 768, 850, 884, 1024, 1280, 1920];   // 850·884 = 폴더블 펼친 폭(v9.174.0에서 비어 있던 구간)
 const LAYOUTS = ['anima', 'classic', 'studio', 'img2img', 'inpaint'];
 
 (async () => {
