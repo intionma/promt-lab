@@ -39,6 +39,9 @@ const px = (c) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="h
             { k: 5, url: 'http://x/a1.png', seed: 1, src: 'KEY_A', opt: '' },
         ];
         _animaResSel = 0;
+        //  ★ 「이미지 넣기」 카드도 그려야 미리보기 <img> 가 생긴다. v9.179.0부터 2단에서는
+        //    원본을 그 미리보기로 크게 보므로, 안 그리면 '원본 열기' 검사가 헛돈다.
+        try { _animaRenderInput(); } catch (e) {}
         _animaRenderResult();
     }, { a: px('#111') });
     await page.waitForTimeout(500);
@@ -51,16 +54,23 @@ const px = (c) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="h
             return real.apply(this, arguments);
         };
     });
+    //  ★ 이 검사는 1400px(2단)에서 돈다. v9.179.0부터 2단에서는 비교 칸에 원본 프레임이 없고
+    //    (왼쪽 칸이 기준을 맡는다) 원본은 「이미지 넣기」의 큰 미리보기를 눌러 크게 본다.
+    //    → lb=0(원본)은 프레임이 없으면 미리보기를 누르는 것으로 대신한다. '원본을 크게 볼 수 있는가'
+    //      라는 검사의 뜻은 그대로 지킨다.
+    //  ★ 열리지도 않았는데 history.back() 을 하면 문서가 통째로 날아가 다음 evaluate 가 죽는다
+    //    (실제로 그렇게 죽어서 원인을 한참 찾았다) → 열렸을 때만 되돌린다.
     const zoom = async (lb) => {
         await page.evaluate((lb) => {
             window.__lb = null;
             const fr = [...document.querySelectorAll('.anima-frame')].find(f => f.dataset.lb === String(lb));
-            if (fr) fr.click();
+            if (fr) { fr.click(); return; }
+            if (lb === 0) { const im = document.querySelector('#anima-input img'); if (im) im.click(); }
         }, lb);
         await page.waitForTimeout(350);
         const r = await page.evaluate(() => window.__lb && { url: __lb.url, urls: __lb.urls, idx: __lb.idx, caps: __lb.caps, live: typeof __lb.live === 'function' });
-        await page.evaluate(() => { try { history.back(); } catch (e) {} });
-        await page.waitForTimeout(300);
+        const opened = await page.evaluate(() => !!window._lbActive);
+        if (opened) { await page.evaluate(() => { try { history.back(); } catch (e) {} }); await page.waitForTimeout(300); }
         return r;
     };
 
@@ -87,7 +97,7 @@ const px = (c) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="h
         const fr = [...document.querySelectorAll('.anima-frame')].find(f => f.dataset.lb === '1');
         if (fr) fr.click();
         await new Promise(r => setTimeout(r, 250));
-        try { history.back(); } catch (e) {}
+        try { if (window._lbActive) history.back(); } catch (e) {}   // ★ 열렸을 때만 — 아니면 문서가 날아간다
         return window.__lb && { urls: window.__lb.urls, idx: window.__lb.idx };
     });
     await page.waitForTimeout(300);
@@ -99,9 +109,11 @@ const px = (c) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="h
         await new Promise(r => setTimeout(r, 300));
         window.__lb = null;
         const fr = [...document.querySelectorAll('.anima-frame')].find(f => f.dataset.lb === '0');
-        if (fr) fr.click();
+        //  ★ v9.179.0부터 2단에서는 비교 칸에 원본 프레임이 없다(왼쪽 칸이 기준을 맡는다).
+        //    원본은 「이미지 넣기」 큰 미리보기를 눌러 크게 본다 — 검사의 뜻은 그대로다.
+        if (fr) fr.click(); else { const im = document.querySelector('#anima-input img'); if (im) im.click(); }
         await new Promise(r => setTimeout(r, 250));
-        try { history.back(); } catch (e) {}
+        try { if (window._lbActive) history.back(); } catch (e) {}   // ★ 열렸을 때만 — 아니면 문서가 날아간다
         return window.__lb && window.__lb.urls.length;
     });
     await page.waitForTimeout(300);
@@ -122,7 +134,7 @@ const px = (c) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="h
         const fr = [...document.querySelectorAll('.anima-frame')].find(f => f.dataset.lb === '1');
         if (fr) fr.click();
         await new Promise(r => setTimeout(r, 250));
-        try { history.back(); } catch (e) {}
+        try { if (window._lbActive) history.back(); } catch (e) {}   // ★ 열렸을 때만 — 아니면 문서가 날아간다
         const L = window.__lb;
         return L && { urls: L.urls, idx: L.idx, caps: L.caps };
     });
@@ -188,7 +200,7 @@ const px = (c) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="h
         try { window._lbRefresh(); } catch (e) {}
         await new Promise(r => setTimeout(r, 300));
         const after = window.__lbState();
-        try { history.back(); } catch (e) {}
+        try { if (window._lbActive) history.back(); } catch (e) {}   // ★ 열렸을 때만 — 아니면 문서가 날아간다
         return { before, after };
     }, startBack);
 

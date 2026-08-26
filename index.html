@@ -20017,6 +20017,28 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 } catch (e) {}
             };
             box.querySelectorAll('.anima-frame').forEach(fr => { const lb = parseInt(fr.dataset.lb); if ((lb === 0 && (src || lock)) || (lb === 1 && gen)) { fr.style.cursor = 'zoom-in'; fr.onclick = () => { if (_animaLpEat()) return; openLB(lb); }; } });
+            //  ★ 2단에는 비교 칸에 원본 프레임이 없다(왼쪽 칸이 기준을 맡는다) → 원본을 크게 볼 길이
+            //    사라지면 안 되므로 「이미지 넣기」의 큰 미리보기를 눌러 열 수 있게 한다.
+            //    (1단은 예전 그대로 — 비교 칸 안에 원본 프레임이 그대로 있다)
+            window._animaOpenSrcLb = () => openLB(0);
+            try {
+                const inbox = _animaEl('#anima-input');
+                if (inbox) {
+                    inbox.style.cursor = (two && src) ? 'zoom-in' : '';
+                    //  ⚠ 컨테이너에 거는 것은 딱 한 번만 — 다시 그릴 때마다 걸면 핸들러가 쌓인다
+                    //    (renderChips 에서 겪은 그 사고와 같다). 클로저는 window._animaOpenSrcLb 로 늘 최신이다.
+                    if (!inbox.dataset.plLbBound) {
+                        inbox.dataset.plLbBound = '1';
+                        inbox.addEventListener('click', (e) => {
+                            if (!_animaTwoCol()) return;                       // 1단은 손대지 않는다
+                            if (!e.target.closest || !e.target.closest('img')) return;
+                            if (e.target.closest('button')) return;            // ✕·자르기 버튼은 제 일을 한다
+                            if (_animaLpEat()) return;
+                            if (typeof window._animaOpenSrcLb === 'function') window._animaOpenSrcLb();
+                        });
+                    }
+                }
+            } catch (e) {}
             _animaBindSeedLock(box);   // 꾹 눌러 시드 잠그기/풀기
             //  2단이면 잠근 그림을 왼쪽 칸에 내려 놓는다(1단이면 비운다).
             //  ★ 클릭·꾹누르기 핸들러는 #anima-result 안에만 걸리므로 여기에도 똑같이 걸어 준다.

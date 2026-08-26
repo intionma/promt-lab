@@ -17,7 +17,7 @@
 //    node tests/run.js color secui     파일 이름으로 골라서
 //    node tests/run.js --list          무리 목록 보기
 const { spawn } = require('child_process');
-const fs = require('fs'), path = require('path'), os = require('os');
+const fs = require('fs'), path = require('path'), os = require('os'), net = require('net');
 const DIR = __dirname;
 
 //  ★ 혼자 돌려야 하는 것 — '무엇을 재는가' 로 정한다(느려서가 아니다).
@@ -69,11 +69,19 @@ const env = Object.assign({}, process.env, {
 });
 
 //  8899 서버는 한 번만 띄운다(여러 검사가 공유한다)
+//  ★ 띄우고 '뜰 때까지 기다려야' 한다. 안 기다렸더니 먼저 시작된 lbgrp-test 가
+//    ERR_CONNECTION_REFUSED 로 7초 만에 죽었다 — 검사 실패로 보이지만 실은 실행기 버그였다.
 let srv = null;
-if (picked.some(f => NEEDS_SRV.includes(f))) {
-  srv = spawn('python3', ['-m', 'http.server', '8899', '--directory', path.dirname(DIR)],
-              { stdio: 'ignore', detached: true });
-}
+const needSrv = picked.some(f => NEEDS_SRV.includes(f));
+const waitPort = (port, ms) => new Promise((res) => {
+  const t0 = Date.now();
+  const tryOnce = () => {
+    const s = net.connect(port, '127.0.0.1');
+    s.on('connect', () => { s.destroy(); res(true); });
+    s.on('error', () => { s.destroy(); (Date.now() - t0 > ms) ? res(false) : setTimeout(tryOnce, 120); });
+  };
+  tryOnce();
+});
 
 const t0 = Date.now();
 const results = [];
@@ -97,6 +105,12 @@ const run = (file) => new Promise((res) => {
 });
 
 (async () => {
+  if (needSrv) {
+    srv = spawn('python3', ['-m', 'http.server', '8899', '--directory', path.dirname(DIR)],
+                { stdio: 'ignore', detached: true });
+    const up = await waitPort(8899, 8000);
+    if (!up) { console.log('✗ 8899 서버가 안 떴습니다 — 이 서버가 필요한 검사는 실패합니다'); }
+  }
   const par = picked.filter(f => !SOLO.has(f));
   const solo = picked.filter(f => SOLO.has(f));
   console.log(`검사 ${picked.length}개 — 병렬 ${par.length}개(동시 ${jobs}) + 혼자 ${solo.length}개\n`);
