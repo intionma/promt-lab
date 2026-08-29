@@ -98,6 +98,33 @@ const lbState = (p) => p.evaluate(() => {
   ck('★ 새 결과가 보고 있던 그 자리에 갈아끼워진다 (그림이 실제로 바뀐다)',
      srcAfter !== srcBefore && /r=999/.test(srcAfter), `전 ${srcBefore.slice(-24)} / 후 ${srcAfter.slice(-24)}`);
 
+  // ── ④-2 화면 반반(멀티윈도우) — '앱을 벗어남' 신호가 안 와도 되살아나야 한다 ──
+  //   ★ 사용자 실사용: 폴드8을 반반으로 나눠 오른쪽에 프롬프트 랩(크게 보기), 왼쪽에 갤러리를 띄우고
+  //     거기서 공유한다. 이때 프롬프트 랩은 계속 '보이는' 상태라 visibilitychange(hidden) 가 안 온다.
+  //     예전엔 그 신호에서만 자리를 적어서, 이 경우 되살릴 게 아무것도 없었다.
+  {
+    await p.goto('http://127.0.0.1:' + port + '/index.html', { waitUntil: 'load' });
+    await p.waitForFunction(() => typeof _anima !== 'undefined' && (_anima.results || []).length > 0, null, { timeout: 25000 });
+    await p.waitForTimeout(900);
+    await p.evaluate(() => { try { localStorage.removeItem('anima_lb_resume_v1'); } catch (e) {} });
+    const k = await p.evaluate(() => { _animaOpenLbAt(0, false); return _anima.results[0].k; });
+    await p.waitForTimeout(600);
+    const saved2 = await p.evaluate(() => { try { return JSON.parse(localStorage.getItem('anima_lb_resume_v1') || 'null'); } catch (e) { return null; } });
+    ck('★ 앱을 벗어나지 않아도 크게 보기를 열면 바로 적어 둔다 (멀티윈도우 대비)',
+       !!saved2 && saved2.k === k, JSON.stringify(saved2));
+    //  '벗어남' 신호를 일부러 안 보내고 곧장 공유로 들어온다
+    await p.goto('http://127.0.0.1:' + port + '/index.html?shared=1', { waitUntil: 'load' });
+    await p.waitForFunction(() => typeof _anima !== 'undefined' && (_anima.results || []).length > 0, null, { timeout: 25000 });
+    await p.waitForTimeout(1600);
+    const back2 = await p.evaluate(() => {
+      const box = document.getElementById('img-lightbox');
+      return { open: !!box && box.style.display !== 'none', k: window._lbActive ? _anima.results[_animaResSel].k : null };
+    });
+    ck('★ 멀티윈도우에서 공유해도 크게 보기가 되살아난다', back2.open === true && back2.k === k, JSON.stringify(back2));
+    await p.evaluate(() => { if (window.closeLightbox) closeLightbox(); });
+    await p.waitForTimeout(400);
+  }
+
   // ── ⑤ 크게 보기를 안 켜고 나가면 되살리지 않는다 (엉뚱하게 안 열려야) ─
   await p.evaluate(() => { if (window.closeLightbox) closeLightbox(); });
   await p.waitForTimeout(300);
