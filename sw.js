@@ -15,7 +15,14 @@
  */
 const SHARE_CACHE = 'pl-share-v1';
 const APP_CACHE = 'pl-app-v1';
-const SHARE_KEY = './__shared_image__';
+//  ★ 공유 한 건마다 '자기 칸'을 쓴다 (v9.183.0).
+//    예전엔 이 한 칸에 덮어써서, 빠르게 두 번 공유하면 먼저 뜬 문서가 나중 것을 읽고 지워
+//    **한 장이 통째로 사라졌다**(사용자 신고: "짧은 시간에 여러 장 공유하면 씹힌다").
+const SHARE_KEY = './__shared_image__';            // 옛 칸 — 예전 서비스워커가 남긴 것도 읽어 준다
+const SHARE_PREFIX = './__shared_image__/';        // 새 칸들 — 뒤에 시각+무작위를 붙인다
+function _shareSlot() {
+    return SHARE_PREFIX + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+}
 const KEEP = [SHARE_CACHE, APP_CACHE];
 
 self.addEventListener('install', (e) => {
@@ -108,7 +115,7 @@ self.addEventListener('fetch', (e) => {
                 }
                 if (f) {
                     const c = await caches.open(SHARE_CACHE);
-                    await c.put(new Request(SHARE_KEY, { method: 'GET' }), new Response(f, {
+                    await c.put(new Request(_shareSlot(), { method: 'GET' }), new Response(f, {
                         headers: {
                             'Content-Type': f.type || 'image/png',
                             // 파일명은 한글이 섞일 수 있어 인코딩해서 싣는다(헤더에 원문은 못 넣음)
