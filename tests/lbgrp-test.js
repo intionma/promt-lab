@@ -75,8 +75,19 @@ const px = (c) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="h
     };
 
     const g = await zoom(1);
-    ck('★ 크게보기에 그 원본으로 뽑은 것만 들어간다 (원본 1 + A 3장 = 4장)', g && g.urls.length === 4, g ? g.urls.length + '장 ' + JSON.stringify(g.urls) : '(못 잡음)');
-    ck('★ 다른 원본으로 뽑은 건 안 섞인다', g && !g.urls.some(u => /b[12]\.png/.test(u)), g && JSON.stringify(g.urls));
+    //  ★ v9.182.0에서 **의도적으로 뒤집었다**(사용자 요청). 예전엔 '그 원본 것만' 담아서
+    //    1장이면 2/2 로 오른쪽 끝이 막혔다 → 그 원본 묶음이 끝나면 최근 결과 전체로 이어붙인다.
+    //    바뀐 건 '뒤에 더 붙는다'는 것뿐이고, **앞쪽 차례는 그대로**여야 한다(원본 → 그 원본 결과들).
+    ck('★ 앞쪽은 그대로 — 원본 1 + A 3장이 먼저 온다',
+       g && g.urls.length >= 4 && /svg/.test(g.urls[0]) && !g.urls.slice(1, 4).some(u => /b[12]\.png/.test(u)),
+       g ? JSON.stringify(g.urls.slice(0, 4)) : '(못 잡음)');
+    ck('★ 그 뒤로 다른 원본 결과까지 이어져 더 넘길 수 있다 (원본 1 + A 3 + B 2 = 6장)',
+       g && g.urls.length === 6 && g.urls.some(u => /b1\.png/.test(u)) && g.urls.some(u => /b2\.png/.test(u)),
+       g ? g.urls.length + '장 ' + JSON.stringify(g.urls) : '(못 잡음)');
+    ck('★ 같은 그림이 두 번 들어가지 않는다', g && new Set(g.urls).size === g.urls.length,
+       g && JSON.stringify(g.urls));
+    ck('이어붙은 구간은 「다른 원본」으로 표시된다',
+       g && g.caps.slice(4).every(c => /다른 원본/.test(c)), g && JSON.stringify(g.caps));
     ck('첫 자리는 원본이다', g && /svg/.test(g.urls[0]), g && String(g.urls[0]).slice(0, 30));
     ck('시작 위치가 지금 고른 결과다', g && g.urls[g.idx] === 'http://x/a3.png', g && `idx ${g.idx} → ${g.urls[g.idx]}`);
     ck('캡션이 목록과 같은 길이다', g && g.caps.length === g.urls.length, g && `${g.caps.length}/${g.urls.length}`);
@@ -86,7 +97,7 @@ const px = (c) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="h
 
     const g0 = await zoom(0);
     ck('원본을 눌러 열면 원본에서 시작한다', g0 && g0.idx === 0, g0 && String(g0.idx));
-    ck('원본으로 열어도 목록은 같다', g0 && g0.urls.length === 4, g0 && g0.urls.length + '장');
+    ck('원본으로 열어도 목록은 같다', g0 && g0.urls.length === 6, g0 && g0.urls.length + '장');
 
     // 갤러리에서 '다른 원본의 결과'를 고르면 그 결과의 묶음을 따라간다
     const gb = await page.evaluate(async () => {
@@ -101,7 +112,14 @@ const px = (c) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="h
         return window.__lb && { urls: window.__lb.urls, idx: window.__lb.idx };
     });
     await page.waitForTimeout(300);
-    ck('★ 다른 원본의 결과를 고르면 그 묶음(B 2장)으로 바뀐다', gb && gb.urls.filter(u => /b[12]\.png/.test(u)).length === 2 && !gb.urls.some(u => /a[123]\.png/.test(u)), gb && JSON.stringify(gb.urls));
+    //  ★ v9.182.0: 고른 결과의 묶음이 **앞으로** 오고, 나머지 최근 결과가 뒤에 이어붙는다.
+    //    '다른 원본 것이 안 섞인다'가 아니라 '앞쪽이 그 묶음이다'를 본다.
+    ck('★ 다른 원본의 결과를 고르면 그 묶음(B 2장)이 앞으로 온다',
+       gb && /b2\.png/.test(gb.urls[1] || '') && /b1\.png/.test(gb.urls[2] || ''),
+       gb && JSON.stringify(gb.urls));
+    ck('★ 그 뒤로 A 것들이 이어진다 (오른쪽 끝에서 안 막힌다)',
+       gb && gb.urls.filter(u => /a[123]\.png/.test(u)).length === 3 && new Set(gb.urls).size === gb.urls.length,
+       gb && JSON.stringify(gb.urls));
 
     // 결과가 하나도 없으면 원본만 (예전과 동일)
     const g1 = await page.evaluate(async () => {
