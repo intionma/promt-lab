@@ -125,6 +125,29 @@ const lbState = (p) => p.evaluate(() => {
     await p.waitForTimeout(400);
   }
 
+  // ── ④-3 비교 프레임으로 열었을 때도 새 결과가 그 자리에 들어와야 한다 ──────
+  //   ★ 사용자 신고: 결과를 크게 본 상태(비교 프레임 = [원본, 결과] 라 '2/2')에서 공유했더니
+  //     새 결과가 그 자리에 안 들어오고 옆으로 밀렸다("2/66"). 원인은 '제일 최신을 보고 있었나'를
+  //     **자리(_lbIdx===0)** 로 판단한 것 — 비교 프레임에서는 결과가 1번 자리라 늘 false 였다.
+  //     → 자리가 아니라 **그림 자체**(results[0] 과 같은가)로 판단해야 한다.
+  {
+    await p.goto('http://127.0.0.1:' + port + '/index.html', { waitUntil: 'load' });
+    await p.waitForFunction(() => typeof _anima !== 'undefined' && (_anima.results || []).length > 0, null, { timeout: 25000 });
+    await p.waitForTimeout(900);
+    await p.evaluate(() => { try { localStorage.removeItem('anima_lb_resume_v1'); } catch (e) {} });
+    //  비교 프레임처럼 [원본, 결과] 목록으로 열고 '결과'(1번 자리 = 제일 최신)를 본다
+    const k = await p.evaluate(() => {
+      window.showToast = () => {};
+      const newest = _anima.results[0];
+      window.openLightbox(newest.url, ['data:image/svg+xml;utf8,<svg/>', newest.url], 1);
+      return newest.k;
+    });
+    await p.waitForTimeout(600);
+    const s = await p.evaluate(() => { try { return JSON.parse(localStorage.getItem('anima_lb_resume_v1') || 'null'); } catch (e) { return null; } });
+    ck('★ 비교 프레임(2/2)으로 봐도 "제일 최신을 보는 중"으로 적힌다',
+       !!s && s.k === k && s.head === true, JSON.stringify(s));
+  }
+
   // ── ⑤ 크게 보기를 안 켜고 나가면 되살리지 않는다 (엉뚱하게 안 열려야) ─
   await p.evaluate(() => { if (window.closeLightbox) closeLightbox(); });
   await p.waitForTimeout(300);
