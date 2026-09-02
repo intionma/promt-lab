@@ -140,6 +140,24 @@ const SCROLL = async (pg) => pg.evaluate(async () => {
   ck('★ 이미 받아 둔 사진은 전부 캐시에서 꺼낸다', r2.네트워크 === 0 && r2.캐시 > 0, `캐시 ${r2.캐시} / 네트워크 ${r2.네트워크}`);
   ck('두 번째 방문에도 사진이 제대로 뜬다', r2.그려짐 >= 20, `${r2.그려짐}장`);
 
+  // ══ ③-2 썸네일 크기 슬라이더 (v9.186.0 회귀) ═══════════════════════
+  //   ★ 갤러리는 격자(.anima-gal.grid)로 그린다 — 칸 폭은 --gcw 가 정하고 column-width 는 죽어 있다.
+  //     그런데 슬라이더가 column-width 만 바꾸고 있어서 **끌어도 아무 반응이 없었다**(사용자 신고).
+  //     '핸들러가 붙어 있는가'가 아니라 **칸이 실제로 커지고 작아지는가**로 봐야 잡힌다.
+  {
+    const w = () => pg.evaluate(() => { const c = document.querySelector('.anima-gitem'); return c ? Math.round(c.getBoundingClientRect().width) : 0; });
+    const drag = (v) => pg.evaluate((v) => { const s = document.querySelector('#anima-gal-size'); if (!s) return false; s.value = String(v); s.dispatchEvent(new Event('input', { bubbles: true })); return true; }, v);
+    const base = await w();
+    ck('썸네일 크기 슬라이더가 있다 (사전 조건)', await drag(200));
+    await pg.waitForTimeout(400);
+    const big = await w();
+    await drag(60); await pg.waitForTimeout(400);
+    const small = await w();
+    ck('★ 슬라이더를 키우면 칸이 실제로 커진다', big > base, `${base}px → ${big}px`);
+    ck('★ 슬라이더를 줄이면 칸이 실제로 작아진다', small < big, `${big}px → ${small}px`);
+    await drag(96); await pg.waitForTimeout(300);
+  }
+
   // ══ ④ 삭제가 실제로 되는가 (기능 무손상) ═══════════════════════════
   const del = await pg.evaluate(async () => {
     const n0 = _anima.results.length;
