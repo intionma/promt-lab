@@ -55,7 +55,9 @@ const lbState = (p) => p.evaluate(() => {
     idx: _lbIdx, n: _lbUrls.length, head: _lbHead,
     목록현재: _lbUrls[_lbIdx] || '',
     그려진현재: cur,
-    카운터: (document.getElementById('img-lightbox-counter') || {}).textContent || '',
+    //  ⚠ 카운터는 '숫자가 굴러가는' 오도미터라 textContent 가 자릿수 전체로 나온다("112 / 6").
+    //    현재 위치는 _lbIdx 로 보고, 여기서는 사용자에게 보이는 **총장수**만 읽는다.
+    총장수: ((document.querySelector('#img-lightbox-counter .lb-total') || {}).textContent || '').replace(/\D/g, ''),
   };
 });
 const openAt = (p, i) => p.evaluate((k) => {
@@ -89,7 +91,7 @@ const swipeTo = (p, i) => p.evaluate((k) => { for (let n = _lbIdx; n < k; n++) w
     ck('★★ 자리가 밀리지 않는다 (예전엔 2/6 이 됐다)', c.idx === 0 && c.n === 6, JSON.stringify(c));
     ck('★★ 그 자리에 **새 이미지가 실제로 그려진다**',
        decodeURIComponent(c.그려진현재).indexOf('새것') >= 0, decodeURIComponent(c.그려진현재).slice(0, 80));
-    ck('카운터도 1/6 으로 보인다', /6/.test(c.카운터) && !/2\s*\//.test(c.카운터), JSON.stringify(c.카운터));
+    ck('총장수 표시도 6으로 늘어난다', c.총장수 === '6', JSON.stringify(c.총장수));
 
     //  연달아 와도 계속 그 자리
     await arrive(p, SVG('새것2'), '새것2'); await p.waitForTimeout(700);
