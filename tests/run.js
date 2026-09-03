@@ -36,7 +36,7 @@ const NEEDS_SRV = ['lbgrp-test.js', 'pose-test.js', 'share-test.js', 'size-test.
 const GROUPS = {
   bar:     ['color', 'secui', 'railpos', 'mactfold', 'lbgrp'],          // 하단 바 · 위치 · 접기
   layout:  ['fold', 'responsive', 'twoui', 'layout', 'glass', 'menu'],  // 화면 폭 · 테마 · 레이아웃
-  gallery: ['gallery', 'useresult', 'shareresume'],                     // 결과 목록 · 크게 보기 · 공유
+  gallery: ['gallery', 'useresult', 'shareresume', 'afteronly'],                   // 결과 목록 · 크게 보기 · 공유
   prompt:  ['nl', 'animanl', 'ink', 'inkmax', 'outfit', 'pose', 'posonly', 'family', 'combo2', 'color'],
   editor:  ['editor', 'keeporder', 'lorapin', 'sendpos'],               // 클래식 에디터 · LoRA
   io:      ['backup', 'robust', 'changelog', 'shutdown'],               // 백업 · 복구 · 내역 · PC 종료
