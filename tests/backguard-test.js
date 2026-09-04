@@ -5,6 +5,9 @@
 //    브라우저는 스크립트로 창을 못 닫으므로, '두 번째'는 문지기를 다시 세우지 않는 것으로 통과시킨다.
 //  ★ 제일 중요한 것: **라이트박스·모달이 열려 있을 때의 뒤로가기는 예전 그대로여야 한다.**
 //    문지기가 그걸 가로채면 "뒤로가기로 창이 안 닫힌다"는 더 나쁜 문제가 된다.
+//  ★ v9.192.0 — 안내를 **전용 스낵바**(#pl-back-snack)로 바꿨다. 일반 토스트는 생성 알림에 묻힌다.
+//    그리고 예전엔 토스트 1.8초 / 재무장 2.2초로 **0.4초 어긋나** 안내가 사라졌는데도 나가지는
+//    구간이 있었다. 이제 '보이는 동안 = 나갈 수 있는 동안' 이어야 한다 — 그걸 실측으로 본다.
 const { chromium } = require('playwright-core');
 const http = require('http'), fs = require('fs'), path = require('path');
 const srv = http.createServer((q, r) => {
@@ -40,13 +43,39 @@ const ck = (n, c, d) => { console.log((c ? 'PASS' : 'FAIL') + ' - ' + n + (c ? '
   await p.waitForTimeout(500);
   ck('★ 한 번 눌러도 앱이 안 꺼진다 (문서가 그대로 살아 있다)', await alive(), '문서가 날아갔다');
   ck('★ 같은 주소에 그대로 있다', url() === u0, `${u0} → ${url()}`);
-  const t = await p.evaluate(() => (window.__toasts || []).join(' | '));
-  ck('★ "한 번 더 누르면 닫혀요" 안내가 뜬다', /한 번 더/.test(t), t || '(안내 없음)');
+  const snack = await p.evaluate(() => {
+    const el = document.getElementById('pl-back-snack');
+    if (!el) return null;
+    const st = getComputedStyle(el), r = el.getBoundingClientRect();
+    return { 보임: el.classList.contains('on') && st.opacity !== '0', 글: el.textContent,
+             폭: Math.round(r.width), 삐짐: r.right > innerWidth + 1 || r.left < -1,
+             막대: !!el.querySelector('.pl-bs-bar'), 안막음: st.pointerEvents === 'none' };
+  });
+  ck('★★ 전용 스낵바로 안내가 뜬다 (일반 토스트가 아니다)', !!snack && snack.보임 === true, JSON.stringify(snack));
+  ck('★ "한 번 더 누르면 나갑니다" 라고 알려 준다', !!snack && /한 번 더/.test(snack.글), snack && snack.글);
+  ck('★ 폰 390px 에서 안 삐진다', !!snack && !snack.삐짐 && snack.폭 <= 380, JSON.stringify(snack));
+  ck('★ 남은 시간 막대가 있다 (보이는 동안이 곧 나갈 수 있는 동안)', !!snack && snack.막대 === true);
+  ck('★ 밑에 있는 것을 가로막지 않는다', !!snack && snack.안막음 === true, JSON.stringify(snack));
+  //  일반 토스트로는 안 띄운다 — 생성 알림에 묻히면 안 된다
+  ck('★ 일반 토스트로는 안 띄운다', !/한 번 더/.test(await p.evaluate(() => (window.__toasts || []).join(' | '))),
+     await p.evaluate(() => (window.__toasts || []).join(' | ')));
 
-  // ── ② 시간이 지나면 문지기를 다시 세운다 ───────────────────────────
-  await p.waitForTimeout(2600);
-  const again = await p.evaluate(() => history.state && history.state._plGuard === 1);
-  ck('★ 잠시 뒤 문지기가 다시 세워진다 (다음에도 안 꺼진다)', again === true, JSON.stringify(await p.evaluate(() => history.state)));
+  // ── ② '보이는 동안 = 나갈 수 있는 동안' 이 정확히 맞는가 ─────────────
+  //   ⚠ 예전엔 안내 1.8초 / 재무장 2.2초로 0.4초 어긋나, 안내가 사라졌는데도 나가지는 구간이 있었다.
+  await p.waitForTimeout(1200);
+  const mid = await p.evaluate(() => ({
+    보임: (document.getElementById('pl-back-snack') || {}).classList?.contains('on'),
+    문지기: !!(history.state && history.state._plGuard === 1),
+  }));
+  ck('★★ 안내가 보이는 동안에는 문지기가 없다 (그래서 나갈 수 있다)',
+     mid.보임 === true && mid.문지기 === false, JSON.stringify(mid));
+  await p.waitForTimeout(2000);
+  const after = await p.evaluate(() => ({
+    보임: (document.getElementById('pl-back-snack') || {}).classList?.contains('on'),
+    문지기: !!(history.state && history.state._plGuard === 1),
+  }));
+  ck('★★ 안내가 사라지면 그 순간 문지기가 다시 선다 (어긋나는 구간이 없다)',
+     after.보임 === false && after.문지기 === true, JSON.stringify(after));
 
   // ── ③ 크게 보기가 열려 있으면 뒤로가기는 '그것만' 닫는다 (예전 그대로) ─
   await p.evaluate(async () => {
@@ -65,9 +94,11 @@ const ck = (n, c, d) => { console.log((c ? 'PASS' : 'FAIL') + ' - ' + n + (c ? '
   ck('★ 뒤로가기로 크게 보기가 닫힌다 (문지기가 가로채지 않는다)',
      await p.evaluate(() => !window._lbActive), '안 닫혔다');
   ck('★ 그때 앱은 살아 있다', await alive());
-  ck('★ 크게 보기를 닫는 뒤로가기에는 종료 안내가 안 뜬다 (문지기가 안 끼어든다)',
-     !/한 번 더/.test(await p.evaluate(() => (window.__toasts || []).join(' | '))),
-     await p.evaluate(() => (window.__toasts || []).join(' | ')));
+  ck('★★ 크게 보기를 닫는 뒤로가기에는 종료 안내가 안 뜬다 (문지기가 안 끼어든다)',
+     await p.evaluate(() => !(document.getElementById('pl-back-snack') || {}).classList?.contains('on')),
+     '크게 보기를 닫았는데 종료 안내가 떴다');
+  ck('★ 크게 보기 뒤로가기는 한 번에 닫힌다 (두 번 눌러야 하면 더 나쁜 문제다)',
+     await p.evaluate(() => !window._lbActive));
 
   // ── ④ 모달이 열려 있으면 그것만 닫힌다 ─────────────────────────────
   await p.evaluate(() => { window.__toasts = []; try { openChangelogModal(); } catch (e) {} });
@@ -78,6 +109,8 @@ const ck = (n, c, d) => { console.log((c ? 'PASS' : 'FAIL') + ' - ' + n + (c ? '
     await p.waitForTimeout(500);
     ck('★ 뒤로가기로 모달만 닫힌다', await p.evaluate(() => { const m = document.getElementById('changelog-modal'); return !m || getComputedStyle(m).display === 'none'; }));
     ck('★ 모달을 닫는 뒤로가기에도 앱은 살아 있다', await alive());
+    ck('★ 모달을 닫는 뒤로가기에도 종료 안내가 안 뜬다',
+       await p.evaluate(() => !(document.getElementById('pl-back-snack') || {}).classList?.contains('on')));
   } else {
     console.log('  (내역 모달을 못 열어 이 항목은 건너뜀)');
   }
