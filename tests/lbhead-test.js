@@ -102,6 +102,23 @@ const swipeTo = (p, i) => p.evaluate((k) => { for (let n = _lbIdx; n < k; n++) w
     await ctx.close();
   }
 
+  // ══ 갤러리에 1장뿐일 때도 걸린다 (제일 흔한 쓰임) ════════════════
+  //   ⚠ '2장 이상일 때만' 으로 두면 첫 장을 뽑고 크게 본 채로 다음 장을 기다릴 때 밀린다.
+  //     직접 써 보다 발견한 자리다 — 여기가 안 되면 이 기능은 반쯤 죽은 것이다.
+  {
+    const { ctx, p, errs } = await boot(b);
+    await seed(p, [{ u: SVG('첫장'), t: '첫장', i: 1 }]);
+    await openAt(p, 0); await p.waitForTimeout(800);
+    const a = await lbState(p);
+    ck('★★ 1장만 있어도 머리 자리가 잡힌다', a.head === 0 && a.n === 1, JSON.stringify(a));
+    await arrive(p, SVG('둘째'), '둘째'); await p.waitForTimeout(800);
+    const c = await lbState(p);
+    ck('★★ 1장 → 2장이 돼도 자리가 안 밀린다 (예전엔 2/2 로 밀렸다)', c.idx === 0 && c.n === 2, JSON.stringify(c));
+    ck('★★ 그 자리에 둘째가 그려진다', decodeURIComponent(c.그려진현재).indexOf('둘째') >= 0, decodeURIComponent(c.그려진현재).slice(0, 60));
+    ck('오류 없음', errs.length === 0, errs.slice(0, 2).join(' | '));
+    await ctx.close();
+  }
+
   // ══ 옛 이미지를 보고 있으면 그 그림을 계속 본다 ═══════════════════
   {
     const { ctx, p, errs } = await boot(b);

@@ -158,6 +158,63 @@ const roll = (p) => p.evaluate(() => { window.__toasts = []; return !!_recRollPi
     await ctx.close();
   }
 
+  // ══ 「비우기」를 누르면 🎲 도 꺼진다 (비웠는데 다시 채워지면 모순) ══
+  //   ⚠ 직접 써 보다 발견: 축을 비웠는데 생성하면 다시 채워졌다.
+  //     굴리기는 담긴 게 없으면 1개를 새로 뽑기 때문이다(처음 켤 때를 위해 필요한 규칙).
+  {
+    const { ctx, p, errs } = await boot(b, { roll: '["looks"]' });
+    await roll(p); await p.waitForTimeout(400);
+    const a = await layers(p);
+    ck('굴려서 의상이 담겼다', a.l4.length > 0, JSON.stringify(a.l4));
+    await p.evaluate(() => openRecommendModal()); await p.waitForTimeout(700);
+    await p.evaluate(() => {
+      const col = [...document.querySelectorAll('#rec-modal-overlay .recm-col')].find(c => (c.querySelector('.recm-col-name') || {}).textContent === '의상');
+      col.querySelector('.recm-clear').click();
+    });
+    await p.waitForTimeout(700);
+    const c = await layers(p);
+    const off = await p.evaluate(() => ({ on: _recRollOn('looks'), saved: localStorage.getItem('rec_roll_axes_v1') }));
+    ck('「비우기」로 의상이 비워진다', c.l4.length === 0, JSON.stringify(c.l4));
+    ck('★★ 「비우기」를 누르면 🎲 도 꺼진다', off.on === false && !/looks/.test(off.saved || ''), JSON.stringify(off));
+    const got = await roll(p); await p.waitForTimeout(400);
+    const d = await layers(p);
+    ck('★★ 비운 뒤 생성해도 다시 안 채워진다', got === false && d.l4.length === 0, JSON.stringify(d.l4));
+    //  이미 비어 있는 축에서도 🎲 를 끌 수 있어야 한다(끄기 경로가 막히면 안 된다)
+    const again = await p.evaluate(() => {
+      const btn = [...document.querySelectorAll('#rec-modal-overlay .recm-col')]
+        .find(c => (c.querySelector('.recm-col-name') || {}).textContent === '배경').querySelector('.recm-roll');
+      btn.click();                       // 배경 🎲 켬 (담긴 건 없음)
+      const on1 = _recRollOn('bg');
+      [...document.querySelectorAll('#rec-modal-overlay .recm-col')]
+        .find(c => (c.querySelector('.recm-col-name') || {}).textContent === '배경').querySelector('.recm-clear').click();
+      return { 켜짐: on1, 끈뒤: _recRollOn('bg') };
+    });
+    await p.waitForTimeout(500);
+    ck('★ 이미 비어 있는 축에서도 「비우기」로 🎲 를 끌 수 있다', again.켜짐 === true && again.끈뒤 === false, JSON.stringify(again));
+    ck('오류 없음', errs.length === 0, errs.slice(0, 2).join(' | '));
+    await ctx.close();
+  }
+
+  // ══ 굴린 결과가 화면 칩에 실제로 보인다 ══════════════════════════
+  //   ⚠ 직접 써 보다 발견: 굴린 프리셋이 '보여 주던 후보 12개' 밖이면 그 칩이 아예 안 그려져
+  //     있어서, 패널을 열어 두고 생성하면 **바뀐 게 화면에 하나도 안 보였다.**
+  {
+    const { ctx, p, errs } = await boot(b, { roll: '["looks"]' });
+    await p.evaluate(() => openRecommendModal()); await p.waitForTimeout(800);
+    await roll(p); await p.waitForTimeout(900);
+    const st = await p.evaluate(() => {
+      const col = [...document.querySelectorAll('#rec-modal-overlay .recm-col')].find(c => (c.querySelector('.recm-col-name') || {}).textContent === '의상');
+      return {
+        화면칩: [...col.querySelectorAll('.recm-chip.on')].map(b => b.textContent.trim()),
+        담긴것: _DATA_LOOKS.filter(x => _recPickedSet.has(x)).map(x => x.n),
+      };
+    });
+    ck('★★ 굴린 것이 화면 칩에 켜져 보인다',
+       st.담긴것.length > 0 && st.담긴것.every(n => st.화면칩.some(c => c.indexOf(n) >= 0)), JSON.stringify(st));
+    ck('오류 없음', errs.length === 0, errs.slice(0, 2).join(' | '));
+    await ctx.close();
+  }
+
   // ══ 「생성 전송」 버튼이 실제로 굴린다 (연결 실패는 무시) ═══════════
   {
     const { ctx, p, errs } = await boot(b, { roll: '["looks"]' });
