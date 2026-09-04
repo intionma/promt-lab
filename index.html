@@ -604,6 +604,30 @@
         .pl-auto-notes .n b { color:var(--text-main); font-weight:700; }
         /* 손가락 기기 — 히트 영역만 넓힌다(버튼을 키우면 줄이 밀린다) */
         @media (pointer: coarse) { .pl-auto-seg { padding:8px 14px; } .pl-auto-x { width:32px; height:32px; } }
+        /* 모드 고르기 — 두 모드가 '어디까지 책임지는가'를 줄글로 바로 밑에 적는다 */
+        .pl-auto-mode { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+        .pl-auto-mb { display:flex; flex-direction:column; gap:2px; align-items:flex-start; text-align:left;
+            background:var(--chip-bg); border:1px solid var(--border-dim); border-radius:10px;
+            padding:9px 10px; cursor:pointer; font-family:var(--font-ui); color:var(--text-main); transition:.12s; }
+        .pl-auto-mb b { font-size:12.5px; font-weight:800; }
+        .pl-auto-mb i { font-size:10px; font-style:normal; font-weight:600; color:var(--text-dim); line-height:1.35; }
+        .pl-auto-mb:hover { border-color:var(--accent-blue); }
+        .pl-auto-mb.on { background:color-mix(in srgb,var(--accent-blue) 16%,var(--chip-bg)); border-color:var(--accent-blue); }
+        .pl-auto-mb.on i { color:var(--text-main); }
+        .pl-auto-run.bulk { background:#a855f7; box-shadow:0 4px 14px rgba(168,85,247,.3); }
+        .pl-auto-run.bulk.on { background:var(--accent-green); box-shadow:0 4px 16px rgba(16,185,129,.32); }
+        .pl-auto-run .eta { font-size:11px; font-weight:700; opacity:.8; font-family:var(--font-ui); }
+        /* 위험 안내 — 되돌리기 어려운 동작이라 눈에 띄어야 한다 */
+        .pl-auto-warn { background:color-mix(in srgb,var(--accent-danger) 10%,transparent);
+            border:1px solid color-mix(in srgb,var(--accent-danger) 45%,transparent); border-radius:10px;
+            padding:10px 11px; display:flex; flex-direction:column; gap:5px; }
+        .pl-auto-warn .t { font-size:11.5px; font-weight:800; color:var(--accent-danger); }
+        .pl-auto-warn .w { font-size:10.5px; color:var(--text-dim); line-height:1.55; }
+        .pl-auto-warn .w b { color:var(--text-main); font-weight:700; }
+        .pl-auto-drop { width:100%; background:transparent; border:1px solid var(--accent-danger);
+            color:var(--accent-danger); border-radius:10px; padding:9px; font-size:12px; font-weight:800;
+            cursor:pointer; font-family:var(--font-ui); }
+        .pl-auto-drop b { font-family:var(--font-code); }
         .io-pill.active { background:color-mix(in srgb, var(--pc,#a78bfa) 18%, transparent); border-color:var(--pc,#a78bfa); color:var(--pc,#a78bfa); }
         .io-pill:not(.active) { background:transparent; border-color:var(--border-dim); color:var(--text-dim); }
         .io-pill:hover { opacity:0.85; }
@@ -22494,17 +22518,46 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
         const _PL_AUTO_KEY = 'autogen_opts_v1';        // 설정(유지 개수·상한)만 저장한다
         const _PL_AUTO_KEEPS = [1, 2, 3];
         const _PL_AUTO_CAPS  = [0, 20, 50, 100];       // 0 = 무제한
+        //  ★ 모드 두 가지 (v9.193.0)
+        //    follow = 따라가며 채우기 — 큐를 keep+1 로 유지. 앱이 살아 있어야 하고, 언제든 즉시 멈춘다.
+        //    bulk   = 미리 밀어 넣기 — N장을 한 번에 던져 놓는다. **앱을 꺼도 PC 가 마저 그린다.**
+        //  ⚠ 그림은 브라우저가 아니라 PC 의 ComfyUI 가 만든다. 그래서 '탭을 꺼도 계속'의 답은
+        //    브라우저를 살려 두는 게 아니라 **끄기 전에 큐를 채워 놓는 것**이다.
+        //    (서비스워커는 할 일 없으면 몇십 초 만에 죽고, Periodic Background Sync 는 최소 간격이
+        //     몇 시간이며 보장되지 않는다. Wake Lock 은 화면만 켜 둘 뿐 탭을 닫으면 끝이다.)
+        const _PL_AUTO_BULKS  = [20, 50, 100];         // 미리 넣기 장수 — 100장이 상한(사용자 결정)
         //  ⚠ on 은 **절대 저장하지 않는다**(C6). 공유 진입은 새 문서라, 저장하면 공유할 때마다
         //    앱이 뜨자마자 몰래 생성이 시작된다. 새로고침·탭 닫힘으로 저절로 꺼지는 게 제일 중요한 안전장치다.
-        let _plAuto = { on: false, keep: 1, cap: 0, made: 0, startedAt: 0, fails: 0, route: 'modal', lastAx: null };
+        let _plAuto = { on: false, mode: 'follow', keep: 1, cap: 0, bulk: 50, made: 0, startedAt: 0, fails: 0, route: 'modal', lastAx: null,
+                        bulkRunning: false, bulkDone: 0, bulkAbort: false };
         let _plAutoTimer = null, _plAutoSending = false;
         try {
             const o = JSON.parse(localStorage.getItem(_PL_AUTO_KEY)) || {};
             if (_PL_AUTO_KEEPS.indexOf(o.keep) >= 0) _plAuto.keep = o.keep;
             if (_PL_AUTO_CAPS.indexOf(o.cap) >= 0) _plAuto.cap = o.cap;
+            if (_PL_AUTO_BULKS.indexOf(o.bulk) >= 0) _plAuto.bulk = o.bulk;
+            if (o.mode === 'follow' || o.mode === 'bulk') _plAuto.mode = o.mode;
         } catch (e) {}
         function _plAutoSaveOpts() {
-            try { localStorage.setItem(_PL_AUTO_KEY, JSON.stringify({ keep: _plAuto.keep, cap: _plAuto.cap })); } catch (e) {}
+            try { localStorage.setItem(_PL_AUTO_KEY, JSON.stringify({ mode: _plAuto.mode, keep: _plAuto.keep, cap: _plAuto.cap, bulk: _plAuto.bulk })); } catch (e) {}
+        }
+        //  최근 결과의 장당 소요 시간(초) — 예상 시간을 눈대중으로 적지 않기 위해 실제 값을 쓴다.
+        //  ⚠ 알 수 없으면 null 을 돌려준다. 그때는 시간을 아예 말하지 않는다(틀린 숫자보다 낫다).
+        function _plAutoAvgSec() {
+            try {
+                const secs = (_galleryUrls || []).slice(0, 12)
+                    .map(u => (_galleryMeta[u] || {}).sec).filter(v => typeof v === 'number' && v > 0);
+                if (secs.length < 3) return null;
+                secs.sort((a, b) => a - b);
+                return secs[Math.floor(secs.length / 2)];   // 중앙값 — 한 장 튀는 것에 안 흔들린다
+            } catch (e) { return null; }
+        }
+        function _plAutoEta(n) {
+            const sec = _plAutoAvgSec(); if (!sec) return null;
+            const m = Math.round(n * sec / 60);
+            if (m < 1) return '1분 안쪽';
+            if (m < 60) return `약 ${m}분`;
+            return `약 ${Math.floor(m / 60)}시간 ${m % 60}분`;
         }
         //  ⚠ _plCurrent 로 보면 안 된다 — 지연 실행 블록에서 닿지 않는 스코프라 ReferenceError 가 나고
         //    try 로 감싸면 아무 말 없이 영영 안 돈다(v9.188.0 에서 실제로 겪었다 · C10).
@@ -22584,12 +22637,90 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             }
         }
 
+        // ── 미리 밀어 넣기 (bulk) — 앱을 꺼도 PC 가 마저 그린다 ──────
+        //  ⚠ 되돌리기 어려운 동작이다(큐가 PC 손에 넘어간다) → 반드시 showConfirm 으로 확인받는다.
+        //    토스트로 알리는 건 확인이 아니다('전체 비우기'에서 배운 것).
+        function _plAutoBulkStart() {
+            if (!_plAutoLayoutOk()) { try { showToast('클래식·스튜디오에서만 쓸 수 있어요', 'warning', 2600); } catch (e) {} return; }
+            if (_plAuto.bulkRunning) return;
+            const n = _plAuto.bulk;
+            const eta = _plAutoEta(n);
+            let dice = [];
+            try { dice = (typeof _recAxes === 'function' ? _recAxes() : []).filter(a => !a.custom && _recRollOn(a.key)); } catch (e) {}
+            const lines = [
+                `${n}장을 대기열에 한꺼번에 넣을까요?`, '',
+                `· 넣고 나면 ${'앱을 꺼도 PC 가 계속 그립니다'}${eta ? ` (${eta})` : ''}`,
+                '· 멈추려면 앱을 다시 열어 「대기열 전체 취소」를 눌러야 해요',
+                '· 그동안 PC 의 GPU 가 계속 돌고, 그림이 디스크에 쌓입니다',
+            ];
+            //  🎲 를 안 켰으면 그 대가가 여기선 훨씬 크다 — N장이 통째로 같은 그림이 된다.
+            if (!dice.length) lines.push('', `⚠ 🎲 를 켠 칸이 없어서 ${n}장이 **시드만 다른 같은 그림**이 됩니다.`);
+            else lines.push('', `🎲 ${dice.map(a => a.name).join(' · ')} 은(는) 장마다 새로 뽑힙니다.`);
+            try { showConfirm(lines.join('\n'), () => _plAutoBulkRun()); }
+            catch (e) { _plAutoBulkRun(); }
+        }
+        async function _plAutoBulkRun() {
+            if (_plAuto.bulkRunning) return;
+            _plAuto.bulkRunning = true; _plAuto.bulkAbort = false; _plAuto.bulkDone = 0; _plAuto.fails = 0;
+            _plAutoSyncBtns(); _plAutoSyncPop();
+            const n = _plAuto.bulk;
+            for (let i = 0; i < n; i++) {
+                if (_plAuto.bulkAbort) break;
+                if (!_plAutoLayoutOk()) break;
+                //  C1 과 같은 이유 — 전송 잠금에 걸리면 포기하지 말고 잠깐 기다렸다 다시 본다.
+                const lockKey = _plAuto.route === 'modal' ? 'modal' : _plAuto.route;
+                let waited = 0;
+                while (_comfySendingFor.has(lockKey) && waited < 6000 && !_plAuto.bulkAbort) {
+                    await new Promise(r => setTimeout(r, 300)); waited += 300;
+                }
+                if (_plAuto.bulkAbort) break;
+                const before = _comfyQueueCount;
+                try {
+                    if (_plAuto.route === 'pos' || _plAuto.route === 'neg') await comfyQuickSend(_plAuto.route);
+                    else await comfyGenerate();
+                } catch (e) { console.warn('미리 넣기 전송 실패:', e); }
+                if (_comfyQueueCount > before) { _plAuto.bulkDone++; _plAuto.fails = 0; }
+                else {
+                    _plAuto.fails++;
+                    if (_plAuto.fails >= 3) { _plAuto.bulkAbort = true; try { showToast('전송이 3번 연달아 실패해서 멈췄어요 — 연결을 확인하세요', 'error', 4000); } catch (e) {} break; }
+                }
+                _plAutoSyncBtns(); _plAutoSyncPop();
+                await new Promise(r => setTimeout(r, 120));   // 서버를 몰아치지 않게 한 박자
+            }
+            const done = _plAuto.bulkDone, aborted = _plAuto.bulkAbort;
+            _plAuto.bulkRunning = false; _plAuto.bulkAbort = false;
+            _plAutoSyncBtns(); _plAutoSyncPop();
+            if (!done) return;
+            //  ⚠ 취소해도 **이미 넣은 것은 PC 손에 있다** — 그걸 분명히 말해야 한다.
+            try {
+                showToast(aborted
+                    ? `${done}장까지 넣고 멈췄어요 — 이미 넣은 ${done}장은 그대로 나옵니다`
+                    : `${done}장을 대기열에 넣었어요 — 이제 앱을 꺼도 됩니다`, aborted ? 'info' : 'success', 4200);
+            } catch (e) {}
+        }
+        function _plAutoBulkCancel() {
+            if (!_plAuto.bulkRunning) return;
+            _plAuto.bulkAbort = true;
+            _plAutoSyncPop();
+        }
+        //  큐에 쌓인 것을 통째로 버린다 — 미리 넣기를 되돌리는 유일한 길이다.
+        function _plAutoDropQueue() {
+            const n = _comfyQueueCount;
+            if (!n) return;
+            try {
+                showConfirm(`대기열에 남은 ${n}장을 전부 취소할까요?\n\n되돌릴 수 없습니다.\n(이미 저장된 그림은 그대로 남습니다)`,
+                    () => { try { comfyCancelAllQueue(); } catch (e) {} _plAutoSyncPop(); });
+            } catch (e) { try { comfyCancelAllQueue(); } catch (e2) {} }
+        }
+        window._plAutoBulkStart = _plAutoBulkStart;
+
         // ── 생성 버튼 교체 ───────────────────────────────────────────
         //  ⚠ 버튼을 코드에 나열하지 않는다(C9). data-pl-gen 속성만 훑는다.
         //    나열하면 버튼이 늘 때마다 빠뜨려도 오류가 안 나서 조용히 샌다
         //    (_animaOptLabel 이 6개 group 만 나열해 새 축이 캡션에서 빠졌던 그 사고와 같다).
         function _plAutoSyncBtns() {
-            const on = _plAuto.on;
+            const bulk = _plAuto.bulkRunning;
+            const on = _plAuto.on || bulk;
             document.querySelectorAll('[data-pl-gen]').forEach(b => {
                 const kind = b.dataset.plGen;
                 if (b.dataset.plGenOrig == null) b.dataset.plGenOrig = b.innerHTML;
@@ -22602,8 +22733,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
                 }
                 b.classList.toggle('pl-gen-on', on);
                 if (on) {
-                    b.innerHTML = '<span class="pl-sp"></span><span class="pl-gen-t run">연속 생성 중…</span><span class="pl-gen-t stop">■ 연속 생성 중단</span>';
-                    b.title = '누르면 새로 넣기를 멈춥니다 (대기열에 남은 것은 마저 나와요)';
+                    const lab = bulk ? `미리 넣는 중 ${_plAuto.bulkDone}/${_plAuto.bulk}` : '연속 생성 중…';
+                    const stp = bulk ? '■ 넣기 중단' : '■ 연속 생성 중단';
+                    b.innerHTML = `<span class="pl-sp"></span><span class="pl-gen-t run">${lab}</span><span class="pl-gen-t stop">${stp}</span>`;
+                    b.title = bulk ? '누르면 더 넣는 것을 멈춥니다 (이미 넣은 것은 그대로 나와요)'
+                                   : '누르면 새로 넣기를 멈춥니다 (대기열에 남은 것은 마저 나와요)';
                 } else {
                     b.innerHTML = b.dataset.plGenOrig;
                     b.title = '';
@@ -22646,10 +22780,10 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const b = e.target.closest && e.target.closest('[data-pl-gen]');
             if (!b) return;
             if (_plLpFired) { _plLpFired = false; e.preventDefault(); e.stopPropagation(); return; }
-            if (!_plAuto.on) return;
+            if (!_plAuto.on && !_plAuto.bulkRunning) return;
             e.preventDefault(); e.stopPropagation();
             if (b.dataset.plGen === 'multi') { try { showToast('연속 생성 중에는 「빠르게 생성」을 쓸 수 없어요 — 먼저 멈추세요', 'info', 2600); } catch (e2) {} return; }
-            _plAutoStop();
+            if (_plAuto.bulkRunning) _plAutoBulkCancel(); else _plAutoStop();
         }, true);
 
         // ── 창 ───────────────────────────────────────────────────────
@@ -22688,33 +22822,72 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             const on = _plAuto.on;
             const seg = (vals, cur, attr, fmt) => `<span class="pl-auto-segs">`
                 + vals.map(v => `<button class="pl-auto-seg${v === cur ? ' on' : ''}" data-${attr}="${v}">${fmt(v)}</button>`).join('') + `</span>`;
+            const bulking = _plAuto.bulkRunning;
+            const isBulk = _plAuto.mode === 'bulk';
+            const eta = _plAutoEta(_plAuto.bulk);
+            //  ★ 모드는 '어디까지 책임지는가'가 다르다 — 따라가며는 앱이 살아 있어야 하고,
+            //    미리 넣기는 앱을 꺼도 되지만 멈추기 어렵다. 그 차이를 줄글로 바로 밑에 적는다.
+            const modeRow = `<div class="pl-auto-mode">
+                <button class="pl-auto-mb${isBulk ? '' : ' on'}" data-mode="follow"><b>따라가며</b><i>앱을 켜 둬야 함 · 즉시 멈춤</i></button>
+                <button class="pl-auto-mb${isBulk ? ' on' : ''}" data-mode="bulk"><b>미리 넣기</b><i>앱을 꺼도 됨 · 멈추기 어려움</i></button>
+              </div>`;
+            let mainBtn, rows, notes;
+            if (isBulk) {
+                mainBtn = bulking
+                    ? `<button class="pl-auto-run on bulk" data-a="bulkcancel"><span class="r1"><span class="pl-sp"></span> ${_plAuto.bulkDone} / ${_plAuto.bulk} 넣는 중</span><span class="r2">누르면 더 넣는 것을 멈춥니다</span></button>`
+                    : `<button class="pl-auto-run bulk" data-a="bulk">▶ ${_plAuto.bulk}장 미리 넣기${eta ? ` <span class="eta">${eta}</span>` : ''}</button>`;
+                rows = `<div class="pl-auto-row"><span class="k">몇 장</span>${seg(_PL_AUTO_BULKS, _plAuto.bulk, 'bulk', v => v + '장')}</div>`;
+                notes = `<div class="pl-auto-warn">
+                    <span class="t">⚠ 넣고 나면 PC 가 끝까지 그립니다</span>
+                    <span class="w">앱을 꺼도 되지만, <b>멈추려면 앱을 다시 열어</b> 아래 「대기열 전체 취소」를 눌러야 해요.
+                    그동안 GPU 가 계속 돌고 그림이 디스크에 쌓입니다.</span>
+                  </div>`;
+            } else {
+                mainBtn = `<button class="pl-auto-run${on ? ' on' : ''}" data-a="toggle">${on
+                    ? '<span class="r1"><span class="pl-sp"></span> 연속 생성 중</span><span class="r2">누르면 새로 넣기를 멈춥니다</span>'
+                    : '▶ 연속 생성 시작'}</button>`
+                  + (on ? `<div class="pl-auto-stats">
+                    <span class="s"><span class="n">${_plAuto.made}<small>장</small></span><span class="l">지금까지</span></span>
+                    <span class="s"><span class="n">${_comfyQueueCount}<small>/${_plAuto.keep + 1}</small></span><span class="l">대기열</span></span>
+                    <span class="s"><span class="n">${_plAutoElapsed()}<small>분</small></span><span class="l">돌아간 시간</span></span>
+                  </div>` : '');
+                rows = `<div class="pl-auto-row"><span class="k">대기열 유지</span>${seg(_PL_AUTO_KEEPS, _plAuto.keep, 'keep', v => v + '장')}</div>`
+                     + `<div class="pl-auto-row"><span class="k">몇 장까지</span>${seg(_PL_AUTO_CAPS, _plAuto.cap, 'cap', v => v === 0 ? '무제한' : String(v))}</div>`;
+                notes = `<div class="pl-auto-notes">
+                    <span class="n"><b>화면을 켜 둬야</b> 계속 돌아갑니다. 폰이 잠기면 멈춰요.</span>
+                    <span class="n">그림은 PC 의 ComfyUI 폴더에 <b>계속 쌓입니다</b>.</span>
+                    ${_plAuto.keep > 1 ? `<span class="n">멈춰도 대기열의 <b>${_plAuto.keep}장</b>은 마저 나옵니다.</span>` : ''}
+                  </div>`;
+            }
+            //  큐에 쌓인 게 있으면 되돌릴 길을 항상 보여 준다 — 미리 넣기를 되돌리는 유일한 방법이다.
+            const dropRow = _comfyQueueCount > 0
+                ? `<button class="pl-auto-drop" data-a="drop">대기열 전체 취소 <b>${_comfyQueueCount}장</b></button>` : '';
             pop.innerHTML = `
               <div class="pl-auto-head"><h3><span class="b">⚡</span> 연속 자동 생성</h3>
                 <button class="pl-auto-x" data-a="close" aria-label="닫기">×</button></div>
               <div class="pl-auto-body">
-                <button class="pl-auto-run${on ? ' on' : ''}" data-a="toggle">${on
-                    ? '<span class="r1"><span class="pl-sp"></span> 연속 생성 중</span><span class="r2">누르면 새로 넣기를 멈춥니다</span>'
-                    : '▶ 연속 생성 시작'}</button>
-                ${on ? `<div class="pl-auto-stats">
-                    <span class="s"><span class="n">${_plAuto.made}<small>장</small></span><span class="l">지금까지</span></span>
-                    <span class="s"><span class="n">${_comfyQueueCount}<small>/${_plAuto.keep + 1}</small></span><span class="l">대기열</span></span>
-                    <span class="s"><span class="n">${_plAutoElapsed()}<small>분</small></span><span class="l">돌아간 시간</span></span>
-                  </div>` : ''}
-                <div class="pl-auto-row"><span class="k">대기열 유지</span>${seg(_PL_AUTO_KEEPS, _plAuto.keep, 'keep', v => v + '장')}</div>
-                <div class="pl-auto-row"><span class="k">몇 장까지</span>${seg(_PL_AUTO_CAPS, _plAuto.cap, 'cap', v => v === 0 ? '무제한' : String(v))}</div>
+                ${modeRow}
+                ${mainBtn}
+                ${rows}
                 <div class="pl-auto-hr"></div>
                 ${_plAutoDiceHtml()}
-                <div class="pl-auto-notes">
-                  <span class="n"><b>화면을 켜 둬야</b> 계속 돌아갑니다. 폰이 잠기면 멈춰요.</span>
-                  <span class="n">그림은 PC 의 ComfyUI 폴더에 <b>계속 쌓입니다</b>.</span>
-                  ${_plAuto.keep > 1 ? `<span class="n">멈춰도 대기열의 <b>${_plAuto.keep}장</b>은 마저 나옵니다.</span>` : ''}
-                </div>
+                ${notes}
+                ${dropRow}
               </div>`;
             pop.querySelectorAll('[data-keep]').forEach(b => b.onclick = () => { _plAuto.keep = parseInt(b.dataset.keep); _plAutoSaveOpts(); _plAutoRenderPop(); if (_plAuto.on) _plAutoPump(); });
             pop.querySelectorAll('[data-cap]').forEach(b => b.onclick = () => { _plAuto.cap = parseInt(b.dataset.cap); _plAutoSaveOpts(); _plAutoRenderPop(); });
             pop.querySelectorAll('[data-a="close"]').forEach(b => b.onclick = _plAutoClose);
             pop.querySelectorAll('[data-a="toggle"]').forEach(b => b.onclick = () => _plAutoToggle());
             pop.querySelectorAll('[data-a="rec"]').forEach(b => b.onclick = () => { _plAutoClose(); try { openRecommendModal(); } catch (e) {} });
+            pop.querySelectorAll('[data-bulk]').forEach(b => b.onclick = () => { _plAuto.bulk = parseInt(b.dataset.bulk); _plAutoSaveOpts(); _plAutoRenderPop(); });
+            pop.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => {
+                if (_plAuto.bulkRunning) return;                 // 넣는 도중에는 모드를 못 바꾼다
+                if (_plAuto.on) _plAutoStop();                   // 따라가며가 돌고 있으면 먼저 멈춘다
+                _plAuto.mode = b.dataset.mode; _plAutoSaveOpts(); _plAutoRenderPop();
+            });
+            pop.querySelectorAll('[data-a="bulk"]').forEach(b => b.onclick = () => _plAutoBulkStart());
+            pop.querySelectorAll('[data-a="bulkcancel"]').forEach(b => b.onclick = () => _plAutoBulkCancel());
+            pop.querySelectorAll('[data-a="drop"]').forEach(b => b.onclick = () => _plAutoDropQueue());
         }
         //  도는 동안 숫자만 갱신 — 창이 안 열려 있으면 아무 일도 안 한다.
         function _plAutoSyncPop() { if (document.getElementById('pl-auto-ov')) _plAutoRenderPop(); }
@@ -26173,11 +26346,11 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             //  ⚠ _recSyncVisual 로는 부족하다 — 굴린 프리셋이 '보여 주던 후보 12개' 밖이면
             //    그 칩이 아예 안 그려져 있어 **바뀐 게 화면에 하나도 안 보인다**(직접 써 보다 발견).
             //    다시 그리면 담긴 것이 맨 위로 고정되고 스크롤도 복원되므로 화면이 안 튄다.
-            try { if (_recHost && _recHost.isConnected) renderRecommendModal(false); } catch (e) {}
-            //  ⚠ 연속 자동 생성 중에는 토스트를 안 띄운다 — 장마다 뜨면 화면을 가린다.
-            //    대신 창의 '방금 뽑힌 것' 에 실어 보여 준다.
+            //  ⚠ 연속 자동 생성 중에는 토스트도 패널 재렌더도 안 한다 — 장마다 뜨면 화면을 가리고,
+            //    미리 넣기는 100번까지 도니 재렌더가 그대로 100번이 된다.
             let _auto = false;
-            try { _auto = !!(typeof _plAuto !== 'undefined' && _plAuto.on); } catch (e) {}
+            try { _auto = !!(typeof _plAuto !== 'undefined' && (_plAuto.on || _plAuto.bulkRunning)); } catch (e) {}
+            if (!_auto) { try { if (_recHost && _recHost.isConnected) renderRecommendModal(false); } catch (e) {} }
             if (_auto) { try { _plAuto.lastAx = done.slice(); _plAutoSyncPop(); } catch (e) {} }
             else { try { showToast('🎲 ' + done.join('  |  '), 'info', 3000); } catch (e) {} }
             return done;
@@ -28338,7 +28511,7 @@ http.server.HTTPServer(('0.0.0.0', PORT), H).serve_forever()
             if (_plTeardown) { try { _plTeardown(); } catch (e) {} _plTeardown = null; }
             runCleanups();
             //  연속 자동 생성 — 클래식·스튜디오를 벗어나면 끈다. 안 그러면 끌 버튼이 화면에서 사라진다(C3).
-            try { if (def.id !== 'classic' && def.id !== 'studio' && typeof _plAutoStop === 'function') _plAutoStop('레이아웃을 옮겨 연속 생성을 껐어요', 'warning'); } catch (e) {}
+            try { if (def.id !== 'classic' && def.id !== 'studio' && typeof _plAutoStop === 'function') { _plAutoStop('레이아웃을 옮겨 연속 생성을 껐어요', 'warning'); if (typeof _plAutoBulkCancel === 'function') _plAutoBulkCancel(); } } catch (e) {}
             document.body.setAttribute('data-layout', def.id);
             //  ★ 부트용으로 <html>에 걸어 둔 값은 여기서 반드시 지운다.
             //    안 지우면 클래식으로 나가도 html[data-layout="anima"] 규칙이 살아 있어 화면이 빈 채로 남는다.

@@ -47,6 +47,9 @@ const boot = async (b, layout, w, h) => {
     };
     //  한 장 끝남 — 실제로는 _comfyFinalize 가 하는 일
     window.__done = () => { _comfyQueueCount = Math.max(0, _comfyQueueCount - 1); _plAutoPump(); };
+    //  ★ 미리 넣기는 되돌리기 어려운 동작이라 showConfirm 을 반드시 거쳐야 한다 → 기록해 두고 자동 승인.
+    window.__confirms = []; window.__confirmAccept = true;
+    window.showConfirm = (msg, ok) => { window.__confirms.push(String(msg)); if (window.__confirmAccept && ok) ok(); };
   });
   return { ctx, p, errs };
 };
@@ -285,6 +288,111 @@ const S = (p) => p.evaluate(() => ({
     const sent = await p.evaluate(() => window.__sent.slice());
     ck('★ 꾹 누른 버튼의 경로(pos)로 계속 보낸다', sent.length >= 2 && sent.every(x => x === 'pos'), JSON.stringify(sent));
     await p.evaluate(() => _plAutoStop());
+    ck('오류 없음', errs.length === 0, errs.slice(0, 2).join(' | '));
+    await ctx.close();
+  }
+
+  // ══ 미리 밀어 넣기 (v9.193.0) — 앱을 꺼도 PC 가 마저 그린다 ══════
+  {
+    const { ctx, p, errs } = await boot(b, 'studio', 390, 844);
+    await p.evaluate(() => _plAutoOpen('modal')); await p.waitForTimeout(500);
+    const m = await p.evaluate(() => {
+      const pop = document.querySelector('#pl-auto-ov .pl-auto-pop');
+      return { 모드버튼: pop.querySelectorAll('.pl-auto-mb').length,
+               지금: [...pop.querySelectorAll('.pl-auto-mb')].map(x => ({ v: x.dataset.mode, on: x.classList.contains('on') })) };
+    });
+    ck('★ 모드가 둘이다 (따라가며 / 미리 넣기)', m.모드버튼 === 2, JSON.stringify(m));
+    ck('★ 기본은 따라가며 (예전 동작)', m.지금.find(x => x.v === 'follow').on === true, JSON.stringify(m.지금));
+
+    await p.evaluate(() => document.querySelector('[data-mode="bulk"]').click());
+    await p.waitForTimeout(400);
+    const bm = await p.evaluate(() => {
+      const pop = document.querySelector('#pl-auto-ov .pl-auto-pop');
+      return {
+        mode: _plAuto.mode, 저장: localStorage.getItem('autogen_opts_v1'),
+        장수세그: [...pop.querySelectorAll('[data-bulk]')].map(x => parseInt(x.dataset.bulk)),
+        경고: !!pop.querySelector('.pl-auto-warn'),
+        경고글: (pop.querySelector('.pl-auto-warn') || {}).textContent || '',
+        기본컨트롤: pop.querySelectorAll('select,input,textarea').length,
+        삐짐: (() => { const r = pop.getBoundingClientRect(); return r.right > innerWidth + 1 || r.left < -1; })(),
+      };
+    });
+    ck('★ 미리 넣기로 바뀌고 저장된다', bm.mode === 'bulk' && /"mode":"bulk"/.test(bm.저장 || ''), JSON.stringify(bm.mode));
+    ck('★★ 장수는 20·50·100 뿐이다 (100장 상한)', JSON.stringify(bm.장수세그) === '[20,50,100]', JSON.stringify(bm.장수세그));
+    ck('★★ 위험 경고가 창에 뜬다', bm.경고 === true && /멈추려면/.test(bm.경고글), bm.경고글.slice(0, 60));
+    ck('★ 여기서도 기본 HTML 컨트롤을 안 쓴다', bm.기본컨트롤 === 0);
+    ck('★ 폰 390px 에서 안 삐진다', bm.삐짐 === false);
+
+    // ★★ 확인 없이 던지면 안 된다
+    await p.evaluate(() => { window.__confirms = []; window.__confirmAccept = false; document.querySelector('[data-a="bulk"]').click(); });
+    await p.waitForTimeout(700);
+    const noc = await p.evaluate(() => ({ c: window.__confirms.slice(), sent: window.__sent.length }));
+    ck('★★ 확인 창을 반드시 거친다 (되돌리기 어려운 동작)', noc.c.length === 1, JSON.stringify(noc.c.length));
+    ck('★★ 확인을 거절하면 한 장도 안 던진다', noc.sent === 0, `${noc.sent}건`);
+    ck('★ 확인 글에 「앱을 꺼도」와 멈추는 법이 적혀 있다',
+       /앱을 꺼도/.test(noc.c[0]) && /전체 취소/.test(noc.c[0]), noc.c[0].slice(0, 80));
+    ck('★ 🎲 를 안 켰으면 확인 글에서 경고한다', /같은 그림/.test(noc.c[0]), noc.c[0]);
+
+    // ★★ 승인하면 그 장수만큼 던진다
+    await p.evaluate(() => { window.__confirmAccept = true; _plAuto.bulk = 20; _plAutoRenderPop(); document.querySelector('[data-a="bulk"]').click(); });
+    await p.waitForTimeout(6000);
+    const done = await p.evaluate(() => ({ sent: window.__sent.length, q: _comfyQueueCount, running: _plAuto.bulkRunning, t: window.__t.slice(-1) }));
+    ck('★★ 승인하면 그 장수만큼 대기열에 넣는다', done.sent === 20 && done.q === 20, JSON.stringify(done));
+    ck('★ 다 넣으면 끝난다', done.running === false, JSON.stringify(done));
+    ck('★ 「이제 앱을 꺼도 됩니다」라고 알려 준다', /앱을 꺼도/.test((done.t[0] || '')), JSON.stringify(done.t));
+    ck('오류 없음', errs.length === 0, errs.slice(0, 2).join(' | '));
+    await ctx.close();
+  }
+
+  // ══ 던지는 도중 취소 ═════════════════════════════════════════════
+  {
+    const { ctx, p, errs } = await boot(b);
+    //  한 장 던지는 데 시간이 걸리게 해서 도중에 끼어들 수 있게 한다
+    await p.evaluate(() => {
+      window.comfyGenerate = async () => { window.__sent.push('modal'); await new Promise(r => setTimeout(r, 260)); _comfyQueueCount++; };
+      _plAuto.mode = 'bulk'; _plAuto.bulk = 100;
+      window.__confirmAccept = true; _plAutoBulkRun();
+    });
+    await p.waitForTimeout(1400);
+    const mid = await p.evaluate(() => {
+      const b0 = document.getElementById('comfy-send-btn');
+      return { running: _plAuto.bulkRunning, done: _plAuto.bulkDone, 버튼: b0.textContent.trim(), sp: !!b0.querySelector('.pl-sp') };
+    });
+    ck('★ 넣는 도중 생성 버튼이 진행 상황을 보여 준다',
+       mid.running === true && /미리 넣는 중/.test(mid.버튼) && mid.sp, JSON.stringify(mid));
+    //  ★★ 생성 버튼을 눌러 취소
+    await p.evaluate(() => document.getElementById('comfy-send-btn').click());
+    await p.waitForTimeout(1500);
+    const c = await p.evaluate(() => ({ running: _plAuto.bulkRunning, sent: window.__sent.length, q: _comfyQueueCount, t: window.__t.slice(-1) }));
+    ck('★★ 던지는 도중에 취소된다', c.running === false && c.sent < 100, `${c.sent}건까지 넣고 멈춤`);
+    ck('★★ 이미 넣은 것은 그대로 남는다고 알려 준다', /이미 넣은/.test(c.t[0] || ''), JSON.stringify(c.t));
+    ck('★ 취소해도 이미 넣은 것은 대기열에 있다', c.q === c.sent, JSON.stringify(c));
+    //  넣는 도중에는 모드를 못 바꾼다
+    await p.evaluate(() => { _plAuto.bulkRunning = true; _plAutoOpen('modal'); });
+    await p.waitForTimeout(400);
+    await p.evaluate(() => document.querySelector('[data-mode="follow"]').click());
+    await p.waitForTimeout(300);
+    ck('★ 넣는 도중에는 모드를 못 바꾼다', (await p.evaluate(() => _plAuto.mode)) === 'bulk');
+    await p.evaluate(() => { _plAuto.bulkRunning = false; });
+    ck('오류 없음', errs.length === 0, errs.slice(0, 2).join(' | '));
+    await ctx.close();
+  }
+
+  // ══ 되돌리는 유일한 길 — 대기열 전체 취소 ════════════════════════
+  {
+    const { ctx, p, errs } = await boot(b);
+    await p.evaluate(() => { _plAutoOpen('modal'); }); await p.waitForTimeout(400);
+    ck('★ 대기열이 비어 있으면 「전체 취소」가 안 보인다',
+       !(await p.evaluate(() => !!document.querySelector('[data-a="drop"]'))));
+    await p.evaluate(() => { _comfyQueueCount = 37; window.__cleared = false; window.comfyCancelAllQueue = () => { window.__cleared = true; _comfyQueueCount = 0; }; _plAutoRenderPop(); });
+    await p.waitForTimeout(300);
+    const d = await p.evaluate(() => { const x = document.querySelector('[data-a="drop"]'); return { 있음: !!x, 글: x ? x.textContent.trim() : '' }; });
+    ck('★★ 대기열이 있으면 「전체 취소」가 보인다 (미리 넣기를 되돌리는 유일한 길)', d.있음 === true && /37/.test(d.글), JSON.stringify(d));
+    await p.evaluate(() => { window.__confirms = []; window.__confirmAccept = true; document.querySelector('[data-a="drop"]').click(); });
+    await p.waitForTimeout(500);
+    const r = await p.evaluate(() => ({ c: window.__confirms.slice(), cleared: window.__cleared, q: _comfyQueueCount }));
+    ck('★★ 전체 취소도 확인을 거친다', r.c.length === 1 && /되돌릴 수 없/.test(r.c[0]), JSON.stringify(r.c[0] || '').slice(0, 60));
+    ck('★ 승인하면 대기열이 비워진다', r.cleared === true && r.q === 0, JSON.stringify(r));
     ck('오류 없음', errs.length === 0, errs.slice(0, 2).join(' | '));
     await ctx.close();
   }
