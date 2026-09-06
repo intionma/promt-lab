@@ -38,7 +38,7 @@ const GROUPS = {
   layout:  ['fold', 'responsive', 'twoui', 'layout', 'glass', 'menu'],  // 화면 폭 · 테마 · 레이아웃
   gallery: ['gallery', 'useresult', 'shareresume', 'afteronly', 'lbhead'],
   gen:     ['autogen', 'recroll', 'sendpos'],                          // 생성 · 연속 자동 생성 · 🎲                   // 결과 목록 · 크게 보기 · 공유
-  prompt:  ['nl', 'animanl', 'ink', 'inkmax', 'outfit', 'pose', 'posonly', 'family', 'combo2', 'color', 'recroll'],
+  prompt:  ['nl', 'animanl', 'ink', 'inkmax', 'outfit', 'looks', 'pose', 'posonly', 'family', 'combo2', 'color', 'recroll'],
   editor:  ['editor', 'keeporder', 'lorapin', 'sendpos'],               // 클래식 에디터 · LoRA
   io:      ['backup', 'robust', 'changelog', 'shutdown'],               // 백업 · 복구 · 내역 · PC 종료
 };
