@@ -27,6 +27,7 @@ const SOLO = new Set([
   'size-test.js',       // 생성 크기 계산 + 외부 서버(8899)
   'responsive-test.js', // 55회 로드. 혼자 돌아야 옆을 굶기지 않는다
   'sendpos-test.js',    // 진단용(합격/불합격을 안 낸다)
+  'mactfold-test.js',   // 하단 바 '높이'를 잰다 — 병렬이면 렌더가 밀려 값이 틀어진다(v9.194.0 에서 실제로 헛실패)
 ]);
 //  외부 서버(8899)를 쓰는 것들 — 같은 서버를 공유하므로 병렬 자체는 괜찮다
 const NEEDS_SRV = ['lbgrp-test.js', 'pose-test.js', 'share-test.js', 'size-test.js'];
