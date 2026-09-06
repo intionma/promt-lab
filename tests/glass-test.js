@@ -4,6 +4,10 @@
 //    폰 다크 모드에서 메뉴·모달이 통째로 비쳐 보였다("창 뒷편이 그대로 보임").
 //  ★ 불변식: data-theme 은 <html>·<body> 두 곳에 걸리므로, 어떤 폭·어떤 테마에서도
 //    두 곳이 '같은 값'이어야 한다. 하나라도 어긋나면 어딘가의 미디어 쿼리가 :root 에만 적혀 있다.
+//  ★ v9.195.0 — 또 났다. 유리 끄기가 max-width:1024px 뿐이라 **폴드를 펼쳐 가로로 들면 1104px**
+//    이어서 안 걸렸다(사용자 신고 · 상단 메뉴 붉은기 +126 으로 재현). 이제 (pointer: coarse) 로도 끈다.
+//  ⚠ 그래서 검사도 **터치를 켜고** 재야 한다. 폭만 넓히고 hasTouch 를 안 켜면 pointer 가 fine 이라
+//    고쳐 놓고도 '여전히 비친다'는 헛수를 잡는다(실제로 한 번 그렇게 오진했다).
 const { chromium } = require('playwright-core');
 const http = require('http'), fs = require('fs'), path = require('path');
 const srv = http.createServer((q, r) => {
@@ -27,8 +31,9 @@ const VARS = ['--glass-bg', '--glass-border', '--glass-highlight', '--glass-shad
   const port = srv.address().port;
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 
-  const read = async (w, theme, layout) => {
-    const ctx = await b.newContext({ viewport: { width: w, height: 844 } });
+  const read = async (w, theme, layout, touch) => {
+    //  ⚠ 손가락 기기는 폭이 넓어도 손가락 기기다 — 실제 폴드·태블릿과 같게 터치를 켠다.
+    const ctx = await b.newContext({ viewport: { width: w, height: 844 }, hasTouch: !!touch, isMobile: !!touch });
     const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
     await ctx.addInitScript((a) => {
       try { localStorage.setItem('pl_layout', a.l); localStorage.setItem('pro_prompt_theme', a.t); } catch (e) {}
@@ -45,17 +50,23 @@ const VARS = ['--glass-bg', '--glass-border', '--glass-highlight', '--glass-shad
     return { ...r, errs };
   };
 
-  for (const w of [390, 768, 1024, 1025, 1280]) {
+  //  ★ 폭 목록에 **1080·1104** 를 넣는다 — 펼친 폴드 가로(1104)와 태블릿(1080)이
+  //    예전 문턱 1024 바로 위라 통째로 구멍이었다. 1440 은 진짜 PC(마우스) 몫이다.
+  const TOUCH = [390, 768, 1024, 1080, 1104];      // 손가락 기기
+  const MOUSE = [1025, 1280, 1440];                // 마우스 (유리가 켜지는 게 정상)
+  for (const w of TOUCH.concat(MOUSE)) {
+    const touch = TOUCH.indexOf(w) >= 0;
     for (const theme of ['dark', 'light']) {
-      const r = await read(w, theme);
+      const r = await read(w, theme, null, touch);
       const bad = VARS.filter(v => r.html[v] !== r.body[v]);
       ck(`★ ${w}px ${theme} — <html>·<body> 테마 변수가 일치한다`, bad.length === 0,
          bad.map(v => `${v}: html=${r.html[v]} / body=${r.body[v]}`).join(' | '));
       ck(`   ${w}px ${theme} — data-theme 이 양쪽 다 ${theme}`, r.themeH === theme && r.themeB === theme, r.themeH + '/' + r.themeB);
-      // 모바일(≤1024px)은 backdrop-filter 를 끄므로 유리 배경이 '거의 불투명'이어야 읽힌다
-      if (w <= 1024) {
+      //  손가락 기기는 backdrop-filter 를 끄므로 유리 배경이 '거의 불투명'이어야 읽힌다.
+      //  ★ 폭이 아니라 '손가락인가'로 판정한다 — 펼친 폴드 가로 1104 가 여기 걸려야 한다.
+      if (touch) {
         const a = alpha(r.body['--glass-bg']);
-        ck(`★ ${w}px ${theme} — 메뉴·모달 배경이 불투명 (뒤가 안 비침)`, a >= 0.9, `alpha=${a} (${r.body['--glass-bg']})`);
+        ck(`★ ${w}px ${theme} 손가락 — 메뉴·모달 배경이 불투명 (뒤가 안 비침)`, a >= 0.9, `alpha=${a} (${r.body['--glass-bg']})`);
       }
       ck(`   ${w}px ${theme} — 콘솔 오류 없음`, r.errs.length === 0, r.errs.slice(0, 2).join(' | '));
     }
@@ -63,7 +74,11 @@ const VARS = ['--glass-bg', '--glass-border', '--glass-highlight', '--glass-shad
 
   // Anima 레이아웃에서도 같은지 (상단바·전역 모달을 공유한다)
   for (const theme of ['dark', 'light']) {
-    const r = await read(390, theme, 'anima');
+    //  펼친 폴드 가로에서도 Anima 의 메뉴가 안 비쳐야 한다 (사용자가 실제로 쓰는 조합)
+    const rw = await read(1104, theme, 'anima', true);
+    ck(`★ Anima 1104px(펼친 폴드 가로) ${theme} — 메뉴 배경 불투명`,
+       alpha(rw.body['--glass-bg']) >= 0.9, rw.body['--glass-bg']);
+    const r = await read(390, theme, 'anima', true);
     const bad = VARS.filter(v => r.html[v] !== r.body[v]);
     ck(`★ Anima 390px ${theme} — 테마 변수 일치`, bad.length === 0, bad.join(','));
     ck(`★ Anima 390px ${theme} — 메뉴 배경 불투명`, alpha(r.body['--glass-bg']) >= 0.9, r.body['--glass-bg']);
