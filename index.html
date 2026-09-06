@@ -1354,10 +1354,28 @@
                 max-width: 760px; margin-left: auto !important; margin-right: auto !important; width: 100% !important;
             }
         }
+        /*  ⚠ backdrop-filter 를 43곳에서 쓰는데 **대비가 하나도 없었다.**
+               흐림을 못 쓰는 브라우저에서는 42% 반투명이 흐림 없이 그대로 비친다 —
+               폭·기기와 무관한 문제라 위 미디어 쿼리로는 못 막는다.
+             ★ 선택자를 팔레트와 '똑같이' 쓴다(:root, [data-theme="dark"]).
+               :root 만 적으면 <body data-theme="dark"> 에 걸린 원래 값이 더 안쪽이라 이겨서
+               조용히 진다 — v9.165.2 · v9.168.1 에서 두 번 겪은 그 자리다. */
+        @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+            :root, [data-theme="dark"] { --glass-bg: rgba(20,26,40,0.97); }
+            [data-theme="light"] { --glass-bg: rgba(255,255,255,0.98); }
+        }
+
         /* ═══ 모바일 성능 최적화 ═══
            backdrop-filter: blur() 는 뒤 배경을 매 프레임 재계산해 모바일 GPU에서 스크롤/애니메이션 프리징을 유발.
            38곳이 blur(40~60px)를 써서 특히 치명적 → 모바일(≤1024px)에선 전부 끄고, 유리 배경을 불투명으로 바꿔 가독성 유지. */
-        @media (max-width: 1024px) {
+        /*  ⚠ 폭만 보면 안 된다 — 폴드를 펼쳐 가로로 들면 **1104px** 라 이 문턱(1024)에 안 걸린다.
+               그러면 유리가 켜지는데 폰 브라우저에서 흐림이 제대로 안 걸리면 42% 반투명이
+               **그냥 다 비쳐** 글씨만 남는다(사용자 신고 · 실측 1104·1080 에서 재현).
+               이 프로젝트에서 네 번째 같은 사고다 — 2단 문턱(v9.174.0) · 레일 조건(v9.175.0) ·
+               태블릿 2단(v9.184.0) · 그리고 여기.
+             ★ 손가락 기기 판정은 폭이 아니라 (pointer: coarse) 로 한다 — 큰 태블릿·펼친 폴드가 함께 잡힌다.
+               (CLAUDE.md 반응형 항목에 이미 적혀 있던 규칙인데 여기만 안 쓰고 있었다) */
+        @media (max-width: 1024px), (pointer: coarse) {
             *, *::before, *::after { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
             /* ⚠ 선택자를 위 팔레트(:root, [data-theme="dark"])와 '똑같이' 맞춰야 한다.
                여기 :root 만 적어 두면, <body data-theme="dark"> 에 걸린 원래 값(0.42 반투명)이
