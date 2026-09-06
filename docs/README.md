@@ -11,6 +11,7 @@
 
 ## 목록
 - `AUTOGEN-연속생성.md` — 생성 버튼 꾹 누르기 → 연속 자동 생성 (기획 v9.191.0~)
+- `의상-프리셋-추가-가이드.md` — 👗 의상 축에 프리셋을 넣을 때의 규칙 (다른 AI에게 넘기는 시안)
 
 ## 루트에 있는 옛 문서
 `AUDIT_FINDINGS_*.md` · `PERSONA_TEST_REPORT_*.md` · `TASKS.md` · `EXPR_BACKUP_*.md` 는
