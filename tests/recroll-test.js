@@ -34,7 +34,13 @@ const boot = async (b, opt) => {
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.goto('http://127.0.0.1:' + PORT + '/index.html', { waitUntil: 'load' });
   await p.waitForFunction(() => typeof _DATA_LOOKS !== 'undefined' && !!document.getElementById('final-positive'), null, { timeout: 25000 });
-  await p.waitForTimeout(1600);
+  //  ⚠ _DATA_LOOKS 는 `let _DATA_LOOKS = []` 로 **처음부터 빈 배열**이라 위 typeof 검사는 즉시 통과한다.
+  //    실제 프리셋은 JSON 에서 비동기로 온다 → 고정 시간에 기대면 병렬로 느려질 때
+  //    **빈 배열 상태로 검사가 시작돼** 굴려도 아무 일이 안 일어난다(전체 검사에서 실제로 그렇게 헛실패했다).
+  //    '정의됐는가'가 아니라 '채워졌는가'를 기다린다.
+  await p.waitForFunction(() => Array.isArray(_DATA_LOOKS) && _DATA_LOOKS.length > 5
+    && Array.isArray(_DATA_BG) && _DATA_BG.length > 5, null, { timeout: 25000 });
+  await p.waitForTimeout(600);
   //  토스트를 삼키되 무엇이 떴는지는 기록해 둔다
   await p.evaluate(() => { window.__toasts = []; window.showToast = (m) => { window.__toasts.push(String(m)); }; });
   return { ctx, p, errs };
