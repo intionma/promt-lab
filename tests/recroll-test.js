@@ -151,14 +151,26 @@ const roll = (p) => p.evaluate(() => { window.__toasts = []; return !!_recRollPi
     const x = await layers(p), c = await cnt();
     ck('★★ 패널을 안 열고 12번 굴려도 의상이 한 벌만 담긴다', maxLooks === 1 && c.looks === 1, `최대 ${maxLooks}벌 · 지금 ${c.looks}벌`);
     ck('★★ 배경도 한 곳만 담긴다', maxBg === 1 && c.bg === 1, `최대 ${maxBg}곳 · 지금 ${c.bg}곳`);
-    //  ⚠ 태그 상한을 눈대중으로 잡지 말 것 — 프리셋 하나가 7태그짜리도 있다(배경 「아늑한 침실 밤」).
-    //    임의 숫자(6)로 뒀다가 정상인데 실패했다. 그 축의 **실제 최대 태그 수**를 재서 상한으로 쓴다.
-    const cap = await p.evaluate(() => ({
-      looks: Math.max(..._DATA_LOOKS.map(x => (x.tags || []).length)),
-      bg: Math.max(..._DATA_BG.map(x => (x.tags || []).length)),
-    }));
-    ck('★★ 태그도 안 쌓인다 (의상)', maxL4 <= cap.looks, `최대 ${maxL4}개 (한 벌 최대 ${cap.looks}개) · 지금 ${JSON.stringify(x.l4)}`);
-    ck('★★ 태그도 안 쌓인다 (배경)', maxL6 <= cap.bg, `최대 ${maxL6}개 (한 곳 최대 ${cap.bg}개) · 지금 ${JSON.stringify(x.l6)}`);
+    //  ⚠ **태그 '개수'로 쌓임을 판정하지 말 것.** 여기선 의상·배경을 함께 굴리는데,
+    //    importPromptToEditor 가 태그를 계층별로 분류하므로 배경 프리셋의 태그도 4계층(의상 칸)에
+    //    들어올 수 있다. 그래서 '의상 축 최대 태그 수'를 상한으로 쓰면 정상인데도 넘는다
+    //    (부하를 걸고 재현해 실제로 7 > 6 으로 헛실패했다).
+    //  ★ 진짜 불변식은 **"지금 담긴 프리셋에 속하지 않은 태그가 남아 있지 않다"** 이다.
+    //    쌓임이란 곧 옛 프리셋 태그가 안 빠지고 남는 것이므로, 이게 정확히 그걸 잡는다.
+    const stray = await p.evaluate(() => {
+      const own = new Set();
+      [..._DATA_LOOKS, ..._DATA_BG].forEach(pr => {
+        if (!_recPickedSet.has(pr)) return;
+        (pr.tags || []).forEach(t => own.add(String(t).trim().toLowerCase()
+          .replace(/^[\(\[]+/, '').replace(/[\)\]]+$/, '').replace(/:\s*[\d.]+\s*$/, '').trim()));
+      });
+      const g = (n) => ((document.getElementById('layer-' + n) || {}).value || '')
+        .split(',').map(s => s.trim()).filter(Boolean);
+      const core = (t) => t.toLowerCase().replace(/^[\(\[]+/, '').replace(/[\)\]]+$/, '').replace(/:\s*[\d.]+\s*$/, '').trim();
+      return { l4: g(4).filter(t => !own.has(core(t))), l6: g(6).filter(t => !own.has(core(t))) };
+    });
+    ck('★★ 담긴 프리셋에 없는 의상 태그가 안 남는다 (= 안 쌓인다)', stray.l4.length === 0, JSON.stringify(stray.l4));
+    ck('★★ 담긴 프리셋에 없는 배경 태그가 안 남는다', stray.l6.length === 0, JSON.stringify(stray.l6));
     ck('두 축 모두 실제로 채워져 있다', x.l4.length > 0 && x.l6.length > 0, JSON.stringify(x));
     ck('오류 없음', errs.length === 0, errs.slice(0, 2).join(' | '));
     await ctx.close();

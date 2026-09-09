@@ -37,7 +37,7 @@ const NEEDS_SRV = ['lbgrp-test.js', 'pose-test.js', 'share-test.js', 'size-test.
 const GROUPS = {
   bar:     ['color', 'secui', 'railpos', 'mactfold', 'lbgrp'],          // 하단 바 · 위치 · 접기
   layout:  ['fold', 'responsive', 'twoui', 'layout', 'glass', 'menu'],  // 화면 폭 · 테마 · 레이아웃
-  gallery: ['gallery', 'useresult', 'shareresume', 'afteronly', 'lbhead'],
+  gallery: ['gallery', 'useresult', 'shareresume', 'afteronly', 'lbhead', 'lboffline'],
   gen:     ['autogen', 'recroll', 'sendpos'],                          // 생성 · 연속 자동 생성 · 🎲                   // 결과 목록 · 크게 보기 · 공유
   prompt:  ['nl', 'animanl', 'ink', 'inkmax', 'outfit', 'looks', 'pose', 'posonly', 'family', 'combo2', 'color', 'recroll'],
   editor:  ['editor', 'keeporder', 'lorapin', 'sendpos'],               // 클래식 에디터 · LoRA
@@ -130,6 +130,22 @@ const run = (file) => new Promise((res) => {
   const mins = ((Date.now() - t0) / 60000).toFixed(1);
   console.log(`\n${'─'.repeat(48)}`);
   console.log(`${results.length - bad.length}/${results.length} 통과 · ${mins}분`);
-  if (bad.length) { console.log('실패: ' + bad.map(r => r.file).join(', ')); process.exit(1); }
+  if (bad.length) {
+    console.log('실패: ' + bad.map(r => r.file).join(', '));
+    //  ⚠ 이름만 찍으면 왜 깨졌는지 알 수 없어 매번 다시 돌려 가며 추측하게 된다(실제로 여러 번 그랬다).
+    //    깨진 줄을 여기서 바로 보여 준다. 한 검사가 통째로 죽었으면(FAIL 줄이 없으면) 마지막 출력을 보여 준다.
+    bad.forEach(r => {
+      console.log(`\n── ${r.file} ──`);
+      if (r.fails.length) {
+        const lines = r.out.split('\n').filter(l => /^FAIL/.test(l));
+        lines.slice(0, 12).forEach(l => console.log('  ' + l));
+        if (lines.length > 12) console.log(`  … 외 ${lines.length - 12}건`);
+      } else {
+        console.log(`  (FAIL 줄 없음 · 종료코드 ${r.code}) 마지막 출력:`);
+        r.out.trim().split('\n').slice(-8).forEach(l => console.log('  ' + l));
+      }
+    });
+    process.exit(1);
+  }
   console.log('ALL PASS');
 })();
