@@ -202,10 +202,75 @@ async function waitLoaded(p, want) {
     return { blob: im.filter(i => /^blob:/.test(i.src)).length, all: im.length };
   });
   ck('★ 두 번째부터는 메모리 blob 을 쓴다', mgBlob.blob === MG.length, JSON.stringify(mgBlob));
+  //  ⚠⚠ temp blob 은 저장소를 안 타므로 _animaTTrim 이 못 거둔다 — 아무도 안 놓아 주면 영영 남는다.
+  //    「빠르게 생성」은 돌릴 때마다 새 temp 주소라 실측에서 12장 × 5회 = 60개가 쌓였고
+  //    창을 닫아도 안 줄었다(v9.199.0에서 잡음). 목록에 없는 것만 거둔다.
+  const grow = [];
+  for (let run = 0; run < 3; run++) {
+    await p3.evaluate(async (o) => {
+      _mgImages = Array.from({ length: 6 }, (_, i) => ({ url: `http://127.0.0.1:${o.port}/view?filename=run${o.run}_x${i}.png&subfolder=&type=temp`, seed: i }));
+      _mgRenderGrid();
+      document.getElementById('mg-grid').scrollIntoView({ block: 'center' });
+      await new Promise(r => setTimeout(r, 1400));
+    }, { run, port: CMF2 });
+    //  ⚠ _animaTMem 전체를 세면 안 된다 — 거기엔 **갤러리의 영구 캐시**도 함께 들어 있어
+    //    (부팅 때 _animaTWarmMany 가 풀어 둔다) 0 이 될 수가 없다. 실제로 그렇게 헛실패했다.
+    //    거둬야 하는 대상은 _plMemOnly 뿐이므로 그것만 센다.
+    grow.push(await p3.evaluate(() => ({ temp: _plMemOnly.size, 전체: _animaTMem.size })));
+  }
+  ck('★★ 여러 번 돌려도 메모리 blob 이 안 쌓인다', grow[0].temp === grow[2].temp && grow[2].temp === 6, JSON.stringify(grow));
+  await p3.evaluate(async () => { _mgImages = []; _mgSelected.clear(); _mgRenderGrid(); await new Promise(r => setTimeout(r, 400)); });
+  const emptied = await p3.evaluate(() => ({ temp: _plMemOnly.size, 전체: _animaTMem.size }));
+  ck('★★ 결과를 비우면 전부 놓아 준다', emptied.temp === 0, `${JSON.stringify(grow[2])} → ${JSON.stringify(emptied)}`);
+  ck('★ 그러면서 갤러리의 영구 캐시는 안 건드린다', emptied.전체 === grow[2].전체 - grow[2].temp, `${grow[2].전체} → ${emptied.전체}`);
   await p3.close();
+
+  // ══ 갤러리 ✕ 는 되돌릴 수 있어야 한다 (v9.199.0) ═════════════════
+  //   Anima 는 「🗑 정리」 모드에 들어가야 ✕ 가 보이는데, 여기 ✕ 는 손가락 기기에서 늘 떠 있다
+  //   → 크게 보려다 잘못 눌러 한 번에 사라진다(v9.181.0 에서 사용자가 당했던 그 부류).
+  const ctxP = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  await ctxP.addInitScript((seed) => {
+    try {
+      if (sessionStorage.getItem('_seeded')) return;
+      sessionStorage.setItem('_seeded', '1');
+      localStorage.setItem('pl_layout', 'studio');
+      localStorage.setItem('adult_optin_v1', '1');
+      localStorage.setItem('comfy_gallery_urls_v1', JSON.stringify(seed));
+      const m = {}; seed.forEach((u, i) => m[u] = { sec: 1 + i, pos: 'pos' + i, neg: 'neg' + i, seed: 9000 + i });
+      localStorage.setItem('comfy_gallery_meta_v1', JSON.stringify(m));
+    } catch (e) {}
+  }, URLS.slice(0, 5));
+  const p4 = await ctxP.newPage();
+  const e4 = []; p4.on('pageerror', x => e4.push(x.message));
+  await p4.goto(`http://127.0.0.1:${APP}/index.html`, { waitUntil: 'load' });
+  await p4.waitForFunction(() => typeof renderImageGallery === 'function', null, { timeout: 30000 });
+  await p4.evaluate(() => { switchResultTab('gallery'); renderImageGallery(); });
+  await p4.waitForTimeout(600);
+  const was = await p4.evaluate(() => ({ urls: _galleryUrls.slice(), meta: _galMeta(_galleryUrls[2]) }));
+  await p4.evaluate(() => { document.querySelectorAll('#result-gallery-grid .gallery-del-btn')[2].click(); });
+  await p4.waitForTimeout(600);
+  const gone = await p4.evaluate(() => {
+    const t = document.querySelector('#toast-container .toast');
+    const a = t && t.querySelector('.toast-act');
+    return { 남은수: _galleryUrls.length, 되돌리기: !!a, 삐짐: a ? a.getBoundingClientRect().right > innerWidth + 1 : null };
+  });
+  ck('★★ 지우면 「되돌리기」가 뜬다', gone.되돌리기 === true && gone.남은수 === 4, JSON.stringify(gone));
+  ck('★ 되돌리기 버튼이 화면 밖으로 안 나간다', gone.삐짐 === false, JSON.stringify(gone));
+  await p4.evaluate(() => { const a = document.querySelector('#toast-container .toast .toast-act'); if (a) { a.click(); a.click(); } });
+  await p4.waitForTimeout(700);
+  const back = await p4.evaluate(() => ({ urls: _galleryUrls.slice(), meta: _galMeta(_galleryUrls[2]), 중복: _galleryUrls.length - new Set(_galleryUrls).size }));
+  ck('★★ 되돌리면 그 자리에 그대로 돌아온다', JSON.stringify(back.urls) === JSON.stringify(was.urls), JSON.stringify(back.urls.length) + ' vs ' + was.urls.length);
+  ck('★★ 프롬프트·시드도 함께 살아난다', JSON.stringify(back.meta) === JSON.stringify(was.meta), JSON.stringify(back.meta));
+  ck('★ 연타해도 두 번 들어가지 않는다', back.중복 === 0, `${back.중복}건 중복`);
+  await p4.reload({ waitUntil: 'load' });
+  await p4.waitForFunction(() => typeof renderImageGallery === 'function', null, { timeout: 30000 });
+  await p4.waitForTimeout(600);
+  const kept = await p4.evaluate(() => _galleryUrls.length);
+  ck('★ 되돌린 것이 새로고침해도 남는다', kept === was.urls.length, `${kept} / ${was.urls.length}`);
+  await ctxP.close();
   await new Promise(r => cmf2.close(r));
 
-  ck('오류 없음', errs.length === 0 && e2.length === 0 && e3.length === 0, [...errs, ...e2, ...e3].slice(0, 3).join(' | '));
+  ck('오류 없음', errs.length === 0 && e2.length === 0 && e3.length === 0 && e4.length === 0, [...errs, ...e2, ...e3, ...e4].slice(0, 3).join(' | '));
   await b.close(); appSrv.close();
   console.log(F ? `\n${F} FAILED` : '\nALL PASS');
   process.exit(F ? 1 : 0);
