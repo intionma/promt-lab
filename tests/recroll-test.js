@@ -209,6 +209,29 @@ const roll = (p) => p.evaluate(() => { window.__toasts = []; return !!_recRollPi
     });
     await p.waitForTimeout(500);
     ck('★ 이미 비어 있는 축에서도 「비우기」로 🎲 를 끌 수 있다', again.켜짐 === true && again.끈뒤 === false, JSON.stringify(again));
+    //  ⚠⚠ 이름 안에 괄호가 든 태그(v9.198.0 — 실제 회귀)
+    //    'pom pom (cheerleading)' 처럼 단부루 태그는 이름에 괄호가 흔한데, _recTagCore 가
+    //    끝 ')' 를 가중치로 보고 떼어낸다. 프리셋 쪽만 t.toLowerCase() 로 비교하고 있어
+    //    영영 안 맞았고 → _recReconcilePicked 가 선택을 지워 → 「비우기」·🎲 가 뺄 대상을 못 찾았다.
+    //    ★ 무작위 뽑기에 맡기면 이 프리셋이 걸린 날에만 깨진다 → **직접 지목해서** 잰다.
+    const paren = await p.evaluate(async () => {
+        const ax = _recAxes().find(a => a.key === 'looks');
+        const pick = (ax.data || []).find(x => (x.tags || []).some(t => /\)$/.test(String(t))));
+        if (!pick) return { skip: true };
+        _recRollBooted = true; try { _recBootstrapPicked(); } catch (e) {}
+        _umoBatch(() => { _recPickedSet.add(pick); importPromptToEditor(pick.tags, 'append'); });
+        await new Promise(r => setTimeout(r, 300));
+        renderRecommendModal(false);                 // 여기서 _recReconcilePicked 가 돈다
+        await new Promise(r => setTimeout(r, 600));
+        const kept = _recPickedSet.has(pick);
+        const col = [...document.querySelectorAll('#rec-modal-overlay .recm-col')].find(c => (c.querySelector('.recm-col-name') || {}).textContent === '의상');
+        col.querySelector('.recm-clear').click();
+        await new Promise(r => setTimeout(r, 700));
+        const l4 = ((document.getElementById('layer-4') || {}).value || '').split(',').map(x => x.trim()).filter(Boolean);
+        return { 이름: pick.n, 태그: pick.tags, 담긴채로남았나: kept, 남은태그: l4 };
+    });
+    ck('★★ 이름에 괄호가 든 태그도 선택이 유지된다', paren.skip || paren.담긴채로남았나 === true, JSON.stringify(paren));
+    ck('★★ 그런 프리셋도 「비우기」로 실제로 지워진다', paren.skip || paren.남은태그.length === 0, JSON.stringify(paren));
     ck('오류 없음', errs.length === 0, errs.slice(0, 2).join(' | '));
     await ctx.close();
   }
@@ -283,8 +306,17 @@ const roll = (p) => p.evaluate(() => { window.__toasts = []; return !!_recRollPi
     const c = await layers(p);
     const full = await p.evaluate(() => !!_recFullMode);
     ck('완성 모드는 꺼져 있다', full === false);
-    ck('★ 화면에 없는 축(인물)은 안 굴린다', c.l3.join(',') === a.l3.join(','), `${a.l3} → ${c.l3}`);
-    ck('보이는 축(의상)은 굴린다', c.l4.length > 0, JSON.stringify(c.l4));
+    //  ⚠ 예전엔 '3계층 글이 그대로인가'로 봤다 — **파생값 판정**이라 헛실패했다.
+    //    importPromptToEditor 는 태그를 계층별로 분류하므로, 의상 프리셋이라도
+    //    'armor · knight · cape …' 처럼 3계층으로 가는 태그가 섞여 있으면 3계층이 바뀐다.
+    //    (실제로 그 프리셋이 뽑힌 날 전체 검사가 이 줄에서 깨졌다 — 인물 축은 안 굴렀는데도.)
+    //    진짜 근거는 **굴린 기록**이다: _recRollAxis 가 굴린 축에만 _recRollLast[key] 를 남긴다.
+    const rolled = await p.evaluate(() => ({
+        기록: Object.keys(_recRollLast || {}).filter(k => (_recRollLast[k] || []).length),
+        보이는축: _recAxes().map(a => a.key),
+    }));
+    ck('★ 화면에 없는 축(인물)은 안 굴린다', rolled.기록.indexOf('char') === -1 && rolled.보이는축.indexOf('char') === -1, JSON.stringify(rolled));
+    ck('보이는 축(의상)은 굴린다', rolled.기록.indexOf('looks') >= 0 && c.l4.length > 0, JSON.stringify({ ...rolled, l4: c.l4 }));
     ck('오류 없음', errs.length === 0, errs.slice(0, 2).join(' | '));
     await ctx.close();
   }
