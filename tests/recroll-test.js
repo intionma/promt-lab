@@ -135,6 +135,7 @@ const roll = (p) => p.evaluate(() => { window.__toasts = []; return !!_recRollPi
   //   ⚠ 여기가 제일 잘 새는 자리다 — _recPickedSet 이 비어 있으면 '뺄 것'을 못 찾아 계속 덧붙인다.
   {
     const { ctx, p, errs } = await boot(b, { roll: '["looks","bg"]' });
+    await p.evaluate(() => { window.__breakRoll = 1; });
     //  ★ 태그 개수만 보면 헷갈린다 — 프리셋 하나가 태그 3~5개짜리다.
     //    '몇 벌이 담겨 있는가'(프리셋 개수)를 직접 세는 게 정확하다.
     const cnt = () => p.evaluate(() => {
@@ -157,21 +158,31 @@ const roll = (p) => p.evaluate(() => { window.__toasts = []; return !!_recRollPi
     //    (부하를 걸고 재현해 실제로 7 > 6 으로 헛실패했다).
     //  ★ 진짜 불변식은 **"지금 담긴 프리셋에 속하지 않은 태그가 남아 있지 않다"** 이다.
     //    쌓임이란 곧 옛 프리셋 태그가 안 빠지고 남는 것이므로, 이게 정확히 그걸 잡는다.
+    //  ⚠ **계층을 지목해서 세면 안 된다.** importPromptToEditor 가 태그를 계층별로 분류하므로
+    //    배경 프리셋이라도 'blurry background · depth of field · bokeh' 처럼 6계층이 아닌 곳으로 간다
+    //    (실제로 「웨딩 드레스 + 그 배경」 조합이 뽑힌 날 6계층이 비어 헛실패했다).
+    //    → 계층을 안 보고 **에디터 전체**에서, '안 담긴 프리셋의 태그인데 담긴 프리셋엔 없는 것'을 센다.
+    //      그게 바로 '옛 프리셋 태그가 안 빠지고 남았다' = 쌓임이다. 기본 태그(score_9 등)는 어느
+    //      프리셋 것도 아니라 안 걸린다.
     const stray = await p.evaluate(() => {
-      const own = new Set();
+      const own = new Set(), other = new Set();
       [..._DATA_LOOKS, ..._DATA_BG].forEach(pr => {
-        if (!_recPickedSet.has(pr)) return;
-        (pr.tags || []).forEach(t => own.add(String(t).trim().toLowerCase()
-          .replace(/^[\(\[]+/, '').replace(/[\)\]]+$/, '').replace(/:\s*[\d.]+\s*$/, '').trim()));
+        const to = _recPickedSet.has(pr) ? own : other;
+        (pr.tags || []).forEach(t => to.add(_recTagCore(t)));
       });
-      const g = (n) => ((document.getElementById('layer-' + n) || {}).value || '')
-        .split(',').map(s => s.trim()).filter(Boolean);
-      const core = (t) => t.toLowerCase().replace(/^[\(\[]+/, '').replace(/[\)\]]+$/, '').replace(/:\s*[\d.]+\s*$/, '').trim();
-      return { l4: g(4).filter(t => !own.has(core(t))), l6: g(6).filter(t => !own.has(core(t))) };
+      const all = [];
+      for (let i = 1; i <= 7; i++) ((document.getElementById('layer-' + i) || {}).value || '')
+        .split(',').map(s => s.trim()).filter(Boolean).forEach(t => all.push(t));
+      return { 남은것: all.filter(t => { const c = _recTagCore(t); return other.has(c) && !own.has(c); }) };
     });
-    ck('★★ 담긴 프리셋에 없는 의상 태그가 안 남는다 (= 안 쌓인다)', stray.l4.length === 0, JSON.stringify(stray.l4));
-    ck('★★ 담긴 프리셋에 없는 배경 태그가 안 남는다', stray.l6.length === 0, JSON.stringify(stray.l6));
-    ck('두 축 모두 실제로 채워져 있다', x.l4.length > 0 && x.l6.length > 0, JSON.stringify(x));
+    ck('★★ 안 담긴 프리셋의 태그가 안 남는다 (= 안 쌓인다)', stray.남은것.length === 0, JSON.stringify(stray.남은것));
+    //  전제 확인 — 위 검사가 '아무것도 안 굴러서' 그냥 통과한 게 아닌지.
+    //  ⚠ 계층 글자가 아니라 **굴린 기록**으로 본다(같은 이유).
+    const rolledBoth = await p.evaluate(() => ({
+      looks: (_recRollLast.looks || []).length, bg: (_recRollLast.bg || []).length,
+      태그수: [1,2,3,4,5,6,7].reduce((a,i)=>a+((document.getElementById('layer-'+i)||{}).value||'').split(',').filter(t=>t.trim()).length,0),
+    }));
+    ck('두 축 모두 실제로 굴러갔다', rolledBoth.looks > 0 && rolledBoth.bg > 0 && rolledBoth.태그수 > 4, JSON.stringify(rolledBoth));
     ck('오류 없음', errs.length === 0, errs.slice(0, 2).join(' | '));
     await ctx.close();
   }
