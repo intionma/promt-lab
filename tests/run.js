@@ -29,6 +29,7 @@ const SOLO = new Set([
   'sendpos-test.js',    // 진단용(합격/불합격을 안 낸다)
   'mactfold-test.js',   // 하단 바 '높이'를 잰다 — 병렬이면 렌더가 밀려 값이 틀어진다(v9.194.0 에서 실제로 헛실패)
   'galcache-test.js',   // 클래식 갤러리 요청 수 — gallery-test 와 같은 이유로 혼자 돌아야 한다
+  'sharemime-test.js',  // 진짜 서비스워커 + 진짜 POST — 경합하면 SW 등록이 밀린다
 ]);
 //  외부 서버(8899)를 쓰는 것들 — 같은 서버를 공유하므로 병렬 자체는 괜찮다
 const NEEDS_SRV = ['lbgrp-test.js', 'pose-test.js', 'share-test.js', 'size-test.js'];
@@ -38,6 +39,7 @@ const NEEDS_SRV = ['lbgrp-test.js', 'pose-test.js', 'share-test.js', 'size-test.
 const GROUPS = {
   bar:     ['color', 'secui', 'railpos', 'mactfold', 'lbgrp'],          // 하단 바 · 위치 · 접기
   layout:  ['fold', 'responsive', 'twoui', 'layout', 'glass', 'menu'],  // 화면 폭 · 테마 · 레이아웃
+  share: ['sharemime', 'sharequeue', 'shareresume', 'backguard'],   // 공유 진입 · 뒤로가기
   gallery: ['gallery', 'galcache', 'useresult', 'shareresume', 'afteronly', 'lbhead', 'lboffline'],
   gen:     ['autogen', 'recroll', 'sendpos'],                          // 생성 · 연속 자동 생성 · 🎲                   // 결과 목록 · 크게 보기 · 공유
   prompt:  ['nl', 'animanl', 'ink', 'inkmax', 'outfit', 'looks', 'pose', 'posonly', 'family', 'combo2', 'color', 'recroll'],

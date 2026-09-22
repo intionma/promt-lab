@@ -100,33 +100,69 @@ self.addEventListener('fetch', (e) => {
     try { url = new URL(e.request.url); } catch (err) { return; }
 
     // ── 1) 안드로이드 공유 받기 ────────────────────────────────
+    //  ⚠⚠ 실패해도 **아무 말 없이 앱만 열면 안 된다** (v9.200.0 — 사용자 신고 "앱은 열리는데 이미지만 없음").
+    //     예전엔 그래서 원인이 하나도 안 보였다. 지금은 왜 안 됐는지를 주소에 실어 보내고 앱이 말해 준다.
     if (e.request.method === 'POST' && /\/share-target\/?$/.test(url.pathname)) {
         e.respondWith((async () => {
-            let ok = false;
+            let ok = false, why = 'unknown', info = '';
             try {
                 const fd = await e.request.formData();
-                // manifest에 image·file 두 이름을 다 열어 뒀다. 그래도 못 찾으면 값 전체에서 이미지를 고른다.
-                let f = fd.get('image') || fd.get('file');
-                if (!(f && f.type && f.type.indexOf('image/') === 0)) {
-                    f = null;
-                    for (const v of fd.values()) {
-                        if (v && typeof v === 'object' && v.type && v.type.indexOf('image/') === 0) { f = v; break; }
+                //  ★ 후보를 모은다 — manifest 에 적은 이름부터, 그다음 값 전체.
+                const cand = [];
+                ['image', 'file', 'files', 'photo', 'media', 'images'].forEach(k => {
+                    try { const v = fd.get(k); if (v) cand.push(v); } catch (err) {}
+                });
+                try { for (const v of fd.values()) cand.push(v); } catch (err) {}
+
+                const isBlob = (v) => !!(v && typeof v === 'object' && typeof v.size === 'number' && typeof v.arrayBuffer === 'function');
+                const byMime = (v) => !!(v && v.type && String(v.type).indexOf('image/') === 0);
+                const byName = (v) => /\.(png|jpe?g|jfif|webp|gif|bmp|heic|heif|avif|tiff?)$/i.test(String((v && v.name) || ''));
+
+                //  ① MIME 이 image/* ② 확장자가 그림 ③ **그냥 알맹이 있는 파일**
+                //  ⚠ ③ 이 꼭 필요하다 — 삼성 갤러리 등은 MIME 을 비우거나 application/octet-stream
+                //    으로 보내는 일이 있다. 예전엔 ① 만 봐서 그런 공유가 통째로 버려졌고,
+                //    앱은 아무 말 없이 그냥 열렸다(이 신고의 원인).
+                let f = cand.find(v => isBlob(v) && v.size > 0 && byMime(v))
+                     || cand.find(v => isBlob(v) && v.size > 0 && byName(v))
+                     || cand.find(v => isBlob(v) && v.size > 0);
+
+                if (!f) {
+                    //  무엇이 오긴 왔는지 짧게 적어 보낸다 — 이게 없으면 다음에도 원인을 못 찾는다.
+                    const parts = [];
+                    try {
+                        for (const [k, v] of fd.entries()) {
+                            parts.push(isBlob(v) ? (k + ':blob/' + (v.type || '?') + '/' + v.size) : (k + ':text'));
+                            if (parts.length >= 6) break;
+                        }
+                    } catch (err) {}
+                    why = parts.length ? 'nofile' : 'empty';
+                    info = parts.join(',').slice(0, 160);
+                } else {
+                    try {
+                        const c = await caches.open(SHARE_CACHE);
+                        await c.put(new Request(_shareSlot(), { method: 'GET' }), new Response(f, {
+                            headers: {
+                                //  ⚠ 타입이 없으면 image/png 로 적어 둔다 — 앱은 dataURL 로 읽으므로
+                                //    실제 포맷은 브라우저가 알아서 본다(잘못 적어도 그림은 뜬다).
+                                'Content-Type': (f.type && String(f.type).indexOf('image/') === 0) ? f.type : 'image/png',
+                                // 파일명은 한글이 섞일 수 있어 인코딩해서 싣는다(헤더에 원문은 못 넣음)
+                                'X-Share-Name': encodeURIComponent(f.name || 'shared'),
+                            }
+                        }));
+                        ok = true;
+                    } catch (err) {
+                        why = 'store';   // 저장 공간 부족 등
+                        info = String((err && (err.name || err.message)) || '').slice(0, 80);
                     }
                 }
-                if (f) {
-                    const c = await caches.open(SHARE_CACHE);
-                    await c.put(new Request(_shareSlot(), { method: 'GET' }), new Response(f, {
-                        headers: {
-                            'Content-Type': f.type || 'image/png',
-                            // 파일명은 한글이 섞일 수 있어 인코딩해서 싣는다(헤더에 원문은 못 넣음)
-                            'X-Share-Name': encodeURIComponent(f.name || 'shared'),
-                        }
-                    }));
-                    ok = true;
-                }
-            } catch (err) {}
-            // 앱을 열면서 '공유로 들어왔다'고 알린다. 실패했으면 그냥 평소처럼 연다.
-            const to = new URL(ok ? './index.html?shared=1' : './index.html', self.registration.scope);
+            } catch (err) {
+                why = 'read';
+                info = String((err && (err.name || err.message)) || '').slice(0, 80);
+            }
+            //  앱을 열면서 결과를 함께 알린다. 실패해도 **왜 실패했는지**를 싣는다.
+            const q = ok ? '?shared=1'
+                : ('?shared=0&why=' + encodeURIComponent(why) + (info ? '&info=' + encodeURIComponent(info) : ''));
+            const to = new URL('./index.html' + q, self.registration.scope);
             return Response.redirect(to.href, 303);
         })());
         return;
