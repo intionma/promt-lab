@@ -39,7 +39,7 @@ const NEEDS_SRV = ['lbgrp-test.js', 'pose-test.js', 'share-test.js', 'size-test.
 const GROUPS = {
   bar:     ['color', 'secui', 'railpos', 'mactfold', 'lbgrp'],          // 하단 바 · 위치 · 접기
   layout:  ['fold', 'responsive', 'twoui', 'layout', 'glass', 'menu'],  // 화면 폭 · 테마 · 레이아웃
-  share: ['sharemime', 'sharequeue', 'shareresume', 'backguard'],   // 공유 진입 · 뒤로가기
+  share: ['sharemime', 'dropin', 'sharequeue', 'shareresume', 'backguard'],   // 공유 진입 · 뒤로가기
   gallery: ['gallery', 'galcache', 'useresult', 'shareresume', 'afteronly', 'lbhead', 'lboffline'],
   gen:     ['autogen', 'recroll', 'sendpos'],                          // 생성 · 연속 자동 생성 · 🎲                   // 결과 목록 · 크게 보기 · 공유
   prompt:  ['nl', 'animanl', 'ink', 'inkmax', 'outfit', 'looks', 'pose', 'posonly', 'family', 'combo2', 'color', 'recroll'],
