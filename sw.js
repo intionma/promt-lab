@@ -105,8 +105,17 @@ self.addEventListener('fetch', (e) => {
     if (e.request.method === 'POST' && /\/share-target\/?$/.test(url.pathname)) {
         e.respondWith((async () => {
             let ok = false, why = 'unknown', info = '';
+            //  ★ v9.203.2: 몸통을 **바이트로 먼저** 받는다 — 크롬이 Content-Length 를 안 붙여서(사용자 실측 'len=?')
+            //    머리글로는 몇 바이트가 왔는지 알 수 없었다. 받은 바이트를 그대로 multipart 로 해석하므로 동작은 같다.
+            let bodyLen = -1, bodyHead = '';
             try {
-                const fd = await e.request.formData();
+                const ctype = e.request.headers.get('content-type') || '';
+                const buf = await e.request.arrayBuffer();
+                bodyLen = buf.byteLength;
+                if (bodyLen > 0 && bodyLen <= 400) {
+                    try { bodyHead = new TextDecoder('utf-8', { fatal: false }).decode(buf).replace(/[^\x20-\x7e]+/g, '·').slice(0, 120); } catch (err) {}
+                }
+                const fd = await new Response(buf, { headers: { 'content-type': ctype } }).formData();
                 //  ★ 후보를 모은다 — manifest 에 적은 이름부터, 그다음 값 전체.
                 const cand = [];
                 ['image', 'file', 'files', 'photo', 'media', 'images'].forEach(k => {
@@ -142,9 +151,9 @@ self.addEventListener('fetch', (e) => {
                     //    이 한 줄이 '크롬 탓인가 우리 탓인가'를 가른다.
                     if (!parts.length) {
                         try {
-                            const cl = e.request.headers.get('content-length');
-                            const ct = e.request.headers.get('content-type') || '';
-                            info = 'len=' + (cl == null ? '?' : cl) + (ct ? (' ' + ct.split(';')[0]) : '');
+                            //  len = 실제로 받은 바이트. 수십 B(경계 글자뿐)면 크롬 안에서 파일이 빠진 것이다.
+                            //  400B 이하면 몸통 글자도 같이 보여 준다(경계 문자열뿐인지 눈으로 확인).
+                            info = 'len=' + bodyLen + (bodyHead ? (' 몸통=' + bodyHead) : '');
                         } catch (err) {}
                     }
                 } else {
@@ -166,8 +175,11 @@ self.addEventListener('fetch', (e) => {
                     }
                 }
             } catch (err) {
-                why = 'read';
-                info = String((err && (err.name || err.message)) || '').slice(0, 80);
+                //  ⚠ 칸이 0개인 multipart(닫는 경계 글자뿐)는 브라우저 해석기가 TypeError 를 던지기도 한다.
+                //    그건 '못 읽은 것'이 아니라 '아무것도 안 온 것'이다 → 몸통이 아주 짧으면 empty 로 분류한다.
+                why = (bodyLen >= 0 && bodyLen <= 200) ? 'empty' : 'read';
+                //  해석이 깨져도 몇 바이트가 왔는지는 같이 적는다 — '읽지 못했다' 만으로는 또 원인을 못 찾는다.
+                info = (String((err && (err.name || err.message)) || '').slice(0, 60) + (bodyLen >= 0 ? (' len=' + bodyLen + (bodyHead ? (' 몸통=' + bodyHead) : '')) : '')).slice(0, 160);
             }
             //  앱을 열면서 결과를 함께 알린다. 실패해도 **왜 실패했는지**를 싣는다.
             const q = ok ? '?shared=1'

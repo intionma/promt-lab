@@ -35,8 +35,12 @@ async function shareOnce(b, spec) {
     for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i);
     const fd = new FormData();
     if (o.field) fd.append(o.field, new File([a], o.name || '', o.type !== null ? { type: o.type } : undefined));
-    else { fd.append('title', '사진'); fd.append('text', '보세요'); }
-    const r = await fetch(`http://127.0.0.1:${o.port}/share-target`, { method: 'POST', body: fd, redirect: 'follow' });
+    else if (!o.empty) { fd.append('title', '사진'); fd.append('text', '보세요'); }
+    //  ★ empty: 크롬 153+ 가 실제로 보내는 모양 — multipart 머리글은 있는데 **칸이 0개**(닫는 경계 글자뿐).
+    //    Content-Length 없이 보낸다(사용자 실측 'len=?' — 크롬은 길이 머리글을 안 붙인다).
+    const body = o.empty ? '--plb--\r\n' : fd;
+    const r = await fetch(`http://127.0.0.1:${o.port}/share-target`, { method: 'POST', body, redirect: 'follow',
+      headers: o.empty ? { 'content-type': 'multipart/form-data; boundary=plb' } : undefined });
     return r.url;
   }, { ...spec, port: PORT, b64: B64 });
   await p.goto(red, { waitUntil: 'load' });
@@ -88,6 +92,18 @@ async function shareOnce(b, spec) {
     ck('★ 실패해도 Anima 로 연다 (안내를 볼 자리가 같아야 한다)', r.layout === 'anima', String(r.layout));
     ck('★ 실패 표식도 주소에서 지운다', !/shared=|why=|info=/.test(r.addr), r.addr);
     ck('오류 없음', r.errs.length === 0, r.errs.slice(0, 2).join(' | '));
+  }
+
+  // ══ 칸이 0개로 오면 **몇 바이트가 왔는지** 말해야 한다 (v9.203.2 — 크롬 153+ 실제 증상) ═══
+  //   머리글(Content-Length)로 재면 '?' 가 된다 — 바이트를 직접 세야 한다.
+  {
+    const r = await shareOnce(b, { field: null, empty: true });
+    ck('★ 빈 공유는 why=empty', /why=empty/.test(r.red), r.red.replace(/^[^?]*/, ''));
+    const info = decodeURIComponent((r.red.match(/info=([^&]*)/) || [, ''])[1]);
+    ck('★★ 받은 바이트 수를 센다 (len=숫자, ? 가 아니다)', /len=\d+/.test(info), info);
+    ck('★ 짧으면 몸통 글자도 보여 준다 (경계 글자뿐인지 눈으로 확인)', /몸통=.*plb/.test(info), info);
+    ck('★ 안내에 그 줄이 뜬다', r.toasts.some(t => /len=\d+/.test(t)), JSON.stringify(r.toasts).slice(0, 200));
+    ck('오류 없음(빈 공유)', r.errs.length === 0, r.errs.slice(0, 2).join(' | '));
   }
 
   await b.close(); srv.close();
