@@ -27,7 +27,7 @@
   ⚠ **JSON이라 작은따옴표·주석·후행 쉼표를 쓸 수 없다.** 새 항목은 배열 **맨 앞**에 넣고,
   직전 항목의 `"time"` 은 `""` 로 바꾼다. 본문에 `</script>` 가 들어가면 `<\/script>` 로 escape.
 - 버전 툴팁: `.app-version-tooltip` (좌상단 "프롬프트 랩" 브랜드)
-- 현재 최신 버전: **v9.201.0**
+- 현재 최신 버전: **v9.202.0**
 
 ## 🎨 테마 변수는 `<html>`·`<body>` 두 곳에 걸린다 (v9.165.2 / v9.168.1)
 
@@ -258,6 +258,25 @@
 
 검사: `srvcard-test`(첫 설치 잔존 · 실사용 0px · 첫 카드가 「이미지 넣기」 ·
 **고급 설정을 다시 그려도 살아남는가** · 여닫기).
+
+## 🔎 8관점 병렬 감사 → 17건 수정 (v9.202.0) — `docs/AUDIT-2026-09-29.md`
+세션 초기화 직전 8분에 에이전트 16개(관점 8 × 반박 검증)로 돌린 감사. 20건 중 17건이 반박을 통과했고 전부 고쳤다.
+**새로 생긴 규칙·함정만** 여기 적는다(상세는 문서):
+- **`showToast(msg, type, ms, { html: true })`** 로만 HTML 을 넣는다. 기본은 `textContent`. **변수는 `_esc` 로 escape**
+  (`?info=` 처럼 주소에서 온 값을 html 로 넣으면 XSS). `<b>` 를 넣는 호출은 검사가 정적으로 전수 확인한다.
+- **sticky 토스트(`label`·`keep`)는 상한에서 밀어내지 않는다** — `dataset.keep`. 사라지는 중(`.hide`)은 개수에서 뺀다.
+- **받는 4갈래(공유·끌어다 놓기·붙여넣기·📋 클립보드)는 전부 `_animaTakeBlob` 하나를 탄다.** 공유는 dataURL 이 아니라
+  **blob 을 `_plPendingShared` 에 넣는다**(`{blob,name,kind}` · 옛 `{dataURL}` 도 받는다).
+- **`_recTagsProtectedExcluding` 도 `_recTagCore`** — v9.198.0 의 '양쪽을 같은 함수로' 규칙이 여기만 빠져 있었다.
+  **「비우기」는 `_recRollLast` 도 합쳐서 뺀다**(굴리기와 같은 규칙) — 읽은 **뒤에** 비운다.
+- **`comfyGenerate` 는 보내기에 성공하면 `true` 를 돌려준다.** 연속 생성은 `sent || 큐 증감` 으로 판정한다 —
+  큐 증감만 보면 보내는 동안 앞 장이 끝나 -1 된 경우 성공이 실패로 집계된다.
+- **꾹 누르기 표식은 어디를 눌러도 지우고, 같은 버튼의 click 만 먹는다**(`_plLpEl`). 폰은 꾹 누르면 click 이 안 온다.
+- **갤러리 200장 잘림은 화면의 카드도 뗀다**(카드 먼저, 캐시 나중). **`_galRememberWH` 는 떼어낸 img·목록 밖 주소를 무시**하고
+  지우기·비우기는 `_galMetaSaveCancel()` 로 예약 저장을 취소한다. **받는 중인 주소는 `_animaImgInflight` 로 한 번만 받는다.**
+- 백업 키 추가: `comfy_img2img_transform_v1` · `comfy_img2img_inpaint_v1` · `comfy_transform_seeded_v1` · `comfy_inpaint_seeded_v1`.
+- **`_setSlot` 은 같은 장이면 아무것도 안 한다**(안내도 안 치운다). 새 장일 때만 치우고, 저장소에만 있는 축소판은 `_animaTWarm` 으로 꺼낸다.
+검사: `audit202-test`(SOLO — 받는 중 중복 요청을 센다). 고치기 전 코드로 돌리면 16줄 FAIL.
 
 ## 🚨 공유가 통째로 안 들어가던 것 — `sw.js` 가 MIME 만 보고 있었다 (v9.200.0 — 사용자 긴급 신고)
 
