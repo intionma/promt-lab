@@ -137,6 +137,16 @@ self.addEventListener('fetch', (e) => {
                     } catch (err) {}
                     why = parts.length ? 'nofile' : 'empty';
                     info = parts.join(',').slice(0, 160);
+                    //  ★ v9.203.1: 빈 채로 왔으면 **몸통 크기**를 적는다 — 크롬이 보낸 바이트가 경계 글자뿐(수십 B)이면
+                    //    파일이 앱에 닿기 전에 크롬 안에서 빠진 것이고, 몇 MB 인데 비었다면 우리가 해석을 잘못한 것이다.
+                    //    이 한 줄이 '크롬 탓인가 우리 탓인가'를 가른다.
+                    if (!parts.length) {
+                        try {
+                            const cl = e.request.headers.get('content-length');
+                            const ct = e.request.headers.get('content-type') || '';
+                            info = 'len=' + (cl == null ? '?' : cl) + (ct ? (' ' + ct.split(';')[0]) : '');
+                        } catch (err) {}
+                    }
                 } else {
                     try {
                         const c = await caches.open(SHARE_CACHE);
