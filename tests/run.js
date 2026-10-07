@@ -101,7 +101,8 @@ const run = (file) => new Promise((res) => {
   p.on('close', (code) => {
     clearTimeout(kill);
     const secs = ((Date.now() - s) / 1000).toFixed(0);
-    const fails = (out.match(/^FAIL/gm) || []);
+    //  ⚠ /^FAIL/ 만 잡으면 글자 'FAIL' 네 자만 남아 **이유가 영영 안 보인다**(v9.203.1 에서 실제로 그랬다) → 줄 끝까지.
+    const fails = (out.match(/^FAIL.*$/gm) || []);
     const ok = code === 0 && !fails.length;
     results.push({ file, ok, code, secs, fails, out });
     console.log(`${ok ? '  통과' : '✗ 실패'}  ${file.padEnd(22)} ${String(secs).padStart(4)}s` +
