@@ -44,12 +44,17 @@ const srv=http.createServer((q,r)=>{const u=new URL(q.url,'http://x');
  ck('[자동 정렬](기본)이면 DB 순서로 정렬된다', autoSorted==='thighhighs, school uniform', autoSorted);
 
  // ② 재배치 버튼을 직접 누르면 정렬은 여전히 된다
+ //  ⚠ 예전 판정은 'before!==after || before===after' 라 늘 참이었다(감사 G). DB 순서와 반대로 넣고 바뀌는지 본다.
  const sorted=await p.evaluate(()=>{
-   const before=document.getElementById('layer-3').value;
+   const known=Object.keys(activeTagsMap).filter(t=>activeTagsMap[t].layer===3).slice(0,4);
+   if(known.length<3) return {skip:true};
+   const ta=document.getElementById('layer-3');
+   ta.value=[...known].reverse().join(', ');
+   const before=ta.value;
    sortLayerByDB(3);
-   return {before, after:document.getElementById('layer-3').value};
+   return {before, after:ta.value, want:known.join(', ')};
  });
- ck('직접 정렬을 요청하면 정렬된다', sorted.before!==sorted.after || sorted.before===sorted.after, '');
+ ck('직접 정렬을 요청하면 정렬된다', sorted.skip || (sorted.after!==sorted.before && sorted.after===sorted.want), JSON.stringify(sorted));
 
  // ③ 입력칸이 내용에 맞게 자란다
  const grow=await p.evaluate(()=>{

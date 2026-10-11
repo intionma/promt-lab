@@ -1,0 +1,19 @@
+# 정적 검사 — 브라우저 없이 1~2초. 버전 3곳 맞춤·내역 JSON·스크립트 문법·백업 키 누락 등 '손으로 맞추는 것'을 잰다.
+# (브라우저 검사 50개는 글꼴·환경 차이로 헛실패가 날 수 있어 여기서는 돌리지 않는다 — 로컬에서 node tests/run.js)
+name: 정적 검사
+on:
+  push:
+  pull_request:
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save --no-package-lock acorn@8
+      - run: node tools/lint.js . --base origin/main

@@ -109,19 +109,28 @@ const idxOf = (pos, tag) => pos.split(',').map(s => s.trim()).indexOf(tag);
 const offOf = (pos, tag) => { let off = 0; for (const p of pos.split(',').map(s => s.trim())) { if (p === tag) return off; off += p.length + 2; } return -1; };
 
 (async () => {
-  const cur = await mk('/home/user/promt-lab', 9192);
+  const cur = await mk('/home/user/promt-lab', 9196);
+  //  ★ 비교본이 없으면 git 에서 만들어 둔다 — 예전엔 새 컨테이너에선 늘 SKIP 이라 이 검사가 통째로 비어 있었다(감사 G).
+  if (!fs.existsSync('/tmp/v112app/index.html')) {
+    try {
+      const html = require('child_process').execFileSync('git', ['-C', path.resolve(__dirname, '..'), 'show', 'fd2c8ac:index.html'], { maxBuffer: 64 * 1024 * 1024 });
+      fs.mkdirSync('/tmp/v112app', { recursive: true }); fs.writeFileSync('/tmp/v112app/index.html', html);
+      const data = path.resolve(__dirname, '..', 'data');
+      if (!fs.existsSync('/tmp/v112app/data')) { try { fs.symlinkSync(data, '/tmp/v112app/data'); } catch (e) {} }
+    } catch (e) { console.log('(비교본을 만들지 못했다 — git 기록 없음) ' + (e.message || '').split('\n')[0]); }
+  }
   const hasOld = fs.existsSync('/tmp/v112app/index.html');
-  const old = hasOld ? await mk('/tmp/v112app', 9191) : null;
+  const old = hasOld ? await mk('/tmp/v112app', 9195) : null;
 
   // ── ① 기본(정렬 켜짐) — 트리거가 앞머리에
-  const a = await run(9192, false);
+  const a = await run(9196, false);
   ck('기본 설정: 전송이 이뤄진다', !!a.pos, JSON.stringify(a.errs.slice(0, 1)));
   const ia = offOf(a.pos, 'myface');
   ck('★ 기본 설정: 트리거가 앞 75토큰 안', ia >= 0 && ia < 260, `myface 글자위치=${ia}`);
   ck('기본 설정: LoRA 노드는 손대지 않는다', a.lora && a.lora.lora_name === 'myFaceLora.safetensors' && a.lora.strength_model === 0.9, JSON.stringify(a.lora));
 
   // ── ② 메모장 모드 — 계층 글은 그대로 두되 '보낼 때'는 트리거가 앞으로
-  const c = await run(9192, true);
+  const c = await run(9196, true);
   ck('메모장 모드: 전송이 이뤄진다', !!c.pos, JSON.stringify(c.errs.slice(0, 1)));
   ck('★ 메모장 모드: 화면의 계층 글은 친 그대로 남는다',
      /^1girl, solo/.test(c.layers[2]) && /myface$/.test(c.layers[2].trim()), c.layers[2]);
@@ -131,19 +140,19 @@ const offOf = (pos, tag) => { let off = 0; for (const p of pos.split(',').map(s 
      c.pos.split(',').length === a.pos.split(',').length, `${c.pos.split(',').length} vs ${a.pos.split(',').length}`);
 
   // ── ②-b 트리거가 진짜로 앞머리 밖까지 밀린 경우 — 이때만 끌어올려야 한다
-  const d = await run(9192, true, TYPED_LONG);
+  const d = await run(9196, true, TYPED_LONG);
   const id = offOf(d.pos, 'myface');
   ck('★ 메모장 + 긴 프롬프트: 밀려난 트리거를 앞으로 구조한다', id >= 0 && id < 260, `myface 글자위치=${id} · ${d.pos.slice(0, 160)}`);
   ck('구조해도 태그 개수는 그대로', d.pos.split(',').length === Object.values(TYPED_LONG).join(',').split(',').length + 3,
      `${d.pos.split(',').length}개`);
   //  정렬을 켠 같은 프롬프트와 비교 — 둘 다 앞머리 안이어야 한다
-  const e = await run(9192, false, TYPED_LONG);
+  const e = await run(9196, false, TYPED_LONG);
   const ie = offOf(e.pos, 'myface');
   ck('정렬 켠 긴 프롬프트도 앞머리 안', ie >= 0 && ie < 260, `myface 글자위치=${ie}`);
 
   // ── ③ '최적화 직전' 버전과 payload 가 같은가 (기본 설정)
   if (hasOld) {
-    const o = await run(9191, false);
+    const o = await run(9195, false);
     ck('★ 기본 설정 전송 프롬프트가 최적화 직전 버전과 같다', o.pos === a.pos,
        `\n    옛: ${o.pos}\n    현: ${a.pos}`);
     ck('★ 커스텀 워크플로우의 LoRA 노드가 그대로다', JSON.stringify(o.lora) === JSON.stringify(a.lora),

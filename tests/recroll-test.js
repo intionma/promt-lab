@@ -115,14 +115,25 @@ const roll = (p) => p.evaluate(() => { window.__toasts = []; return !!_recRollPi
        c.fin !== a.fin && c.l4.every(t => c.fin.toLowerCase().includes(t.toLowerCase())), c.fin.slice(0, 120));
 
     //  ★★ 핵심 회귀 — 20번 굴려도 쌓이면 안 된다
-    let maxN = c.l4.length, seen = new Set([c.l4.join(',')]);
+    //  ⚠ v9.205.x: 예전엔 '태그 개수 ≤ 처음 + 2' 로 봤다. 의상 프리셋은 3~6태그라 처음에 3태그짜리를 고르고
+    //    6태그짜리가 굴러 나오면 정상인데도 실패했다(약 2% — 감사 G 몬테카를로). 아래 2번 덩어리와 같은
+    //    진짜 불변식 '안 담긴 프리셋의 태그가 남아 있지 않다'로 매번 잰다.
+    const strayNow = () => p.evaluate(() => {
+      const own = new Set(), other = new Set();
+      [..._DATA_LOOKS, ..._DATA_BG].forEach(pr => { const to = _recPickedSet.has(pr) ? own : other; (pr.tags || []).forEach(t => to.add(_recTagCore(t))); });
+      const all = [];
+      for (let i = 1; i <= 7; i++) ((document.getElementById('layer-' + i) || {}).value || '').split(',').map(s => s.trim()).filter(Boolean).forEach(t => all.push(t));
+      return all.filter(t => { const c = _recTagCore(t); return other.has(c) && !own.has(c); });
+    });
+    let worst = [], seen = new Set([c.l4.join(',')]);
     for (let i = 0; i < 20; i++) {
       await roll(p);
       const x = await layers(p);
-      maxN = Math.max(maxN, x.l4.length);
+      const st = await strayNow();
+      if (st.length > worst.length) worst = st;
       seen.add(x.l4.join(','));
     }
-    ck('★★ 20번 굴려도 의상이 쌓이지 않는다', maxN <= a.l4.length + 2, `최대 ${maxN}개 (처음 ${a.l4.length}개)`);
+    ck('★★ 20번 굴려도 의상이 쌓이지 않는다 (옛 의상 태그가 안 남는다)', worst.length === 0, JSON.stringify(worst));
     ck('★ 20번 굴리면 서로 다른 의상이 여러 벌 나온다', seen.size >= 5, `${seen.size}종`);
 
     const last = await layers(p);

@@ -40,7 +40,8 @@ const NEEDS_SRV = ['lbgrp-test.js', 'pose-test.js', 'share-test.js', 'size-test.
 const GROUPS = {
   bar:     ['color', 'secui', 'railpos', 'mactfold', 'lbgrp'],          // 하단 바 · 위치 · 접기
   layout:  ['fold', 'responsive', 'twoui', 'layout', 'glass', 'menu'],  // 화면 폭 · 테마 · 레이아웃
-  audit: ['audit202', 'audit204'],
+  audit: ['audit202', 'audit204', 'static'],
+  static:  ['static'],                                                   // 정적 검사(tools/lint.js) — 2초, 커밋 전에 먼저
   outfit:  ['ofmode', 'audit204', 'afteronly', 'twocol', 'share', 'railpos'],   // 👗 의상 입히기 + 같은 화면을 쓰는 Anima 검사
   share: ['sharemime', 'dropin', 'sharequeue', 'shareresume', 'backguard'],   // 공유 진입 · 뒤로가기
   gallery: ['gallery', 'galcache', 'useresult', 'shareresume', 'afteronly', 'lbhead', 'lboffline'],
@@ -98,7 +99,8 @@ const run = (file) => new Promise((res) => {
   const p = spawn('node', [path.join(DIR, file)], { env, cwd: path.dirname(DIR) });
   let out = '';
   p.stdout.on('data', d => out += d); p.stderr.on('data', d => out += d);
-  const kill = setTimeout(() => { try { p.kill('SIGKILL'); } catch (e) {} }, 900000);
+  //  한 검사가 매달려도 묶음 전체가 15분씩 멈추지 않게(가장 긴 responsive 가 약 2.5분) — 7분이면 넉넉하다(감사 G).
+  const kill = setTimeout(() => { try { p.kill('SIGKILL'); } catch (e) {} }, 420000);
   p.on('close', (code) => {
     clearTimeout(kill);
     const secs = ((Date.now() - s) / 1000).toFixed(0);
