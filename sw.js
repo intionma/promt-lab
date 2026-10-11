@@ -33,7 +33,7 @@ self.addEventListener('install', (e) => {
         try {
             const c = await caches.open(APP_CACHE);
             const u = new URL('./index.html', self.registration.scope).href;
-            const r = await fetch(u, { cache: 'reload' });
+            const r = await fetch(u, { cache: 'no-cache' });   // 'reload' 는 방금 받은 것도 무시하고 또 받았다(첫 방문에 2번) — ETag 로 확인만(v9.204.1)
             if (r && r.ok) await c.put(new Request(u), r.clone());
         } catch (err) {}
     })());
@@ -92,7 +92,9 @@ async function _revalidate(cache, req, oldRes) {
                 changed = x !== y;
             }
         }
-        await cache.put(req, copy);
+        //  ★ 안 바뀌었으면 다시 쓰지 않는다 (v9.204.1 — 감사 A). 예전엔 열 때마다 2.4MB 를 캐시에 새로 써서
+        //    저장소를 긁고, 크롬이 붙여 둔 '컴파일해 둔 코드'(V8 코드 캐시)까지 버려 다음 부팅이 느려졌다.
+        if (changed || !oldRes) await cache.put(req, copy);
         if (changed && oldRes) _notifyUpdate();
     } catch (e) { /* 오프라인 등 — 캐시본으로 계속 쓴다 */ }
 }

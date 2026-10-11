@@ -216,6 +216,23 @@ async function boot(b, opts) {
     });
     ck('★★ Anima 를 세 번 다시 열어도 → 한 번에 한 칸만 넘어간다', fk === 1, String(fk));
 
+    // ⑭ (v9.204.1) 결과 칸은 원본 통째(dataURL)를 다시 그리지 않는다 — 축소본으로 보여 준다
+    const big = await p.evaluate(async () => {
+      const c = document.createElement('canvas'); c.width = 1600; c.height = 2000;
+      const g = c.getContext('2d'); for (let i = 0; i < 400; i++) { g.fillStyle = `hsl(${i},70%,50%)`; g.fillRect((i * 37) % 1600, (i * 53) % 2000, 120, 120); }
+      const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+      await _animaTakeBlob(blob, 'big');
+      await new Promise(r => setTimeout(r, 600));
+      _anima.results = [{ k: 'zz1', url: 'http://127.0.0.1:1/view?filename=a.png', seed: 1, src: _anima.srcKey, opt: '' }];
+      _animaResSel = 0; try { _animaRenderResult(); } catch (e) {}
+      const html = document.getElementById('anima-result').innerHTML;
+      const full = _anima.img.dataURL;
+      return { fullLen: full.length, thumbLen: (_anima.imgThumb || '').length, embedsFull: html.indexOf(full.slice(0, 200) + full.slice(200, 4000)) >= 0, htmlLen: html.length };
+    });
+    ck('★ 결과 칸이 원본 사진을 통째로 다시 그리지 않는다(축소본)', big.fullLen > big.thumbLen && !big.embedsFull, JSON.stringify(big));
+    const clr = await p.evaluate(() => { _animaGalManage = false; try { _animaRenderResult(); } catch (e) {} const a = !!document.getElementById('anima-gal-clear'); _animaGalManage = true; try { _animaRenderResult(); } catch (e) {} const b = !!document.getElementById('anima-gal-clear'); _animaGalManage = false; try { _animaRenderResult(); } catch (e) {} return { a, b }; });
+    ck('「전체 비우기」는 🗑 정리 안에서만 보인다', clr.a === false && clr.b === true, JSON.stringify(clr));
+
     ck('오류 없음(Anima)', p.__errs.length === 0, p.__errs.slice(0, 3).join(' | '));
     await ctx.close();
   }
