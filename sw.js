@@ -74,7 +74,9 @@ async function _notifyUpdate() {
 // 배경에서 새로 받아 캐시를 갈아 끼우고, 내용이 달라졌으면 화면에 알린다.
 async function _revalidate(cache, req, oldRes) {
     try {
-        const fresh = await fetch(req, { cache: 'no-store' });
+        //  ★ v9.204.0: 'no-store' 는 열 때마다(공유 진입 포함) 문서 전체(gzip 651KB)를 새로 받았다.
+        //    'no-cache' 는 ETag 로 '바뀌었나'만 물어 안 바뀌었으면 304(0바이트)로 끝난다 — 아래 비교 논리는 그대로 맞는다.
+        const fresh = await fetch(req, { cache: 'no-cache' });
         if (!fresh || !fresh.ok || fresh.type === 'opaque') return;
         const copy = fresh.clone();
         let changed = true;

@@ -27,7 +27,7 @@
   ⚠ **JSON이라 작은따옴표·주석·후행 쉼표를 쓸 수 없다.** 새 항목은 배열 **맨 앞**에 넣고,
   직전 항목의 `"time"` 은 `""` 로 바꾼다. 본문에 `</script>` 가 들어가면 `<\/script>` 로 escape.
 - 버전 툴팁: `.app-version-tooltip` (좌상단 "프롬프트 랩" 브랜드)
-- 현재 최신 버전: **v9.203.2**
+- 현재 최신 버전: **v9.204.0**
 
 ## 🎨 테마 변수는 `<html>`·`<body>` 두 곳에 걸린다 (v9.165.2 / v9.168.1)
 
@@ -277,6 +277,38 @@
 - 백업 키 추가: `comfy_img2img_transform_v1` · `comfy_img2img_inpaint_v1` · `comfy_transform_seeded_v1` · `comfy_inpaint_seeded_v1`.
 - **`_setSlot` 은 같은 장이면 아무것도 안 한다**(안내도 안 치운다). 새 장일 때만 치우고, 저장소에만 있는 축소판은 `_animaTWarm` 으로 꺼낸다.
 검사: `audit202-test`(SOLO — 받는 중 중복 요청을 센다). 고치기 전 코드로 돌리면 16줄 FAIL.
+
+## 🔍 8갈래 감사 1차 수정 (v9.204.0) — `docs/IMPROVE-2026-10-11.md`
+에이전트 8개(속도·디자인·코드 건강·보안·플랫폼 조사·새 테마 조사·검사 체계·접근성)로 읽기 전용 감사 → 검증된 것부터 고쳤다.
+**새로 생긴 규칙·함정만** 적는다:
+- **`_plCurrent` 를 메인 스크립트에서 쓰지 말 것 → `_plLayoutNow()`**(body `data-layout`). `_plCurrent` 는 맨 아래 레이아웃
+  IIFE 안의 `let` 이라 메인에서 안 보인다. typeof 로 감싼 가드 5곳은 **영영 거짓**이었고, 안 감싼 한 곳(Anima 붙여넣기)은
+  ReferenceError 로 죽어 **Ctrl+V 가 처음부터 안 됐다.** (클래식 블록 안 규칙 '레이아웃은 body[data-layout]'과 같은 이유)
+- **escape 는 따옴표까지**(`_animaEsc`·`_esc0`·지역 `_esc`·`esc`). 결과가 `title="…"`·`value="…"` 속성에 들어간다 —
+  `&<>` 만 바꾸면 이름의 `"` 로 `onfocus`+`autofocus` 를 끼워 넣을 수 있었다(백업 파일로 심을 수 있었다).
+- **백업 불러오기는 `_ioPrefOk(k,v)` 를 통과한 키만**(= `_IO_ETC_KEYS` 안 · 문자열 · 8MB 이하). 새 키를 만들면 여전히 `_IO_ETC_KEYS` 에 넣을 것 —
+  안 넣으면 이제 **내보내기에서도 불러오기에서도** 빠진다.
+- **`showConfirm` 은 Enter 를 문서 전체에서 받지 않는다.** 처음 초점은 「취소」, Enter 는 브라우저 기본대로 초점 받은 버튼만,
+  꾹 누른 Enter(`e.repeat`)는 버린다. 예전엔 「취소」에 초점을 둬도 Enter 면 실행됐고 꾹 누르면 3단계 초기화까지 통과했다.
+- **뒤로가기 '가벼운 창'**: 모달 스택에 안 올라가는 상단 메뉴·Anima 하단바 팝업은 `_plCloseTransient()` 가 popstate 맨 끝
+  (문지기 직전)에서 닫고 **문지기를 바로 다시 세운다**. Anima 쪽은 `window._animaCloseTransient`. 새 팝업을 만들면 여기에 더한다.
+- **메뉴 항목은 '누르는 순간' 클래식 엔진을 싣는다**(캡처 단계 click 리스너, `#gt-menu .gt-menu-item`). 메뉴를 '열 때'만 싣던 것은
+  Ctrl+K 명령창(`b.click()`)이 건너뛰어 Anima 에서 11개 명령이 죽었다(v9.139.0 부류의 두 번째 입구).
+- **화면 꺼짐 방지 `_plWakeSet(이유, 켬)`** — 연속 생성(`_plAutoSyncBtns`)·Anima 대기열(`_animaSyncBusy`)이 도는 동안만 잡는다.
+  다른 앱으로 가면 브라우저가 놓으므로 `visibilitychange` 에서 다시 잡는다. 화면이 '보이는' 동안만 효과가 있다(꺼진 화면을 살리진 못한다).
+- **`_animaHistCap` 은 저장이 실제로 실패했을 때만 배운다.** 성공 때 개수를 상한으로 굳히면 부팅 직후 0장이 상한이 되어
+  '이전 원본'이 영영 0장이었고 거짓 '저장 공간 부족' 경고가 매번 떴다.
+- **알림(토스트)은 폰에서 상단바 아래**(`--pl-topbar-h` + 8px). 위에 뜨면 떠 있는 동안 메뉴가 안 눌렸다. 컨테이너는 `aria-live="polite"`.
+- **중지(`comfyCancelJob`)는 `{prompt_id}` 로 콕 집고, 요청이 실패하면 목록에서 지우지 않는다.** 전체 취소도 둘 다 실패하면 안 비운다.
+- **도우미 작업(WD14 태깅·자동 자르기 감지)은 `front:true`** — 연속 생성으로 큐가 차 있으면 뒤에 줄 서다 시간 초과가 났다.
+- **이미지 변환·비교 도구도 `_plImageFileOk`/`_plFilesOf`** 로 받는다(MIME 비어도 앞머리로 판정, HEIC 안내, 그림 아니면 말한다).
+  v9.201.0 의 '받는 곳이 둘 이상이면 기준을 같게'를 Anima 만 지키고 있었다.
+- `sw.js` 재확인은 `cache:'no-cache'`(ETag → 304). `'no-store'` 는 열 때마다 651KB 를 새로 받았다.
+- `navigator.storage.persist()` 를 부팅 때 요청한다(결과 목록이 저장 공간 압박 때 몰래 지워지지 않게).
+- 「HTML 저장(현재 설정)」은 **PC 종료 토큰을 비우고** 담는다. JSON 백업은 그대로(내 기기 옮기기용).
+- 키보드 초점 표시: `@media (hover:hover) and (pointer:fine) { :focus-visible … }` — 터치·마우스 클릭엔 안 뜬다.
+- 라이트 테마 Anima 색 칩 글자: `[data-theme="light"] #anima-root .anima-chip.g-*` 로 `color-mix(hue 55%, #000)`.
+검사: `audit204-test`(고치기 전 코드로 돌리면 13줄 FAIL 후 죽는다). 포트는 `listen(0)`.
 
 ## 🚨 공유가 통째로 안 들어가던 것 — `sw.js` 가 MIME 만 보고 있었다 (v9.200.0 — 사용자 긴급 신고)
 
