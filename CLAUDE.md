@@ -27,7 +27,7 @@
   ⚠ **JSON이라 작은따옴표·주석·후행 쉼표를 쓸 수 없다.** 새 항목은 배열 **맨 앞**에 넣고,
   직전 항목의 `"time"` 은 `""` 로 바꾼다. 본문에 `</script>` 가 들어가면 `<\/script>` 로 escape.
 - 버전 툴팁: `.app-version-tooltip` (좌상단 "프롬프트 랩" 브랜드)
-- 현재 최신 버전: **v9.204.1**
+- 현재 최신 버전: **v9.205.0**
 
 ## 🎨 테마 변수는 `<html>`·`<body>` 두 곳에 걸린다 (v9.165.2 / v9.168.1)
 
@@ -277,6 +277,27 @@
 - 백업 키 추가: `comfy_img2img_transform_v1` · `comfy_img2img_inpaint_v1` · `comfy_transform_seeded_v1` · `comfy_inpaint_seeded_v1`.
 - **`_setSlot` 은 같은 장이면 아무것도 안 한다**(안내도 안 치운다). 새 장일 때만 치우고, 저장소에만 있는 축소판은 `_animaTWarm` 으로 꺼낸다.
 검사: `audit202-test`(SOLO — 받는 중 중복 요청을 센다). 고치기 전 코드로 돌리면 16줄 FAIL.
+
+## 👗 의상 입히기 — Anima 의 두 번째 방식 (v9.205.0 — 사용자 요청, 설계는 `docs/IMPROVE-2026-10-11.md`)
+사용자: "몸은 칩으로 상세하게 고르고, **의상은 내가 첨부한 이미지의 옷을 입기**(캐릭터를 따라하는 게 아니라 옷만)."
+- **새 레이아웃을 만들지 않았다.** `pl_layout` 은 그대로 `'anima'` 이고 `_anima.mode`(`'edit'|'outfit'`) 하나로 갈린다.
+  부팅 지름길·공유 진입·클래식 엔진 건너뛰기가 전부 `=== 'anima'` 를 보므로, 새 이름을 만들면 그 자리를 전부 손봐야 한다
+  (CLAUDE.md '흩어진 목록이 조용히 샌다'). 선택기의 「의상 입히기」 카드는 `_plPickLayout('outfit')` → 방식을 정하고 `applyLayout('anima')`.
+  `applyLayout('outfit')` 도 같은 뜻으로 받는다. 화면 위 「🎨 편집 / 👗 의상 입히기」 단추는 `window._animaSetModePre(m)`.
+- **1단계 = 태그 방식**: 참고 이미지 → WD14(임계값 0.3) → `data/attire-lexicon.json` 으로 **옷 태그만**(`_ofFilterTags`).
+  사전은 block(정체성·몸·동작·**아동 연상**) → exact(단부루 attire 1,489개) → words 순으로 본다. 읽은 옷은 원본(srcKey)마다 기억(최대 30개).
+- **생성은 참고 패치 없이 글로만**(`_animaBuildWorkflow` 의 `S.mode === 'outfit'` → `ApplyCosmosReferenceModelPatch`·`CosmosReferenceConditioning` 없음,
+  KSampler 는 `_mref`, 양성은 `['67',0]`). 이름에 `edit` 가 든 LoRA(편집 LoRA)는 빼고 보낸다. 「옷 그림 참고」(0.3/0.5)를 켰을 때만 Cosmos 참조를 그 세기로.
+  ⚠ **편집 모드 워크플로우는 한 글자도 안 바뀌어야 한다** — `ofmode-test` 가 편집 경로(69·71·원본 크기·편집 LoRA)를 못 박는다.
+- 그림 크기는 고른 비율(`_OF_RATIOS`, 기본 832×1216)을 `snap.srcWH` 로 넘긴다. denoise 1 고정, 커스텀 워크플로우는 안 쓴다.
+- 프롬프트는 `_ofCompose()` — **서술(쉼표 없음) 앞 + 태그 뒤**(Anima/Qwen 규칙). **`adult` 를 서술·태그 양쪽에 늘 넣는다**(cfg 1 이라 부정이 안 먹는다).
+- ⚠ **연령 축은 20대부터(성인만)**. 어려 보이게 하는 선택지·문구를 넣지 말 것. 옷 사전의 block 에서 아동 연상 태그(loli·kindergarten·randoseru·school swimsuit·buruma …)를 빼지 말 것.
+- 축은 `_OF_AXES` 한 곳 — 칩 그리기·조립·요약이 전부 여기서 읽는다. 기존 옵션 칩(가슴·후타·표정·포즈…)은 **편집 모드와 상태를 공유**한다.
+  노출 교체(`kind:'base'`) 칩·아이콘은 이 방식에선 숨긴다(옷은 참고 이미지에서 온다).
+- 옷을 안 읽은 채 실행하면 `_animaGenerate` 가 먼저 읽는다 → 공유 자동 생성도 그대로 된다.
+- 저장: `_anima.mode`·`_anima.of` 는 `_animaSave` 목록에 있다(→ `anima_settings_v1` → 백업 포함). 모양은 `_ofState()` 가 매번 맞춘다(망가진 저장분 대비).
+- **2단계(아직)**: IPAdapter(NOOB-IPA-MARK1) + 옷 마스크, 또는 Qwen-Image-Edit-2511 두 단계. `/object_info` 로 노드·모델이 있을 때만 켠다.
+검사: `ofmode-test`(옷만 남기기 · 아동 연상 차단 · adult · 쉼표 없는 서술 · 참고 패치 없음 · **편집 워크플로우 무손상** · 안 읽고 실행하면 먼저 읽기 · 새로고침 유지 · 선택기 카드 · 저장 레이아웃 'anima').
 
 ## 🔍 8갈래 감사 1차 수정 (v9.204.0) — `docs/IMPROVE-2026-10-11.md`
 에이전트 8개(속도·디자인·코드 건강·보안·플랫폼 조사·새 테마 조사·검사 체계·접근성)로 읽기 전용 감사 → 검증된 것부터 고쳤다.
