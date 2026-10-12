@@ -27,7 +27,7 @@
   ⚠ **JSON이라 작은따옴표·주석·후행 쉼표를 쓸 수 없다.** 새 항목은 배열 **맨 앞**에 넣고,
   직전 항목의 `"time"` 은 `""` 로 바꾼다. 본문에 `</script>` 가 들어가면 `<\/script>` 로 escape.
 - 버전 툴팁: `.app-version-tooltip` (좌상단 "프롬프트 랩" 브랜드)
-- 현재 최신 버전: **v9.205.1**
+- 현재 최신 버전: **v9.206.0**
 
 ## 🎨 테마 변수는 `<html>`·`<body>` 두 곳에 걸린다 (v9.165.2 / v9.168.1)
 
@@ -296,8 +296,34 @@
   노출 교체(`kind:'base'`) 칩·아이콘은 이 방식에선 숨긴다(옷은 참고 이미지에서 온다).
 - 옷을 안 읽은 채 실행하면 `_animaGenerate` 가 먼저 읽는다 → 공유 자동 생성도 그대로 된다.
 - 저장: `_anima.mode`·`_anima.of` 는 `_animaSave` 목록에 있다(→ `anima_settings_v1` → 백업 포함). 모양은 `_ofState()` 가 매번 맞춘다(망가진 저장분 대비).
-- **2단계(아직)**: IPAdapter(NOOB-IPA-MARK1) + 옷 마스크, 또는 Qwen-Image-Edit-2511 두 단계. `/object_info` 로 노드·모델이 있을 때만 켠다.
 검사: `ofmode-test`(옷만 남기기 · 아동 연상 차단 · adult · 쉼표 없는 서술 · 참고 패치 없음 · **편집 워크플로우 무손상** · 안 읽고 실행하면 먼저 읽기 · 새로고침 유지 · 선택기 카드 · 저장 레이아웃 'anima').
+
+### ✨ 2단계 — 정밀 입히기(Qwen-Image-Edit) (v9.206.0 — 사용자 요청)
+「입히는 방식」 = `_anima.of.how`(`'tag'` 기본 | `'qwen'`). 1단계 그림(고른 몸 + 옷 태그)을 **같은 ComfyUI 요청 안에서**
+Qwen-Image-Edit 에 넘긴다: 그림 1 = 1단계 출력(`_outRef` — 노드끼리 바로 잇는다, 다시 올리지 않는다) · 그림 2 = 참고 이미지(`73`).
+노드 200~212 를 **뒤에 덧붙이기만** 하고 `SaveImage` 만 `212` 로 바꾼다. 배선은 ComfyUI 공식 2511 워크플로우
+(UNET → (Lightning LoRA) → ModelSamplingAuraFlow 3.1 → CFGNorm · CLIPLoader `qwen_image` · TextEncodeQwenImageEditPlus 양·음 ·
+FluxKontextMultiReferenceLatentMethod `index_timestep_zero` · KSampler euler/simple denoise 1).
+- ⚠ **편집 모드·태그 방식 워크플로우는 v9.205.1 과 한 글자도 같아야 한다** — `ofqwen-test` 가 옛 코드(`git show 1a7fa62`)로 직접 만들어 대조한다.
+- ⚠ **FluxKontextImageScale 을 넣지 말 것.** 1단계 크기(`_OF_RATIOS`)가 이미 약 1MP · 16 격자라 거기서 다시 반올림하면 비율이 틀어진다
+  ('결과 크기는 노드에게 맡기지 말 것'). latent 은 그림 1 크기 그대로.
+- **준비물은 `/object_info` 로 찾는다**(`_ofQDetect` — 파일 이름 하드코딩 금지): 모델 2511 > 2509 > 번호 없음, 같은 판이면 bf16(38GB)보다 가벼운 것,
+  nunchaku(svdq) 제외 · GGUF(`UnetLoaderGGUF`·`CLIPLoaderGGUF`, mmproj 제외)도 받는다 · Lightning 은 **모델과 판이 맞을 때만**(이름의 N steps, cfg 1),
+  없으면 20스텝 cfg 4 · CFGNorm·참조 방식 노드는 있으면 건다. 옛 형식(`[목록]`)·새 형식(`'COMBO'`+options) 둘 다 읽는다.
+- **없으면 막지 않는다** — 화면에 '무엇이·어느 폴더에·받을 곳'(`_OF_Q_NEED`)을 적고, 실행하면 **태그 방식으로 뽑으며 알린다**(keep 토스트, 세션당 한 번,
+  고쳐지면 `_ofQWarned` 를 되돌린다). 못 붙으면 '빠졌다'가 아니라 '확인 못 함'(`conn:false`). 태그 방식을 고른 동안은 PC 에 아무것도 묻지 않는다.
+- 2단계 지시문(`_ofQPrompt`)은 문장이다(Qwen 은 쉼표로 안 쪼갠다). 노드가 붙이는 **Picture 1/2** 로 부른다. **성인 · 그림 2에서는 옷만**을 못 박는다.
+- 큰 모델이라 결과 대기 한도가 400 → **1200번**(약 30분, `job.settings.ofQ` 일 때만). 결과 이름표 `👗✨`.
+- 고른 방식은 `_anima.of` 안이라 백업에 이미 들어간다. 감지 결과(`_ofQInfo`)는 그때뿐이라 저장하지 않는다(주소가 바뀌면·못 붙었던 결과는 20초 뒤 다시 본다).
+- IPAdapter 길은 **안 만들었다** — Anima(Cosmos) 모델에는 IPAdapter 가 없어 SDXL 로 1단계를 통째로 바꿔야 하고, 그러면 그림체가 달라진다.
+
+### ⚠ Anima 로 부팅하면 공용 `#comfy-url` 이 비어 있었다 (v9.206.0 — 만들다 발견)
+주소칸(`#anima-url`)과 공용 `#comfy-url` 은 **전송 직전에만** 맞춰졌다(`_animaRunJob`·`_animaPing`). 그래서 전송보다 **먼저** PC 에 묻는 것들 —
+👗 옷 읽기(`_animaEnsureUploaded`) · 자동 자르기 · 정밀 입히기 준비물 — 이 **앱을 막 연 상태에선 기본 주소 127.0.0.1:8188** 로 가서 실패했다.
+→ `mountAnima` 가 `_animaApplyMode()` **전에** 저장된 주소(`comfy_settings_v1.url`)로 채운다(비어 있을 때만).
+**`_comfyBase()` 를 부르는 새 기능을 만들면 '전송 전에도 불리는가'를 확인할 것.**
+검사: `ofqwen-test`(준비물 고르기 6가지 PC · 워크플로우 배선·연결 무결성 · **옛 코드와 글자 대조** · 없을 때 태그로+알림 1회 ·
+다시 확인 · 못 붙음 · 주소 바뀜 · 연결 확인 연동 · 대기 한도 · 390px · 새로고침 유지 · **앱을 막 열어도 저장된 주소**).
 
 ## 🔍 8갈래 감사 1차 수정 (v9.204.0) — `docs/IMPROVE-2026-10-11.md`
 에이전트 8개(속도·디자인·코드 건강·보안·플랫폼 조사·새 테마 조사·검사 체계·접근성)로 읽기 전용 감사 → 검증된 것부터 고쳤다.
