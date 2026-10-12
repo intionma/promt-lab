@@ -32,7 +32,7 @@ const C = (a) => ['COMBO', { options: a }];
 const ANIMA_UNET = 'anima-preview.safetensors';
 const SETS = {
   full: {
-    UNETLoader: { unet_name: L([ANIMA_UNET, 'qwen_image_edit_2511_bf16.safetensors', 'qwen_image_edit_2511_fp8mixed.safetensors', 'qwen_image_edit_2509_fp8_e4m3fn.safetensors', 'svdq-int4_r32-qwen-image-edit-2511.safetensors']), weight_dtype: L(['default', 'fp8_e4m3fn']) },
+    UNETLoader: { unet_name: L([ANIMA_UNET, 'qwen_image_edit_2511_bf16.safetensors', 'qwen_image_edit_2511_fp8mixed.safetensors', 'qwen_image_edit_2509_fp8_e4m3fn.safetensors', 'svdq-int4_r32-qwen-image-edit-2511.safetensors', 'qwen_image_edit_2511_fp8_e4m3fn_scaled_lightning_4steps_v1.0.safetensors']), weight_dtype: L(['default', 'fp8_e4m3fn']) },
     CLIPLoader: { clip_name: L(['qwen_3_06b_base.safetensors', 'qwen_2.5_vl_7b_fp8_scaled.safetensors']), type: L(['stable_diffusion', 'qwen_image']), device: L(['default', 'cpu']) },
     VAELoader: { vae_name: L(['sdxl_vae.safetensors', 'qwen_image_vae.safetensors']) },
     LoraLoaderModelOnly: { lora_name: L(['anima_edit_v1.safetensors', 'Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors', 'Qwen-Image-Edit-2511-Lightning-8steps-V1.0-bf16.safetensors', 'Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors']), strength_model: ['FLOAT', { default: 1 }] },
@@ -53,6 +53,10 @@ SETS.miss.UNETLoader.unet_name = L([ANIMA_UNET]); delete SETS.miss.TextEncodeQwe
 SETS.nolora = JSON.parse(JSON.stringify(SETS.full)); SETS.nolora.LoraLoaderModelOnly.lora_name = L(['anima_edit_v1.safetensors']);
 delete SETS.nolora.CFGNorm; delete SETS.nolora.FluxKontextMultiReferenceLatentMethod;
 SETS.mism = JSON.parse(JSON.stringify(SETS.full)); SETS.mism.LoraLoaderModelOnly.lora_name = L(['Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors']);
+//  Lightning 을 미리 섞은 모델만 있는 PC(lightx2v 저장소) · 텍스트 인코더가 여러 판인 PC
+SETS.merged = JSON.parse(JSON.stringify(SETS.full));
+SETS.merged.UNETLoader.unet_name = L([ANIMA_UNET, 'qwen_image_edit_2511_fp8_e4m3fn_scaled_lightning_4steps_v1.0.safetensors']);
+SETS.merged.CLIPLoader.clip_name = L(['qwen_2.5_vl_7b.safetensors', 'qwen_2.5_vl_7b_fp8_scaled.safetensors', 'qwen_2.5_vl_7b_nvfp4.safetensors']);
 let MODE = 'full', HITS = 0, HIST = 0;
 const comfy = http.createServer((q, r) => {
   const u = new URL(q.url, 'http://x');
@@ -126,7 +130,7 @@ const RAW = '1girl, solo, long hair, blue eyes, white dress, frilled sleeves, re
   await p.waitForFunction(() => { const q = document.getElementById('anima-of-q'); return q && q.dataset.st === 'ok'; }, null, { timeout: 10000 }).catch(() => {});
   const q1 = await p.evaluate(() => ({ st: document.getElementById('anima-of-q').dataset.st, txt: document.getElementById('anima-of-q').textContent, info: _ofQInfo, how: _ofState().how, sum: _ofSummary() }));
   ck('★ 「✨ 정밀 입히기」를 누르면 PC 에서 준비물을 찾아 「준비됐어요」', q1.how === 'qwen' && q1.st === 'ok' && /준비됐어요/.test(q1.txt), JSON.stringify(q1));
-  ck('★★ 모델은 2511 · bf16(38GB)보다 가벼운 fp8 · nunchaku 판 제외', q1.info.unet === 'qwen_image_edit_2511_fp8mixed.safetensors' && !q1.info.unetGguf, q1.info.unet);
+  ck('★★ 모델은 2511 · bf16(38GB)보다 가벼운 fp8 · nunchaku 판 제외 · 원본 판이 있으면 그걸(LoRA 로 따로)', q1.info.unet === 'qwen_image_edit_2511_fp8mixed.safetensors' && !q1.info.unetGguf && !q1.info.merged, q1.info.unet);
   ck('★★ Lightning 은 모델과 판이 맞는 것 중 4스텝 · cfg 1', q1.info.lora === 'Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors' && q1.info.steps === 4 && q1.info.cfg === 1, JSON.stringify(q1.info));
   ck('텍스트 인코더·VAE 는 Anima 것(qwen_3_06b·sdxl)이 아니라 Qwen 것', q1.info.clip === 'qwen_2.5_vl_7b_fp8_scaled.safetensors' && q1.info.vae === 'qwen_image_vae.safetensors', JSON.stringify(q1.info));
   ck('상태 줄에 쓰는 모델 이름과 스텝이 보인다 · 요약에 「정밀 입히기」', /qwen_image_edit_2511_fp8mixed/.test(q1.txt) && /4스텝/.test(q1.txt) && /정밀 입히기/.test(q1.sum), q1.txt + ' / ' + q1.sum);
@@ -200,6 +204,9 @@ const RAW = '1girl, solo, long hair, blue eyes, white dress, frilled sleeves, re
   ck('Lightning 이 없으면 20스텝 cfg 4 · 받을 곳을 알려 준다 · 없는 선택 노드는 안 건다', dn.q.ready && !dn.q.lora && dn.q.steps === 20 && dn.q.cfg === 4 && !dn.q.cfgNorm && !dn.q.refm && /Lightning LoRA/.test(dn.txt) && /href="https:\/\/huggingface\.co\/lightx2v/.test(dn.html), JSON.stringify(dn.q));
   const wn = await p.evaluate(async (q) => { const S = Object.assign({}, _animaSnapshotSettings(), { mode: 'outfit', ofRefW: 0, denoise: 1, ofQ: Object.assign({ prompt: 'p' }, q) }); const w = await _animaBuildWorkflow('x', 'x.png', 1, S, null, false, [832, 1216]); return { has: Object.keys(w), ks: w['211'].inputs }; }, dn.q);
   ck('그때 워크플로우 — LoRA·CFGNorm·참조 방식 노드 없이 AuraFlow 에서 바로', !wn.has.includes('201') && !wn.has.includes('203') && !wn.has.includes('208') && JSON.stringify(wn.ks.model) === '["202",0]' && JSON.stringify(wn.ks.positive) === '["206",0]' && wn.ks.steps === 20 && wn.ks.cfg === 4, JSON.stringify(wn));
+  const dmg = await det('merged');
+  ck('★ Lightning 을 미리 섞은 모델만 있어도 된다 — LoRA 를 또 걸지 않고 그 스텝·cfg 1', dmg.q.ready && /lightning_4steps/.test(dmg.q.unet) && dmg.q.merged && !dmg.q.lora && dmg.q.steps === 4 && dmg.q.cfg === 1 && /Lightning 4스텝/.test(dmg.txt), JSON.stringify(dmg.q));
+  ck('텍스트 인코더는 fp8 판(9GB)을 원본(17GB)·nvfp4 보다 먼저 고른다', dmg.q.clip === 'qwen_2.5_vl_7b_fp8_scaled.safetensors', dmg.q.clip);
   const dm = await det('mism');
   ck('★ 판이 안 맞는 Lightning(2509용)은 2511 모델에 안 건다', dm.q.ready && !dm.q.lora && dm.q.steps === 20, JSON.stringify(dm.q));
 

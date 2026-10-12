@@ -309,6 +309,7 @@ FluxKontextMultiReferenceLatentMethod `index_timestep_zero` · KSampler euler/si
   ('결과 크기는 노드에게 맡기지 말 것'). latent 은 그림 1 크기 그대로.
 - **준비물은 `/object_info` 로 찾는다**(`_ofQDetect` — 파일 이름 하드코딩 금지): 모델 2511 > 2509 > 번호 없음, 같은 판이면 bf16(38GB)보다 가벼운 것,
   nunchaku(svdq) 제외 · GGUF(`UnetLoaderGGUF`·`CLIPLoaderGGUF`, mmproj 제외)도 받는다 · Lightning 은 **모델과 판이 맞을 때만**(이름의 N steps, cfg 1),
+  Lightning 을 **미리 섞은 모델**(lightx2v `…_lightning_4steps…`)만 있으면 LoRA 를 또 걸지 않고 그 스텝 · 텍스트 인코더는 fp8 > 원본 > nvfp4,
   없으면 20스텝 cfg 4 · CFGNorm·참조 방식 노드는 있으면 건다. 옛 형식(`[목록]`)·새 형식(`'COMBO'`+options) 둘 다 읽는다.
 - **없으면 막지 않는다** — 화면에 '무엇이·어느 폴더에·받을 곳'(`_OF_Q_NEED`)을 적고, 실행하면 **태그 방식으로 뽑으며 알린다**(keep 토스트, 세션당 한 번,
   고쳐지면 `_ofQWarned` 를 되돌린다). 못 붙으면 '빠졌다'가 아니라 '확인 못 함'(`conn:false`). 태그 방식을 고른 동안은 PC 에 아무것도 묻지 않는다.
