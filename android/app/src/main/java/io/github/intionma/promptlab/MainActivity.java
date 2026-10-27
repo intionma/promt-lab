@@ -57,8 +57,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class MainActivity extends Activity {
 
-    static final String ORIGIN = "https://intionma.github.io";
-    static final String SCOPE = ORIGIN + "/promt-lab/";
+    //  정식 판 = https://intionma.github.io/promt-lab/ · 디버그 판 = 로컬 검사 서버 (app/build.gradle 의 SCOPE)
+    static final String SCOPE = BuildConfig.SCOPE;
     static final String HOME = SCOPE + "index.html";
     static final int REQ_FILE = 41;
     static final long MAX_BYTES = 40L * 1024 * 1024;   // 이보다 큰 건 사진이 아니라고 본다(메모리 보호)
@@ -80,7 +80,11 @@ public class MainActivity extends Activity {
         if ((getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) WebView.setWebContentsDebuggingEnabled(true);
         web = makeWeb();
         setContentView(web);
-        boolean share = takeShare(getIntent());
+        //  ⚠ 최근 앱 목록에서 다시 열거나(안드로이드가 '처음 받은 인텐트'를 그대로 다시 준다) 시스템이 화면을 다시 만든 경우엔
+        //    예전 공유를 또 넣으면 안 된다 — 같은 사진이 또 들어가고, 읽기 허락이 끝나 '못 읽었어요'가 뜬다.
+        Intent in0 = getIntent();
+        boolean replay = savedInstanceState != null || (in0 != null && (in0.getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0);
+        boolean share = !replay && takeShare(in0);
         //  공유로 열렸으면 ?shared=1 — 웹앱이 '공유 진입'으로 알아듣고 Anima 화면으로 연다(레이아웃 강제는 웹앱 몫).
         web.loadUrl(share ? HOME + "?shared=1" : HOME);
     }
@@ -316,7 +320,7 @@ public class MainActivity extends Activity {
 
     boolean inScope(Uri u) {
         String s = u.toString();
-        return s.startsWith(SCOPE) || s.equals(ORIGIN + "/promt-lab");
+        return s.startsWith(SCOPE) || (s + "/").equals(SCOPE);
     }
 
     void openOutside(Uri u) {
@@ -346,15 +350,53 @@ public class MainActivity extends Activity {
         }
 
         @Override public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
-            //  WebView 그리는 쪽이 죽으면(메모리 부족 등) 그 WebView 는 다시 못 쓴다 → 새로 만들어 다시 연다
+            //  WebView 그리는 쪽이 죽으면(메모리 부족 등) 그 WebView 는 다시 못 쓴다 → 새로 만들어 다시 연다.
+            //  ⚠ 횟수 제한 — 계속 죽는 상황이면 '다시 만들기 → 또 죽음'을 끝없이 돈다(에뮬레이터에서 실제로 봤다).
+            //    1분 안에 3번째면 멈추고 사람에게 묻는다.
             ViewGroup p = (ViewGroup) view.getParent();
             if (p != null) p.removeView(view);
             view.destroy();
+            if (view == web) web = null;
+            long now = System.currentTimeMillis();
+            if (now - crashWindowStart > 60_000) { crashWindowStart = now; crashCount = 0; }
+            crashCount++;
+            if (crashCount >= 3) { showCrashPanel(); return true; }
             web = makeWeb();
             setContentView(web);
             web.loadUrl(HOME);
             return true;
         }
+    }
+
+    long crashWindowStart = 0;
+    int crashCount = 0;
+
+    /** 화면을 그리는 부분이 계속 죽을 때 — 웹이 아니라 앱이 직접 그린다(웹은 지금 못 그린다). */
+    void showCrashPanel() {
+        android.widget.LinearLayout box = new android.widget.LinearLayout(this);
+        box.setOrientation(android.widget.LinearLayout.VERTICAL);
+        box.setGravity(android.view.Gravity.CENTER);
+        box.setBackgroundColor(Color.parseColor("#0d1017"));
+        int pad = (int) (24 * getResources().getDisplayMetrics().density);
+        box.setPadding(pad, pad, pad, pad);
+        android.widget.TextView t = new android.widget.TextView(this);
+        t.setText("화면을 그리는 부분(WebView)이 계속 멈춰요.\n\n휴대폰 메모리가 부족하거나, 'Android System WebView' 앱이 오래됐을 수 있어요. 다른 앱을 몇 개 닫거나 플레이스토어에서 'Android System WebView'를 업데이트한 뒤 다시 열어 보세요.");
+        t.setTextColor(Color.parseColor("#e5e7eb"));
+        t.setTextSize(16);
+        t.setLineSpacing(0, 1.3f);
+        android.widget.Button b = new android.widget.Button(this);
+        b.setText("다시 열기");
+        b.setOnClickListener(v -> {
+            crashCount = 0; crashWindowStart = System.currentTimeMillis();
+            web = makeWeb();
+            setContentView(web);
+            web.loadUrl(HOME);
+        });
+        box.addView(t);
+        box.addView(b);
+        setContentView(box);
+        //  패널은 늘 어두운 바탕이다 — 웹앱이 라이트였으면 상태 표시줄이 밝은 채로 남으니 함께 맞춘다
+        new Bridge().setTheme("dark");
     }
 
     final class Chrome extends WebChromeClient {

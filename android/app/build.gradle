@@ -20,8 +20,8 @@ android {
         // ⚠ 35 로 올리면 안드로이드 15+ 에서 '가장자리까지 그리기'가 강제돼 상단바가 상태 표시줄 밑으로 들어간다.
         //   올릴 때는 창 여백(insets) 처리를 함께 넣을 것. 플레이스토어가 아니라 직접 설치라 34 로 충분하다.
         targetSdk 34
-        versionCode 1
-        versionName '1.0'
+        versionCode 2
+        versionName '1.1'
     }
 
     signingConfigs {
@@ -35,10 +35,18 @@ android {
         }
     }
 
+    buildFeatures { buildConfig true }
+
     buildTypes {
         release {
             minifyEnabled false
             signingConfig ks['storeFile'] ? signingConfigs.release : signingConfigs.debug
+            buildConfigField 'String', 'SCOPE', '"https://intionma.github.io/promt-lab/"'
+        }
+        //  디버그 판은 검사용 — 이 컴퓨터의 로컬 서버(adb reverse)에서 웹앱을 띄운다. 패키지 이름이 달라 정식 앱과 따로 깔린다.
+        debug {
+            applicationIdSuffix '.debug'
+            buildConfigField 'String', 'SCOPE', '"http://localhost:8765/"'
         }
     }
 
