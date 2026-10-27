@@ -1,0 +1,49 @@
+plugins {
+    id 'com.android.application'
+}
+
+// 프롬프트 랩 안드로이드 껍데기 — 웹앱(https://intionma.github.io/promt-lab/)을 WebView 로 띄운다.
+//  왜 만들었나: 홈 화면에 설치한 웹앱(WebAPK)으로 공유하면 크롬 안에서 사진이 빠진다(크롬 153~ 오류, docs/ANDROID-APP.md).
+//  진짜 앱은 갤러리가 카톡처럼 사진을 직접 넘겨주므로 그 길을 안 탄다.
+//  ⚠ 서명 키는 저장소에 두지 않는다(공개 저장소다). keystore.properties 가 있으면 그걸로 서명하고, 없으면 디버그 서명.
+def ksFile = rootProject.file('keystore.properties')
+def ks = new Properties()
+if (ksFile.exists()) ksFile.withInputStream { ks.load(it) }
+
+android {
+    namespace 'io.github.intionma.promptlab'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'io.github.intionma.promptlab'
+        minSdk 29   // 저장(MediaStore 다운로드 폴더)이 29부터다 — 폴드8은 한참 위
+        // ⚠ 35 로 올리면 안드로이드 15+ 에서 '가장자리까지 그리기'가 강제돼 상단바가 상태 표시줄 밑으로 들어간다.
+        //   올릴 때는 창 여백(insets) 처리를 함께 넣을 것. 플레이스토어가 아니라 직접 설치라 34 로 충분하다.
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    signingConfigs {
+        release {
+            if (ks['storeFile']) {
+                storeFile rootProject.file(ks['storeFile'])
+                storePassword ks['storePassword']
+                keyAlias ks['keyAlias']
+                keyPassword ks['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig ks['storeFile'] ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

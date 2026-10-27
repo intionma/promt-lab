@@ -42,6 +42,7 @@ const GROUPS = {
   layout:  ['fold', 'responsive', 'twoui', 'layout', 'glass', 'menu'],  // 화면 폭 · 테마 · 레이아웃
   audit: ['audit202', 'audit204', 'static'],
   static:  ['static'],                                                   // 정적 검사(tools/lint.js) — 2초, 커밋 전에 먼저
+  native:  ['native', 'sharemime', 'dropin', 'backguard'],   // 📱 안드로이드 앱 연결 + 같은 공유·받기 길
   outfit:  ['ofmode', 'ofqwen', 'audit204', 'afteronly', 'twocol', 'share', 'railpos'],   // 👗 의상 입히기 + 같은 화면을 쓰는 Anima 검사
   share: ['sharemime', 'dropin', 'sharequeue', 'shareresume', 'backguard'],   // 공유 진입 · 뒤로가기
   gallery: ['gallery', 'galcache', 'useresult', 'shareresume', 'afteronly', 'lbhead', 'lboffline'],

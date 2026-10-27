@@ -60,7 +60,9 @@ self.addEventListener('message', (e) => {
 function _cacheable(req, url) {
     if (req.method !== 'GET') return false;
     if (url.origin !== self.location.origin) return false;       // ComfyUI 등 외부는 제외
-    if (req.mode === 'navigate') return true;                    // 페이지 자체
+    //  페이지 자체 — ⚠ 문서 주소(/ · .html)만. 예전엔 '이동'이면 다 담아서, 문서가 아닌 파일(.apk·.zip 등)로
+    //    이동해도 캐시에 들어가 다음에 새 판을 받아도 **옛 판이 먼저** 나올 수 있었다(v9.207.0).
+    if (req.mode === 'navigate') return /(\/|\.html?)$/i.test(url.pathname);
     return /\.(html|json|png|svg|ico|webmanifest)$/i.test(url.pathname);
 }
 

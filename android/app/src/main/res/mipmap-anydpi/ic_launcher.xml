@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 웹앱 아이콘(pwa/icon-maskable-512.png)을 그대로 쓴다 — 가장자리까지 그라데이션이라 어떤 모양으로 잘려도 맞는다 -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/icon_bg" />
+    <foreground android:drawable="@drawable/ic_fg" />
+</adaptive-icon>

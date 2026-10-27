@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 웹앱이 뜨기 전 흰 화면이 번쩍이지 않게 앱 배경색(#0d1017)으로 시작한다 -->
+    <style name="AppTheme" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@color/bg</item>
+        <item name="android:navigationBarColor">@color/bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+    <color name="bg">#0d1017</color>
+    <color name="icon_bg">#5b45e6</color>
+</resources>
