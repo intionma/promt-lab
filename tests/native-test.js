@@ -10,6 +10,7 @@
 //   · 화면 켜 두기·상태 표시줄 색이 앱에 전해진다
 //   · 앱 밖(보통 브라우저)에서는 아무것도 바뀌지 않는다(a.click 원본 그대로)
 //   · 서비스워커가 .apk 내려받기를 캐시에 담지 않는다(새 판을 받아도 옛 판이 나오면 안 된다)
+//   · 🌐 둘러보기(앱 1.2)에서 집은 그림 — 편집으로 · 첫 장부터 줄 세워 생성 · 연달아 와도 겹쳐 돌지 않음
 const { chromium } = require('playwright-core');
 const http = require('http'), fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..');
@@ -28,7 +29,7 @@ const GRN = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwA
 
 //  PLNative 흉내 — 앱의 Bridge 와 같은 모양(next/pending/saveFile/keepScreenOn/setTheme/version)
 const MOCK = (init) => {
-  const st = window.__pln = { q: (init && init.q) || [], reading: (init && init.reading) || 0, saved: [], screen: [], theme: [] };
+  const st = window.__pln = { q: (init && init.q) || [], reading: (init && init.reading) || 0, bmode: (init && init.bmode) || 0, saved: [], screen: [], theme: [] };
   window.PLNative = {
     pending: () => st.q.length + st.reading,
     next: () => { const o = st.q.shift(); return o ? JSON.stringify(o) : ''; },
@@ -37,6 +38,8 @@ const MOCK = (init) => {
     setTheme: (m) => { st.theme.push(String(m)); },
     saveFile: (name, mime, b64) => { st.saved.push({ name, mime, b64 }); return 'ok:Download/PromptLab/' + name; },
     openExternal: () => {},
+    browser: (cmd) => { (st.bcmd = st.bcmd || []).push(String(cmd)); },
+    browserMode: () => st.bmode || 0,
   };
 };
 
@@ -72,7 +75,8 @@ const MOCK = (init) => {
       const before = _anima.srcKey;
       window.__pln.q.push({ name: 'IMG_0002.png', mime: 'image/png', size: 70, b64: g });
       window._plNativeShareArrived();
-      for (let i = 0; i < 50 && _anima.srcKey === before; i++) await new Promise(r => setTimeout(r, 100));
+      //  ⚠ 앞 공유의 '넣기 → 보내기'가 끝난 뒤에 들어온다(_plShareChain) — ComfyUI 가 없으면 연결 확인만큼 기다린다
+      for (let i = 0; i < 150 && !/IMG_0002/.test((_anima.img && _anima.img.name) || ''); i++) await new Promise(r => setTimeout(r, 100));
       return { stay: window.__stay, changed: _anima.srcKey !== before, name: _anima.img && _anima.img.name };
     }, GRN);
     ck('★★ 이미 떠 있을 때 공유가 오면 새로고침 없이 새 사진으로 바뀐다', w.stay === 'same-doc' && w.changed && /IMG_0002/.test(w.name || ''), JSON.stringify(w));
@@ -84,10 +88,11 @@ const MOCK = (init) => {
       window._plNativeShareArrived();
       await new Promise(r => setTimeout(r, 400));
       window.__pln.q.push({ name: 'IMG_0003.png', mime: 'image/png', size: 70, b64: g }); window.__pln.reading = 0;
-      for (let i = 0; i < 50 && _anima.srcKey === before; i++) await new Promise(r => setTimeout(r, 100));
+      for (let i = 0; i < 150 && !/IMG_0003/.test((_anima.img && _anima.img.name) || ''); i++) await new Promise(r => setTimeout(r, 100));
       return { changed: _anima.srcKey !== before, name: _anima.img && _anima.img.name };
     }, RED);
-    ck('앱이 큰 사진을 읽는 중이면 기다렸다가 꺼낸다', rd.changed && /IMG_0003/.test(rd.name || ''), JSON.stringify(rd));
+    //  ⚠ srcKey 로 보지 않는다 — 1·3번이 같은 그림(빨강)이라 앞 장 처리가 늦으면 키가 같다(부하에서 헛실패). 이름으로 본다.
+    ck('앱이 큰 사진을 읽는 중이면 기다렸다가 꺼낸다', /IMG_0003/.test(rd.name || ''), JSON.stringify(rd));
 
     // ── ④ 사진이 아닌 것 · 못 읽은 것 → 이유를 말한다 ──────────────────────
     const bad = await p.evaluate(async () => {
@@ -148,6 +153,56 @@ const MOCK = (init) => {
       return { lay: document.body.getAttribute('data-layout'), name: _anima.img && _anima.img.name };
     }, RED);
     ck('★ 클래식 화면에 있을 때 공유가 오면 Anima 로 옮겨 넣는다', r.lay === 'anima' && /IMG_9/.test(r.name || ''), JSON.stringify(r));
+    await ctx.close();
+  }
+
+  // ── ⑩ 🌐 둘러보기에서 집은 그림 (앱 1.2) ─────────────────────────────
+  //   · 의상 입히기에 있었어도 **편집**으로 돌려 넣는다(사용자 결정)
+  //   · 첫 장부터 줄을 세워 생성(queueOk) — 앞 그림이 뽑히는 중에 다음 걸 집는 게 보통이다
+  //   · 따로따로 온 두 묶음이 **겹쳐 돌지 않는다**(두 번째가 첫 번째 원본을 덮지 않게)
+  //   · 평소 공유의 첫 장은 예전처럼 queueOk=false
+  {
+    const { ctx, p } = await mk({ native: { q: [], bmode: 1 } });
+    await p.goto(BASE, { waitUntil: 'load' });
+    await waitMount(p);
+    await p.waitForTimeout(400);
+    const btn = await p.evaluate(async () => {
+      const b = document.getElementById('anima-browse-b');
+      const vis = (el) => !!el && getComputedStyle(el).display !== 'none';
+      const r = { edit: vis(b), on: b && b.classList.contains('on') };
+      b.click();
+      r.cmd = (window.__pln.bcmd || []).slice();
+      window._plBrowserState(0); r.off = !b.classList.contains('on');
+      window._animaSetModePre('outfit'); await new Promise(x => setTimeout(x, 50));
+      r.outfitHidden = !vis(b);
+      return r;
+    });
+    ck('★ 🌐 단추 — 앱 안 편집에서 보이고 · 열린 상태를 보여 주고 · 누르면 앱에 열기/닫기를 보낸다', btn.edit && btn.on && btn.cmd[0] === 'toggle' && btn.off, JSON.stringify(btn));
+    ck('🌐 단추는 의상 입히기에서는 안 보인다', btn.outfitHidden, JSON.stringify(btn));
+    const r = await p.evaluate(async ([g, rd]) => {
+      document.querySelectorAll('#toast-container .toast').forEach(t => t.remove());
+      window.__ag = [];
+      //  생성 자체는 ComfyUI 가 없어 못 한다 → '실행을 대신 누르는' 자리에서 무엇이 넘어왔는지만 본다
+      _animaShareAutoGen = async (q) => { const e = { q, name: _anima.img && _anima.img.name, t0: Date.now() }; window.__ag.push(e); await new Promise(x => setTimeout(x, 400)); e.t1 = Date.now(); return true; };
+      window.__pln.q.push({ name: 'pick_one', mime: 'image/png', size: 70, b64: g, via: 'browse' });
+      window._plNativeShareArrived();
+      await new Promise(x => setTimeout(x, 120));
+      window.__pln.q.push({ name: 'pick_two', mime: 'image/png', size: 70, b64: rd, via: 'browse-screen' });
+      window._plNativeShareArrived();
+      for (let i = 0; i < 60 && !(window.__ag.length >= 2 && window.__ag[1].t1); i++) await new Promise(x => setTimeout(x, 100));
+      return { mode: _anima.mode, ag: window.__ag, toast: [...document.querySelectorAll('#toast-container .toast')].map(t => t.textContent).join(' | ') };
+    }, [GRN, RED]);
+    ck('★★ 둘러보기에서 집은 그림은 의상 입히기에 있었어도 편집으로 돌려 넣는다 · 그 사실을 알린다', r.mode === 'edit' && /편집으로 바꿨어요/.test(r.toast), JSON.stringify({ mode: r.mode, toast: r.toast }));
+    ck('★★ 첫 장부터 줄을 세워 생성한다(대기열이 있어도 건너뛰지 않음)', r.ag.length === 2 && r.ag[0].q === true && r.ag[1].q === true, JSON.stringify(r.ag));
+    ck('★★ 따로 온 두 장이 겹쳐 돌지 않는다 — 각자 자기 그림으로, 앞 장이 끝난 뒤에', r.ag.length === 2 && /pick_one/.test(r.ag[0].name) && /pick_two/.test(r.ag[1].name) && r.ag[1].t0 >= r.ag[0].t1, JSON.stringify(r.ag));
+    const n = await p.evaluate(async (g) => {
+      window.__ag = [];
+      window.__pln.q.push({ name: 'IMG_plain.png', mime: 'image/png', size: 70, b64: g });
+      window._plNativeShareArrived();
+      for (let i = 0; i < 40 && !window.__ag.length; i++) await new Promise(x => setTimeout(x, 100));
+      return window.__ag.map(e => e.q);
+    }, RED);
+    ck('평소 공유의 첫 장은 예전처럼(대기열이 있으면 건너뛰는 가드 유지)', n.length === 1 && n[0] === false, JSON.stringify(n));
     await ctx.close();
   }
 

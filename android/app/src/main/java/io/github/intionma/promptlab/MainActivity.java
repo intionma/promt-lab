@@ -18,6 +18,8 @@ import android.os.Message;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.util.Base64;
+import android.content.SharedPreferences;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -31,6 +33,7 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import org.json.JSONObject;
@@ -55,7 +58,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * ⚠ 웹앱 쪽 짝은 index.html 의 _plNativeInit (window.PLNative 가 있을 때만 켜진다).
  * ⚠ PLNative 는 이 앱이 띄운 페이지면 누구나 부를 수 있다 → 다른 사이트로는 이동시키지 않는다(외부 브라우저로 연다).
  */
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements Browser.Host {
 
     //  정식 판 = https://intionma.github.io/promt-lab/ · 디버그 판 = 로컬 검사 서버 (app/build.gradle 의 SCOPE)
     static final String SCOPE = BuildConfig.SCOPE;
@@ -66,9 +69,16 @@ public class MainActivity extends Activity {
     WebView web;
     ValueCallback<Uri[]> fileCb;
 
+    //  화면 = [overlay [split [랩 자리 | 경계선 | 🌐 둘러보기]]] (v1.2)
+    //  ⚠ 랩 WebView 는 늘 labSlot 안에 넣는다 — 예전처럼 setContentView(web) 하면 나누기가 통째로 사라진다.
+    FrameLayout overlay, labSlot;
+    SplitLayout split;
+    Browser browser;
+    SharedPreferences bsp;
+
     /** 받은 공유 한 장. err 가 있으면 못 읽은 것 — 웹앱이 이유를 말한다(조용히 버리지 않는다). */
     static final class Shared {
-        String name = "shared", mime = "", err = null;
+        String name = "shared", mime = "", err = null, via = null;
         byte[] data;
     }
     final ArrayDeque<Shared> queue = new ArrayDeque<>();
@@ -79,7 +89,20 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         if ((getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) WebView.setWebContentsDebuggingEnabled(true);
         web = makeWeb();
-        setContentView(web);
+        labSlot = new FrameLayout(this);
+        labSlot.addView(web);
+        browser = new Browser(this, this);
+        split = new SplitLayout(this, labSlot, browser.root);
+        bsp = getSharedPreferences("browser", MODE_PRIVATE);
+        split.ratio = SplitLayout.clamp(bsp.getFloat("ratio", 0.5f));
+        split.browserFirst = bsp.getBoolean("first", true);
+        split.listener = (r, done) -> { if (done) bsp.edit().putFloat("ratio", r).apply(); };
+        overlay = new FrameLayout(this);
+        overlay.addView(split);
+        setContentView(overlay);
+        //  둘러보기를 연 채로 나갔으면 다시 연다(크롬처럼). 처음엔 닫혀 있다.
+        int m0 = bsp.getInt("mode", 0);
+        if (m0 != 0) setBrowserMode(m0);
         //  ⚠ 최근 앱 목록에서 다시 열거나(안드로이드가 '처음 받은 인텐트'를 그대로 다시 준다) 시스템이 화면을 다시 만든 경우엔
         //    예전 공유를 또 넣으면 안 된다 — 같은 사진이 또 들어가고, 읽기 허락이 끝나 '못 읽었어요'가 뜬다.
         Intent in0 = getIntent();
@@ -109,7 +132,12 @@ public class MainActivity extends Activity {
         w.setWebViewClient(new Client());
         w.setWebChromeClient(new Chrome());
         //  웹앱이 못 가로챈 http(s) 내려받기(Content-Disposition 등)는 안드로이드 다운로드 관리자로
-        w.setDownloadListener((url, ua, cd, mime, len) -> {
+        w.setDownloadListener((url, ua, cd, mime, len) -> download(url, cd, mime));
+        return w;
+    }
+
+    void download(String url, String cd, String mime) {
+        {
             if (url == null || !(url.startsWith("http://") || url.startsWith("https://"))) return;
             try {
                 DownloadManager.Request r = new DownloadManager.Request(Uri.parse(url));
@@ -122,8 +150,7 @@ public class MainActivity extends Activity {
             } catch (Exception e) {
                 Toast.makeText(this, "내려받기 실패: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
-        });
-        return w;
+        }
     }
 
     String versionName() {
@@ -238,6 +265,7 @@ public class MainActivity extends Activity {
                 o.put("name", s.name);
                 o.put("mime", s.mime);
                 if (s.err != null) o.put("err", s.err);
+                if (s.via != null) o.put("via", s.via);
                 if (s.data != null && s.err == null) {
                     o.put("size", s.data.length);
                     o.put("b64", Base64.encodeToString(s.data, Base64.NO_WRAP));
@@ -273,6 +301,8 @@ public class MainActivity extends Activity {
                 else f &= ~(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
                 d.setSystemUiVisibility(f);
                 if (web != null) web.setBackgroundColor(bg);
+                if (browser != null) browser.applyTheme(light);
+                if (split != null) split.divider.setTheme(light);
             });
         }
 
@@ -316,6 +346,74 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void openExternal(final String url) {
             runOnUiThread(() -> openOutside(Uri.parse(url)));
         }
+
+        /** 🌐 둘러보기 — "open"(반반) · "close" · "toggle". 웹앱의 🌐 단추가 부른다. */
+        @JavascriptInterface public void browser(final String cmd) {
+            runOnUiThread(() -> {
+                int m = split.mode;
+                if ("open".equals(cmd)) setBrowserMode(m == 0 ? 1 : m);
+                else if ("close".equals(cmd)) setBrowserMode(0);
+                else setBrowserMode(m == 0 ? 1 : 0);
+            });
+        }
+
+        /** 0 닫힘 · 1 반반 · 2 브라우저 크게 */
+        @JavascriptInterface public int browserMode() { return split == null ? 0 : split.mode; }
+    }
+
+    void setLab(View v) {
+        if (labSlot == null) { setContentView(v); return; }
+        labSlot.removeAllViews();
+        labSlot.addView(v);
+    }
+
+    View labView() { return labSlot; }
+
+    // ── Browser.Host ─────────────────────────────────────────
+    @Override public void setBrowserMode(int m) {
+        if (m < 0 || m > 2) m = 0;
+        split.setMode(m);
+        bsp.edit().putInt("mode", m).apply();
+        browser.syncMode(m);
+        if (m == 0) browser.hidden(); else browser.show();
+        if (web != null) web.evaluateJavascript("window._plBrowserState&&window._plBrowserState(" + m + ")", null);
+    }
+    @Override public int browserMode() { return split.mode; }
+    @Override public void swapSides() {
+        split.browserFirst = !split.browserFirst;
+        bsp.edit().putBoolean("first", split.browserFirst).apply();
+        split.requestLayout();
+    }
+    @Override public void resetRatio() { split.setRatio(0.5f); bsp.edit().putFloat("ratio", 0.5f).apply(); }
+    @Override public boolean sideBySide() { return split.sideBySide(split.getWidth()); }
+    @Override public ViewGroup overlay() { return overlay; }
+    @Override public void showFileChooser(ValueCallback<Uri[]> cb, WebChromeClient.FileChooserParams p) {
+        if (fileCb != null) fileCb.onReceiveValue(null);
+        fileCb = cb;
+        try {
+            Intent it = p.createIntent();
+            if (p.getMode() == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE) it.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+            startActivityForResult(Intent.createChooser(it, "파일 고르기"), REQ_FILE);
+        } catch (Exception e) {
+            fileCb = null;
+            cb.onReceiveValue(null);
+        }
+    }
+    @Override public void downloadOther(String url, String ua, String cd, String mime) { download(url, cd, mime); }
+
+    /**
+     * 둘러보기에서 집은 그림 → 공유와 **같은 줄**(queue → 웹앱 _plNativeShareArrived)로 넣는다.
+     * via=browse 를 붙이면 웹앱이 Anima **편집**으로 맞추고, 대기열이 있어도 줄을 세워 바로 생성한다(사용자 결정).
+     */
+    @Override public void deliverPicked(String name, String mime, byte[] data, boolean fromScreen) {
+        Shared s = new Shared();
+        s.name = name == null || name.isEmpty() ? "web" : name;
+        s.mime = mime == null ? "" : mime;
+        s.data = data;
+        s.via = fromScreen ? "browse-screen" : "browse";
+        if (data == null || data.length == 0) s.err = "empty";
+        synchronized (queue) { queue.add(s); }
+        notifyWeb();
     }
 
     boolean inScope(Uri u) {
@@ -323,7 +421,7 @@ public class MainActivity extends Activity {
         return s.startsWith(SCOPE) || (s + "/").equals(SCOPE);
     }
 
-    void openOutside(Uri u) {
+    @Override public void openOutside(Uri u) {
         if (u == null) return;
         String sc = u.getScheme();
         if (sc == null || "javascript".equalsIgnoreCase(sc) || "file".equalsIgnoreCase(sc)
@@ -362,7 +460,7 @@ public class MainActivity extends Activity {
             crashCount++;
             if (crashCount >= 3) { showCrashPanel(); return true; }
             web = makeWeb();
-            setContentView(web);
+            setLab(web);
             web.loadUrl(HOME);
             return true;
         }
@@ -389,29 +487,19 @@ public class MainActivity extends Activity {
         b.setOnClickListener(v -> {
             crashCount = 0; crashWindowStart = System.currentTimeMillis();
             web = makeWeb();
-            setContentView(web);
+            setLab(web);
             web.loadUrl(HOME);
         });
         box.addView(t);
         box.addView(b);
-        setContentView(box);
+        setLab(box);
         //  패널은 늘 어두운 바탕이다 — 웹앱이 라이트였으면 상태 표시줄이 밝은 채로 남으니 함께 맞춘다
         new Bridge().setTheme("dark");
     }
 
     final class Chrome extends WebChromeClient {
         @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> cb, FileChooserParams params) {
-            if (fileCb != null) fileCb.onReceiveValue(null);
-            fileCb = cb;
-            try {
-                Intent it = params.createIntent();
-                if (params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE) it.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-                startActivityForResult(Intent.createChooser(it, "파일 고르기"), REQ_FILE);
-            } catch (Exception e) {
-                fileCb = null;
-                cb.onReceiveValue(null);
-                return false;
-            }
+            showFileChooser(cb, params);
             return true;
         }
 
@@ -455,18 +543,35 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
+        //  둘러보기를 마지막으로 만졌으면 거기 먼저(주소창 → 페이지 뒤로 → '크게'면 반반으로)
+        if (split != null && split.mode != 0 && lastTouchBrowser && browser.handleBack()) return;
         //  웹앱의 뒤로가기(크게 보기 닫기·창 닫기·'한 번 더 누르면 나갑니다')를 그대로 쓴다.
         //  더 돌아갈 곳이 없으면 앱을 끄지 않고 뒤로 보낸다 — 대기열·보던 화면이 살아 있게.
         if (web != null && web.canGoBack()) web.goBack();
         else moveTaskToBack(true);
     }
 
-    @Override protected void onResume() { super.onResume(); if (web != null) web.onResume(); }
-    @Override protected void onPause() { if (web != null) web.onPause(); super.onPause(); }
+    @Override protected void onResume() { super.onResume(); if (web != null) web.onResume(); if (browser != null) browser.onResume(); }
+    @Override protected void onPause() { if (web != null) web.onPause(); if (browser != null) browser.onPause(); super.onPause(); }
+
+    //  뒤로가기를 어느 쪽에 줄지 — 마지막으로 손댄 쪽. '크게'일 땐 둘러보기뿐이다.
+    boolean lastTouchBrowser = false;
+    @Override public boolean dispatchTouchEvent(MotionEvent e) {
+        if (e.getActionMasked() == MotionEvent.ACTION_DOWN && split != null) {
+            if (split.mode == 2) lastTouchBrowser = true;
+            else if (split.mode == 1) {
+                int[] l = new int[2]; browser.root.getLocationOnScreen(l);
+                float x = e.getRawX(), y = e.getRawY();
+                lastTouchBrowser = x >= l[0] && x < l[0] + browser.root.getWidth() && y >= l[1] && y < l[1] + browser.root.getHeight();
+            } else lastTouchBrowser = false;
+        }
+        return super.dispatchTouchEvent(e);
+    }
 
     @Override
     protected void onDestroy() {
         if (web != null) { web.destroy(); web = null; }
+        if (browser != null) browser.destroy();
         super.onDestroy();
     }
 }

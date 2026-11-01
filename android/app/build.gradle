@@ -20,8 +20,8 @@ android {
         // ⚠ 35 로 올리면 안드로이드 15+ 에서 '가장자리까지 그리기'가 강제돼 상단바가 상태 표시줄 밑으로 들어간다.
         //   올릴 때는 창 여백(insets) 처리를 함께 넣을 것. 플레이스토어가 아니라 직접 설치라 34 로 충분하다.
         targetSdk 34
-        versionCode 2
-        versionName '1.1'
+        versionCode 3
+        versionName '1.2'
     }
 
     signingConfigs {
