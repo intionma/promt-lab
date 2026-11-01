@@ -62,6 +62,31 @@ final class SplitLayout extends ViewGroup {
 
     int divPx() { return Math.round(18 * dp); }
 
+    //  경계선이 18dp 라 손가락으로 맞히기 어렵다 → 양옆 12dp 까지는 경계선을 잡은 것으로 본다(보이는 굵기는 그대로).
+    boolean grab;
+    @Override public boolean onInterceptTouchEvent(MotionEvent e) {
+        if (mode != 1) return false;
+        if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
+            android.graphics.Rect r = new android.graphics.Rect(divider.getLeft(), divider.getTop(), divider.getRight(), divider.getBottom());
+            int ex = Math.round(12 * dp);
+            if (divider.vertical) r.inset(-ex, 0); else r.inset(0, -ex);
+            grab = r.contains((int) e.getX(), (int) e.getY());
+            return grab;
+        }
+        return false;
+    }
+
+    @Override public boolean onTouchEvent(MotionEvent e) {
+        if (!grab) return false;
+        MotionEvent c = MotionEvent.obtain(e);
+        c.offsetLocation(-divider.getLeft(), -divider.getTop());
+        boolean r = divider.onTouchEvent(c);
+        c.recycle();
+        int a = e.getActionMasked();
+        if (a == MotionEvent.ACTION_UP || a == MotionEvent.ACTION_CANCEL) grab = false;
+        return r;
+    }
+
     @Override protected void onMeasure(int ws, int hs) {
         int w = MeasureSpec.getSize(ws), h = MeasureSpec.getSize(hs);
         setMeasuredDimension(w, h);
