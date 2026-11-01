@@ -78,12 +78,10 @@ const SW = fs.readFileSync('/home/user/promt-lab/sw.js', 'utf8');
   const left = await p.evaluate(async () => (await (await caches.open('pl-share-v1')).keys()).length);
   ck('★ 처리한 칸은 비운다 (다음 공유와 안 섞이게)', left === 0, `${left}칸 남음`);
 
-  // ── ③ 대기열 가드 — 두 번째부터는 건너뛰지 않는다 ────────────────────
+  // ── ③ 대기열 가드 — v9.209.0 부터 공유는 대기열이 있어도 늘 줄을 세운다(행동 검사는 native-test ⑪) ──
   const guard = fs.readFileSync('/home/user/promt-lab/index.html', 'utf8');
-  ck('★ 연속 공유는 대기열이 있어도 줄을 세운다 (가드에 예외가 있다)',
-     /_animaShareAutoGen\(queueOk\)/.test(guard) && /_animaJobs\.length && !queueOk/.test(guard),
-     '가드가 아직 무조건 건너뛴다');
-  ck('★ 두 번째부터 그 예외로 부른다', /_animaShareAutoGen\(i > 0[ )]/.test(guard), '순차 처리에서 예외를 안 넘긴다');
+  ck('★ 공유 자동 생성에 \'대기열 있으면 건너뛰기\' 가드가 없다 (연속 공유가 씹히던 원인)',
+     !/_animaJobs\.length && !queueOk/.test(guard), '가드가 아직 남아 있다');
 
   ck('오류 없음', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close(); srv.close();

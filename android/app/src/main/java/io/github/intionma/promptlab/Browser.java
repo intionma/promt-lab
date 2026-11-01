@@ -82,6 +82,7 @@ final class Browser {
         int browserMode();
         void swapSides();
         void resetRatio();
+        void showSplitMenu(View anchor);
         boolean sideBySide();
         void showFileChooser(ValueCallback<Uri[]> cb, WebChromeClient.FileChooserParams p);
         void openOutside(Uri u);
@@ -838,9 +839,7 @@ final class Browser {
         m.add(0, 5, 0, "방문 기록");
         m.add(0, 6, 0, "🎯 집기 모드 (톡 탭 = 넣기)").setCheckable(true).setChecked(pick);
         m.add(0, 7, 0, "데스크톱 사이트").setCheckable(true).setChecked(desktop);
-        boolean side = host.sideBySide();
-        m.add(0, 8, 0, side ? "⇆ 좌우 바꾸기" : "⇅ 위아래 바꾸기");
-        m.add(0, 9, 0, "나누기 비율 반반으로");
+        m.add(0, 8, 0, "화면 나누기 방식 (좌우·위아래·자리)…");
         m.add(0, 10, 0, "방문 기록 지우기");
         m.add(0, 11, 0, "둘러보기 닫기");
         pm.setOnMenuItemClickListener(it -> {
@@ -852,8 +851,7 @@ final class Browser {
                 case 5: showHistory(); break;
                 case 6: setPick(!pick); break;
                 case 7: setDesktop(!desktop); break;
-                case 8: host.swapSides(); break;
-                case 9: host.resetRatio(); break;
+                case 8: host.showSplitMenu(bMenu); break;
                 case 10: clearHistory(); break;
                 case 11: host.setBrowserMode(0); break;
                 case 12: if (curWeb() != null) curWeb().reload(); break;

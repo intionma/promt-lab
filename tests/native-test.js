@@ -10,7 +10,8 @@
 //   · 화면 켜 두기·상태 표시줄 색이 앱에 전해진다
 //   · 앱 밖(보통 브라우저)에서는 아무것도 바뀌지 않는다(a.click 원본 그대로)
 //   · 서비스워커가 .apk 내려받기를 캐시에 담지 않는다(새 판을 받아도 옛 판이 나오면 안 된다)
-//   · 🌐 둘러보기(앱 1.2)에서 집은 그림 — 편집으로 · 첫 장부터 줄 세워 생성 · 연달아 와도 겹쳐 돌지 않음
+//   · 🌐 둘러보기(앱 1.2)에서 집은 그림 — 편집으로 · 연달아 와도 겹쳐 돌지 않음
+//   · 연속 공유가 씹히지 않는다(v9.209.0) — 생성 중·실패 남음·PC 바쁨에도 줄을 세운다 · PC 꺼짐이면 이유를 말한다
 const { chromium } = require('playwright-core');
 const http = require('http'), fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..');
@@ -193,16 +194,55 @@ const MOCK = (init) => {
       return { mode: _anima.mode, ag: window.__ag, toast: [...document.querySelectorAll('#toast-container .toast')].map(t => t.textContent).join(' | ') };
     }, [GRN, RED]);
     ck('★★ 둘러보기에서 집은 그림은 의상 입히기에 있었어도 편집으로 돌려 넣는다 · 그 사실을 알린다', r.mode === 'edit' && /편집으로 바꿨어요/.test(r.toast), JSON.stringify({ mode: r.mode, toast: r.toast }));
-    ck('★★ 첫 장부터 줄을 세워 생성한다(대기열이 있어도 건너뛰지 않음)', r.ag.length === 2 && r.ag[0].q === true && r.ag[1].q === true, JSON.stringify(r.ag));
+    ck('★★ 집은 그림마다 생성을 부른다', r.ag.length === 2, JSON.stringify(r.ag));
     ck('★★ 따로 온 두 장이 겹쳐 돌지 않는다 — 각자 자기 그림으로, 앞 장이 끝난 뒤에', r.ag.length === 2 && /pick_one/.test(r.ag[0].name) && /pick_two/.test(r.ag[1].name) && r.ag[1].t0 >= r.ag[0].t1, JSON.stringify(r.ag));
-    const n = await p.evaluate(async (g) => {
-      window.__ag = [];
-      window.__pln.q.push({ name: 'IMG_plain.png', mime: 'image/png', size: 70, b64: g });
+    await ctx.close();
+  }
+
+  // ── ⑪ 연속 공유가 씹히지 않는다 (v9.209.0 — 사용자 신고 "연속으로 공유하면 씹힌다") ─────────
+  //   앱은 공유가 한 장씩 따로 온다 → 예전엔 둘째부터 '대기열이 있으면 건너뛰기'에 걸려 원본만 바뀌고 안 뽑혔다.
+  //   실패한 작업이 대기열에 남아 있어도 걸렸고, 생성 중엔 연결 확인(4초)이 늦어 '연결 안 됨'으로 건너뛰기도 했다.
+  //   ★ 진짜 _animaShareAutoGen 을 탄다 — 생성(_animaGenerate)과 연결 확인(_animaPing)만 흉내 낸다.
+  {
+    const { ctx, p } = await mk({ native: { q: [] } });
+    await p.goto(BASE, { waitUntil: 'load' });
+    await waitMount(p);
+    await p.waitForTimeout(400);
+    const prep = `window.__gen = []; window.__ping = 0;
+      _animaGenerate = async () => { await new Promise(x => setTimeout(x, 250)); _animaJobs.push({ status: 'queued', name: _anima.img && _anima.img.name }); window.__gen.push(_anima.img && _anima.img.name); };
+      _animaPing = async () => { window.__ping++; return window.__pingOk; };
+      document.querySelectorAll('#toast-container .toast').forEach(t => t.remove());`;
+    const shareN = async (names, gap) => p.evaluate(async ([names, gap, g, rd]) => {
+      for (let i = 0; i < names.length; i++) {
+        window.__pln.q.push({ name: names[i], mime: 'image/png', size: 70, b64: i % 2 ? rd : g });
+        window._plNativeShareArrived();
+        await new Promise(x => setTimeout(x, gap));
+      }
+      for (let i = 0; i < 80 && window.__gen.length < names.length; i++) await new Promise(x => setTimeout(x, 100));
+      await new Promise(x => setTimeout(x, 300));
+      return { gen: window.__gen.slice(), ping: window.__ping, toast: [...document.querySelectorAll('#toast-container .toast')].map(t => t.textContent).join(' | ') };
+    }, [names, gap, GRN, RED]);
+    //  A. 생성 중(+ 실패 1개 남음)에 3장을 따로따로 공유
+    await p.evaluate((prep) => { eval(prep); window.__pingOk = false; _animaJobs = [{ status: 'running' }, { status: 'error' }]; }, prep);
+    const a = await shareN(['seq_A', 'seq_B', 'seq_C'], 120);
+    ck('★★ 생성 중에 따로따로 온 공유 3장이 전부 뽑힌다(하나도 안 씹힘)', a.gen.length === 3, JSON.stringify(a));
+    ck('★ 각자 자기 그림으로 · 온 순서대로', JSON.stringify(a.gen.map(x => String(x).replace(/\..*$/, ''))) === JSON.stringify(['seq_A', 'seq_B', 'seq_C']), JSON.stringify(a.gen));
+    ck('★ 돌고 있으면 연결 확인을 건너뛴다(바쁜 PC 가 4초 안에 답 못 해 건너뛰던 것)', a.ping === 0, JSON.stringify(a));
+    ck('대기열에 넣었다고 알린다(씹혔나 헷갈리지 않게)', /대기열에 넣었어요/.test(a.toast), a.toast);
+    //  B. 실패한 작업만 남아 있을 때
+    await p.evaluate((prep) => { eval(prep); window.__pingOk = true; _animaJobs = [{ status: 'error' }]; }, prep);
+    const b2 = await shareN(['after_fail'], 0);
+    ck('★★ 실패한 작업이 남아 있어도 공유는 뽑힌다', b2.gen.length === 1 && b2.ping === 1, JSON.stringify(b2));
+    //  C. 아무것도 안 돌고 PC 도 꺼져 있으면 — 예전처럼 건너뛰고 이유를 말한다(실패 항목을 쌓지 않게)
+    await p.evaluate((prep) => { eval(prep); window.__pingOk = false; _animaJobs = []; }, prep);
+    const c = await p.evaluate(async (g) => {
+      window.__pln.q.push({ name: 'pc_off', mime: 'image/png', size: 70, b64: g });
       window._plNativeShareArrived();
-      for (let i = 0; i < 40 && !window.__ag.length; i++) await new Promise(x => setTimeout(x, 100));
-      return window.__ag.map(e => e.q);
+      for (let i = 0; i < 40 && !window.__ping; i++) await new Promise(x => setTimeout(x, 100));
+      await new Promise(x => setTimeout(x, 400));
+      return { gen: window.__gen.length, img: _anima.img && _anima.img.name, toast: [...document.querySelectorAll('#toast-container .toast')].map(t => t.textContent).join(' | ') };
     }, RED);
-    ck('평소 공유의 첫 장은 예전처럼(대기열이 있으면 건너뛰는 가드 유지)', n.length === 1 && n[0] === false, JSON.stringify(n));
+    ck('PC 가 꺼져 있으면 원본만 넣고 · 안 뽑은 이유를 말한다', c.gen === 0 && /pc_off/.test(c.img || '') && /연결되지 않아/.test(c.toast), JSON.stringify(c));
     await ctx.close();
   }
 

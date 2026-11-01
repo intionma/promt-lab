@@ -22,13 +22,18 @@ import android.view.ViewGroup;
  */
 final class SplitLayout extends ViewGroup {
 
-    interface Listener { void onRatio(float r, boolean done); }
+    interface Listener {
+        void onRatio(float r, boolean done);
+        /** 경계선을 한 번 탭 — 나누기 방향·자리를 고르는 메뉴(사용자 요청: "상하/좌우를 고르고 자리도 바꾸게"). */
+        default void onDividerTap(View anchor, float rawX, float rawY) { }
+    }
 
     final View lab, browser;
     final Divider divider;
     int mode = 0;
     float ratio = 0.5f;            // 브라우저가 차지하는 몫
     boolean browserFirst = true;   // 브라우저가 왼쪽(위)
+    int dir = 0;                   // 나누기 방향 — 0 자동(폭 600dp 이상이면 좌우) · 1 늘 좌우 · 2 늘 위아래 (사용자가 고른다)
     Listener listener;
     final float dp;
 
@@ -44,7 +49,7 @@ final class SplitLayout extends ViewGroup {
         apply();
     }
 
-    boolean sideBySide(int w) { return w >= 600 * dp; }
+    boolean sideBySide(int w) { return dir == 1 || (dir == 0 && w >= 600 * dp); }
 
     void setMode(int m) { mode = m; apply(); requestLayout(); }
     void setRatio(float r) { ratio = clamp(r); requestLayout(); }
@@ -115,9 +120,13 @@ final class SplitLayout extends ViewGroup {
 
         Divider(Context c) {
             super(c);
-            setContentDescription("화면 나누기 경계 — 끌어서 크기 조절, 두 번 탭하면 반반");
+            setContentDescription("화면 나누기 경계 — 끌어서 크기 조절, 한 번 탭하면 나누기 방식, 두 번 탭하면 반반");
             setTheme(false);
             gd = new GestureDetector(c, new GestureDetector.SimpleOnGestureListener() {
+                @Override public boolean onSingleTapConfirmed(MotionEvent e) {
+                    if (listener != null) listener.onDividerTap(Divider.this, e.getRawX(), e.getRawY());
+                    return true;
+                }
                 @Override public boolean onDoubleTap(MotionEvent e) {
                     ratio = 0.5f; requestLayoutAll(); if (listener != null) listener.onRatio(ratio, true); return true;
                 }

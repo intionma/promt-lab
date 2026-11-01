@@ -115,14 +115,15 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwA
     ck('공유 생성 뒤에도 내 설정이 그대로다', JSON.stringify(after) === JSON.stringify(setup.켠것),
         JSON.stringify(after) + ' vs ' + JSON.stringify(setup.켠것));
 
-    // 대기열이 차 있으면 밀어내지 않는가
+    // 대기열이 차 있으면 — v9.209.0 부터 건너뛰지 않고 **뒤에 붙는다**(연속 공유가 씹히던 원인). 앞 것은 그대로.
     const busy = await page.evaluate(async () => {
-        _animaJobs.push({ id: 999, status: 'queued', snap: {}, settings: {}, prompt: 'x' });
+        _animaJobs.push({ id: 999, status: 'running', snap: {}, settings: {}, prompt: 'x' });
         const r = await _animaShareAutoGen();
+        const out = { r, first: _animaJobs[0] && _animaJobs[0].id, n: _animaJobs.length };
         _animaJobs.length = 0;
-        return r;
+        return out;
     });
-    ck('대기열이 있으면 밀어내지 않는다', busy === false, String(busy));
+    ck('대기열이 있으면 밀어내지 않고 뒤에 붙는다', busy.r === true && busy.first === 999 && busy.n === 2, JSON.stringify(busy));
 
     const real = errs.filter(e => !/Failed to load|net::ERR|favicon/.test(e));
     ck('오류 없음', real.length === 0, real.slice(0, 3).join(' | '));

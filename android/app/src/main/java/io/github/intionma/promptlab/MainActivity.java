@@ -96,7 +96,20 @@ public class MainActivity extends Activity implements Browser.Host {
         bsp = getSharedPreferences("browser", MODE_PRIVATE);
         split.ratio = SplitLayout.clamp(bsp.getFloat("ratio", 0.5f));
         split.browserFirst = bsp.getBoolean("first", true);
-        split.listener = (r, done) -> { if (done) bsp.edit().putFloat("ratio", r).apply(); };
+        split.dir = bsp.getInt("dir", 0);
+        split.listener = new SplitLayout.Listener() {
+            @Override public void onRatio(float r, boolean done) { if (done) bsp.edit().putFloat("ratio", r).apply(); }
+            //  ⚠ 경계선 자체를 기준으로 열면 안 된다 — 좌우 나누기에선 막대가 화면 높이만큼 길어서 메뉴가 화면 맨 아래로
+            //    밀려 한 줄만 보였다(가상 기기 실측). 누른 자리에 작은 점을 두고 거기서 연다.
+            @Override public void onDividerTap(View anchor, float rawX, float rawY) {
+                final View dot = new View(MainActivity.this);
+                int[] o = new int[2]; overlay.getLocationOnScreen(o);
+                FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(1, 1);
+                lp.leftMargin = Math.round(rawX - o[0]); lp.topMargin = Math.round(rawY - o[1]);
+                overlay.addView(dot, lp);
+                dot.post(() -> showSplitMenu(dot));
+            }
+        };
         overlay = new FrameLayout(this);
         overlay.addView(split);
         setContentView(overlay);
@@ -384,6 +397,45 @@ public class MainActivity extends Activity implements Browser.Host {
         bsp.edit().putBoolean("first", split.browserFirst).apply();
         split.requestLayout();
     }
+    /**
+     * 나누기 방식 고르기 — 경계선을 한 번 탭하거나 ⋮ 메뉴에서 연다(사용자 요청).
+     *  방향: 자동(폭 600dp 이상이면 좌우) · 늘 좌우 · 늘 위아래 / 자리: 브라우저를 왼쪽·오른쪽(위·아래)으로 / 반반.
+     *  ⚠ 화면 크기로 의도를 맞히지 않는다(CLAUDE.md) — 자동은 처음 값일 뿐, 고르면 그대로 기억한다.
+     */
+    @Override public void showSplitMenu(View anchor) {
+        android.widget.PopupMenu pm = new android.widget.PopupMenu(this, anchor);
+        android.view.Menu m = pm.getMenu();
+        boolean side = split.sideBySide(split.getWidth());
+        m.add(1, 1, 0, "◫ 좌우로 나누기").setCheckable(true).setChecked(split.dir == 1);
+        m.add(1, 2, 1, "⬒ 위아래로 나누기").setCheckable(true).setChecked(split.dir == 2);
+        m.add(1, 3, 2, "자동 (넓으면 좌우, 좁으면 위아래)").setCheckable(true).setChecked(split.dir == 0);
+        m.setGroupCheckable(1, true, true);
+        String swap = side ? (split.browserFirst ? "⇆ 브라우저를 오른쪽으로" : "⇆ 브라우저를 왼쪽으로")
+                           : (split.browserFirst ? "⇅ 브라우저를 아래로" : "⇅ 브라우저를 위로");
+        m.add(2, 4, 3, swap);
+        m.add(2, 5, 4, "반반으로");
+        //  경계선을 눌러 열 때 둔 점은 닫히면 치운다
+        pm.setOnDismissListener(x -> { if (anchor.getParent() == overlay && anchor.getWidth() <= 1) overlay.removeView(anchor); });
+        pm.setOnMenuItemClickListener(it -> {
+            switch (it.getItemId()) {
+                case 1: setSplitDir(1); break;
+                case 2: setSplitDir(2); break;
+                case 3: setSplitDir(0); break;
+                case 4: swapSides(); break;
+                case 5: resetRatio(); break;
+            }
+            return true;
+        });
+        pm.show();
+    }
+
+    void setSplitDir(int d) {
+        split.dir = d;
+        bsp.edit().putInt("dir", d).apply();
+        if (split.mode == 0) setBrowserMode(1);   // 닫혀 있었으면 연다(방식을 골랐다는 건 나눠 보겠다는 뜻)
+        split.requestLayout();
+    }
+
     @Override public void resetRatio() { split.setRatio(0.5f); bsp.edit().putFloat("ratio", 0.5f).apply(); }
     @Override public boolean sideBySide() { return split.sideBySide(split.getWidth()); }
     @Override public ViewGroup overlay() { return overlay; }
