@@ -117,6 +117,9 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwA
 
     // 대기열이 차 있으면 — v9.209.0 부터 건너뛰지 않고 **뒤에 붙는다**(연속 공유가 씹히던 원인). 앞 것은 그대로.
     const busy = await page.evaluate(async () => {
+        //  ⚠ 앞 단계(공유 자동 생성)의 작업이 아직 남아 있다 — v9.209.0 부터 실패·진행 중 작업을 안 치우므로
+        //    비우고 시작해야 '앞 것 하나 + 새 것 하나'를 셀 수 있다(검사 가정 수정, 앱 동작은 그대로).
+        _animaJobs.length = 0;
         _animaJobs.push({ id: 999, status: 'running', snap: {}, settings: {}, prompt: 'x' });
         const r = await _animaShareAutoGen();
         const out = { r, first: _animaJobs[0] && _animaJobs[0].id, n: _animaJobs.length };

@@ -121,7 +121,7 @@ const boot = async (b, port, seed, adult) => {
   await s1.p.waitForTimeout(300);
   const f1 = await s1.p.evaluate(() => [...document.querySelectorAll('.anima-sec[data-sec="futa"] .anima-fld-l')].map(e => e.textContent.trim()));
   ck('★ 후타를 켜면 상세 칸이 전부 나온다',
-     JSON.stringify(f1) === JSON.stringify(['크기', '색', '귀두', '발기', '포피', '사정', '콘돔', '형태']), f1.join(','));
+     JSON.stringify(f1) === JSON.stringify(['크기', '불알', '색', '귀두', '발기', '포피', '사정', '콘돔', '형태']), f1.join(','));
 
   // ══ ⑥ 하단 바가 패널과 같아졌다 ════════════════════════════════════
   const bar = await s1.p.evaluate(() => {
@@ -148,7 +148,7 @@ const boot = async (b, port, seed, adult) => {
                   소제목: [...el.querySelectorAll('.anima-fp-lab')].map(e => e.textContent.trim()) } : null;
   });
   ck('★ 후타 팝오버 소제목이 패널 칸과 같다',
-     pop && pop.제목 === '후타' && JSON.stringify(pop.소제목) === JSON.stringify(['크기', '색', '귀두', '발기', '포피', '사정', '콘돔', '형태']),
+     pop && pop.제목 === '후타' && JSON.stringify(pop.소제목) === JSON.stringify(['크기', '불알', '색', '귀두', '발기', '포피', '사정', '콘돔', '형태']),
      JSON.stringify(pop));
 
   // ══ ⑦ 접힘이 새로고침 뒤에도 남는다 (★ 새로고침 필수) ═══════════════
