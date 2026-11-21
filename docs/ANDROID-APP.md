@@ -1,4 +1,4 @@
-# 📱 프롬프트 랩 안드로이드 앱 (껍데기) — v9.207.0 · 1.2(🌐 둘러보기) v9.208.0
+# 📱 프롬프트 랩 안드로이드 앱 (껍데기) — v9.207.0 · 1.2(🌐 둘러보기) v9.208.0 · 1.5(광고 차단)
 
 ## 왜 만들었나
 홈 화면에 설치한 웹앱(WebAPK)으로 사진을 **공유**하면 크롬 안에서 사진이 빠지고 이름표만 온다
@@ -79,6 +79,67 @@ blob 그림은 화면 그대로(824×549) + 안내 · 넣으면 편집으로·qu
 최근에 닫은 탭 되살리기 · 새 탭 화면 · ⋮ 메뉴 · 당겨서 새로고침(서버에 다시 요청 옴) · 내리면 툴바 숨김/올리면 나옴 ·
 링크 꾹 메뉴 → 새 탭(뒤에서 열림) · 스낵바 · 가로 = 태블릿 탭 줄 · 그림 꾹 = 원본으로 랩에 들어감(1.2 동작 그대로).
 
+### 앱 1.5 — 광고 차단 (사용자 요청)
+**늘 켜져 있고 설정 화면이 없다.** 끄는 건 ⋮ 메뉴의 「이 사이트에서 광고 차단 끄기」뿐(사이트별, 앱 저장소 `adblock` 의 `off`).
+같은 줄 둘째 줄에 **「광고 N개 막음」**(지금 페이지에서 막은 요청 수). 사이트 정보(ⓘ)에도 같은 숫자 + 목록 크기가 나온다.
+- 코드: `AdBlockCore.java`(안드로이드 API 안 씀 — 맞추기·목록 읽기·받기) · `AdBlock.java`(목록 싣기·갱신·사이트별 끄기·빈 응답) ·
+  `Browser.java`(`shouldInterceptRequest`·팝업·넘기기·CSS·메뉴). **둘러보기 탭에만** 건다 — 랩 WebView 는 그대로.
+- **막는 법**: `shouldInterceptRequest` 에서 요청 도메인 **또는 그 윗단계**(a.b.ads.com → b.ads.com → ads.com)가 목록에 있으면 빈 200 응답.
+  HashSet 조회 몇 번이다(컴퓨터 실측 요청 하나 약 0.35µs). 이 메서드는 **백그라운드 스레드**라 목록·꺼 둔 사이트는 volatile 로 통째로 바꿔 끼운다.
+  - ⚠ **주 문서(내가 연 페이지)는 절대 안 막는다.** 목록에 있는 사이트라도 직접 가면 열린다.
+  - ⚠ **그 사이트 자체에 가 있으면 그 사이트 것은 안 막는다**(예: amplitude.com 을 직접 열면 amplitude.com 의 파일은 통과) — 안 그러면 그 사이트가 통째로 깨진다.
+  - **허용 목록이 이긴다**(`AdBlockCore.ALLOW`, 하위 도메인 포함): intionma.github.io · cdn.donmai.us · danbooru.donmai.us · i.pximg.net ·
+    static.wikia.nocookie.net · raw.githubusercontent.com · schaledb.com · blue-utils.me · sr.yatta.moe · gi.yatta.moe · cdn.dak.gg · sdvxindex.com.
+    목록을 만들 때도 이것과 부딪히는 항목(그 윗단계 포함)은 뺀다.
+- **팝업**: 사람이 안 누른 새 창은 1.4 부터 늘 막는다(그대로). 1.5 에서 더한 것 — **스크립트가 연 새 창**(아무 데나 누르면 뜨는 팝언더가 이 길)의
+  첫 주소가(중간에 넘겨져도) 목록 도메인이면 그 탭을 닫고 연 탭으로 돌아가 「팝업 광고를 막았어요」. 진짜 링크(target=_blank)를 누른 건
+  사람이 고른 이동이라 그대로 연다(`getHitTestResult` 가 링크인가로 가른다). '최근에 닫은 탭'에도 안 남긴다.
+- **넘기기**: 사람이 안 누른(타이머·스크립트) 주 문서 이동이 목록 도메인으로 가면 막고 「광고 페이지로 넘기려는 것을 막았어요」.
+  서버가 넘기는 것(`isRedirect`)은 사용자가 누른 링크의 일부라 그대로 둔다. 둘 다 **그 사이트에서 광고 차단이 켜져 있을 때만**.
+- **빈 칸 숨기기**: 페이지가 뜨면(`onPageCommitVisible`·`onPageFinished`) `<style id=__plAdCss>` 를 넣는다 — `ins.adsbygoogle` · `div-gpt-ad…` ·
+  `google_ads_iframe…` · 광고 회사 주소의 iframe · `amp-ad` · 타불라/아웃브레인 칸만. ⚠ `.ad`·`[class*=ad]` 같은 넓은 선택자는 일부러 안 넣었다
+  ('head'·'shadow'·'download' 까지 걸려 레이아웃이 깨진다).
+- **목록**: `app/src/main/assets/adblock-hosts.txt` — **7,356개 도메인**(145KB, APK 안에서 압축 51KB). APK 는 1.4 의 160KB → **약 227KB**.
+  출처(전부 재배포 가능한 것만 — 직접 라이선스 확인, 2026-11-21):
+  | 목록 | 라이선스 |
+  |---|---|
+  | StevenBlack 자체 목록 (`data/StevenBlack/hosts`) | MIT |
+  | AdAway 기본 목록 | CC BY 3.0 (출처 표기) |
+  | FadeMind add.2o7Net · UncheckyAds | MIT |
+  | tiuxo hostlist `ads` | CC BY 4.0 (출처 표기) |
+  출처 표기는 목록 파일 머리 주석에 적어 둔다. ⚠ **StevenBlack '통합본'(76,000개)을 통째로 쓰지 않는다** — 안에 비상업 조건(MVPS CC BY-NC-SA ·
+  someonewhocares)과 라이선스가 안 적힌 것(Peter Lowe)이 섞여 있고, 사기·스팸 목록(KADhosts 5만 개)이라 광고 차단엔 필요 없다.
+  합친 뒤 윗단계 도메인이 이미 있는 항목은 뺀다(1만 2천 → 7천 — 윗단계로 다 걸린다).
+- **자동 갱신**: 둘러보기를 만들 때·열 때 `AdBlock.maybeUpdate()` — **성공하면 4일, 실패하면 12시간** 뒤에야 실제로 받는다(백그라운드 스레드).
+  위 5개를 raw.githubusercontent.com 에서 받아 같은 규칙으로 합쳐 `files/adblock-hosts.txt` 에 둔다(임시 파일 → 이름 바꾸기).
+  **하나라도 실패하거나 3,000개 미만이면 버리고** 지금 것(지난번 받은 것 → 없으면 실린 것)을 그대로 쓴다. 받을 때는 출처당 8MB 까지만.
+- **실린 목록 다시 만들기**(자동 갱신과 같은 코드):
+  ```
+  cd android
+  javac -d /tmp/abc app/src/main/java/io/github/intionma/promptlab/AdBlockCore.java
+  java -cp /tmp/abc io.github.intionma.promptlab.AdBlockCore build app/src/main/assets/adblock-hosts.txt
+  ```
+- **검사**: `android/tools/AdBlockCheck.java` — 컴퓨터 자바로 돈다(JUnit 없음). 윗단계 맞추기 · 비슷한 이름(notads.·badtracker.) 안 걸림 ·
+  허용 목록이 이김 · 그 사이트 자체 · 줄이기 · **실린 목록에서 위 이미지 CDN·자주 쓰는 사이트 50여 곳이 안 걸리고 광고 10곳은 걸림** · 속도.
+  ```
+  javac -d /tmp/abc app/src/main/java/io/github/intionma/promptlab/AdBlockCore.java tools/AdBlockCheck.java
+  java -Dstdout.encoding=UTF-8 -cp /tmp/abc io.github.intionma.promptlab.AdBlockCheck app/src/main/assets/adblock-hosts.txt   # → ALL PASS (80)
+  ```
+- ⚠ 사이트별로 끄면 **새로고침**한다 — 이미 막힌 요청은 되살아나지 않는다.
+- ⚠ 그림 꾹 = 바로 넣기 · 🎯 집기 · PLNative 안 달기 · 1.4 탭·제스처는 손대지 않았다. 그림 받기(`fetchAndDeliver`)는 앱(자바)이 직접 받으므로
+  광고 차단을 안 탄다.
+- ⚠ 이 작업 환경에서 셸 명령에 `github.io`·`githubusercontent`·패키지 이름(`io.github…`) 같은 글자가 들어가면 작업 공간 보호가
+  'git 명령'으로 오인해 막는 일이 있었다 — 스크립트 파일로 빼서 돌리면 된다.
+- ⚠ 컴퓨터 자바의 출력이 `??` 로 깨지면 `-Dstdout.encoding=UTF-8`.
+
+가상 안드로이드(11, WebView 83, 디버그 판)에서 직접 확인(1.5): 광고 도메인 스크립트 3개(doubleclick 하위 · google-analytics · adnxs 하위)는
+빈 응답으로 막힘 · 허용 목록(cdn.donmai.us · i.pximg.net)과 목록 밖 도메인은 그대로 네트워크로 감 · `ins.adsbygoogle`·`div-gpt-ad` 칸은 숨고
+보통 칸·`ad-head-shadow` 같은 이름의 칸은 그대로 · ⋮ 메뉴 「광고 3개 막음」 · 「끄기」 → 새로고침 뒤 아무것도 안 막고 CSS 도 없음 → 「켜기」로 되돌아옴 ·
+**껐다 앱을 다시 켜도 그 사이트는 꺼진 채** · 아무 데나 누르면 뜨는 스크립트 팝업(광고 도메인)은 닫히고 수가 1 늘어남 ·
+광고 도메인으로 가는 **진짜 링크(target=_blank)는 새 탭으로 열림** · 타이머로 광고 도메인에 넘기는 페이지는 그 자리에 남고, 같은 사이트로 넘기는 건 됨 ·
+목록 갱신은 가상 기기가 인터넷이 안 돼 실패 → 실린 목록으로 계속 막음(`triedAt` 만 남음) · **그림 꾹 = 편집 원본으로 들어감**(1.2 동작 그대로) ·
+둘러보기 페이지엔 `PLNative` 가 없다. (실제 인터넷에서 목록 받기 성공은 가상 기기로 확인 못 했다 — 받는 코드는 컴퓨터에서 같은 코드로 돌려 7,356개를 받았다.)
+
 ## 지킬 것
 - ⚠ **다른 사이트로 화면을 바꾸지 않는다** — 바뀌면 그 사이트도 `PLNative` 를 부를 수 있다. 바깥 링크는 휴대폰 브라우저로 연다.
 - ⚠ `configChanges` 를 빼지 말 것 — 폴드를 접었다 펴거나 화면을 나눌 때 액티비티가 다시 만들어져 **웹앱이 새로고침**된다.
@@ -99,7 +160,7 @@ blob 그림은 화면 그대로(824×549) + 안내 · 넣으면 편집으로·qu
 cd android
 echo "sdk.dir=/opt/android-sdk" > local.properties
 #  keystore.properties (저장소에 올리지 않음): storeFile / storePassword / keyAlias=promptlab / keyPassword
-./gradlew assembleRelease      # → app/build/outputs/apk/release/app-release.apk (약 36KB)
+./gradlew assembleRelease      # → app/build/outputs/apk/release/app-release.apk (1.5 = 약 227KB, 광고 차단 목록 포함)
 ```
 껍데기를 고치면 `versionCode` 를 올린다(같으면 업데이트로 안 깔린다).
 

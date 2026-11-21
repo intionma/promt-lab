@@ -356,6 +356,17 @@ FluxKontextMultiReferenceLatentMethod `index_timestep_zero` · KSampler euler/si
   스크롤 따라 툴바 숨김 · 카드 밀어 닫기+실행취소 · 크롬 메뉴·새 탭 화면·태블릿 탭 줄. 상세·함정은 `docs/ANDROID-APP.md` '앱 1.4'.
   ⚠ 그림 꾹 = 바로 넣기(이 앱만의 동작)는 그대로 둔다 — 크롬과 같게 만들되 이것만은 바꾸지 말 것.
 
+#### 🛡 광고 차단 (앱 1.5 — 사용자 요청) — 상세는 `docs/ANDROID-APP.md` '앱 1.5'
+**늘 켜짐, 설정 화면 없음.** ⋮ 메뉴 「이 사이트에서 광고 차단 끄기/켜기」(사이트별) + 둘째 줄 「광고 N개 막음」. 웹앱(`index.html`)은 안 바뀐다.
+- `shouldInterceptRequest`(백그라운드 스레드)에서 요청 도메인·윗단계가 목록에 있으면 빈 응답. 목록은 APK 에 실린 7천여 개
+  (StevenBlack 자체·AdAway·FadeMind·tiuxo — MIT/CC BY 만) + **4일마다 백그라운드 갱신**(실패하면 실린 것/지난번 것 그대로).
+- ⚠ **주 문서는 절대 안 막는다** · 그 사이트에 직접 가 있으면 그 사이트 것도 안 막는다 · **허용 목록(`AdBlockCore.ALLOW`)이 이긴다** —
+  사용자가 쓰는 이미지 CDN(donmai·pximg·wikia·yatta·schaledb…)과 intionma.github.io. 새 CDN 이 막히면 여기에 더한다.
+- 팝업: 스크립트가 연 새 창의 첫 주소가 광고 도메인이면 닫는다(진짜 링크 target=_blank 는 연다). 사람이 안 누른 넘기기가 광고 도메인이면 막는다.
+- 빈 칸 숨기기 CSS 는 **확실한 광고 칸만**(`ins.adsbygoogle`·`div-gpt-ad`…). `.ad`·`[class*=ad]` 처럼 넓게 잡지 말 것.
+- 둘러보기 WebView 에만 건다(랩 WebView 무관) · PLNative 안 단다 · 그림 받기는 앱이 직접 받으니 차단을 안 탄다.
+검사: `android/tools/AdBlockCheck.java`(컴퓨터 자바 — 윗단계 맞추기·허용 목록·실린 목록에서 CDN 안 걸림).
+
 ## 🔍 8갈래 감사 1차 수정 (v9.204.0) — `docs/IMPROVE-2026-10-11.md`
 에이전트 8개(속도·디자인·코드 건강·보안·플랫폼 조사·새 테마 조사·검사 체계·접근성)로 읽기 전용 감사 → 검증된 것부터 고쳤다.
 **새로 생긴 규칙·함정만** 적는다:

@@ -17,7 +17,7 @@ final class Ico extends Drawable {
     static final int BACK = 1, FWD = 2, REFRESH = 3, CLOSE = 4, MORE = 5, STAR = 6, STAR_ON = 7, INFO = 8, LOCK = 9,
             TUNE = 10, WARN = 11, SEARCH = 12, GLOBE = 13, CLOCK = 14, PLUS = 15, TARGET = 16, TARGET_ON = 17, SHARE = 18,
             UP = 19, DOWN = 20, NEWTAB = 21, GRID = 22, EXPAND = 23, SPLIT = 24, DESKTOP = 25, COPY = 26, BOOKMARKS = 27,
-            BAR_BOTTOM = 28, TRASH = 29, OPEN_OUT = 30, CHECK = 31, COLLAPSE = 32, HOME = 33;
+            BAR_BOTTOM = 28, TRASH = 29, OPEN_OUT = 30, CHECK = 31, COLLAPSE = 32, HOME = 33, SHIELD = 34, SHIELD_OFF = 35;
 
     final int type;
     final Paint st = new Paint(Paint.ANTI_ALIAS_FLAG), fill = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -92,6 +92,12 @@ final class Ico extends Drawable {
             case TRASH: line(c, 4, 6.5f, 20, 6.5f); p.moveTo(6.5f, 6.5f); p.lineTo(7.5f, 20); p.lineTo(16.5f, 20); p.lineTo(17.5f, 6.5f); c.drawPath(p, st); line(c, 9.5f, 3.5f, 14.5f, 3.5f); break;
             case OPEN_OUT: p.moveTo(18, 13); p.lineTo(18, 20); p.lineTo(4, 20); p.lineTo(4, 6); p.lineTo(11, 6); c.drawPath(p, st); line(c, 14, 4, 20, 4); line(c, 20, 4, 20, 10); line(c, 20, 4, 11, 13); break;
             case CHECK: p.moveTo(5, 12.5f); p.lineTo(10, 17.5f); p.lineTo(19, 7); c.drawPath(p, st); break;
+            case SHIELD: case SHIELD_OFF:   // 광고 차단(앱 1.5) — 방패, 끄면 빗금
+                p.moveTo(12, 3); p.lineTo(19.5f, 6); p.lineTo(19.5f, 11.5f); p.cubicTo(19.5f, 16, 16.5f, 19.5f, 12, 21);
+                p.cubicTo(7.5f, 19.5f, 4.5f, 16, 4.5f, 11.5f); p.lineTo(4.5f, 6); p.close(); c.drawPath(p, st);
+                if (type == SHIELD) { p.reset(); p.moveTo(8.5f, 12); p.lineTo(11, 14.5f); p.lineTo(15.5f, 9.5f); c.drawPath(p, st); }
+                else line(c, 4, 4, 20, 20);
+                break;
         }
         c.restore();
     }

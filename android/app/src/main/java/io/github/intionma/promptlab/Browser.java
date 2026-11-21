@@ -49,6 +49,7 @@ import android.webkit.RenderProcessGoneDetail;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -76,6 +77,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 🌐 둘러보기 — 앱 안의 브라우저. 앱 1.4 에서 **크롬(안드로이드)과 같은 모양·같은 제스처**로 다시 만들었다(사용자 요청).
@@ -128,6 +130,11 @@ final class Browser {
         Bitmap thumb;    // 탭 목록 카드·옆 탭 미리보기
         Bundle state;    // WebView 를 치울 때 뒤로가기 기록을 남겨 둔다
         long usedAt;
+        //  광고 차단(앱 1.5) — shouldInterceptRequest(백그라운드 스레드)가 읽으므로 volatile
+        volatile String pageHost;                       // 지금 페이지의 도메인(주 문서 요청 때 바뀐다)
+        volatile String openerHost;                     // 새 창으로 열렸으면 연 페이지의 도메인
+        volatile boolean popup;                         // 새 창인데 아직 페이지가 안 떴다 — 첫 주소가 광고면 닫는다
+        final AtomicInteger blocked = new AtomicInteger();   // 이 페이지에서 막은 수(⋮ 메뉴에 보여 준다)
     }
 
     final MainActivity act;
@@ -175,6 +182,7 @@ final class Browser {
         pick = sp.getBoolean("pick", false);
         desktop = sp.getBoolean("desktop", false);
         barBottom = sp.getBoolean("barBottom", false);
+        AdBlock.init(a);
         palette(false);
 
         root = new FrameLayout(a) {
@@ -981,6 +989,7 @@ final class Browser {
         Tab t = curTab();
         if (t == null) return;
         t.usedAt = System.currentTimeMillis();
+        AdBlock.maybeUpdate();   // 며칠에 한 번만 실제로 받는다(백그라운드)
         if (t.w == null) {
             t.w = makeWeb(t);
             if (t.state != null && t.w.restoreState(t.state) != null) { t.state = null; }
@@ -1333,13 +1342,47 @@ final class Browser {
                 Uri u = r.getUrl();
                 String sc = u.getScheme() == null ? "" : u.getScheme().toLowerCase();
                 if (sc.equals("plfocus")) { if (v == curWeb()) focusOmni(); return true; }   // 새 탭 화면의 검색 상자
-                if (sc.equals("http") || sc.equals("https")) return false;
+                if (sc.equals("http") || sc.equals("https")) {
+                    if (r.isForMainFrame()) {
+                        String h = u.getHost();
+                        //  새 창(팝업)의 첫 페이지가 광고 도메인이면(중간에 넘겨져도) 닫고 연 탭으로 돌아간다
+                        if (t.popup && AdBlock.shouldBlock(h, t.openerHost)) { killPopup(t); return true; }
+                        //  사람이 안 누른 넘기기(타이머·스크립트)가 광고 도메인으로 가면 막는다. 서버가 넘기는 것(isRedirect)은
+                        //  사용자가 누른 링크의 일부라 그대로 둔다 — ⚠ 사람이 고른 이동은 막지 않는다.
+                        if (!r.hasGesture() && !r.isRedirect() && t.pageHost != null && AdBlock.shouldBlock(h, t.pageHost)) {
+                            t.blocked.incrementAndGet();
+                            if (v == curWeb()) flash("광고 페이지로 넘기려는 것을 막았어요", 2400, null, null);
+                            return true;
+                        }
+                    }
+                    return false;
+                }
                 if (sc.equals("about") || sc.equals("data") || sc.equals("blob") || sc.equals("javascript")) return false;
                 //  intent: · market: · tel: … — 사람이 누른 것만 밖으로(페이지가 몰래 앱을 열지 못하게)
                 if (r.hasGesture()) host.openOutside(u);
                 return true;
             }
+            @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) {
+                //  ⚠ 백그라운드 스레드다 — UI·WebView 를 만지지 말 것(만질 일은 ui.post 로)
+                Uri u = r.getUrl();
+                String sc = u.getScheme();
+                if (sc == null || !(sc.equals("http") || sc.equals("https"))) return null;
+                String h = u.getHost();
+                if (r.isForMainFrame()) {
+                    if (t.popup && AdBlock.shouldBlock(h, t.openerHost)) { ui.post(() -> killPopup(t)); return AdBlock.empty(); }
+                    t.pageHost = h;          // ⚠ 주 문서는 막지 않는다 — 사용자가 연 페이지다
+                    t.blocked.set(0);
+                    return null;
+                }
+                if (!AdBlock.shouldBlock(h, t.pageHost)) return null;
+                t.blocked.incrementAndGet();
+                return AdBlock.empty();
+            }
+            @Override public void onPageCommitVisible(WebView v, String url) {
+                if (isWeb(url)) { t.popup = false; injectAdCss(v, url); }
+            }
             @Override public void onPageStarted(WebView v, String url, Bitmap fav) {
+                if (isWeb(url)) t.pageHost = hostOf(url);
                 v.setBackgroundColor(isNtpUrl(url) ? cPage : Color.WHITE);   // 새 탭 화면은 테마색, 사이트는 흰 바탕
                 if (v == curWeb()) { prog.setProgress(5); prog.setVisibility(isNtpUrl(url) ? View.INVISIBLE : View.VISIBLE); setChromeShown(true); syncBar(); }
                 injectFlags(v);
@@ -1347,6 +1390,7 @@ final class Browser {
             @Override public void onPageFinished(WebView v, String url) {
                 if (v == curWeb()) { prog.setVisibility(View.INVISIBLE); endRefresh(); syncBar(); updateStrip(); }
                 injectFlags(v);
+                if (isWeb(url)) { t.popup = false; injectAdCss(v, url); }
                 if (isWeb(url)) { t.url = url; t.title = v.getTitle() == null ? "" : v.getTitle(); addHistory(url, v.getTitle()); saveTabs(); }
                 else if (isNtpUrl(url)) { t.url = NTP; t.title = ""; }
             }
@@ -1369,11 +1413,21 @@ final class Browser {
             @Override public void onProgressChanged(WebView v, int p) { if (v == curWeb()) prog.setProgress(Math.max(5, p)); }
             @Override public void onReceivedTitle(WebView v, String title) { if (!isNtpUrl(v.getUrl())) t.title = title == null ? "" : title; if (tablet) updateStrip(); }
             @Override public boolean onCreateWindow(WebView v, boolean dialog, boolean gesture, Message msg) {
-                if (!gesture) return false;   // 사람이 안 누른 팝업은 막는다
+                if (!gesture) {   // 사람이 안 누른 팝업은 막는다(1.4 부터 — 사이트별 광고 차단과 무관하게 늘)
+                    if (AdBlock.siteOn(t.pageHost)) t.blocked.incrementAndGet();
+                    return false;
+                }
                 Tab nt = newTab(null, false);
                 if (nt == null) return false;
                 nt.url = "about:blank";
                 nt.opener = t;
+                nt.openerHost = t.pageHost;
+                nt.pageHost = t.pageHost;
+                //  진짜 링크(target=_blank)를 누른 건 사람이 고른 이동이라 그대로 연다. 스크립트가 연 창(아무 데나 누르면 뜨는
+                //  팝언더 광고가 이 길이다)만 지켜보다가 첫 주소가 광고 도메인이면 닫는다(killPopup).
+                WebView.HitTestResult hr = v.getHitTestResult();
+                int ht = hr == null ? 0 : hr.getType();
+                nt.popup = !(ht == WebView.HitTestResult.SRC_ANCHOR_TYPE || ht == WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE);
                 nt.w = makeWeb(nt);           // 먼저 만들어 둬야 show() 가 새 탭 화면을 열지 않는다
                 ((WebView.WebViewTransport) msg.obj).setWebView(nt.w);
                 msg.sendToTarget();
@@ -1474,6 +1528,35 @@ final class Browser {
     void injectFlags(WebView w) {
         w.evaluateJavascript("(function(){try{if(!window.__plH){window.__plH=1;var f=function(e){if(window.__plPick){e.preventDefault();e.stopImmediatePropagation();}};"
                 + "window.addEventListener('click',f,true);window.addEventListener('auxclick',f,true);}window.__plPick=" + (pick ? "true" : "false") + ";}catch(e){}})()", null);
+    }
+
+    /** 빈 광고 칸 숨기기(보수적인 CSS) — 그 사이트에서 광고 차단을 꺼 뒀으면 안 건다. */
+    void injectAdCss(WebView w, String url) {
+        if (!AdBlock.siteOn(hostOf(url))) return;
+        w.evaluateJavascript(AdBlock.CSS_JS, null);
+    }
+
+    /** 광고로 가는 새 창 — 닫고 연 탭으로 돌아간다. '최근에 닫은 탭'에도 안 남긴다. */
+    void killPopup(Tab t) {
+        if (!t.popup) return;
+        t.popup = false;
+        int i = tabs.indexOf(t);
+        if (i < 0) return;
+        Tab op = t.opener;
+        closeTab(i, false);
+        closed.poll();   // closeTab 이 맨 앞에 넣은 그 항목
+        if (op != null && tabs.contains(op)) { op.blocked.incrementAndGet(); switchTo(tabs.indexOf(op)); }
+        flash("팝업 광고를 막았어요", 2200, null, null);
+    }
+
+    /** ⋮ 메뉴 — 이 사이트에서 광고 차단 끄기/켜기. 바꾸면 새로고침해야 이미 막은 것이 돌아온다. */
+    void toggleSiteAds(String u) {
+        String h = hostOf(u);
+        boolean on = !AdBlock.siteOn(h);
+        AdBlock.setSiteOn(h, on);
+        WebView w = curWeb();
+        if (w != null) w.reload();
+        flash(on ? "이 사이트에서 광고 차단을 켰어요" : "이 사이트에서 광고 차단을 껐어요 — " + AdBlock.siteKey(h), 2600, null, null);
     }
 
     void setPick(boolean on) {
@@ -1618,6 +1701,13 @@ final class Browser {
         divider(inner);
         if (web) menuRow(inner, pw, Ico.SHARE, "공유…", null, () -> share(u));
         menuRow(inner, pw, Ico.SEARCH, "페이지에서 찾기", null, this::openFind);
+        if (web) {
+            Tab ct = curTab();
+            boolean adOn = AdBlock.siteOn(hostOf(u));
+            int n = ct == null ? 0 : ct.blocked.get();
+            menuRow(inner, pw, adOn ? Ico.SHIELD : Ico.SHIELD_OFF, adOn ? "이 사이트에서 광고 차단 끄기" : "이 사이트에서 광고 차단 켜기",
+                    adOn ? "광고 " + n + "개 막음" : "이 사이트는 광고 차단을 꺼 뒀어요", null, () -> toggleSiteAds(u));
+        }
         menuRow(inner, pw, Ico.DESKTOP, "데스크톱 사이트", desktop, () -> setDesktop(!desktop));
         menuRow(inner, pw, Ico.BAR_BOTTOM, barBottom ? "주소 표시줄을 위로" : "주소 표시줄을 아래로", null, () -> setBarBottom(!barBottom));
         divider(inner);
@@ -1637,6 +1727,11 @@ final class Browser {
     }
 
     void menuRow(LinearLayout box, PopupWindow pw, int icon, String label, Boolean checked, Runnable run) {
+        menuRow(box, pw, icon, label, null, checked, run);
+    }
+
+    /** @param sub 둘째 줄(작고 흐리게) — 광고 차단의 '광고 N개 막음' */
+    void menuRow(LinearLayout box, PopupWindow pw, int icon, String label, String sub, Boolean checked, Runnable run) {
         LinearLayout r = new LinearLayout(act);
         r.setOrientation(LinearLayout.HORIZONTAL);
         r.setGravity(Gravity.CENTER_VERTICAL);
@@ -1649,7 +1744,17 @@ final class Browser {
         TextView t = new TextView(act);
         t.setText(label); t.setTextColor(cFg); t.setTextSize(15);
         t.setPadding(px(18), 0, px(8), 0);
-        r.addView(t, new LinearLayout.LayoutParams(0, -2, 1f));
+        if (sub == null) r.addView(t, new LinearLayout.LayoutParams(0, -2, 1f));
+        else {
+            LinearLayout col = new LinearLayout(act);
+            col.setOrientation(LinearLayout.VERTICAL);
+            col.addView(t);
+            TextView st = new TextView(act);
+            st.setText(sub); st.setTextColor(cDim); st.setTextSize(12);
+            st.setPadding(px(18), px(1), px(8), 0);
+            col.addView(st);
+            r.addView(col, new LinearLayout.LayoutParams(0, -2, 1f));
+        }
         if (checked != null) {
             ImageView cb = new ImageView(act);
             GradientDrawable sq = new GradientDrawable();
@@ -1661,7 +1766,7 @@ final class Browser {
             r.addView(cb, new LinearLayout.LayoutParams(px(20), px(20)));
         }
         r.setOnClickListener(v -> { pw.dismiss(); run.run(); });
-        box.addView(r, new LinearLayout.LayoutParams(-1, px(48)));
+        box.addView(r, new LinearLayout.LayoutParams(-1, px(sub == null ? 48 : 58)));
     }
 
     /** 크롬처럼 단추 자리에 겹쳐 연다(주소창이 아래면 위로 펼친다). 화면 밖으로 안 나가게. */
@@ -1715,7 +1820,10 @@ final class Browser {
         final String u = w != null ? w.getUrl() : null;
         if (u == null || isNtpUrl(u)) return;
         boolean https = u.startsWith("https://");
-        dlg(hostOf(u)).setMessage((https ? "🔒 연결이 안전합니다\n\n" : "⚠ 주의 요함 — 암호화되지 않은 연결이에요\n\n") + u)
+        Tab ct = curTab();
+        String ad = AdBlock.siteOn(hostOf(u)) ? "🛡 광고 차단: 이 페이지에서 " + (ct == null ? 0 : ct.blocked.get()) + "개 막음 (목록 " + AdBlock.count() + "개 도메인)"
+                : "🛡 광고 차단: 이 사이트에서는 꺼 둠";
+        dlg(hostOf(u)).setMessage((https ? "🔒 연결이 안전합니다\n\n" : "⚠ 주의 요함 — 암호화되지 않은 연결이에요\n\n") + u + "\n\n" + ad)
                 .setPositiveButton("링크 복사", (d, i) -> { copy(u); flash("링크를 복사했어요", 1600, null, null); })
                 .setNegativeButton("닫기", null).show();
     }
