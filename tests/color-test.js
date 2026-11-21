@@ -216,9 +216,9 @@ const boot=async(b,port,seed)=>{
    const el=document.getElementById('anima-futapop'); if(!el) return {err:'안 열림'};
    return { 소제목:[...el.querySelectorAll('.anima-fp-lab')].map(e=>e.textContent), 칩수: el.querySelectorAll('.anima-chip[data-fd]').length };
  });
- ck('후타 팝오버 섹션 (v9.161.0에서 귀두 추가·대비는 귀두로 흡수)',
-    JSON.stringify(pop3.소제목)===JSON.stringify(['발기','포피','사정','콘돔','형태','색','귀두']), JSON.stringify(pop3));
- ck('후타 팝오버에 22개 칩 (v9.161.0 하양·귀두 핑크 추가)', pop3.칩수===22, String(pop3.칩수));
+ ck('후타 팝오버 섹션 (v9.161.0에서 귀두 추가·대비는 귀두로 흡수 · v9.211.0 불알 맨 위)',
+    JSON.stringify(pop3.소제목)===JSON.stringify(['불알','발기','포피','사정','콘돔','형태','색','귀두']), JSON.stringify(pop3));
+ ck('후타 팝오버에 26개 칩 (v9.161.0 하양·귀두 핑크 · v9.211.0 불알 4)', pop3.칩수===26, String(pop3.칩수));
 
  // ── 옵션 패널에 '기타'로 새어 나오지 않는가
  const panel=await p.evaluate(async()=>{

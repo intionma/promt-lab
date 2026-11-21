@@ -47,7 +47,7 @@ const GROUPS = {
   share: ['sharemime', 'dropin', 'sharequeue', 'shareresume', 'backguard'],   // 공유 진입 · 뒤로가기
   gallery: ['gallery', 'galcache', 'useresult', 'shareresume', 'afteronly', 'lbhead', 'lboffline'],
   gen:     ['autogen', 'recroll', 'sendpos'],                          // 생성 · 연속 자동 생성 · 🎲                   // 결과 목록 · 크게 보기 · 공유
-  prompt:  ['nl', 'animanl', 'ink', 'inkmax', 'outfit', 'looks', 'pose', 'posonly', 'family', 'combo2', 'color', 'recroll'],
+  prompt:  ['nl', 'animanl', 'ink', 'inkmax', 'outfit', 'looks', 'pose', 'posonly', 'family', 'combo2', 'color', 'recroll', 'fball'],
   editor:  ['editor', 'keeporder', 'lorapin', 'sendpos'],               // 클래식 에디터 · LoRA
   io:      ['backup', 'robust', 'changelog', 'shutdown'],               // 백업 · 복구 · 내역 · PC 종료
 };
