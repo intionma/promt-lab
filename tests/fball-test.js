@@ -47,6 +47,8 @@ async function open(b, port, seed) {
 const gen = (p, sets) => p.evaluate(async ({ sets, PX }) => {
   const out = [];
   _anima.img = { dataURL: PX, name: 't.png' }; _anima.prompt = 'masterpiece, 1girl, nude';
+  //  v9.212.0 에서 피부색 문구(쉼표 정리)가 바뀌었다 — 이 검사는 불알 논리만 보므로 양쪽 판에 같은 문구를 쓴다.
+  _anima.snippets.forEach(s => { if (s.group === 'skin') s.text = 'her whole body is ' + s.id + ' toned, (' + s.id + ':1.4)'; });
   for (const ids of sets) {
     _anima.snippets.forEach(s => { s.on = ids.includes(s.id); });
     _animaJobs = [];
